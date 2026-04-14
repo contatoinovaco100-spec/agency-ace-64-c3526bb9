@@ -1,0 +1,1636 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.4"
+  }
+  public: {
+    Tables: {
+      budget_items: {
+        Row: {
+          actual_cost: number
+          budget_id: string
+          category: string
+          created_at: string
+          description: string
+          estimated_cost: number
+          id: string
+        }
+        Insert: {
+          actual_cost?: number
+          budget_id: string
+          category?: string
+          created_at?: string
+          description?: string
+          estimated_cost?: number
+          id?: string
+        }
+        Update: {
+          actual_cost?: number
+          budget_id?: string
+          category?: string
+          created_at?: string
+          description?: string
+          estimated_cost?: number
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_items_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "project_budgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_events: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          date: string
+          id: string
+          title: string
+          type: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          title: string
+          type?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_briefings: {
+        Row: {
+          audience_desires: string
+          audience_pain_points: string
+          client_id: string | null
+          communication_style: string
+          company_name: string
+          competitors: string
+          created_at: string
+          current_perception: string
+          desired_perception: string
+          differentials: string
+          goals_3_months: string
+          id: string
+          instagram: string
+          monthly_revenue: string
+          phone: string
+          purchase_blockers: string
+          purchase_triggers: string
+          responsible_name: string
+          segment: string
+          status: string
+          target_age_range: string
+          target_gender: string
+          things_to_avoid: string
+          updated_at: string
+        }
+        Insert: {
+          audience_desires?: string
+          audience_pain_points?: string
+          client_id?: string | null
+          communication_style?: string
+          company_name?: string
+          competitors?: string
+          created_at?: string
+          current_perception?: string
+          desired_perception?: string
+          differentials?: string
+          goals_3_months?: string
+          id?: string
+          instagram?: string
+          monthly_revenue?: string
+          phone?: string
+          purchase_blockers?: string
+          purchase_triggers?: string
+          responsible_name?: string
+          segment?: string
+          status?: string
+          target_age_range?: string
+          target_gender?: string
+          things_to_avoid?: string
+          updated_at?: string
+        }
+        Update: {
+          audience_desires?: string
+          audience_pain_points?: string
+          client_id?: string | null
+          communication_style?: string
+          company_name?: string
+          competitors?: string
+          created_at?: string
+          current_perception?: string
+          desired_perception?: string
+          differentials?: string
+          goals_3_months?: string
+          id?: string
+          instagram?: string
+          monthly_revenue?: string
+          phone?: string
+          purchase_blockers?: string
+          purchase_triggers?: string
+          responsible_name?: string
+          segment?: string
+          status?: string
+          target_age_range?: string
+          target_gender?: string
+          things_to_avoid?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_briefings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_meta_accounts: {
+        Row: {
+          access_token: string
+          account_name: string
+          client_id: string
+          created_at: string
+          facebook_page_id: string
+          id: string
+          instagram_account_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string
+          account_name?: string
+          client_id: string
+          created_at?: string
+          facebook_page_id?: string
+          id?: string
+          instagram_account_id?: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          account_name?: string
+          client_id?: string
+          created_at?: string
+          facebook_page_id?: string
+          id?: string
+          instagram_account_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_meta_accounts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_weekly_results: {
+        Row: {
+          ad_spend: number
+          client_id: string
+          content_posted: number
+          cost_per_lead: number
+          created_at: string
+          engagement_rate: number
+          followers_after: number
+          followers_before: number
+          highlights: string
+          id: string
+          leads_generated: number
+          notes: string
+          reels_posted: number
+          revenue_generated: number
+          roas: number
+          sales_closed: number
+          stories_posted: number
+          total_comments: number
+          total_impressions: number
+          total_likes: number
+          total_reach: number
+          total_saves: number
+          total_shares: number
+          updated_at: string
+          week_end_date: string
+          week_start_date: string
+        }
+        Insert: {
+          ad_spend?: number
+          client_id: string
+          content_posted?: number
+          cost_per_lead?: number
+          created_at?: string
+          engagement_rate?: number
+          followers_after?: number
+          followers_before?: number
+          highlights?: string
+          id?: string
+          leads_generated?: number
+          notes?: string
+          reels_posted?: number
+          revenue_generated?: number
+          roas?: number
+          sales_closed?: number
+          stories_posted?: number
+          total_comments?: number
+          total_impressions?: number
+          total_likes?: number
+          total_reach?: number
+          total_saves?: number
+          total_shares?: number
+          updated_at?: string
+          week_end_date: string
+          week_start_date: string
+        }
+        Update: {
+          ad_spend?: number
+          client_id?: string
+          content_posted?: number
+          cost_per_lead?: number
+          created_at?: string
+          engagement_rate?: number
+          followers_after?: number
+          followers_before?: number
+          highlights?: string
+          id?: string
+          leads_generated?: number
+          notes?: string
+          reels_posted?: number
+          revenue_generated?: number
+          roas?: number
+          sales_closed?: number
+          stories_posted?: number
+          total_comments?: number
+          total_impressions?: number
+          total_likes?: number
+          total_reach?: number
+          total_saves?: number
+          total_shares?: number
+          updated_at?: string
+          week_end_date?: string
+          week_start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_weekly_results_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          account_manager: string
+          company_name: string
+          contact_name: string
+          contract_start_date: string | null
+          created_at: string
+          email: string
+          id: string
+          monthly_value: number
+          notes: string
+          phone: string
+          scope: string
+          scope_demand_limits: string
+          scope_included_services: string[]
+          scope_monthly_deliverables: string[]
+          scope_platforms: string[]
+          scope_strategic_notes: string
+          service_type: string[]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_manager?: string
+          company_name: string
+          contact_name?: string
+          contract_start_date?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          monthly_value?: number
+          notes?: string
+          phone?: string
+          scope?: string
+          scope_demand_limits?: string
+          scope_included_services?: string[]
+          scope_monthly_deliverables?: string[]
+          scope_platforms?: string[]
+          scope_strategic_notes?: string
+          service_type?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_manager?: string
+          company_name?: string
+          contact_name?: string
+          contract_start_date?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          monthly_value?: number
+          notes?: string
+          phone?: string
+          scope?: string
+          scope_demand_limits?: string
+          scope_included_services?: string[]
+          scope_monthly_deliverables?: string[]
+          scope_platforms?: string[]
+          scope_strategic_notes?: string
+          service_type?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      content_editorial_lines: {
+        Row: {
+          audience: string | null
+          client_id: string
+          created_at: string
+          id: string
+          niche: string | null
+          objective: string | null
+          pillars: string[] | null
+          tone: string | null
+          updated_at: string
+        }
+        Insert: {
+          audience?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          niche?: string | null
+          objective?: string | null
+          pillars?: string[] | null
+          tone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          audience?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          niche?: string | null
+          objective?: string | null
+          pillars?: string[] | null
+          tone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_editorial_lines_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_ideas: {
+        Row: {
+          client_id: string
+          content_type: string | null
+          created_at: string
+          id: string
+          objective: string | null
+          pillar: string | null
+          scheduled_date: string | null
+          status: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          content_type?: string | null
+          created_at?: string
+          id?: string
+          objective?: string | null
+          pillar?: string | null
+          scheduled_date?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          content_type?: string | null
+          created_at?: string
+          id?: string
+          objective?: string | null
+          pillar?: string | null
+          scheduled_date?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_ideas_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_scripts: {
+        Row: {
+          created_at: string
+          cta: string | null
+          development: string | null
+          hook: string | null
+          id: string
+          idea_id: string | null
+          observations: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cta?: string | null
+          development?: string | null
+          hook?: string | null
+          id?: string
+          idea_id?: string | null
+          observations?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cta?: string | null
+          development?: string | null
+          hook?: string | null
+          id?: string
+          idea_id?: string | null
+          observations?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_scripts_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "content_ideas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_signatures: {
+        Row: {
+          accepted: boolean
+          contract_id: string
+          id: string
+          ip_address: string
+          signature_hash: string
+          signed_at: string
+          signer_cpf: string
+          signer_email: string
+          signer_name: string
+          user_agent: string
+        }
+        Insert: {
+          accepted?: boolean
+          contract_id: string
+          id?: string
+          ip_address?: string
+          signature_hash?: string
+          signed_at?: string
+          signer_cpf: string
+          signer_email: string
+          signer_name: string
+          user_agent?: string
+        }
+        Update: {
+          accepted?: boolean
+          contract_id?: string
+          id?: string
+          ip_address?: string
+          signature_hash?: string
+          signed_at?: string
+          signer_cpf?: string
+          signer_email?: string
+          signer_name?: string
+          user_agent?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_signatures_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          additional_clauses: string
+          client_address: string
+          client_cpf_cnpj: string
+          client_email: string
+          client_id: string | null
+          client_name: string
+          contractor_address: string
+          contractor_cpf_cnpj: string
+          contractor_name: string
+          created_at: string
+          created_by: string | null
+          deliverables: Json
+          duration_months: number
+          id: string
+          monthly_value: number
+          payment_due_day: number
+          plan_name: string
+          scope_description: string
+          sent_at: string | null
+          services: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          additional_clauses?: string
+          client_address?: string
+          client_cpf_cnpj?: string
+          client_email?: string
+          client_id?: string | null
+          client_name?: string
+          contractor_address?: string
+          contractor_cpf_cnpj?: string
+          contractor_name?: string
+          created_at?: string
+          created_by?: string | null
+          deliverables?: Json
+          duration_months?: number
+          id?: string
+          monthly_value?: number
+          payment_due_day?: number
+          plan_name?: string
+          scope_description?: string
+          sent_at?: string | null
+          services?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          additional_clauses?: string
+          client_address?: string
+          client_cpf_cnpj?: string
+          client_email?: string
+          client_id?: string | null
+          client_name?: string
+          contractor_address?: string
+          contractor_cpf_cnpj?: string
+          contractor_name?: string
+          created_at?: string
+          created_by?: string | null
+          deliverables?: Json
+          duration_months?: number
+          id?: string
+          monthly_value?: number
+          payment_due_day?: number
+          plan_name?: string
+          scope_description?: string
+          sent_at?: string | null
+          services?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diagnostics: {
+        Row: {
+          client_id: string | null
+          config: Json
+          created_at: string
+          id: string
+          slug: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          config?: Json
+          created_at?: string
+          id?: string
+          slug: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          config?: Json
+          created_at?: string
+          id?: string
+          slug?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnostics_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment: {
+        Row: {
+          brand: string
+          category: string
+          condition: string
+          created_at: string
+          id: string
+          model: string
+          name: string
+          notes: string
+          serial_number: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          brand?: string
+          category?: string
+          condition?: string
+          created_at?: string
+          id?: string
+          model?: string
+          name: string
+          notes?: string
+          serial_number?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          brand?: string
+          category?: string
+          condition?: string
+          created_at?: string
+          id?: string
+          model?: string
+          name?: string
+          notes?: string
+          serial_number?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          month_ref: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          month_ref?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          month_ref?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gamification_settings: {
+        Row: {
+          id: number
+          updated_at: string | null
+          winning_prizes: Json
+        }
+        Insert: {
+          id?: number
+          updated_at?: string | null
+          winning_prizes?: Json
+        }
+        Update: {
+          id?: number
+          updated_at?: string | null
+          winning_prizes?: Json
+        }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          assignee: string
+          company: string
+          created_at: string
+          email: string
+          estimated_value: number
+          id: string
+          name: string
+          notes: string
+          phone: string
+          source: string
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          assignee?: string
+          company?: string
+          created_at?: string
+          email?: string
+          estimated_value?: number
+          id?: string
+          name: string
+          notes?: string
+          phone?: string
+          source?: string
+          stage?: string
+          updated_at?: string
+        }
+        Update: {
+          assignee?: string
+          company?: string
+          created_at?: string
+          email?: string
+          estimated_value?: number
+          id?: string
+          name?: string
+          notes?: string
+          phone?: string
+          source?: string
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meetings: {
+        Row: {
+          client_email: string
+          client_name: string
+          created_at: string
+          created_by: string | null
+          description: string
+          duration_minutes: number
+          google_event_id: string
+          id: string
+          meet_link: string
+          meeting_date: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_email?: string
+          client_name?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          duration_minutes?: number
+          google_event_id?: string
+          id?: string
+          meet_link?: string
+          meeting_date: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          client_email?: string
+          client_name?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          duration_minutes?: number
+          google_event_id?: string
+          id?: string
+          meet_link?: string
+          meeting_date?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      portfolio_projects: {
+        Row: {
+          category: string
+          client_id: string | null
+          completed_at: string | null
+          created_at: string
+          description: string
+          id: string
+          thumbnail_url: string
+          title: string
+          updated_at: string
+          video_url: string
+        }
+        Insert: {
+          category?: string
+          client_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          thumbnail_url?: string
+          title: string
+          updated_at?: string
+          video_url?: string
+        }
+        Update: {
+          category?: string
+          client_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          thumbnail_url?: string
+          title?: string
+          updated_at?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          achievements: Json | null
+          available_spins: number | null
+          avatar_url: string | null
+          created_at: string
+          full_name: string
+          gamification_metrics: Json | null
+          id: string
+          last_spin_date: string | null
+          updated_at: string
+          won_prizes: Json | null
+        }
+        Insert: {
+          achievements?: Json | null
+          available_spins?: number | null
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string
+          gamification_metrics?: Json | null
+          id: string
+          last_spin_date?: string | null
+          updated_at?: string
+          won_prizes?: Json | null
+        }
+        Update: {
+          achievements?: Json | null
+          available_spins?: number | null
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string
+          gamification_metrics?: Json | null
+          id?: string
+          last_spin_date?: string | null
+          updated_at?: string
+          won_prizes?: Json | null
+        }
+        Relationships: []
+      }
+      project_budgets: {
+        Row: {
+          charged_value: number
+          client_id: string
+          created_at: string
+          id: string
+          notes: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          charged_value?: number
+          client_id: string
+          created_at?: string
+          id?: string
+          notes?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          charged_value?: number
+          client_id?: string
+          created_at?: string
+          id?: string
+          notes?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_budgets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_contracts: {
+        Row: {
+          activities: string[]
+          created_at: string
+          created_by: string | null
+          custom_clauses: string
+          id: string
+          monthly_value: string
+          provider_address: string
+          provider_doc: string
+          provider_name: string
+          signature_hash: string | null
+          signed_at: string | null
+          signer_cpf: string | null
+          signer_email: string | null
+          signer_ip: string | null
+          signer_name: string | null
+          signer_user_agent: string | null
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          activities?: string[]
+          created_at?: string
+          created_by?: string | null
+          custom_clauses?: string
+          id?: string
+          monthly_value?: string
+          provider_address?: string
+          provider_doc?: string
+          provider_name?: string
+          signature_hash?: string | null
+          signed_at?: string | null
+          signer_cpf?: string | null
+          signer_email?: string | null
+          signer_ip?: string | null
+          signer_name?: string | null
+          signer_user_agent?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          activities?: string[]
+          created_at?: string
+          created_by?: string | null
+          custom_clauses?: string
+          id?: string
+          monthly_value?: string
+          provider_address?: string
+          provider_doc?: string
+          provider_name?: string
+          signature_hash?: string | null
+          signed_at?: string | null
+          signer_cpf?: string | null
+          signer_email?: string | null
+          signer_ip?: string | null
+          signer_name?: string | null
+          signer_user_agent?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shooting_schedules: {
+        Row: {
+          cast_notes: string
+          client_id: string | null
+          created_at: string
+          end_time: string | null
+          equipment_notes: string
+          id: string
+          location: string
+          notes: string
+          shooting_date: string
+          start_time: string | null
+          status: string
+          task_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cast_notes?: string
+          client_id?: string | null
+          created_at?: string
+          end_time?: string | null
+          equipment_notes?: string
+          id?: string
+          location?: string
+          notes?: string
+          shooting_date: string
+          start_time?: string | null
+          status?: string
+          task_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cast_notes?: string
+          client_id?: string | null
+          created_at?: string
+          end_time?: string | null
+          equipment_notes?: string
+          id?: string
+          location?: string
+          notes?: string
+          shooting_date?: string
+          start_time?: string | null
+          status?: string
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shooting_schedules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shooting_schedules_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_type: string
+          file_url: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_type?: string
+          file_url: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_type?: string
+          file_url?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_checklist_items: {
+        Row: {
+          checked: boolean
+          created_at: string
+          id: string
+          label: string
+          sort_order: number
+          task_id: string
+        }
+        Insert: {
+          checked?: boolean
+          created_at?: string
+          id?: string
+          label: string
+          sort_order?: number
+          task_id: string
+        }
+        Update: {
+          checked?: boolean
+          created_at?: string
+          id?: string
+          label?: string
+          sort_order?: number
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_checklist_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_comments: {
+        Row: {
+          author: string
+          content: string
+          created_at: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          author?: string
+          content?: string
+          created_at?: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          author?: string
+          content?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_stage_history: {
+        Row: {
+          changed_by: string
+          created_at: string
+          from_stage: string
+          id: string
+          task_id: string
+          to_stage: string
+        }
+        Insert: {
+          changed_by?: string
+          created_at?: string
+          from_stage?: string
+          id?: string
+          task_id: string
+          to_stage: string
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          from_stage?: string
+          id?: string
+          task_id?: string
+          to_stage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_stage_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assignee: string
+          client_id: string | null
+          copywriter: string
+          created_at: string
+          creative_direction: string
+          current_stage_owner: string
+          description: string
+          director: string
+          due_date: string | null
+          editing_style: string
+          editor: string
+          editor_comments: string
+          format: string
+          full_script: string
+          id: string
+          observations: string
+          platform: string
+          post_date: string | null
+          post_time: string | null
+          priority: string
+          recording_notes: string
+          script_writer: string
+          status: string
+          strategic_notes: string
+          task_type: string
+          title: string
+          updated_at: string
+          video_idea: string
+          video_name: string
+          video_objective: string
+          video_references: string
+          video_url: string | null
+          videomaker: string
+        }
+        Insert: {
+          assignee?: string
+          client_id?: string | null
+          copywriter?: string
+          created_at?: string
+          creative_direction?: string
+          current_stage_owner?: string
+          description?: string
+          director?: string
+          due_date?: string | null
+          editing_style?: string
+          editor?: string
+          editor_comments?: string
+          format?: string
+          full_script?: string
+          id?: string
+          observations?: string
+          platform?: string
+          post_date?: string | null
+          post_time?: string | null
+          priority?: string
+          recording_notes?: string
+          script_writer?: string
+          status?: string
+          strategic_notes?: string
+          task_type?: string
+          title: string
+          updated_at?: string
+          video_idea?: string
+          video_name?: string
+          video_objective?: string
+          video_references?: string
+          video_url?: string | null
+          videomaker?: string
+        }
+        Update: {
+          assignee?: string
+          client_id?: string | null
+          copywriter?: string
+          created_at?: string
+          creative_direction?: string
+          current_stage_owner?: string
+          description?: string
+          director?: string
+          due_date?: string | null
+          editing_style?: string
+          editor?: string
+          editor_comments?: string
+          format?: string
+          full_script?: string
+          id?: string
+          observations?: string
+          platform?: string
+          post_date?: string | null
+          post_time?: string | null
+          priority?: string
+          recording_notes?: string
+          script_writer?: string
+          status?: string
+          strategic_notes?: string
+          task_type?: string
+          title?: string
+          updated_at?: string
+          video_idea?: string
+          video_name?: string
+          video_objective?: string
+          video_references?: string
+          video_url?: string | null
+          videomaker?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          avatar: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          permissions: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name: string
+          permissions?: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          permissions?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_client_access: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_client_access_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_module_access: {
+        Row: {
+          created_at: string
+          id: string
+          module: Database["public"]["Enums"]["app_module"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          module: Database["public"]["Enums"]["app_module"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          module?: Database["public"]["Enums"]["app_module"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+    }
+    Enums: {
+      app_module: "comercial" | "operacional"
+      app_role: "admin" | "user"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      app_module: ["comercial", "operacional"],
+      app_role: ["admin", "user"],
+    },
+  },
+} as const
