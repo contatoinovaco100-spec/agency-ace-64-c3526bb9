@@ -3,8 +3,8 @@
   "private": true,
   "scripts": {
     "dev": "cd remix-of-agency-hub && npm run dev",
-    "build": "cd remix-of-agency-hub && npm install && npm run build && cp -r dist ../dist",
-    "build:dev": "cd remix-of-agency-hub && npm install && npm run build && cp -r dist ../dist",
+    "build": "cd remix-of-agency-hub && npm install && npm run build && rm -rf ../dist && mkdir -p ../dist && cp -r dist/* ../dist/",
+    "build:dev": "cd remix-of-agency-hub && npm install && npm run build && rm -rf ../dist && mkdir -p ../dist && cp -r dist/* ../dist/",
     "install": "cd remix-of-agency-hub && npm install"
   }
 }
