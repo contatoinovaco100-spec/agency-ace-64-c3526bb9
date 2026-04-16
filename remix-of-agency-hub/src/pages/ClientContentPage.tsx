@@ -274,15 +274,7 @@ export default function ClientContentPage() {
     );
   }
 
-  const pendingTasks = tasks.filter(t => {
-    if (t.status === 'Postado') return false;
-    const taskDate = t.scheduled_date || t.due_date;
-    if (!taskDate) return true;
-    const date = new Date(taskDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return date >= today;
-  });
+  const pendingTasks = tasks.filter(t => t.status !== 'Postado');
   const postedTasks = tasks.filter(t => t.status === 'Postado');
   const displayedTasks = showPosted ? tasks : pendingTasks;
 
