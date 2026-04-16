@@ -274,7 +274,22 @@ export default function ClientContentPage() {
     );
   }
 
-  const pendingTasks = tasks.filter(t => t.status !== 'Postado');
+  const getNowBrasilia = () => {
+    const now = new Date();
+    const brasiliaOffset = -3 * 60;
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    return new Date(utc + brasiliaOffset * 60000);
+  };
+
+  const pendingTasks = tasks.filter(t => {
+    if (t.status === 'Postado') return false;
+    const taskDate = t.scheduled_date || t.due_date;
+    if (!taskDate) return true;
+    const date = new Date(taskDate);
+    const today = getNowBrasilia();
+    today.setHours(0, 0, 0, 0);
+    return date >= today;
+  });
   const postedTasks = tasks.filter(t => t.status === 'Postado');
   const displayedTasks = showPosted ? tasks : pendingTasks;
 
