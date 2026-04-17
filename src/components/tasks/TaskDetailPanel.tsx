@@ -190,7 +190,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0 scroller-hide overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="grid gap-5 p-4 sm:p-6">
           {/* ── Core fields ── */}
           <div className="grid gap-4">

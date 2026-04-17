@@ -555,7 +555,7 @@ export default function TasksPage() {
 
       {/* Card detail dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl w-[95vw] sm:w-full h-[85dvh] max-h-[85dvh] lg:h-auto lg:max-h-[90vh] overflow-hidden flex flex-col p-0">
+        <DialogContent className="max-w-2xl w-[95vw] sm:w-full h-[90vh] max-h-[90vh] overflow-hidden flex flex-col p-0">
           <VisuallyHidden><DialogTitle>Tarefa</DialogTitle></VisuallyHidden>
           <TaskDetailPanel
             task={selectedTask}
