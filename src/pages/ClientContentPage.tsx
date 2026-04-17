@@ -31,7 +31,7 @@ interface TaskData {
   strategic_notes: string;
 }
 
-function TaskCard({ task, index, onConfirm, onConfirmProgram }: { task: TaskData; index: number; onConfirm: (taskId: string) => void; onConfirmProgram: (taskId: string) => void; confirming?: boolean }) {
+function TaskCard({ task, index, onConfirm, onConfirmProgram, confirming }: { task: TaskData; index: number; onConfirm: (taskId: string) => void; onConfirmProgram: (taskId: string) => void; confirming?: boolean }) {
   const [open, setOpen] = useState(index === 0);
   const videoName = task.video_name || task.title || 'Sem título';
   
