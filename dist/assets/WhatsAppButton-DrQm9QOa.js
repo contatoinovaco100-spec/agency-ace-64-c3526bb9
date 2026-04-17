@@ -1,0 +1,6 @@
+import{c as u,j as s,i as d}from"./index-DQ7iqEZu.js";import{M as h}from"./message-circle-Dm8US4x_.js";/**
+ * @license lucide-react v0.462.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const g=u("RefreshCw",[["path",{d:"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8",key:"v9h5vc"}],["path",{d:"M21 3v5h-5",key:"1q7to0"}],["path",{d:"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16",key:"3uifl3"}],["path",{d:"M8 16H3v5",key:"1cv678"}]]);function m(e){const t=e.replace(/\D/g,"");return t.startsWith("0")?"55"+t.slice(1):t.length<=11?"55"+t:t}function b({phone:e,name:t,message:a,size:n="sm",className:o}){if(!e)return null;const c=t?`Olá ${t}, tudo bem? Aqui é da INOVA Co.`:"Olá, tudo bem? Aqui é da INOVA Co.",i=encodeURIComponent(a||c),r=`https://wa.me/${m(e)}?text=${i}`,l=p=>{p.stopPropagation(),window.open(r,"_blank")};return s.jsxs("button",{onClick:l,title:`Abrir WhatsApp: ${e}`,className:d("inline-flex items-center gap-1.5 rounded-md bg-success/10 text-success transition-default hover:bg-success/20",n==="sm"?"px-2 py-1 text-caption":"px-3 py-1.5 text-body",o),children:[s.jsx(h,{className:n==="sm"?"h-3 w-3":"h-4 w-4"}),s.jsx("span",{className:"font-medium",children:"WhatsApp"})]})}export{g as R,b as W};
