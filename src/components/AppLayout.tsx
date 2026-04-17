@@ -1,50 +1,45 @@
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Users,
-  Target,
-  CheckSquare,
-  UserCog,
-  ChevronLeft,
-  LogOut,
-  Shield,
-  FileText,
-  BarChart3,
-  Film,
-  Clapperboard,
-  Palette,
-  LayoutList,
-  Bot,
-  Sparkles,
-  Settings,
-  Bell,
-  BellRing,
+  LayoutDashboard, Users, Target, CheckSquare, UserCog,
+  ChevronLeft, LogOut, Shield, FileText, BarChart3, Film,
+  Clapperboard, Palette, LayoutList, Bot, Sparkles, Settings,
+  Bell, BellRing, Calendar, MessageSquare, Goal, TrendingUp,
+  Images, BookOpen, CalculatorIcon, Gift, Link2, Wrench,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { useModuleAccess, ROUTE_MODULE_MAP, type AppModule } from '@/hooks/useUserRole';
+import { useModuleAccess, type AppModule } from '@/hooks/useUserRole';
 import { usePushNotification } from '@/hooks/usePushNotification';
 import logoInova from '@/assets/logo-inova.png';
 
 type NavItem = { title: string; url: string; icon: any; module?: AppModule };
 
 const allNavItems: NavItem[] = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-  { title: 'CRM', url: '/crm', icon: Target, module: 'comercial' },
-  { title: 'Clientes', url: '/clientes', icon: Users, module: 'operacional' },
-  { title: 'Tarefas', url: '/tarefas', icon: CheckSquare, module: 'operacional' },
-  { title: 'Equipe', url: '/equipe', icon: UserCog, module: 'operacional' },
-  { title: 'Planejamento', url: '/planejamento', icon: LayoutList, module: 'operacional' },
-  { title: 'Portfólio', url: '/portfolio', icon: Film, module: 'operacional' },
-  { title: 'Gravações', url: '/gravacoes', icon: Clapperboard, module: 'operacional' },
-  { title: 'Whiteboard', url: '/whiteboard', icon: Palette },
-  { title: 'Prospecção IA', url: '/prospeccao', icon: Bot, module: 'comercial' },
-  { title: 'Diagnóstico', url: '/diagnostico/editar', icon: Target, module: 'operacional' },
-  { title: 'Proposta Comercial', url: '/proposta', icon: Sparkles, module: 'comercial' },
-  { title: 'Editar Proposta', url: '/proposta/editar', icon: Settings, module: 'comercial' },
-  { title: 'Notificações', url: '/notificacoes', icon: Bell },
+  { title: 'Dashboard',          url: '/',                     icon: LayoutDashboard },
+  { title: 'Roleta de Prêmios',  url: '/roleta',               icon: Gift },
+  { title: 'CRM',                url: '/crm',                  icon: Target,        module: 'comercial' },
+  { title: 'Clientes',           url: '/clientes',             icon: Users,         module: 'operacional' },
+  { title: 'Tarefas',            url: '/tarefas',              icon: CheckSquare,   module: 'operacional' },
+  { title: 'Galeria',            url: '/galeria',              icon: Images,        module: 'operacional' },
+  { title: 'Planejamento',       url: '/planejamento',         icon: LayoutList,    module: 'operacional' },
+  { title: 'Portfólio',          url: '/portfolio',            icon: Film,          module: 'operacional' },
+  { title: 'Gravações',          url: '/gravacoes',            icon: Clapperboard,  module: 'operacional' },
+  { title: 'Whiteboard',         url: '/whiteboard',           icon: Palette },
+  { title: 'Prospecção IA',      url: '/prospeccao',           icon: Bot,           module: 'comercial' },
+  { title: 'Diagnóstico',        url: '/diagnostico/editar',   icon: Target,        module: 'operacional' },
+  { title: 'Linktree',           url: '/linktree',             icon: Link2 },
+  { title: 'Proposta Comercial', url: '/proposta',             icon: Sparkles,      module: 'comercial' },
+  { title: 'Editar Proposta',    url: '/proposta/editar',      icon: Settings,      module: 'comercial' },
+  { title: 'Onboarding Kit',     url: '/onboarding',           icon: BookOpen },
+  { title: 'Calculadora',        url: '/calculadora',          icon: CalculatorIcon },
+  { title: 'Calendário',         url: '/calendario',           icon: Calendar },
+  { title: 'Chat Interno',       url: '/chat',                 icon: MessageSquare },
+  { title: 'Nova Assistente',    url: '/nova',                 icon: Bot },
+  { title: 'Metas',              url: '/metas',                icon: Target },
+  { title: 'Resultados Semanais',url: '/resultados-semanais',  icon: TrendingUp },
+  { title: 'Notificações',       url: '/notificacoes',         icon: Bell },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -57,7 +52,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     ...allNavItems.filter(item => !item.module || hasModule(item.module)),
     ...(isAdmin ? [
+      { title: 'Equipe', url: '/equipe', icon: UserCog },
       { title: 'Contratos', url: '/contratos', icon: FileText },
+      { title: 'Contratos de Prestadores', url: '/contratos-prestadores', icon: FileText },
       { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
       { title: 'Permissões', url: '/permissoes', icon: Shield },
     ] : []),
