@@ -1,4 +1,4 @@
 [run]
-build = "sh -c 'cd agency-ace-main && npm install && npm run build && cp -r dist ../'"
-install = "sh -c 'cd agency-ace-main && npm install'"
-command = "sh -c 'cd agency-ace-main && npm run dev'"
+build = "npm run build"
+install = "npm install"
+command = "npm run dev"
