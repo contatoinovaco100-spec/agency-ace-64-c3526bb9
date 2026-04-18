@@ -4,7 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Loader2 as Spinner, CheckCircle2, AlertCircle, Sparkles, 
-  Target, Zap, TrendingUp, ArrowRight, ArrowLeft, Pencil 
+  Target, Zap, TrendingUp, ArrowRight, ArrowLeft 
 } from 'lucide-react';
 import LogoInova from '@/assets/logo-inova.png';
 import { useAuth } from '@/contexts/AuthContext';
@@ -88,23 +88,6 @@ export default function DiagnosticLP() {
         className="fixed top-0 left-0 right-0 h-1 bg-[#bff720] z-50 origin-left"
         style={{ scaleX: scrollProgress / 100 }}
       />
-
-      {/* ADMIN EDIT BUTTON */}
-      {user && (
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="fixed bottom-8 right-8 z-50"
-        >
-          <Link 
-            to={`/diagnostico/editar/${slug}`}
-            className="flex items-center gap-3 bg-black text-[#bff720] px-6 py-4 rounded-full font-black uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 transition-all group"
-          >
-            <Pencil size={16} className="group-hover:rotate-12 transition-transform" />
-            Editar Diagnóstico
-          </Link>
-        </motion.div>
-      )}
 
       {/* PAGE 1 — HERO COVER */}
       <section className="min-h-screen flex flex-col items-center justify-center text-center px-10 py-20 relative overflow-hidden" style={{ background: theme.primary }}>
