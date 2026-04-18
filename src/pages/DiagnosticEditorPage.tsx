@@ -180,14 +180,14 @@ export default function DiagnosticEditorPage() {
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{
             parts: [{ text: `Aprofunde este diagnóstico estratégico de marketing, tornando-o mais técnico e detalhado, mas MANTENHA A CONCISÃO. Evite textos longos, foque em insights de alto impacto. Retorne o mesmo formato JSON:\n\n${JSON.stringify(config)}` }]
           }],
-          generationConfig: { responseMimeType: "application/json" }
+          generation_config: {}
         })
       });
 
@@ -195,7 +195,10 @@ export default function DiagnosticEditorPage() {
 
       const resData = await response.json();
       const text = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-      const result = JSON.parse(text);
+      if (!text) throw new Error("Resposta vazia");
+      
+      const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const result = JSON.parse(cleanText);
       
       setConfig(result);
       toast.success("Diagnóstico refinado com IA! ✨", { id: toastId });
