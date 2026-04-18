@@ -113,8 +113,15 @@ export default function ContractSignPage() {
     } catch (err) {
       console.error('Crash in loadContract:', err);
       toast.error('Erro crítico ao carregar página');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const handleManualRefresh = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.reload();
   };
 
   const handleSign = async () => {
@@ -206,15 +213,36 @@ export default function ContractSignPage() {
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-white"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>;
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white p-6 text-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+        <h2 className="text-xl font-semibold mb-2">Carregando Contrato...</h2>
+        <p className="text-gray-400 text-sm max-w-xs mb-8">
+          Se a página não carregar em alguns segundos, tente o botão abaixo.
+        </p>
+        <Button 
+          variant="outline" 
+          onClick={handleManualRefresh}
+          className="border-gray-800 text-gray-400 hover:text-white hover:bg-gray-900"
+        >
+          Forçar Recarregamento
+        </Button>
+      </div>
+    );
   }
 
   if (!contract || !['enviado', 'assinado'].includes(contract.status)) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
+      <div className="flex min-h-screen items-center justify-center bg-black px-4">
         <div className="text-center">
-          <FileText className="mx-auto h-12 w-12 text-gray-300" />
-          <p className="mt-4 text-gray-500">Contrato não encontrado ou indisponível.</p>
+          <FileText className="mx-auto h-16 w-16 text-gray-800 mb-6" />
+          <h1 className="text-white text-xl font-bold mb-2">Contrato Indisponível</h1>
+          <p className="text-gray-500 mb-8 max-w-xs mx-auto">
+            Este contrato não foi encontrado ou não está mais disponível para assinatura.
+          </p>
+          <Button onClick={handleManualRefresh} variant="secondary" className="w-full">
+            Tentar Novamente
+          </Button>
         </div>
       </div>
     );
