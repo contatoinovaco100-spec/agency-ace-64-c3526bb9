@@ -96,10 +96,11 @@ export default function DiagnosticEditorPage() {
         .eq('slug', s)
         .maybeSingle();
 
-      if (data && data.config) {
-        setConfig(data.config);
-        setClientInfo(data.config.cliente || clientInfo);
-        setSlug(data.slug);
+      const d = data as any;
+      if (d && d.config) {
+        setConfig(d.config);
+        setClientInfo(d.config.cliente || clientInfo);
+        setSlug(d.slug);
         setStep('preview');
       }
     } catch (e) {
