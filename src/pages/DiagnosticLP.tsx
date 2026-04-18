@@ -4,9 +4,10 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Loader2 as Spinner, CheckCircle2, AlertCircle, Sparkles, 
-  Target, Zap, TrendingUp, ArrowRight, ArrowLeft 
+  Target, Zap, TrendingUp, ArrowRight, ArrowLeft, Pencil 
 } from 'lucide-react';
 import LogoInova from '@/assets/logo-inova.png';
+import { useAuth } from '@/contexts/AuthContext';
 
 /* ═══════ THEME COLORS ═══════ */
 const THEMES: Record<string, { primary: string; primaryDark: string }> = {
@@ -17,8 +18,10 @@ const THEMES: Record<string, { primary: string; primaryDark: string }> = {
 
 export default function DiagnosticLP() {
   const { slug } = useParams();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<any>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   useEffect(() => {
     const fetchDiagnostic = async () => {
@@ -46,6 +49,15 @@ export default function DiagnosticLP() {
       }
     };
     fetchDiagnostic();
+
+    const handleScroll = () => {
+      const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
+      const currentScroll = window.scrollY;
+      setScrollProgress((currentScroll / totalScroll) * 100);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [slug]);
 
   if (loading) return (
@@ -68,8 +80,31 @@ export default function DiagnosticLP() {
   const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0 } };
 
   return (
-    <div className="min-h-screen bg-[#F5F3EE] overflow-x-hidden selection:bg-[#bff720] selection:text-black text-left"
+    <div className="min-h-screen bg-[#F5F3EE] overflow-x-hidden selection:bg-[#bff720] selection:text-black text-left scroll-smooth"
       style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+
+      {/* PROGRESS BAR */}
+      <motion.div 
+        className="fixed top-0 left-0 right-0 h-1 bg-[#bff720] z-50 origin-left"
+        style={{ scaleX: scrollProgress / 100 }}
+      />
+
+      {/* ADMIN EDIT BUTTON */}
+      {user && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="fixed bottom-8 right-8 z-50"
+        >
+          <Link 
+            to={`/diagnostico/editar/${slug}`}
+            className="flex items-center gap-3 bg-black text-[#bff720] px-6 py-4 rounded-full font-black uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 transition-all group"
+          >
+            <Pencil size={16} className="group-hover:rotate-12 transition-transform" />
+            Editar Diagnóstico
+          </Link>
+        </motion.div>
+      )}
 
       {/* PAGE 1 — HERO COVER */}
       <section className="min-h-screen flex flex-col items-center justify-center text-center px-10 py-20 relative overflow-hidden" style={{ background: theme.primary }}>
@@ -90,15 +125,23 @@ export default function DiagnosticLP() {
         </motion.div>
 
         <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.5 }}
-          className="mt-16 space-y-4">
-          <div className="inline-block px-6 py-2 bg-white/10 rounded-full backdrop-blur-md">
-              <p className="text-xs font-black text-[#bff720] tracking-[0.5em] uppercase">
+          className="mt-16 space-y-6">
+          <div className="inline-block px-8 py-3 bg-white/10 rounded-full backdrop-blur-xl border border-white/10">
+              <p className="text-[10px] font-black text-[#bff720] tracking-[0.8em] uppercase">
                 @{config.cliente.nome.replace('@','')}
               </p>
           </div>
-          <p className="text-sm text-white/50 tracking-[0.3em] font-medium uppercase">
-            Maturidade Estratégica de Marca
+          <p className="text-xs text-white/40 tracking-[0.5em] font-black uppercase max-w-xs mx-auto leading-relaxed">
+            Maturidade Estratégica de Marca <br /> e Alta Performance Digital
           </p>
+          
+          <motion.div 
+            animate={{ y: [0, 10, 0] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="pt-12 opacity-20"
+          >
+            <div className="w-px h-20 bg-gradient-to-b from-white to-transparent mx-auto" />
+          </motion.div>
         </motion.div>
 
         {/* Background Effects */}
@@ -172,12 +215,12 @@ export default function DiagnosticLP() {
       </section>
 
       {/* PAGE 3 — INSIGHTS (POSITIVOS / NEGATIVOS) */}
-      <section className="min-h-screen flex items-center px-8 lg:px-24 py-24 relative overflow-hidden" style={{ background: theme.primary }}>
-        <div className="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-20 relative z-10">
+      <section className="min-h-screen flex items-center px-8 lg:px-24 py-32 relative overflow-hidden" style={{ background: theme.primary }}>
+        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-24 relative z-10">
             
-            <div className="lg:col-span-12 mb-10 text-center">
-                 <h2 className="text-[clamp(3.5rem,10vw,8rem)] font-black text-white/10 uppercase tracking-tighter leading-none absolute -top-10 left-1/2 -translate-x-1/2 w-full select-none">ANALYSIS</h2>
-                 <h3 className="text-5xl lg:text-7xl font-black text-white uppercase tracking-tighter relative z-10">Diagnóstico Estratégico</h3>
+            <div className="lg:col-span-12 mb-20 text-center">
+                 <h2 className="text-[clamp(4rem,15vw,12rem)] font-black text-white/5 uppercase tracking-tighter leading-none absolute -top-20 left-1/2 -translate-x-1/2 w-full select-none">ANALYSIS</h2>
+                 <h3 className="text-6xl lg:text-9xl font-black text-white uppercase tracking-tighter relative z-10 italic">Insight<span className="text-[#bff720]">.</span></h3>
             </div>
 
             {/* Positivos column */}

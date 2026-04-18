@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,7 +7,7 @@ import {
   Save, Eye, Trash2, Plus, 
   Download, Loader2 as Spinner, ChevronDown, ChevronRight, X, Link as LinkIcon,
   CheckCircle2, AlertCircle, ArrowRight, ArrowLeft, Sparkles, Target, Zap, TrendingUp,
-  ShoppingBag, Briefcase
+  ShoppingBag, Briefcase, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import LogoInova from '@/assets/logo-inova.png';
@@ -41,6 +42,7 @@ const ScoreBar = ({ label, percentage, color }: any) => (
 /* ═══════ MAIN EDITOR ═══════ */
 export default function DiagnosticEditorPage() {
   const { user } = useAuth();
+  const { editSlug } = useParams();
   const [step, setStep] = useState<'setup' | 'choice' | 'wizard' | 'ai_upload' | 'preview'>('setup');
   const [wizardStep, setWizardStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -52,6 +54,8 @@ export default function DiagnosticEditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [isRefining, setIsRefining] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // Filtra as regras baseado no tipo de negócio
   const filteredRules = useMemo(() => {
@@ -77,7 +81,57 @@ export default function DiagnosticEditorPage() {
         }
     };
     fetchExisting();
-  }, []);
+    fetchHistory();
+    if (editSlug) {
+      loadBySlug(editSlug);
+    }
+  }, [user, editSlug]);
+
+  const loadBySlug = async (s: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('diagnostics' as any)
+        .select('*')
+        .eq('slug', s)
+        .maybeSingle();
+
+      if (data && data.config) {
+        setConfig(data.config);
+        setClientInfo(data.config.cliente || clientInfo);
+        setSlug(data.slug);
+        setStep('preview');
+      }
+    } catch (e) {
+      console.error('Error loading by slug:', e);
+    }
+  };
+
+  const fetchHistory = async () => {
+    if (!user) return;
+    setIsLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from('diagnostics' as any)
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+      
+      if (error) throw error;
+      setHistory(data || []);
+    } catch (err) {
+      console.error('Error fetching history:', err);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  const loadFromHistory = (item: any) => {
+    setConfig(item.config);
+    setClientInfo(item.config.cliente || clientInfo);
+    setSlug(item.slug);
+    setStep('preview');
+    toast.success('Diagnóstico carregado do histórico!');
+  };
 
   const handleAIExtraction = (data: any) => {
     // Popula o estado com os dados da IA
@@ -290,6 +344,7 @@ export default function DiagnosticEditorPage() {
 
       if (error) throw error;
       setSlug(currentSlug);
+      fetchHistory(); // Refresh history
       toast.success('Diagnóstico Publicado! 🚀');
     } catch (err: any) {
       toast.error('Erro ao salvar: ' + err.message);
@@ -614,6 +669,35 @@ export default function DiagnosticEditorPage() {
                     </a>
                   </div>
                )}
+
+               {/* Histórico Section */}
+               <div className="space-y-4 pt-4 border-t border-white/5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-black uppercase tracking-[4px] text-white/40">Histórico</h3>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/5" onClick={fetchHistory}>
+                      <RefreshCw size={12} className={isLoadingHistory ? "animate-spin" : ""} />
+                    </Button>
+                  </div>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
+                    {history.length === 0 ? (
+                      <p className="text-[9px] text-white/20 italic text-center py-4">Nenhum diagnóstico salvo.</p>
+                    ) : (
+                      history.map((item) => (
+                        <button 
+                          key={item.id}
+                          onClick={() => loadFromHistory(item)}
+                          className="w-full p-4 rounded-xl bg-white/5 border border-white/5 hover:border-[#bff720]/30 hover:bg-white/10 transition-all text-left space-y-1 group"
+                        >
+                          <div className="flex justify-between items-start">
+                            <span className="text-[10px] font-black text-white group-hover:text-[#bff720] transition-colors">@{item.slug}</span>
+                            <span className="text-[8px] text-white/30">{new Date(item.updated_at).toLocaleDateString()}</span>
+                          </div>
+                          <p className="text-[9px] text-white/40 truncate">{item.title}</p>
+                        </button>
+                      ))
+                    )}
+                  </div>
+               </div>
             </div>
           )}
         </div>

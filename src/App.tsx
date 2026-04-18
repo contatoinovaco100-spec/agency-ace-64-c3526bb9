@@ -117,6 +117,7 @@ function AppRoutes() {
                     <Route path="/prospeccao"          element={<ProspectionPage />} />
                     <Route path="/proposta/editar"     element={<SalesEditorPage />} />
                     <Route path="/diagnostico/editar"  element={<DiagnosticEditorPage />} />
+                    <Route path="/diagnostico/editar/:editSlug"  element={<DiagnosticEditorPage />} />
                     <Route path="/notificacoes"        element={<NotificationsPage />} />
                     {/* New routes */}
                     <Route path="/calendario"          element={<CalendarPage />} />
