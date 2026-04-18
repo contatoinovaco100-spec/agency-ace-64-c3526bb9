@@ -46,8 +46,8 @@ export default function DiagnosticEditorPage() {
   const [step, setStep] = useState<'setup' | 'choice' | 'wizard' | 'ai_upload' | 'preview'>('setup');
   const [wizardStep, setWizardStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [clientInfo, setClientInfo] = useState<{nome: string; nicho: string; subtitulo: string; tema: string; tipo: BusinessType; instaAgencia?: string; whatsAgencia?: string}>({ 
-    nome: '', nicho: '', subtitulo: 'Diagnóstico de Maturidade Estratégica', tema: 'teal', tipo: 'servico', instaAgencia: '@inovaco.br', whatsAgencia: '(62) 99999-9999' 
+  const [clientInfo, setClientInfo] = useState<{nome: string; nicho: string; subtitulo: string; tema: string; primaryColor?: string; tipo: BusinessType; instaAgencia?: string; whatsAgencia?: string}>({ 
+    nome: '', nicho: '', subtitulo: 'Diagnóstico de Maturidade Estratégica', tema: 'teal', primaryColor: '#0D6E5E', tipo: 'servico', instaAgencia: '@inovaco.br', whatsAgencia: '(62) 99999-9999' 
   });
   const [slug, setSlug] = useState('');
   const [config, setConfig] = useState<any>(null);
@@ -597,7 +597,11 @@ export default function DiagnosticEditorPage() {
   if (step === 'ai_upload') return renderAIUpload();
 
   // PREVIEW MODE — Mantido com flex h-screen original pois ele tem sidebar
-  const theme = THEMES[clientInfo.tema] || THEMES.teal;
+  const currentTheme = THEMES[clientInfo.tema] || THEMES.teal;
+  const theme = {
+    primary: clientInfo.primaryColor || currentTheme.primary,
+    primaryDark: clientInfo.primaryColor || currentTheme.primaryDark
+  };
   
   return (
     <div className="flex h-screen bg-[#111] overflow-hidden w-full no-scrollbar">
@@ -692,19 +696,17 @@ export default function DiagnosticEditorPage() {
                               <Input 
                                 type="color" 
                                 className="w-8 h-8 p-0 border-none bg-transparent rounded cursor-pointer" 
-                                value={THEMES[clientInfo.tema]?.primary || '#0D6E5E'} 
+                                value={clientInfo.primaryColor || THEMES[clientInfo.tema]?.primary || '#0D6E5E'} 
                                 onChange={(e) => {
                                   const col = e.target.value;
-                                  THEMES[clientInfo.tema] = { primary: col, primaryDark: col };
-                                  setClientInfo({...clientInfo, tema: clientInfo.tema});
+                                  setClientInfo({...clientInfo, primaryColor: col});
                                 }} 
                               />
                               <Input 
                                 className="h-8 bg-black/40 border-white/10 text-white text-[9px] font-bold rounded-lg" 
-                                value={THEMES[clientInfo.tema]?.primary} 
+                                value={clientInfo.primaryColor || THEMES[clientInfo.tema]?.primary} 
                                 onChange={(e) => {
-                                  THEMES[clientInfo.tema] = { primary: e.target.value, primaryDark: e.target.value };
-                                  setClientInfo({...clientInfo, tema: clientInfo.tema});
+                                  setClientInfo({...clientInfo, primaryColor: e.target.value});
                                 }}
                               />
                            </div>

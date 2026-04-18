@@ -76,7 +76,11 @@ export default function DiagnosticLP() {
     </div>
   );
 
-  const theme = THEMES[config.cliente?.tema] || THEMES.teal;
+  const currentTheme = THEMES[config.cliente?.tema] || THEMES.teal;
+  const theme = {
+    primary: config.cliente?.primaryColor || currentTheme.primary,
+    primaryDark: config.cliente?.primaryColor || currentTheme.primaryDark
+  };
   const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0 } };
 
   return (
@@ -98,8 +102,8 @@ export default function DiagnosticLP() {
           className="relative w-full max-w-4xl mx-auto">
           <div className="absolute -left-12 -top-12 text-[#bff720] text-7xl font-black select-none opacity-80 animate-pulse" style={{ transform: 'rotate(-15deg)' }}>✳</div>
           
-          <div className="bg-black px-12 py-10 inline-block w-full shadow-2xl">
-            <h1 className="text-white text-[clamp(3.5rem,12vw,8rem)] font-black tracking-[-3px] leading-none uppercase">
+          <div className="bg-black px-6 py-6 lg:px-12 lg:py-10 inline-block w-full shadow-2xl">
+            <h1 className="text-white text-[clamp(2.5rem,15vw,8rem)] font-black tracking-[-2px] lg:tracking-[-3px] leading-none uppercase">
               DIAGNÓSTICO
             </h1>
           </div>
@@ -138,11 +142,11 @@ export default function DiagnosticLP() {
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="space-y-10">
                 <div className="space-y-4">
                     <span className="text-[10px] font-black uppercase tracking-[5px] text-[#0D6E5E]">Introdução</span>
-                    <h2 className="text-5xl lg:text-6xl font-black text-black leading-none uppercase tracking-tighter">
+                    <h2 className="text-4xl lg:text-6xl font-black text-black leading-none uppercase tracking-tighter">
                         Panorama<br />Digital
                     </h2>
                 </div>
-                <p className="text-xl text-black/70 leading-relaxed font-medium">
+                <p className="text-lg lg:text-xl text-black/70 leading-relaxed font-medium">
                     {config.intro.texto}
                 </p>
                 <div className="flex gap-4">
@@ -201,9 +205,9 @@ export default function DiagnosticLP() {
       <section className="min-h-screen flex items-center px-8 lg:px-24 py-32 relative overflow-hidden" style={{ background: theme.primary }}>
         <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-24 relative z-10">
             
-            <div className="lg:col-span-12 mb-20 text-center">
-                 <h2 className="text-[clamp(4rem,15vw,12rem)] font-black text-white/5 uppercase tracking-tighter leading-none absolute -top-20 left-1/2 -translate-x-1/2 w-full select-none">ANALYSIS</h2>
-                 <h3 className="text-6xl lg:text-9xl font-black text-white uppercase tracking-tighter relative z-10 italic">Insight<span className="text-[#bff720]">.</span></h3>
+            <div className="lg:col-span-12 mb-10 lg:mb-20 text-center">
+                 <h2 className="text-[clamp(3rem,20vw,12rem)] font-black text-white/5 uppercase tracking-tighter leading-none absolute -top-10 lg:-top-20 left-1/2 -translate-x-1/2 w-full select-none">ANALYSIS</h2>
+                 <h3 className="text-4xl lg:text-9xl font-black text-white uppercase tracking-tighter relative z-10 italic">Insight<span className="text-[#bff720]">.</span></h3>
             </div>
 
             {/* Positivos column */}
@@ -338,10 +342,10 @@ export default function DiagnosticLP() {
                 <div className="grid gap-4 text-left">
                     {[1,2,3,4,5].map(i => config.final[`acao${i}`] ? (
                         <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                            className="group flex items-center bg-white/5 border border-white/10 p-8 rounded-[32px] transition-all hover:bg-white/10 hover:border-[#bff720]/50 duration-500">
-                            <span className="text-4xl font-black text-white/10 group-hover:text-[#bff720]/20 transition-colors mr-10">{String(i).padStart(2, '0')}</span>
-                            <p className="text-xl font-bold text-white tracking-tight">{config.final[`acao${i}`]}</p>
-                            <ArrowRight className="ml-auto text-white/10 group-hover:text-[#bff720] transition-all translate-x-4 group-hover:translate-x-0" />
+                            className="group flex items-center bg-white/5 border border-white/10 p-6 lg:p-8 rounded-[24px] lg:rounded-[32px] transition-all hover:bg-white/10 hover:border-[#bff720]/50 duration-500">
+                            <span className="text-2xl lg:text-4xl font-black text-white/10 group-hover:text-[#bff720]/20 transition-colors mr-6 lg:mr-10">{String(i).padStart(2, '0')}</span>
+                            <p className="text-lg lg:text-xl font-bold text-white tracking-tight">{config.final[`acao${i}`]}</p>
+                            <ArrowRight className="hidden lg:block ml-auto text-white/10 group-hover:text-[#bff720] transition-all translate-x-4 group-hover:translate-x-0" />
                         </motion.div>
                     ) : null)}
                 </div>
@@ -376,8 +380,8 @@ export default function DiagnosticLP() {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                             {s.cards.map((c: any, ci: number) => (
                                 <motion.div key={ci} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: ci * 0.2 }}
-                                    className="group bg-white rounded-[50px] p-12 shadow-2xl border border-[#e8e4dc] space-y-10 hover:border-[#bff720] transition-colors duration-500 flex flex-col justify-between">
-                                    <div className="space-y-8 text-left">
+                                    className="group bg-white rounded-[40px] lg:rounded-[50px] p-8 lg:p-12 shadow-2xl border border-[#e8e4dc] space-y-8 lg:space-y-10 hover:border-[#bff720] transition-colors duration-500 flex flex-col justify-between">
+                                    <div className="space-y-6 lg:space-y-8 text-left">
                                         <div className="flex justify-between items-start">
                                             <div className="inline-block px-5 py-2 bg-black rounded-full">
                                                 <span className="text-[10px] font-black text-white uppercase tracking-widest">{c.tipo}</span>
