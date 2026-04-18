@@ -54,6 +54,7 @@ export default function DiagnosticEditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [isRefining, setIsRefining] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
@@ -351,6 +352,30 @@ export default function DiagnosticEditorPage() {
     } finally { setIsSaving(false); }
   };
 
+  /* ═══════ EDITABLE TEXT COMPONENT ═══════ */
+  const EditableText = ({ value, onChange, className, multiline = false, isLight = false }: any) => {
+    if (!isEditing) return <span className={className}>{value}</span>;
+    
+    if (multiline) {
+      return (
+        <textarea 
+          value={value} 
+          onChange={(e) => onChange(e.target.value)}
+          className={`w-full bg-white/5 border border-[#bff720]/30 rounded-lg p-2 text-inherit focus:border-[#bff720] outline-none min-h-[100px] ${isLight ? 'text-black' : 'text-white'}`}
+        />
+      );
+    }
+    
+    return (
+      <input 
+        type="text" 
+        value={value} 
+        onChange={(e) => onChange(e.target.value)}
+        className={`w-full bg-white/5 border border-[#bff720]/30 rounded-lg px-2 py-1 text-inherit focus:border-[#bff720] outline-none ${isLight ? 'text-black' : 'text-white'}`}
+      />
+    );
+  };
+
   const renderSetup = () => (
     <div className="w-full min-h-screen flex flex-col items-center justify-center p-6 lg:p-12 animate-in fade-in zoom-in duration-500 overflow-y-auto bg-[#0a0a0a]">
         <div className="max-w-xl w-full py-12 space-y-12 text-center">
@@ -591,7 +616,18 @@ export default function DiagnosticEditorPage() {
             <div className="space-y-8 animate-in slide-in-from-left duration-700">
                {/* Nova Seção: Inteligência Artificial */}
                <div className="space-y-4">
-                  <h3 className="text-[10px] font-black uppercase tracking-[4px] text-[#bff720]">Ações de IA</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-black uppercase tracking-[4px] text-[#bff720]">Ações</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8px] font-black uppercase text-white/40">Modo Edição</span>
+                      <button 
+                        onClick={() => setIsEditing(!isEditing)}
+                        className={`w-10 h-5 rounded-full relative transition-all ${isEditing ? 'bg-[#bff720]' : 'bg-white/10'}`}
+                      >
+                        <div className={`absolute top-1 w-3 h-3 rounded-full bg-black transition-all ${isEditing ? 'left-6' : 'left-1'}`} />
+                      </button>
+                    </div>
+                  </div>
                   <Button 
                     variant="outline" 
                     className="w-full h-12 bg-primary/10 border-primary/20 text-[#bff720] hover:bg-primary/20 font-black uppercase tracking-widest text-[10px] rounded-xl group"
@@ -641,13 +677,38 @@ export default function DiagnosticEditorPage() {
                           <Input className="h-9 bg-black/40 border-white/10 text-white text-[10px] font-bold rounded-lg" value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))} />
                       </div>
                       <div className="space-y-1.5">
-                          <Label className="text-[8px] font-black uppercase tracking-widest text-white/30">Tema Visual</Label>
-                          <select className="flex h-9 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-1 text-[10px] font-bold text-white outline-none" value={clientInfo.tema} onChange={e => setClientInfo({...clientInfo, tema: e.target.value})}>
-                            <option value="teal">Verde Teal</option>
-                            <option value="burgundy">Bordô</option>
-                            <option value="black">Preto</option>
-                          </select>
-                      </div>
+                           <Label className="text-[8px] font-black uppercase tracking-widest text-white/30">Tema Visual</Label>
+                           <div className="flex gap-2 mb-2">
+                             {Object.keys(THEMES).map(t => (
+                               <button 
+                                 key={t}
+                                 onClick={() => setClientInfo({...clientInfo, tema: t})}
+                                 className={`w-6 h-6 rounded-full border-2 ${clientInfo.tema === t ? 'border-[#bff720] scale-110' : 'border-transparent'}`}
+                                 style={{ background: THEMES[t].primary }}
+                               />
+                             ))}
+                           </div>
+                           <div className="flex gap-2 items-center">
+                              <Input 
+                                type="color" 
+                                className="w-8 h-8 p-0 border-none bg-transparent rounded cursor-pointer" 
+                                value={THEMES[clientInfo.tema]?.primary || '#0D6E5E'} 
+                                onChange={(e) => {
+                                  const col = e.target.value;
+                                  THEMES[clientInfo.tema] = { primary: col, primaryDark: col };
+                                  setClientInfo({...clientInfo, tema: clientInfo.tema});
+                                }} 
+                              />
+                              <Input 
+                                className="h-8 bg-black/40 border-white/10 text-white text-[9px] font-bold rounded-lg" 
+                                value={THEMES[clientInfo.tema]?.primary} 
+                                onChange={(e) => {
+                                  THEMES[clientInfo.tema] = { primary: e.target.value, primaryDark: e.target.value };
+                                  setClientInfo({...clientInfo, tema: clientInfo.tema});
+                                }}
+                              />
+                           </div>
+                       </div>
                       <div className="pt-2 space-y-3 border-t border-white/5">
                         <div className="space-y-1.5">
                             <Label className="text-[8px] font-black uppercase tracking-widest text-white/30">Seu Instagram</Label>
@@ -749,11 +810,18 @@ export default function DiagnosticEditorPage() {
                     <div className="space-y-4">
                         <span className="text-[10px] font-black uppercase tracking-[5px] text-[#0D6E5E]">Introdução</span>
                         <h2 className="text-5xl lg:text-6xl font-black text-black leading-none uppercase tracking-tighter">
-                            Panorama<br />Digital
+                            <EditableText value="Panorama" onChange={(v:any) => setConfig({...config, intro: {...config.intro, titulo: v}})} isLight />
+                            <br />
+                            <EditableText value="Digital" onChange={(v:any) => {}} isLight />
                         </h2>
                     </div>
                     <p className="text-xl text-black/70 leading-relaxed font-medium">
-                        {config.intro.texto}
+                        <EditableText 
+                          value={config.intro.texto} 
+                          onChange={(v:any) => setConfig({...config, intro: {...config.intro, texto: v}})} 
+                          multiline 
+                          isLight
+                        />
                     </p>
                     <div className="flex gap-4">
                         <div className="flex -space-x-4">
@@ -827,7 +895,13 @@ export default function DiagnosticEditorPage() {
                             <div key={i} className="bg-white/5 border border-white/5 p-8 rounded-[32px] group hover:bg-white/10 transition-all duration-500 text-left">
                                 <div className="flex gap-6">
                                     <div className="w-10 h-10 rounded-2xl bg-[#bff720]/10 flex items-center justify-center text-[#bff720] shrink-0"><CheckCircle2 size={20} /></div>
-                                    <p className="text-lg font-bold text-white/90 leading-tight pt-1">{p}</p>
+                                    <p className="text-lg font-bold text-white/90 leading-tight pt-1">
+                                      <EditableText value={p} onChange={(v:any) => {
+                                        const newPos = [...config.positivos];
+                                        newPos[i] = v;
+                                        setConfig({...config, positivos: newPos});
+                                      }} />
+                                    </p>
                                 </div>
                             </div>
                         ))}
@@ -845,7 +919,13 @@ export default function DiagnosticEditorPage() {
                             <div key={i} className="bg-black/20 border border-white/5 p-8 rounded-[32px] group hover:bg-black/40 transition-all duration-500 text-left">
                                 <div className="flex gap-6">
                                     <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-white/20 shrink-0"><AlertCircle size={20} /></div>
-                                    <p className="text-lg font-bold text-white/60 leading-tight pt-1">{n}</p>
+                                    <p className="text-lg font-bold text-white/60 leading-tight pt-1">
+                                      <EditableText value={n} onChange={(v:any) => {
+                                        const newNeg = [...config.negativos];
+                                        newNeg[i] = v;
+                                        setConfig({...config, negativos: newNeg});
+                                      }} />
+                                    </p>
                                 </div>
                             </div>
                         ))}
@@ -919,10 +999,10 @@ export default function DiagnosticEditorPage() {
                             <span className="text-sm font-black text-[#bff720] uppercase tracking-[8px]">O Veredito Final</span>
                         </div>
                         <h2 className="text-6xl lg:text-8xl font-black text-white uppercase tracking-tighter leading-[0.85]">
-                            {config.final.destaque}
+                            <EditableText value={config.final.destaque} onChange={(v:any) => setConfig({...config, final: {...config.final, destaque: v}})} />
                         </h2>
                         <p className="text-2xl lg:text-3xl font-light text-white/40 max-w-3xl mx-auto italic">
-                            "{config.final.texto}"
+                            "<EditableText value={config.final.texto} onChange={(v:any) => setConfig({...config, final: {...config.final, texto: v}})} multiline />"
                         </p>
                     </div>
 
@@ -950,9 +1030,21 @@ export default function DiagnosticEditorPage() {
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-[2px] bg-[#0D6E5E]" />
-                                        <span className="text-[10px] font-black uppercase tracking-[5px] text-[#0D6E5E]">{s.label}</span>
+                                        <span className="text-[10px] font-black uppercase tracking-[5px] text-[#0D6E5E]">
+                                          <EditableText value={s.label} onChange={(v:any) => {
+                                            const newS = [...config.semanas];
+                                            newS[i].label = v;
+                                            setConfig({...config, semanas: newS});
+                                          }} isLight />
+                                        </span>
                                     </div>
-                                    <h2 className="text-5xl lg:text-6xl font-black text-black uppercase tracking-tighter leading-none">{s.titulo}</h2>
+                                    <h2 className="text-5xl lg:text-6xl font-black text-black uppercase tracking-tighter leading-none">
+                                      <EditableText value={s.titulo} onChange={(v:any) => {
+                                        const newS = [...config.semanas];
+                                        newS[i].titulo = v;
+                                        setConfig({...config, semanas: newS});
+                                      }} isLight />
+                                    </h2>
                                 </div>
                                 <div className="p-6 bg-white border border-[#e8e4dc] rounded-2xl flex items-center gap-6">
                                     <div className="w-12 h-12 rounded-xl bg-black flex items-center justify-center text-[#bff720]"><TrendingUp size={24} /></div>
