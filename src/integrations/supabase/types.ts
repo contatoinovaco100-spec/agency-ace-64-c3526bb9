@@ -14,179 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      diagnostics: {
-        Row: {
-          config: Json | null
-          created_at: string
-          id: string
-          slug: string
-          title: string | null
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          config?: Json | null
-          created_at?: string
-          id?: string
-          slug: string
-          title?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          config?: Json | null
-          created_at?: string
-          id?: string
-          slug?: string
-          title?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "diagnostics_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      },
-      content_editorial_lines: {
-        Row: {
-          id: string
-          client_id: string
-          niche: string | null
-          audience: string | null
-          tone: string | null
-          objective: string | null
-          pillars: string[] | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          client_id: string
-          niche?: string | null
-          audience?: string | null
-          tone?: string | null
-          objective?: string | null
-          pillars?: string[] | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          client_id?: string
-          niche?: string | null
-          audience?: string | null
-          tone?: string | null
-          objective?: string | null
-          pillars?: string[] | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "content_editorial_lines_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      content_ideas: {
-        Row: {
-          id: string
-          client_id: string
-          title: string
-          content_type: string | null
-          pillar: string | null
-          objective: string | null
-          status: string | null
-          scheduled_date: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          client_id: string
-          title: string
-          content_type?: string | null
-          pillar?: string | null
-          objective?: string | null
-          status?: string | null
-          scheduled_date?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          client_id?: string
-          title?: string
-          content_type?: string | null
-          pillar?: string | null
-          objective?: string | null
-          status?: string | null
-          scheduled_date?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "content_ideas_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      content_scripts: {
-        Row: {
-          id: string
-          idea_id: string | null
-          title: string | null
-          hook: string | null
-          development: string | null
-          cta: string | null
-          observations: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          idea_id?: string | null
-          title?: string | null
-          hook?: string | null
-          development?: string | null
-          cta?: string | null
-          observations?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          idea_id?: string | null
-          title?: string | null
-          hook?: string | null
-          development?: string | null
-          cta?: string | null
-          observations?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "content_scripts_idea_id_fkey"
-            columns: ["idea_id"]
-            isOneToOne: false
-            referencedRelation: "content_ideas"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       budget_items: {
         Row: {
           actual_cost: number
@@ -285,6 +112,7 @@ export type Database = {
           target_age_range: string
           target_gender: string
           things_to_avoid: string
+          updated_at: string
         }
         Insert: {
           audience_desires?: string
@@ -310,6 +138,7 @@ export type Database = {
           target_age_range?: string
           target_gender?: string
           things_to_avoid?: string
+          updated_at?: string
         }
         Update: {
           audience_desires?: string
@@ -335,6 +164,7 @@ export type Database = {
           target_age_range?: string
           target_gender?: string
           things_to_avoid?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -382,6 +212,101 @@ export type Database = {
             foreignKeyName: "client_meta_accounts_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_weekly_results: {
+        Row: {
+          ad_spend: number
+          client_id: string
+          content_posted: number
+          cost_per_lead: number
+          created_at: string
+          engagement_rate: number
+          followers_after: number
+          followers_before: number
+          highlights: string
+          id: string
+          leads_generated: number
+          notes: string
+          reels_posted: number
+          revenue_generated: number
+          roas: number
+          sales_closed: number
+          stories_posted: number
+          total_comments: number
+          total_impressions: number
+          total_likes: number
+          total_reach: number
+          total_saves: number
+          total_shares: number
+          updated_at: string
+          week_end_date: string
+          week_start_date: string
+        }
+        Insert: {
+          ad_spend?: number
+          client_id: string
+          content_posted?: number
+          cost_per_lead?: number
+          created_at?: string
+          engagement_rate?: number
+          followers_after?: number
+          followers_before?: number
+          highlights?: string
+          id?: string
+          leads_generated?: number
+          notes?: string
+          reels_posted?: number
+          revenue_generated?: number
+          roas?: number
+          sales_closed?: number
+          stories_posted?: number
+          total_comments?: number
+          total_impressions?: number
+          total_likes?: number
+          total_reach?: number
+          total_saves?: number
+          total_shares?: number
+          updated_at?: string
+          week_end_date: string
+          week_start_date: string
+        }
+        Update: {
+          ad_spend?: number
+          client_id?: string
+          content_posted?: number
+          cost_per_lead?: number
+          created_at?: string
+          engagement_rate?: number
+          followers_after?: number
+          followers_before?: number
+          highlights?: string
+          id?: string
+          leads_generated?: number
+          notes?: string
+          reels_posted?: number
+          revenue_generated?: number
+          roas?: number
+          sales_closed?: number
+          stories_posted?: number
+          total_comments?: number
+          total_impressions?: number
+          total_likes?: number
+          total_reach?: number
+          total_saves?: number
+          total_shares?: number
+          updated_at?: string
+          week_end_date?: string
+          week_start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_weekly_results_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -452,6 +377,141 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      content_editorial_lines: {
+        Row: {
+          audience: string | null
+          client_id: string
+          created_at: string
+          id: string
+          niche: string | null
+          objective: string | null
+          pillars: string[] | null
+          tone: string | null
+          updated_at: string
+        }
+        Insert: {
+          audience?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          niche?: string | null
+          objective?: string | null
+          pillars?: string[] | null
+          tone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          audience?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          niche?: string | null
+          objective?: string | null
+          pillars?: string[] | null
+          tone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_editorial_lines_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_ideas: {
+        Row: {
+          client_id: string
+          content_type: string | null
+          created_at: string
+          id: string
+          objective: string | null
+          pillar: string | null
+          scheduled_date: string | null
+          status: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          content_type?: string | null
+          created_at?: string
+          id?: string
+          objective?: string | null
+          pillar?: string | null
+          scheduled_date?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          content_type?: string | null
+          created_at?: string
+          id?: string
+          objective?: string | null
+          pillar?: string | null
+          scheduled_date?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_ideas_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_scripts: {
+        Row: {
+          created_at: string
+          cta: string | null
+          development: string | null
+          hook: string | null
+          id: string
+          idea_id: string | null
+          observations: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cta?: string | null
+          development?: string | null
+          hook?: string | null
+          id?: string
+          idea_id?: string | null
+          observations?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cta?: string | null
+          development?: string | null
+          hook?: string | null
+          id?: string
+          idea_id?: string | null
+          observations?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_scripts_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "content_ideas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contract_signatures: {
         Row: {
@@ -586,6 +646,47 @@ export type Database = {
           },
         ]
       }
+      diagnostics: {
+        Row: {
+          client_id: string | null
+          config: Json
+          created_at: string
+          id: string
+          slug: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          config?: Json
+          created_at?: string
+          id?: string
+          slug: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          config?: Json
+          created_at?: string
+          id?: string
+          slug?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnostics_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment: {
         Row: {
           brand: string
@@ -661,6 +762,24 @@ export type Database = {
           month_ref?: string
           type?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      gamification_settings: {
+        Row: {
+          id: number
+          updated_at: string | null
+          winning_prizes: Json
+        }
+        Insert: {
+          id?: number
+          updated_at?: string | null
+          winning_prizes?: Json
+        }
+        Update: {
+          id?: number
+          updated_at?: string | null
+          winning_prizes?: Json
         }
         Relationships: []
       }
@@ -806,25 +925,40 @@ export type Database = {
       }
       profiles: {
         Row: {
+          achievements: Json | null
+          available_spins: number | null
           avatar_url: string | null
           created_at: string
           full_name: string
+          gamification_metrics: Json | null
           id: string
+          last_spin_date: string | null
           updated_at: string
+          won_prizes: Json | null
         }
         Insert: {
+          achievements?: Json | null
+          available_spins?: number | null
           avatar_url?: string | null
           created_at?: string
           full_name?: string
+          gamification_metrics?: Json | null
           id: string
+          last_spin_date?: string | null
           updated_at?: string
+          won_prizes?: Json | null
         }
         Update: {
+          achievements?: Json | null
+          available_spins?: number | null
           avatar_url?: string | null
           created_at?: string
           full_name?: string
+          gamification_metrics?: Json | null
           id?: string
+          last_spin_date?: string | null
           updated_at?: string
+          won_prizes?: Json | null
         }
         Relationships: []
       }
@@ -865,6 +999,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      service_contracts: {
+        Row: {
+          activities: string[]
+          created_at: string
+          created_by: string | null
+          custom_clauses: string
+          id: string
+          monthly_value: string
+          provider_address: string
+          provider_doc: string
+          provider_name: string
+          signature_hash: string | null
+          signed_at: string | null
+          signer_cpf: string | null
+          signer_email: string | null
+          signer_ip: string | null
+          signer_name: string | null
+          signer_user_agent: string | null
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          activities?: string[]
+          created_at?: string
+          created_by?: string | null
+          custom_clauses?: string
+          id?: string
+          monthly_value?: string
+          provider_address?: string
+          provider_doc?: string
+          provider_name?: string
+          signature_hash?: string | null
+          signed_at?: string | null
+          signer_cpf?: string | null
+          signer_email?: string | null
+          signer_ip?: string | null
+          signer_name?: string | null
+          signer_user_agent?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          activities?: string[]
+          created_at?: string
+          created_by?: string | null
+          custom_clauses?: string
+          id?: string
+          monthly_value?: string
+          provider_address?: string
+          provider_doc?: string
+          provider_name?: string
+          signature_hash?: string | null
+          signed_at?: string | null
+          signer_cpf?: string | null
+          signer_email?: string | null
+          signer_ip?: string | null
+          signer_name?: string | null
+          signer_user_agent?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       shooting_schedules: {
         Row: {
@@ -1088,6 +1288,8 @@ export type Database = {
           id: string
           observations: string
           platform: string
+          post_date: string | null
+          post_time: string | null
           priority: string
           recording_notes: string
           script_writer: string
@@ -1100,6 +1302,7 @@ export type Database = {
           video_name: string
           video_objective: string
           video_references: string
+          video_url: string | null
           videomaker: string
         }
         Insert: {
@@ -1120,6 +1323,8 @@ export type Database = {
           id?: string
           observations?: string
           platform?: string
+          post_date?: string | null
+          post_time?: string | null
           priority?: string
           recording_notes?: string
           script_writer?: string
@@ -1132,6 +1337,7 @@ export type Database = {
           video_name?: string
           video_objective?: string
           video_references?: string
+          video_url?: string | null
           videomaker?: string
         }
         Update: {
@@ -1152,6 +1358,8 @@ export type Database = {
           id?: string
           observations?: string
           platform?: string
+          post_date?: string | null
+          post_time?: string | null
           priority?: string
           recording_notes?: string
           script_writer?: string
@@ -1164,6 +1372,7 @@ export type Database = {
           video_name?: string
           video_objective?: string
           video_references?: string
+          video_url?: string | null
           videomaker?: string
         }
         Relationships: [
