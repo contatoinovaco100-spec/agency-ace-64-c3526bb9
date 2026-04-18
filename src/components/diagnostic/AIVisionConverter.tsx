@@ -115,7 +115,7 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
               { inline_data: { mime_type: file.type, data: base64Data } }
             ]
           }],
-          generation_config: { response_mime_type: "application/json" }
+          generation_config: {}
         })
       });
 
@@ -133,7 +133,8 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
         throw new Error("IA não retornou dados");
       }
 
-      const result = JSON.parse(text);
+      const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const result = JSON.parse(cleanText);
       // Add the public URL to the result
       result.imageUrl = publicUrl;
       

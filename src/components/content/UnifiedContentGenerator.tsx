@@ -167,9 +167,7 @@ IMPORTANTE: Cada roteiro deve ser ÚNICO, INESPERADO e fazer a pessoa pensar "ca
           contents: [
             { parts: [{ text: prompt }] }
           ],
-          generation_config: {
-            response_mime_type: "application/json"
-          }
+          generation_config: {}
         }),
       });
 
@@ -186,7 +184,8 @@ IMPORTANTE: Cada roteiro deve ser ÚNICO, INESPERADO e fazer a pessoa pensar "ca
       
       if (!content) throw new Error("A resposta da IA veio vazia.");
       
-      const result = JSON.parse(content);
+      const cleanContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
+      const result = JSON.parse(cleanContent);
 
       if (result) {
         setItems(prev => prev.map(i => {

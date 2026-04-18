@@ -175,9 +175,7 @@ export default function ProspectionPage() {
           contents: [
             { parts: [{ text: prompt }] }
           ],
-          generation_config: {
-            response_mime_type: "application/json"
-          }
+          generation_config: {}
         }),
       });
 
