@@ -892,19 +892,42 @@ export default function DiagnosticEditorPage() {
                     </div>
                     <div className="grid gap-4">
                         {config.positivos.map((p: string, i: number) => (
-                            <div key={i} className="bg-white/5 border border-white/5 p-8 rounded-[32px] group hover:bg-white/10 transition-all duration-500 text-left">
+                            <div key={i} className="bg-white/5 border border-white/5 p-8 rounded-[32px] group hover:bg-white/10 transition-all duration-500 text-left relative">
+                                {isEditing && (
+                                  <button 
+                                    onClick={() => {
+                                      const newPos = [...config.positivos];
+                                      newPos.splice(i, 1);
+                                      setConfig({...config, positivos: newPos});
+                                    }}
+                                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                )}
                                 <div className="flex gap-6">
                                     <div className="w-10 h-10 rounded-2xl bg-[#bff720]/10 flex items-center justify-center text-[#bff720] shrink-0"><CheckCircle2 size={20} /></div>
-                                    <p className="text-lg font-bold text-white/90 leading-tight pt-1">
-                                      <EditableText value={p} onChange={(v:any) => {
-                                        const newPos = [...config.positivos];
-                                        newPos[i] = v;
-                                        setConfig({...config, positivos: newPos});
-                                      }} />
-                                    </p>
+                                    <div className="flex-1">
+                                      <p className="text-lg font-bold text-white/90 leading-tight pt-1 w-full">
+                                        <EditableText value={p} onChange={(v:any) => {
+                                          const newPos = [...config.positivos];
+                                          newPos[i] = v;
+                                          setConfig({...config, positivos: newPos});
+                                        }} />
+                                      </p>
+                                    </div>
                                 </div>
                             </div>
                         ))}
+                        {isEditing && (
+                          <Button 
+                            variant="ghost" 
+                            className="w-full border-2 border-dashed border-[#bff720]/30 text-[#bff720] hover:bg-[#bff720]/10 py-8 rounded-[32px]"
+                            onClick={() => setConfig({...config, positivos: [...config.positivos, 'Novo ponto de força...']})}
+                          >
+                            <Plus size={20} className="mr-2" /> Adicionar Ponto Positivo
+                          </Button>
+                        )}
                     </div>
                 </div>
 
@@ -916,19 +939,42 @@ export default function DiagnosticEditorPage() {
                     </div>
                     <div className="grid gap-4">
                         {config.negativos.map((n: string, i: number) => (
-                            <div key={i} className="bg-black/20 border border-white/5 p-8 rounded-[32px] group hover:bg-black/40 transition-all duration-500 text-left">
+                            <div key={i} className="bg-black/20 border border-white/5 p-8 rounded-[32px] group hover:bg-black/40 transition-all duration-500 text-left relative">
+                                {isEditing && (
+                                  <button 
+                                    onClick={() => {
+                                      const newNeg = [...config.negativos];
+                                      newNeg.splice(i, 1);
+                                      setConfig({...config, negativos: newNeg});
+                                    }}
+                                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                )}
                                 <div className="flex gap-6">
                                     <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-white/20 shrink-0"><AlertCircle size={20} /></div>
-                                    <p className="text-lg font-bold text-white/60 leading-tight pt-1">
-                                      <EditableText value={n} onChange={(v:any) => {
-                                        const newNeg = [...config.negativos];
-                                        newNeg[i] = v;
-                                        setConfig({...config, negativos: newNeg});
-                                      }} />
-                                    </p>
+                                    <div className="flex-1">
+                                      <p className="text-lg font-bold text-white/60 leading-tight pt-1">
+                                        <EditableText value={n} onChange={(v:any) => {
+                                          const newNeg = [...config.negativos];
+                                          newNeg[i] = v;
+                                          setConfig({...config, negativos: newNeg});
+                                        }} />
+                                      </p>
+                                    </div>
                                 </div>
                             </div>
                         ))}
+                        {isEditing && (
+                          <Button 
+                            variant="ghost" 
+                            className="w-full border-2 border-dashed border-white/10 text-white/40 hover:bg-white/5 py-8 rounded-[32px]"
+                            onClick={() => setConfig({...config, negativos: [...config.negativos, 'Novo gargalo identificado...']})}
+                          >
+                            <Plus size={20} className="mr-2" /> Adicionar Gargalo
+                          </Button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -1057,24 +1103,60 @@ export default function DiagnosticEditorPage() {
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                                 {s.cards.map((c: any, ci: number) => (
-                                    <div key={ci} className="group bg-white rounded-[50px] p-12 shadow-2xl border border-[#e8e4dc] space-y-10 hover:border-[#bff720] transition-colors duration-500 flex flex-col justify-between text-left">
+                                    <div key={ci} className="group bg-white rounded-[50px] p-12 shadow-2xl border border-[#e8e4dc] space-y-10 hover:border-[#bff720] transition-colors duration-500 flex flex-col justify-between text-left relative">
+                                        {isEditing && (
+                                          <button 
+                                            onClick={() => {
+                                              const newS = [...config.semanas];
+                                              newS[i].cards.splice(ci, 1);
+                                              setConfig({...config, semanas: newS});
+                                            }}
+                                            className="absolute -top-4 -right-4 w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-10"
+                                          >
+                                            <Trash2 size={16} />
+                                          </button>
+                                        )}
                                         <div className="space-y-8">
                                             <div className="flex justify-between items-start">
                                                 <div className="inline-block px-5 py-2 bg-black rounded-full">
-                                                    <span className="text-[10px] font-black text-white uppercase tracking-widest">{c.tipo}</span>
+                                                    <span className="text-[10px] font-black text-white uppercase tracking-widest">
+                                                      <EditableText value={c.tipo} onChange={(v:any) => {
+                                                        const newS = [...config.semanas];
+                                                        newS[i].cards[ci].tipo = v;
+                                                        setConfig({...config, semanas: newS});
+                                                      }} />
+                                                    </span>
                                                 </div>
                                                 <Sparkles className="text-black/10 group-hover:text-[#bff720] transition-colors" size={32} />
                                             </div>
-                                            <h3 className="text-3xl font-black text-black leading-tight tracking-tight">{c.titulo}</h3>
+                                            <h3 className="text-3xl font-black text-black leading-tight tracking-tight">
+                                              <EditableText value={c.titulo} onChange={(v:any) => {
+                                                const newS = [...config.semanas];
+                                                newS[i].cards[ci].titulo = v;
+                                                setConfig({...config, semanas: newS});
+                                              }} isLight />
+                                            </h3>
                                             
                                             <div className="grid grid-cols-1 gap-8">
                                                 <div className="space-y-2">
                                                     <p className="text-[10px] font-black uppercase tracking-widest text-[#0D6E5E]">Base Estratégica</p>
-                                                    <p className="text-lg font-medium text-black/70 leading-snug">{c.gancho}</p>
+                                                    <p className="text-lg font-medium text-black/70 leading-snug">
+                                                      <EditableText value={c.gancho} onChange={(v:any) => {
+                                                        const newS = [...config.semanas];
+                                                        newS[i].cards[ci].gancho = v;
+                                                        setConfig({...config, semanas: newS});
+                                                      }} isLight multiline />
+                                                    </p>
                                                 </div>
                                                 <div className="p-6 bg-[#f8f6f0] rounded-3xl space-y-2">
                                                     <p className="text-[10px] font-black uppercase tracking-widest text-black/30">Estrutura do Conteúdo</p>
-                                                    <p className="text-sm font-bold text-black/80 leading-relaxed">{c.estrutura}</p>
+                                                    <p className="text-sm font-bold text-black/80 leading-relaxed">
+                                                      <EditableText value={c.estrutura} onChange={(v:any) => {
+                                                        const newS = [...config.semanas];
+                                                        newS[i].cards[ci].estrutura = v;
+                                                        setConfig({...config, semanas: newS});
+                                                      }} isLight multiline />
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>
@@ -1084,10 +1166,35 @@ export default function DiagnosticEditorPage() {
                                                 <div className="w-2 h-2 rounded-full bg-[#bff720] animate-pulse" />
                                                 <span className="text-xs font-black uppercase tracking-widest text-black/40">Call to action:</span>
                                             </div>
-                                            <span className="text-xs font-black text-black uppercase tracking-widest bg-[#bff720]/10 px-4 py-2 rounded-lg">{c.cta}</span>
+                                            <span className="text-xs font-black text-black uppercase tracking-widest bg-[#bff720]/10 px-4 py-2 rounded-lg">
+                                               <EditableText value={c.cta} onChange={(v:any) => {
+                                                  const newS = [...config.semanas];
+                                                  newS[i].cards[ci].cta = v;
+                                                  setConfig({...config, semanas: newS});
+                                                }} isLight />
+                                            </span>
                                         </div>
                                     </div>
                                 ))}
+                                {isEditing && (
+                                  <button 
+                                    onClick={() => {
+                                      const newS = [...config.semanas];
+                                      newS[i].cards.push({
+                                        tipo: 'Novo Vídeo',
+                                        titulo: 'Título da Ideia',
+                                        gancho: 'Chamada de impacto aqui',
+                                        estrutura: 'Passo a passo do vídeo',
+                                        cta: 'Postar agora'
+                                      });
+                                      setConfig({...config, semanas: newS});
+                                    }}
+                                    className="flex flex-col items-center justify-center p-12 border-4 border-dashed border-[#e8e4dc] rounded-[50px] hover:border-[#bff720] hover:bg-[#bff720]/5 transition-all text-[#e8e4dc] hover:text-[#bff720] group"
+                                  >
+                                    <Plus size={48} className="mb-4 group-hover:scale-110 transition-transform" />
+                                    <span className="text-sm font-black uppercase tracking-widest">Adicionar Ideia de Vídeo</span>
+                                  </button>
+                                )}
                             </div>
                         </div>
                     </section>
