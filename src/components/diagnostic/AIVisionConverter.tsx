@@ -122,7 +122,8 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
       if (!response.ok) {
         const errorDetail = await response.json().catch(() => ({}));
         console.error("Gemini API Error Detail:", errorDetail);
-        throw new Error(`Falha na API da IA: ${response.status}`);
+        const errorMessage = errorDetail.error?.message || `Status ${response.status}`;
+        throw new Error(errorMessage);
       }
 
       const resData = await response.json();

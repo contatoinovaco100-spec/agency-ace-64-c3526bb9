@@ -182,7 +182,9 @@ export default function ProspectionPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Erro na API do Gemini: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error?.message || `Erro ${response.status}`;
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
