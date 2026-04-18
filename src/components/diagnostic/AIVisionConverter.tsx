@@ -105,7 +105,7 @@ O SEU RESULTADO DEVE SER UM JSON NO SEGUINTE FORMATO:
 
 IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -115,7 +115,7 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
               { inline_data: { mime_type: file.type, data: base64Data } }
             ]
           }],
-          generationConfig: { responseMimeType: "application/json" }
+          generation_config: { response_mime_type: "application/json" }
         })
       });
 
