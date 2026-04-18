@@ -21,7 +21,8 @@ interface TaskData {
   platform: string;
   format: string;
   due_date: string | null;
-  scheduled_date: string | null;
+  scheduled_date?: string | null;
+  post_date?: string | null;
   assignee: string;
   client_id: string | null;
   priority: string;

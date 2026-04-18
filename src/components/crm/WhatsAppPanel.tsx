@@ -152,7 +152,9 @@ export function WhatsAppPanel() {
   };
 
   useEffect(() => {
-    checkStatus();
+    callZapi('get-status').then((data) => {
+      setConnected(data?.connected ?? false);
+    }).catch(() => setConnected(false));
     loadChats();
 
     // Listener Realtime para a sessão do WhatsApp
