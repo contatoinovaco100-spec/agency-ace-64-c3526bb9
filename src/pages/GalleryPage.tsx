@@ -87,38 +87,56 @@ export default function GalleryPage() {
     finalizedTasks.forEach(task => {
       const taskAttachments = attachments.filter(a => a.taskId === task.id);
       const clientName = clients.find(c => c.id === task.clientId)?.companyName || 'Sem cliente';
-      
-      if (taskAttachments.length > 0) {
-        taskAttachments.forEach(att => {
-          const isVideo = att.fileType.includes('video') || 
-                         att.fileType === 'link' && (
-                           att.fileUrl.includes('youtube') || 
-                           att.fileUrl.includes('vimeo') || 
-                           att.fileUrl.includes('drive.google') ||
-                           att.fileUrl.includes('mp4') ||
-                           att.fileUrl.includes('mov')
-                         );
-          
-          const isImage = att.fileType.includes('image');
-          
-          if (isVideo || isImage) {
-            items.push({
-              id: att.id,
-              taskId: task.id,
-              title: task.videoName || task.title || att.fileName,
-              type: isVideo ? 'video' : 'image',
-              url: att.fileUrl,
-              thumbnail: '',
-              client: clientName,
-              date: new Date(att.createdAt || task.dueDate || '').toLocaleDateString('pt-BR'),
-              tag: (task.format || task.taskType || 'Geral').toLowerCase()
-            });
-          }
+      const tag = (task.format || task.taskType || 'Geral').toLowerCase();
+      const dateStr = new Date(task.dueDate || '').toLocaleDateString('pt-BR');
+      const seenUrls = new Set<string>();
+
+      // 1) video_url direto na tarefa (ex: link do Google Drive)
+      const taskVideoUrl = (task as any).videoUrl || (task as any).video_url;
+      if (taskVideoUrl && typeof taskVideoUrl === 'string' && taskVideoUrl.trim()) {
+        seenUrls.add(taskVideoUrl);
+        items.push({
+          id: `task-${task.id}`,
+          taskId: task.id,
+          title: task.videoName || task.title,
+          type: 'video',
+          url: taskVideoUrl,
+          thumbnail: '',
+          client: clientName,
+          date: dateStr,
+          tag
         });
-      } else if (task.taskType === 'Produção de Vídeo') {
-        // Fallback for tasks with no attachments yet but are finalized
-        // items.push({ ... }) if we want to show them without files
       }
+
+      // 2) Anexos da tarefa
+      taskAttachments.forEach(att => {
+        if (seenUrls.has(att.fileUrl)) return;
+        const url = att.fileUrl || '';
+        const isVideo = att.fileType.includes('video') ||
+          (att.fileType === 'link' && (
+            url.includes('youtube') ||
+            url.includes('vimeo') ||
+            url.includes('drive.google') ||
+            url.includes('.mp4') ||
+            url.includes('.mov')
+          ));
+        const isImage = att.fileType.includes('image');
+
+        if (isVideo || isImage) {
+          seenUrls.add(url);
+          items.push({
+            id: att.id,
+            taskId: task.id,
+            title: task.videoName || task.title || att.fileName,
+            type: isVideo ? 'video' : 'image',
+            url,
+            thumbnail: '',
+            client: clientName,
+            date: new Date(att.createdAt || task.dueDate || '').toLocaleDateString('pt-BR'),
+            tag
+          });
+        }
+      });
     });
     
     return items;
