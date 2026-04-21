@@ -828,6 +828,69 @@ export type Database = {
         }
         Relationships: []
       }
+      linktree_links: {
+        Row: {
+          active: boolean
+          clicks: number
+          created_at: string
+          icon: string
+          id: string
+          sort_order: number
+          title: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          active?: boolean
+          clicks?: number
+          created_at?: string
+          icon?: string
+          id?: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          active?: boolean
+          clicks?: number
+          created_at?: string
+          icon?: string
+          id?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      linktree_profile: {
+        Row: {
+          avatar_emoji: string
+          avatar_url: string | null
+          bio: string
+          display_name: string
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          avatar_emoji?: string
+          avatar_url?: string | null
+          bio?: string
+          display_name?: string
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          avatar_emoji?: string
+          avatar_url?: string | null
+          bio?: string
+          display_name?: string
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       meetings: {
         Row: {
           client_email: string
