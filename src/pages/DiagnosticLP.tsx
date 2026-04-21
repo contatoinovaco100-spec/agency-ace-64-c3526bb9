@@ -28,20 +28,28 @@ export default function DiagnosticLP() {
       try {
         if (slug) {
           const { data, error } = await supabase
-            .from('diagnostics' as any)
+            .from('diagnostics')
             .select('*')
             .eq('slug', slug)
             .maybeSingle();
           
-          if (data && (data as any).config) {
-            setConfig((data as any).config);
+          if (error) {
+            console.error('Erro da API:', error);
+          }
+          
+          if (data?.config) {
+            setConfig(data.config);
             setLoading(false);
             return;
           }
         }
-        // Fallback for demo
         const saved = localStorage.getItem('agency_diagnostic_config_v4');
-        if (saved) { setConfig(JSON.parse(saved)); }
+        if (saved) { 
+          const parsed = JSON.parse(saved);
+          setConfig(parsed);
+          setLoading(false);
+          return;
+        }
       } catch (err) {
         console.error('Erro ao buscar diagnóstico:', err);
       } finally {
@@ -76,12 +84,15 @@ export default function DiagnosticLP() {
     </div>
   );
 
-  const currentTheme = THEMES[config.cliente?.tema] || THEMES.teal;
+  const currentTheme = THEMES[config?.cliente?.tema] || THEMES.teal;
   const theme = {
-    primary: config.cliente?.primaryColor || currentTheme.primary,
-    primaryDark: config.cliente?.primaryColor || currentTheme.primaryDark
+    primary: config?.cliente?.primaryColor || currentTheme.primary,
+    primaryDark: config?.cliente?.primaryColor || currentTheme.primaryDark
   };
   const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0 } };
+
+  const clienteNome = config?.cliente?.nome || '@empresa';
+  const introTexto = config?.intro?.texto || 'Análise completa da sua presença digital e recomendações estratégicas para melhorar seu posicionamento online.';
 
   return (
     <div className="min-h-screen bg-[#F5F3EE] overflow-x-hidden selection:bg-[#bff720] selection:text-black text-left scroll-smooth"
@@ -144,7 +155,7 @@ export default function DiagnosticLP() {
           <div className="inline-flex flex-wrap items-center justify-center gap-3 sm:gap-6 px-5 sm:px-10 py-3 sm:py-4 bg-white/10 rounded-full backdrop-blur-xl border border-white/10 max-w-full">
               <div className="w-2 h-2 bg-[#bff720] rounded-full animate-pulse shrink-0" />
               <p className="text-[10px] sm:text-[11px] font-black text-[#bff720] tracking-[0.4em] sm:tracking-[0.9em] uppercase break-all">
-                @{config.cliente.nome.replace('@','')}
+                @{clienteNome.replace('@','')}
               </p>
               <div className="hidden sm:block w-16 h-[1px] bg-white/20" />
               <p className="hidden sm:block text-[10px] font-bold text-white/60 tracking-[0.3em] uppercase">
@@ -194,7 +205,7 @@ export default function DiagnosticLP() {
                     </h2>
                 </div>
                 <p className="text-base sm:text-lg lg:text-xl text-black/65 leading-relaxed font-medium max-w-md">
-                    {config.intro.texto}
+                    {introTexto}
                 </p>
                 <div className="flex items-center gap-6 pt-4">
                     <div className="flex -space-x-3">
@@ -546,7 +557,7 @@ export default function DiagnosticLP() {
                     <h4 className="text-lg sm:text-2xl font-black text-white uppercase tracking-[6px] sm:tracking-[12px]">Estratégia <span className="text-[#bff720]">&</span> ROI</h4>
                     <div className="w-16 h-[1px] bg-gradient-to-r from-transparent via-[#bff720] to-transparent mx-auto" />
                     <p className="text-white/[0.25] text-[10px] font-medium leading-relaxed uppercase tracking-[3px] sm:tracking-[4px] break-words">
-                        Este documento é confidencial e exclusivo<br />para @{config.cliente.nome.replace('@','')}.<br />
+                        Este documento é confidencial e exclusivo<br />para @{clienteNome.replace('@','')}.<br />
                         © 2026 INOVA Co. High Performance Marketing.
                     </p>
                 </motion.div>
