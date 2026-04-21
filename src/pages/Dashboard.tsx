@@ -499,7 +499,8 @@ export default function Dashboard() {
                             <div className="text-right shrink-0">
                               <div className="font-bold text-sm text-foreground tabular-nums">{formatCurrency(c.ltv)}</div>
                               <div className="text-[10px] text-muted-foreground tabular-nums">
-                                {c.months} {c.months === 1 ? 'mês' : 'meses'} × {formatCurrency(c.monthlyValue)}
+                                {c.monthsPaid} {c.monthsPaid === 1 ? 'mês pago' : 'meses pagos'}
+                                {c.contractsCount > 1 ? ` · ${c.contractsCount} contratos` : ''}
                               </div>
                             </div>
                           </div>
