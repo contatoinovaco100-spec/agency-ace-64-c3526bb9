@@ -401,6 +401,71 @@ export default function Dashboard() {
             </motion.div>
           </div>
 
+          {/* LTV por Cliente — quem mais gerou receita histórica */}
+          {ltvByClient.length > 0 && (
+            <motion.div {...anim(8)}>
+              <Card className="border-border/50 overflow-hidden">
+                <CardHeader className="pb-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <DollarSign className="h-4 w-4 text-[hsl(var(--success))]" /> LTV por Cliente
+                      <Badge variant="secondary" className="ml-1 text-[10px] font-normal">
+                        Receita histórica acumulada
+                      </Badge>
+                    </CardTitle>
+                    <div className="flex items-center gap-4 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">LTV total: </span>
+                        <span className="font-semibold text-foreground tabular-nums">{formatCurrency(totalLtv)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Médio: </span>
+                        <span className="font-semibold text-primary tabular-nums">{formatCurrency(avgLtv)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                    {ltvByClient.map((c, i) => {
+                      const pct = ltvByClient[0].ltv > 0 ? (c.ltv / ltvByClient[0].ltv) * 100 : 0;
+                      const statusColor = c.status === 'Ativo'
+                        ? 'bg-[hsl(var(--success))]/10 text-[hsl(var(--success))]'
+                        : c.status === 'Pausado'
+                        ? 'bg-[hsl(var(--warning))]/10 text-[hsl(var(--warning))]'
+                        : 'bg-destructive/10 text-destructive';
+                      return (
+                        <div key={c.id} className="group rounded-lg border border-border/40 bg-card/40 p-3 hover:border-primary/40 hover:bg-card/80 transition-all">
+                          <div className="flex items-center justify-between gap-3 mb-2">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <span className={`flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold tabular-nums ${i < 3 ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-secondary text-muted-foreground'}`}>
+                                {i + 1}
+                              </span>
+                              <span className="font-medium text-sm text-foreground truncate">{c.name}</span>
+                              <Badge variant="secondary" className={`text-[9px] px-1.5 py-0 ${statusColor}`}>{c.status}</Badge>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className="font-bold text-sm text-foreground tabular-nums">{formatCurrency(c.ltv)}</div>
+                              <div className="text-[10px] text-muted-foreground tabular-nums">
+                                {c.months} {c.months === 1 ? 'mês' : 'meses'} × {formatCurrency(c.monthlyValue)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-secondary/60 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-primary to-[hsl(var(--success))] transition-all duration-500"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
           {/* Recent / New Clients */}
           {newClients.length > 0 && (
             <motion.div {...anim(8)}>
