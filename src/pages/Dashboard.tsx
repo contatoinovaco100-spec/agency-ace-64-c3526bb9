@@ -440,24 +440,30 @@ export default function Dashboard() {
 
         {/* ==================== DELIVERY TAB ==================== */}
         <TabsContent value="entregas" className="space-y-6">
-          {/* Delivery KPIs */}
+          {/* Delivery KPIs — Futuristic */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { label: 'Total de Tarefas', value: tasks.length, icon: CheckSquare, accent: 'text-primary', bg: 'bg-primary/10' },
-              { label: 'Concluídas', value: completedTasks.length, icon: CheckCircle2, accent: 'text-[hsl(var(--success))]', bg: 'bg-[hsl(var(--success))]/10' },
-              { label: 'Em Andamento', value: pendingTasks.length, icon: Clock, accent: 'text-[hsl(var(--info))]', bg: 'bg-[hsl(var(--info))]/10' },
-              { label: 'Atrasadas', value: overdueTasks.length, icon: AlertTriangle, accent: 'text-[hsl(var(--warning))]', bg: 'bg-[hsl(var(--warning))]/10' },
+              { label: 'Total de Tarefas', value: tasks.length, icon: CheckSquare, accent: 'text-primary', bg: 'bg-primary/10', glow: 'hsl(73,93%,55%)', ring: 'ring-primary/30' },
+              { label: 'Concluídas', value: completedTasks.length, icon: CheckCircle2, accent: 'text-[hsl(var(--success))]', bg: 'bg-[hsl(var(--success))]/10', glow: 'hsl(var(--success))', ring: 'ring-[hsl(var(--success))]/30' },
+              { label: 'Em Andamento', value: pendingTasks.length, icon: Clock, accent: 'text-[hsl(var(--info))]', bg: 'bg-[hsl(var(--info))]/10', glow: 'hsl(var(--info))', ring: 'ring-[hsl(var(--info))]/30' },
+              { label: 'Atrasadas', value: overdueTasks.length, icon: AlertTriangle, accent: 'text-[hsl(var(--warning))]', bg: 'bg-[hsl(var(--warning))]/10', glow: 'hsl(var(--warning))', ring: 'ring-[hsl(var(--warning))]/30' },
             ].map((kpi, i) => (
               <motion.div key={kpi.label} {...anim(i)}>
-                <Card className="border-border/50">
-                  <CardContent className="p-5">
+                <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-card/30 backdrop-blur-xl transition-all duration-300 hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_-5px_hsl(73,93%,55%/0.15)]">
+                  <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full blur-2xl opacity-20 transition-opacity duration-500 group-hover:opacity-40" style={{ background: kpi.glow }} />
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <CardContent className="relative p-5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{kpi.label}</span>
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${kpi.bg}`}>
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.15em]">{kpi.label}</span>
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${kpi.bg} ring-1 ${kpi.ring} backdrop-blur`}>
                         <kpi.icon className={`h-4 w-4 ${kpi.accent}`} />
                       </div>
                     </div>
-                    <p className="mt-3 text-2xl font-bold tabular-nums text-foreground">{kpi.value}</p>
+                    <p className="mt-4 text-2xl sm:text-3xl font-bold tabular-nums text-foreground tracking-tight">{kpi.value}</p>
+                    <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground/70">
+                      <span className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+                      <span>Em tempo real</span>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
