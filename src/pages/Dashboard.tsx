@@ -7,7 +7,8 @@ import { useState, useEffect } from 'react';
 import {
   Users, DollarSign, Target, CheckSquare, FolderOpen,
   TrendingUp, PieChart, BarChart3, ArrowUpRight, ArrowDownRight,
-  Clock, AlertTriangle, CheckCircle2, Briefcase, FileText, BellRing
+  Clock, AlertTriangle, CheckCircle2, Briefcase, FileText, BellRing,
+  EyeOff, Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePushNotification } from '@/hooks/usePushNotification';
@@ -46,6 +47,18 @@ export default function Dashboard() {
   const { clients, tasks, leads } = useAgency();
   const { isAdmin } = useModuleAccess();
   const { triggerNotification, requestPermission } = usePushNotification();
+
+  const [alertsHidden, setAlertsHidden] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('dashboard.smartAlertsHidden') === '1';
+  });
+  const toggleAlerts = () => {
+    setAlertsHidden(prev => {
+      const next = !prev;
+      try { localStorage.setItem('dashboard.smartAlertsHidden', next ? '1' : '0'); } catch {}
+      return next;
+    });
+  };
 
   const activeClients = clients.filter(c => c.status === 'Ativo');
   const pausedClients = clients.filter(c => c.status === 'Pausado');
@@ -96,14 +109,30 @@ export default function Dashboard() {
   // Completion rate
   const completionRate = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
 
-  // Revenue simulated monthly trend (last 6 months based on current MRR)
-  const months = ['Out', 'Nov', 'Dez', 'Jan', 'Fev', 'Mar'];
-  const revenueHistory = months.map((m, i) => ({
-    month: m,
-    receita: Math.round(mrr * (0.7 + (i * 0.06) + Math.random() * 0.05)),
-  }));
-  // Make the last one the actual MRR
-  revenueHistory[revenueHistory.length - 1].receita = mrr;
+
+
+  // Revenue history (last 12 months) — based on real contract_start_date.
+  // For each month, sum monthlyValue of clients whose contract started on/before
+  // the end of that month and that aren't cancelled.
+  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const now = new Date();
+  const revenueHistory = Array.from({ length: 12 }, (_, idx) => {
+    const i = 11 - idx; // from 11 months ago to current
+    const ref = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const endOfMonth = new Date(ref.getFullYear(), ref.getMonth() + 1, 0, 23, 59, 59);
+    const total = clients.reduce((sum, c) => {
+      if (!c.contractStartDate) return sum;
+      if (c.status === 'Cancelado') return sum;
+      const start = new Date(c.contractStartDate);
+      if (isNaN(start.getTime())) return sum;
+      if (start <= endOfMonth) return sum + (c.monthlyValue || 0);
+      return sum;
+    }, 0);
+    const label = ref.getMonth() === 0 || idx === 0
+      ? `${monthNames[ref.getMonth()]}/${String(ref.getFullYear()).slice(2)}`
+      : monthNames[ref.getMonth()];
+    return { month: label, receita: Math.round(total) };
+  });
 
   // New clients (recent - last 30 days)
   const thirtyDaysAgo = new Date();
@@ -122,8 +151,18 @@ export default function Dashboard() {
         <div className="absolute bottom-0 left-1/3 h-[350px] w-[350px] rounded-full bg-[hsl(var(--info))]/10 blur-[100px]" />
       </div>
 
-      {/* Smart Alerts */}
-      <SmartAlerts />
+      {/* Smart Alerts (toggleable) */}
+      <div className="flex items-center justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleAlerts}
+          className="gap-2 text-xs text-muted-foreground hover:text-foreground"
+        >
+          {alertsHidden ? <><Eye className="h-3.5 w-3.5" /> Mostrar Alertas Inteligentes</> : <><EyeOff className="h-3.5 w-3.5" /> Esconder Alertas Inteligentes</>}
+        </Button>
+      </div>
+      {!alertsHidden && <SmartAlerts />}
 
       {/* Header — Futuristic */}
       <motion.div
