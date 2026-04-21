@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useParams, Navigate } from 'react-router-dom';
 import { ExternalLink, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -12,33 +13,61 @@ interface LinkRow {
   clicks: number;
 }
 
-interface ProfileRow {
+interface Linktree {
+  id: string;
+  slug: string;
   display_name: string;
   bio: string;
-  avatar_emoji: string;
   avatar_url: string | null;
+  avatar_emoji: string;
+  theme: string;
+  bg_color: string;
+  button_color: string;
+  button_text_color: string;
+  text_color: string;
+  border_color: string;
+  button_style: string;
 }
 
 export default function PublicLinktreePage() {
+  const { slug } = useParams<{ slug: string }>();
+  const [linktree, setLinktree] = useState<Linktree | null>(null);
   const [links, setLinks] = useState<LinkRow[]>([]);
-  const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    document.title = 'INOVA Co. — Links';
+    if (!slug) return;
+    document.title = 'Links';
     (async () => {
-      const [linksRes, profileRes] = await Promise.all([
-        supabase.from('linktree_links').select('*').eq('active', true).order('sort_order', { ascending: true }),
-        supabase.from('linktree_profile').select('*').eq('id', 1).maybeSingle(),
-      ]);
-      setLinks((linksRes.data as LinkRow[]) || []);
-      setProfile((profileRes.data as ProfileRow) || null);
+      const { data: lt } = await supabase
+        .from('linktrees')
+        .select('*')
+        .eq('slug', slug)
+        .maybeSingle();
+
+      if (!lt) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      setLinktree(lt as Linktree);
+      document.title = `${lt.display_name || 'Links'} — Links`;
+
+      const { data: linksData } = await supabase
+        .from('linktree_links')
+        .select('*')
+        .eq('linktree_id', lt.id)
+        .eq('active', true)
+        .order('sort_order', { ascending: true });
+
+      setLinks((linksData as LinkRow[]) || []);
       setLoading(false);
     })();
-  }, []);
+  }, [slug]);
 
-  const handleClick = async (link: LinkRow) => {
-    // fire-and-forget click counter
+  const handleClick = (link: LinkRow) => {
     supabase
       .from('linktree_links')
       .update({ clicks: (link.clicks || 0) + 1 })
@@ -54,32 +83,51 @@ export default function PublicLinktreePage() {
     );
   }
 
+  if (notFound || !linktree) {
+    return <Navigate to="/links/inova" replace />;
+  }
+
+  const radius = linktree.button_style === 'pill' ? '9999px' : linktree.button_style === 'square' ? '4px' : '12px';
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/10 px-4 py-12">
+    <div
+      className="min-h-screen px-4 py-12 transition-colors"
+      style={{ background: linktree.bg_color, color: linktree.text_color }}
+    >
       <div className="mx-auto w-full max-w-md space-y-8">
         {/* Profile */}
         <div className="text-center space-y-4">
-          {profile?.avatar_url ? (
+          {linktree.avatar_url ? (
             <img
-              src={profile.avatar_url}
-              alt={profile.display_name}
-              className="h-24 w-24 rounded-full mx-auto object-cover ring-4 ring-primary/30"
+              src={linktree.avatar_url}
+              alt={linktree.display_name}
+              className="h-24 w-24 rounded-full mx-auto object-cover"
+              style={{ boxShadow: `0 0 0 4px ${linktree.button_color}40` }}
             />
           ) : (
-            <div className="h-24 w-24 rounded-full bg-primary/20 ring-4 ring-primary/30 flex items-center justify-center mx-auto text-4xl">
-              {profile?.avatar_emoji || '🎬'}
+            <div
+              className="h-24 w-24 rounded-full flex items-center justify-center mx-auto text-4xl"
+              style={{ background: `${linktree.button_color}20`, boxShadow: `0 0 0 4px ${linktree.button_color}40` }}
+            >
+              {linktree.avatar_emoji || '🎬'}
             </div>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{profile?.display_name || 'INOVA Co.'}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{profile?.bio || 'Produtora Audiovisual'}</p>
+            <h1 className="text-2xl font-bold" style={{ color: linktree.text_color }}>
+              {linktree.display_name}
+            </h1>
+            {linktree.bio && (
+              <p className="text-sm mt-1 opacity-80" style={{ color: linktree.text_color }}>
+                {linktree.bio}
+              </p>
+            )}
           </div>
         </div>
 
         {/* Links */}
         <div className="space-y-3">
           {links.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground py-12">Nenhum link disponível.</p>
+            <p className="text-center text-sm opacity-60 py-12">Nenhum link disponível.</p>
           ) : (
             links.map((link) => (
               <a
@@ -88,19 +136,24 @@ export default function PublicLinktreePage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => handleClick(link)}
-                className="flex items-center gap-3 w-full px-5 py-4 rounded-xl border border-border bg-card hover:border-primary hover:bg-primary/10 hover:scale-[1.02] transition-all group shadow-sm"
+                className="flex items-center gap-3 w-full px-5 py-4 transition-all hover:scale-[1.02] hover:opacity-90 group"
+                style={{
+                  background: linktree.button_color,
+                  color: linktree.button_text_color,
+                  border: `1px solid ${linktree.border_color}`,
+                  borderRadius: radius,
+                }}
               >
                 <span className="text-2xl">{link.icon}</span>
-                <span className="flex-1 font-medium text-foreground text-sm text-left">{link.title}</span>
-                <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                <span className="flex-1 font-medium text-sm text-left">{link.title}</span>
+                <ExternalLink className="h-4 w-4 opacity-70" />
               </a>
             ))
           )}
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground pt-8">
-          © {new Date().getFullYear()} {profile?.display_name || 'INOVA Co.'}
+        <p className="text-center text-xs opacity-50 pt-8">
+          © {new Date().getFullYear()} {linktree.display_name}
         </p>
       </div>
     </div>
