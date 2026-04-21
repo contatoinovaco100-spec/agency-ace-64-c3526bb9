@@ -1036,8 +1036,11 @@ export type Database = {
           full_name: string
           gamification_metrics: Json | null
           id: string
+          is_active: boolean
+          job_title: string | null
           last_spin_date: string | null
           updated_at: string
+          username: string | null
           won_prizes: Json | null
         }
         Insert: {
@@ -1048,8 +1051,11 @@ export type Database = {
           full_name?: string
           gamification_metrics?: Json | null
           id: string
+          is_active?: boolean
+          job_title?: string | null
           last_spin_date?: string | null
           updated_at?: string
+          username?: string | null
           won_prizes?: Json | null
         }
         Update: {
@@ -1060,8 +1066,11 @@ export type Database = {
           full_name?: string
           gamification_metrics?: Json | null
           id?: string
+          is_active?: boolean
+          job_title?: string | null
           last_spin_date?: string | null
           updated_at?: string
+          username?: string | null
           won_prizes?: Json | null
         }
         Relationships: []
@@ -1572,6 +1581,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_page_access: {
+        Row: {
+          created_at: string
+          id: string
+          page_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          page_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          page_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1595,6 +1625,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_page_access: {
+        Args: { _path: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

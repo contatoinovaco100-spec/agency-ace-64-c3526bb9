@@ -32,12 +32,23 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { error } = await signIn(loginEmail, loginPassword);
+    // Allow login by username only (auto-append @inova.mov for employees)
+    const emailToUse = loginEmail.includes('@') ? loginEmail : `${loginEmail.toLowerCase().trim()}@inova.mov`;
+    const { error } = await signIn(emailToUse, loginPassword);
     setLoading(false);
     if (error) {
-      setError('Email ou senha incorretos.');
+      setError('Usuário ou senha incorretos.');
     } else {
-      navigate('/');
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: roleRow } = await supabase
+          .from('user_roles').select('role')
+          .eq('user_id', user.id).eq('role', 'admin').maybeSingle();
+        navigate(roleRow ? '/' : '/minhas-tarefas');
+      } else {
+        navigate('/');
+      }
     }
   };
 
@@ -92,8 +103,8 @@ export default function LoginPage() {
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4 pt-2">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input id="login-email" type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} placeholder="seu@email.com" />
+                    <Label htmlFor="login-email">E-mail ou usuário</Label>
+                    <Input id="login-email" type="text" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} placeholder="seu@email.com ou marcos" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Senha</Label>

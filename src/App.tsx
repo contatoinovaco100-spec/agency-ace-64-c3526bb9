@@ -74,6 +74,8 @@ const LinktreePage              = lazy(() => import("./pages/LinktreePage"));
 const LinktreeEditorPage        = lazy(() => import("./pages/LinktreeEditorPage"));
 const NovaAssistantPage         = lazy(() => import("./pages/NovaAssistantPage"));
 const CollaboratorContractsPage = lazy(() => import("./pages/CollaboratorContractsPage"));
+const EmployeesPage             = lazy(() => import("./pages/EmployeesPage"));
+const MyTasksPage               = lazy(() => import("./pages/MyTasksPage"));
 
 function PageLoader() {
   return (
@@ -152,6 +154,8 @@ function AppRoutes() {
                     <Route path="/linktree"            element={<LinktreePage />} />
                     <Route path="/linktree/:id"        element={<LinktreeEditorPage />} />
                     <Route path="/nova"                element={<NovaAssistantPage />} />
+                    <Route path="/funcionarios"        element={<EmployeesPage />} />
+                    <Route path="/minhas-tarefas"      element={<MyTasksPage />} />
                     <Route path="*"                    element={<NotFound />} />
                   </Routes>
                 </AppLayout>
