@@ -43,10 +43,34 @@ function formatCurrency(v: number) {
   return `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 }
 
+type SignedContract = {
+  id: string;
+  client_id: string | null;
+  client_name: string;
+  monthly_value: number;
+  duration_months: number;
+  sent_at: string | null;
+  created_at: string;
+  status: string;
+};
+
 export default function Dashboard() {
   const { clients, tasks, leads } = useAgency();
   const { isAdmin } = useModuleAccess();
   const { triggerNotification, requestPermission } = usePushNotification();
+
+  const [signedContracts, setSignedContracts] = useState<SignedContract[]>([]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    (async () => {
+      const { data } = await supabase
+        .from('contracts')
+        .select('id, client_id, client_name, monthly_value, duration_months, sent_at, created_at, status')
+        .eq('status', 'assinado');
+      if (data) setSignedContracts(data as SignedContract[]);
+    })();
+  }, [isAdmin]);
 
   const [alertsHidden, setAlertsHidden] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -88,27 +112,55 @@ export default function Dashboard() {
     .sort((a, b) => b[1] - a[1])
     .map(([name, value]) => ({ name, value: Math.round(value) }));
 
-  // LTV por cliente: meses ativos (do contract_start_date até hoje) × monthlyValue
-  // Inclui clientes Ativos, Pausados e Cancelados que já geraram receita histórica.
+  // LTV por cliente — baseado em contratos ASSINADOS reais.
+  // Para cada contrato: meses pagos = min(meses decorridos desde sent_at, duration_months).
+  // Filtra clientes que já pagaram pelo menos 1 mês completo.
   const todayDate = new Date();
-  const ltvByClient = clients
-    .filter(c => c.contractStartDate && c.monthlyValue > 0)
-    .map(c => {
-      const start = new Date(c.contractStartDate);
-      const monthsActive = isNaN(start.getTime())
-        ? 0
-        : Math.max(1, Math.round((todayDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
-      const ltv = monthsActive * c.monthlyValue;
-      return {
-        id: c.id,
-        name: c.companyName,
-        shortName: c.companyName.length > 18 ? c.companyName.slice(0, 18) + '…' : c.companyName,
-        ltv,
-        months: monthsActive,
-        monthlyValue: c.monthlyValue,
-        status: c.status,
+  const norm = (s: string) => (s || '').trim().toLowerCase();
+  const ltvMap: Record<string, {
+    name: string;
+    clientId: string | null;
+    ltv: number;
+    monthsPaid: number;
+    contractsCount: number;
+    monthlyValue: number;
+    status: string;
+  }> = {};
+
+  signedContracts.forEach(ct => {
+    const refDate = ct.sent_at ? new Date(ct.sent_at) : new Date(ct.created_at);
+    if (isNaN(refDate.getTime())) return;
+    const elapsedMonths = Math.floor(
+      (todayDate.getTime() - refDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
+    );
+    const monthsPaid = Math.max(0, Math.min(elapsedMonths, ct.duration_months || 0));
+    if (monthsPaid < 1) return; // só conta quem já pagou pelo menos 1 mês completo
+    const ltv = monthsPaid * (ct.monthly_value || 0);
+
+    // Casa o contrato com cliente cadastrado pelo nome (case-insensitive).
+    const matchedClient = clients.find(
+      c => norm(c.companyName) === norm(ct.client_name)
+    );
+    const key = matchedClient?.id || `name:${norm(ct.client_name)}`;
+
+    if (!ltvMap[key]) {
+      ltvMap[key] = {
+        name: matchedClient?.companyName || ct.client_name,
+        clientId: matchedClient?.id || null,
+        ltv: 0,
+        monthsPaid: 0,
+        contractsCount: 0,
+        monthlyValue: ct.monthly_value || 0,
+        status: matchedClient?.status || 'Sem cadastro',
       };
-    })
+    }
+    ltvMap[key].ltv += ltv;
+    ltvMap[key].monthsPaid += monthsPaid;
+    ltvMap[key].contractsCount += 1;
+  });
+
+  const ltvByClient = Object.entries(ltvMap)
+    .map(([id, v]) => ({ id, ...v }))
     .sort((a, b) => b.ltv - a.ltv);
   const totalLtv = ltvByClient.reduce((sum, c) => sum + c.ltv, 0);
   const avgLtv = ltvByClient.length > 0 ? totalLtv / ltvByClient.length : 0;
@@ -410,7 +462,7 @@ export default function Dashboard() {
                     <CardTitle className="flex items-center gap-2 text-base">
                       <DollarSign className="h-4 w-4 text-[hsl(var(--success))]" /> LTV por Cliente
                       <Badge variant="secondary" className="ml-1 text-[10px] font-normal">
-                        Receita histórica acumulada
+                        Baseado em contratos assinados
                       </Badge>
                     </CardTitle>
                     <div className="flex items-center gap-4 text-xs">
@@ -433,7 +485,9 @@ export default function Dashboard() {
                         ? 'bg-[hsl(var(--success))]/10 text-[hsl(var(--success))]'
                         : c.status === 'Pausado'
                         ? 'bg-[hsl(var(--warning))]/10 text-[hsl(var(--warning))]'
-                        : 'bg-destructive/10 text-destructive';
+                        : c.status === 'Cancelado'
+                        ? 'bg-destructive/10 text-destructive'
+                        : 'bg-muted text-muted-foreground';
                       return (
                         <div key={c.id} className="group rounded-lg border border-border/40 bg-card/40 p-3 hover:border-primary/40 hover:bg-card/80 transition-all">
                           <div className="flex items-center justify-between gap-3 mb-2">
@@ -447,7 +501,8 @@ export default function Dashboard() {
                             <div className="text-right shrink-0">
                               <div className="font-bold text-sm text-foreground tabular-nums">{formatCurrency(c.ltv)}</div>
                               <div className="text-[10px] text-muted-foreground tabular-nums">
-                                {c.months} {c.months === 1 ? 'mês' : 'meses'} × {formatCurrency(c.monthlyValue)}
+                                {c.monthsPaid} {c.monthsPaid === 1 ? 'mês pago' : 'meses pagos'}
+                                {c.contractsCount > 1 ? ` · ${c.contractsCount} contratos` : ''}
                               </div>
                             </div>
                           </div>
