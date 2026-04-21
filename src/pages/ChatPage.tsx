@@ -182,7 +182,7 @@ export default function ChatPage() {
                 ) : (
                   getInitials(emp.full_name)
                 )}
-                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-sidebar" />
+                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary border-2 border-sidebar" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-medium">{emp.full_name || emp.username}</p>
