@@ -3,12 +3,12 @@ import { useModuleAccess } from '@/hooks/useUserRole';
 import { ExpensesPanel } from '@/components/dashboard/ExpensesPanel';
 import { SmartAlerts } from '@/components/dashboard/SmartAlerts';
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Users, DollarSign, Target, CheckSquare, FolderOpen,
   TrendingUp, PieChart, BarChart3, ArrowUpRight, ArrowDownRight,
   Clock, AlertTriangle, CheckCircle2, Briefcase, FileText, BellRing,
-  EyeOff, Eye,
+  EyeOff, Eye, ArrowUpDown, ArrowUp, ArrowDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePushNotification } from '@/hooks/usePushNotification';
