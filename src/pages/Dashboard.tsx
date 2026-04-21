@@ -109,14 +109,7 @@ export default function Dashboard() {
   // Completion rate
   const completionRate = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
 
-  // Revenue simulated monthly trend (last 6 months based on current MRR)
-  const months = ['Out', 'Nov', 'Dez', 'Jan', 'Fev', 'Mar'];
-  const revenueHistory = months.map((m, i) => ({
-    month: m,
-    receita: Math.round(mrr * (0.7 + (i * 0.06) + Math.random() * 0.05)),
-  }));
-  // Make the last one the actual MRR
-  revenueHistory[revenueHistory.length - 1].receita = mrr;
+
 
   // Revenue history (last 12 months) — based on real contract_start_date.
   // For each month, sum monthlyValue of clients whose contract started on/before
