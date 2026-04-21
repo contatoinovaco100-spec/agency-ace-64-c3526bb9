@@ -85,9 +85,20 @@ export default function PublicPortfolioPage() {
   const heroRef = useRef(null);
   const heroInView = useInView(heroRef, { once: true });
 
+  const DEMO_PROJECTS: Project[] = [
+    { id: '1', title: 'Reel Institucional', description: 'Vídeo institucional para redes sociais', video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', thumbnail_url: '', category: 'Institucional', completed_at: null },
+    { id: '2', title: 'Comercial Produto', description: 'Campanha publicitária para e-commerce', video_url: '', thumbnail_url: '', category: 'Publicitário', completed_at: null },
+    { id: '3', title: 'Bastidores', description: 'Making of de produção', video_url: '', thumbnail_url: '', category: 'Social Media', completed_at: null },
+  ];
+
   useEffect(() => {
     supabase.from('portfolio_projects').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => { setProjects((data as any[]) || []); setLoading(false); });
+      .then(({ data, error }) => { 
+        if (error) console.error('Erro ao carregar projetos:', error);
+        const fetchedProjects = (data as Project[]) || [];
+        setProjects(fetchedProjects.length > 0 ? fetchedProjects : DEMO_PROJECTS); 
+        setLoading(false); 
+      });
   }, []);
 
   const categories = [...new Set(projects.map(p => p.category).filter(Boolean))];
