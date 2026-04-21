@@ -125,8 +125,8 @@ export default function LinktreeEditorPage() {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !linktree) return;
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('Imagem muito grande (max 50MB)');
+    if (file.size > 1024 * 1024 * 1024) {
+      toast.error('Imagem muito grande (max 1GB)');
       return;
     }
     setUploading(true);
