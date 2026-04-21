@@ -462,7 +462,7 @@ export default function Dashboard() {
                     <CardTitle className="flex items-center gap-2 text-base">
                       <DollarSign className="h-4 w-4 text-[hsl(var(--success))]" /> LTV por Cliente
                       <Badge variant="secondary" className="ml-1 text-[10px] font-normal">
-                        Receita histórica acumulada
+                        Baseado em contratos assinados
                       </Badge>
                     </CardTitle>
                     <div className="flex items-center gap-4 text-xs">
