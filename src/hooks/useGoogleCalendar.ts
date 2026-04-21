@@ -187,6 +187,16 @@ export function useGoogleCalendar() {
     const tokens = getTokens();
     if (tokens) setConnected(true);
 
+    // 1) Code capturado precocemente em App.tsx (sessionStorage), antes do redirect de login
+    const pendingCode = sessionStorage.getItem('pending_google_calendar_code');
+    if (pendingCode && !isExchanging.current) {
+      isExchanging.current = true;
+      sessionStorage.removeItem('pending_google_calendar_code');
+      handleOAuthCallback(pendingCode);
+      return;
+    }
+
+    // 2) Fallback: caso o code ainda esteja na URL
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     if (code && !isExchanging.current) {
