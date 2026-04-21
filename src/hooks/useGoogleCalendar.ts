@@ -81,20 +81,34 @@ export function useGoogleCalendar() {
 
   const fetchEvents = useCallback(async (year: number, month: number) => {
     const accessToken = await getValidAccessToken();
-    if (!accessToken) return;
+    if (!accessToken) {
+      console.warn('[GoogleCalendar] Sem token válido, abortando fetchEvents');
+      return;
+    }
 
     try {
       setLoading(true);
       const timeMin = new Date(year, month, 1).toISOString();
       const timeMax = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
 
+      console.log('[GoogleCalendar] Buscando eventos', { timeMin, timeMax });
       const { data, error } = await supabase.functions.invoke('google-calendar', {
         body: { action: 'list-events', accessToken, timeMin, timeMax },
       });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      console.log('[GoogleCalendar] Eventos recebidos:', data?.items?.length ?? 0);
       setGoogleEvents(data.items || []);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Erro ao buscar eventos Google:', e);
+      const msg = e?.message || 'Erro desconhecido';
+      // Se for erro 401/invalid_grant, força reconexão
+      if (msg.includes('401') || msg.toLowerCase().includes('invalid')) {
+        toast.error('Sessão Google expirada. Conecte novamente.');
+        disconnect();
+      } else {
+        toast.error(`Erro ao buscar eventos do Google: ${msg}`);
+      }
     } finally {
       setLoading(false);
     }
