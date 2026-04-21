@@ -14,6 +14,22 @@ import { AppLayout } from "@/components/AppLayout";
 import { RealtimeNotifications } from "@/components/RealtimeNotifications";
 import { Loader2 } from "lucide-react";
 
+// CAPTURA PRECOCE do OAuth code do Google Calendar.
+// Executa antes de qualquer rota/auth para evitar que o redirect para /login
+// (causado pelo loading da sessão) descarte o ?code=... da URL.
+if (typeof window !== 'undefined') {
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get('code');
+  if (code && url.pathname === '/calendario') {
+    sessionStorage.setItem('pending_google_calendar_code', code);
+    url.searchParams.delete('code');
+    url.searchParams.delete('scope');
+    url.searchParams.delete('authuser');
+    url.searchParams.delete('prompt');
+    window.history.replaceState({}, '', url.pathname + (url.search || ''));
+  }
+}
+
 const queryClient = new QueryClient();
 
 // Pages
