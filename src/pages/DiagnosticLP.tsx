@@ -130,15 +130,15 @@ export default function DiagnosticLP() {
 
   const displayConfig = config || DEMO_CONFIG;
 
-  const currentTheme = THEMES[config?.cliente?.tema] || THEMES.teal;
+  const currentTheme = THEMES[displayConfig?.cliente?.tema] || THEMES.teal;
   const theme = {
-    primary: config?.cliente?.primaryColor || currentTheme.primary,
-    primaryDark: config?.cliente?.primaryColor || currentTheme.primaryDark
+    primary: displayConfig?.cliente?.primaryColor || currentTheme.primary,
+    primaryDark: displayConfig?.cliente?.primaryColor || currentTheme.primaryDark
   };
   const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0 } };
 
-  const clienteNome = config?.cliente?.nome || '@empresa';
-  const introTexto = config?.intro?.texto || 'Análise completa da sua presença digital e recomendações estratégicas para melhorar seu posicionamento online.';
+  const clienteNome = displayConfig?.cliente?.nome || '@empresa';
+  const introTexto = displayConfig?.intro?.texto || 'Análise completa da sua presença digital e recomendações estratégicas para melhorar seu posicionamento online.';
 
   return (
     <div className="min-h-screen bg-[#F5F3EE] overflow-x-hidden selection:bg-[#bff720] selection:text-black text-left scroll-smooth"
