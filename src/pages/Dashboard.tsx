@@ -7,7 +7,8 @@ import { useState, useEffect } from 'react';
 import {
   Users, DollarSign, Target, CheckSquare, FolderOpen,
   TrendingUp, PieChart, BarChart3, ArrowUpRight, ArrowDownRight,
-  Clock, AlertTriangle, CheckCircle2, Briefcase, FileText, BellRing
+  Clock, AlertTriangle, CheckCircle2, Briefcase, FileText, BellRing,
+  EyeOff, Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePushNotification } from '@/hooks/usePushNotification';
