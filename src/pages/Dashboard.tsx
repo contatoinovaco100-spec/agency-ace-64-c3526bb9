@@ -48,6 +48,18 @@ export default function Dashboard() {
   const { isAdmin } = useModuleAccess();
   const { triggerNotification, requestPermission } = usePushNotification();
 
+  const [alertsHidden, setAlertsHidden] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('dashboard.smartAlertsHidden') === '1';
+  });
+  const toggleAlerts = () => {
+    setAlertsHidden(prev => {
+      const next = !prev;
+      try { localStorage.setItem('dashboard.smartAlertsHidden', next ? '1' : '0'); } catch {}
+      return next;
+    });
+  };
+
   const activeClients = clients.filter(c => c.status === 'Ativo');
   const pausedClients = clients.filter(c => c.status === 'Pausado');
   const mrr = activeClients.reduce((acc, c) => acc + c.monthlyValue, 0);
