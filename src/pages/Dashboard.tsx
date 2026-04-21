@@ -118,6 +118,29 @@ export default function Dashboard() {
   // Make the last one the actual MRR
   revenueHistory[revenueHistory.length - 1].receita = mrr;
 
+  // Revenue history (last 12 months) — based on real contract_start_date.
+  // For each month, sum monthlyValue of clients whose contract started on/before
+  // the end of that month and that aren't cancelled.
+  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const now = new Date();
+  const revenueHistory = Array.from({ length: 12 }, (_, idx) => {
+    const i = 11 - idx; // from 11 months ago to current
+    const ref = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const endOfMonth = new Date(ref.getFullYear(), ref.getMonth() + 1, 0, 23, 59, 59);
+    const total = clients.reduce((sum, c) => {
+      if (!c.contractStartDate) return sum;
+      if (c.status === 'Cancelado') return sum;
+      const start = new Date(c.contractStartDate);
+      if (isNaN(start.getTime())) return sum;
+      if (start <= endOfMonth) return sum + (c.monthlyValue || 0);
+      return sum;
+    }, 0);
+    const label = ref.getMonth() === 0 || idx === 0
+      ? `${monthNames[ref.getMonth()]}/${String(ref.getFullYear()).slice(2)}`
+      : monthNames[ref.getMonth()];
+    return { month: label, receita: Math.round(total) };
+  });
+
   // New clients (recent - last 30 days)
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
