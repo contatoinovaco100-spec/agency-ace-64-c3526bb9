@@ -835,6 +835,7 @@ export type Database = {
           created_at: string
           icon: string
           id: string
+          linktree_id: string
           sort_order: number
           title: string
           updated_at: string
@@ -846,6 +847,7 @@ export type Database = {
           created_at?: string
           icon?: string
           id?: string
+          linktree_id: string
           sort_order?: number
           title: string
           updated_at?: string
@@ -857,36 +859,75 @@ export type Database = {
           created_at?: string
           icon?: string
           id?: string
+          linktree_id?: string
           sort_order?: number
           title?: string
           updated_at?: string
           url?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "linktree_links_linktree_fk"
+            columns: ["linktree_id"]
+            isOneToOne: false
+            referencedRelation: "linktrees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      linktree_profile: {
+      linktrees: {
         Row: {
           avatar_emoji: string
           avatar_url: string | null
+          bg_color: string
           bio: string
+          border_color: string
+          button_color: string
+          button_style: string
+          button_text_color: string
+          client_id: string | null
+          created_at: string
           display_name: string
-          id: number
+          id: string
+          slug: string
+          text_color: string
+          theme: string
           updated_at: string
         }
         Insert: {
           avatar_emoji?: string
           avatar_url?: string | null
+          bg_color?: string
           bio?: string
+          border_color?: string
+          button_color?: string
+          button_style?: string
+          button_text_color?: string
+          client_id?: string | null
+          created_at?: string
           display_name?: string
-          id?: number
+          id?: string
+          slug: string
+          text_color?: string
+          theme?: string
           updated_at?: string
         }
         Update: {
           avatar_emoji?: string
           avatar_url?: string | null
+          bg_color?: string
           bio?: string
+          border_color?: string
+          button_color?: string
+          button_style?: string
+          button_text_color?: string
+          client_id?: string | null
+          created_at?: string
           display_name?: string
-          id?: number
+          id?: string
+          slug?: string
+          text_color?: string
+          theme?: string
           updated_at?: string
         }
         Relationships: []
