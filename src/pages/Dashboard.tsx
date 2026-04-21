@@ -485,7 +485,9 @@ export default function Dashboard() {
                         ? 'bg-[hsl(var(--success))]/10 text-[hsl(var(--success))]'
                         : c.status === 'Pausado'
                         ? 'bg-[hsl(var(--warning))]/10 text-[hsl(var(--warning))]'
-                        : 'bg-destructive/10 text-destructive';
+                        : c.status === 'Cancelado'
+                        ? 'bg-destructive/10 text-destructive'
+                        : 'bg-muted text-muted-foreground';
                       return (
                         <div key={c.id} className="group rounded-lg border border-border/40 bg-card/40 p-3 hover:border-primary/40 hover:bg-card/80 transition-all">
                           <div className="flex items-center justify-between gap-3 mb-2">
