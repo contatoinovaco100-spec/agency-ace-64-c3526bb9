@@ -609,66 +609,109 @@ function SimpleDashboard({ clients, tasks, leads, mrr, activeClients, pendingTas
   const { triggerNotification, requestPermission } = usePushNotification();
 
   return (
-    <div className="space-y-6">
-      <SmartAlerts />
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Visão geral das suas tarefas e entregas</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => requestPermission()}
-            className="hidden sm:flex gap-2"
-          >
-            Habilitar Push
-          </Button>
-          <Button 
-            size="sm"
-            onClick={() => triggerNotification("Lembrete da Agenda 📅", "Sua próxima gravação é em breve.", "info", "agenda")}
-            className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            <BellRing className="h-4 w-4" /> Testar Agenda
-          </Button>
-          <Button 
-            size="sm"
-            variant="destructive"
-            onClick={() => triggerNotification("Tarefa Atrasada 🚨", "O roteiro do cliente atrasou.", "error", "overdue")}
-            className="gap-2"
-          >
-            <AlertTriangle className="h-4 w-4" /> Testar Atraso
-          </Button>
-        </div>
+    <div className="space-y-6 relative">
+      {/* Futuristic ambient background */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-primary/[0.07] blur-[120px]" />
+        <div className="absolute top-1/3 -right-40 h-[400px] w-[400px] rounded-full bg-[hsl(174,98%,19%)]/20 blur-[120px]" />
+        <div className="absolute bottom-0 left-1/3 h-[350px] w-[350px] rounded-full bg-[hsl(var(--info))]/10 blur-[100px]" />
       </div>
 
-      {/* KPIs */}
+      <SmartAlerts />
+
+      {/* Header — Futuristic */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card via-card to-card/40 p-6 backdrop-blur-xl"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_hsl(73,93%,55%,0.08),_transparent_60%)]" />
+        <div className="absolute -top-px left-10 right-10 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/30">
+              <CheckSquare className="h-6 w-6 text-primary" />
+              <div className="absolute inset-0 rounded-xl bg-primary/20 blur-lg" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">Live · Suas Tarefas</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mt-0.5 tracking-tight">
+                Painel <span className="text-primary">de Trabalho</span>
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">Visão geral das suas tarefas e entregas</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => requestPermission()}
+              className="hidden sm:flex gap-2 border-border/50 backdrop-blur"
+            >
+              Habilitar Push
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => triggerNotification("Lembrete da Agenda 📅", "Sua próxima gravação é em breve.", "info", "agenda")}
+              className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_20px_hsl(73,93%,55%/0.3)]"
+            >
+              <BellRing className="h-4 w-4" /> Testar Agenda
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => triggerNotification("Tarefa Atrasada 🚨", "O roteiro do cliente atrasou.", "error", "overdue")}
+              className="gap-2"
+            >
+              <AlertTriangle className="h-4 w-4" /> Testar Atraso
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* KPIs — Futuristic */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((kpi, i) => (
-          <motion.div key={kpi.label} {...anim(i)}>
-            <Card className="border-border/50">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{kpi.label}</span>
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${kpi.bg}`}>
-                    <kpi.icon className={`h-4 w-4 ${kpi.accent}`} />
+        {kpis.map((kpi, i) => {
+          const glow = kpi.accent.includes('warning') ? 'hsl(var(--warning))' : kpi.accent.includes('info') ? 'hsl(var(--info))' : kpi.accent.includes('success') ? 'hsl(var(--success))' : kpi.accent.includes('destructive') ? 'hsl(0,84%,60%)' : 'hsl(73,93%,55%)';
+          return (
+            <motion.div key={kpi.label} {...anim(i)}>
+              <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-card/30 backdrop-blur-xl transition-all duration-300 hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_-5px_hsl(73,93%,55%/0.15)]">
+                <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full blur-2xl opacity-20 transition-opacity duration-500 group-hover:opacity-40" style={{ background: glow }} />
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                <CardContent className="relative p-5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.15em]">{kpi.label}</span>
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${kpi.bg} ring-1 ring-border/50 backdrop-blur`}>
+                      <kpi.icon className={`h-4 w-4 ${kpi.accent}`} />
+                    </div>
                   </div>
-                </div>
-                <p className="mt-3 text-2xl font-bold tabular-nums text-foreground">{kpi.value}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+                  <p className="mt-4 text-2xl sm:text-3xl font-bold tabular-nums text-foreground tracking-tight">{kpi.value}</p>
+                  <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground/70">
+                    <span className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+                    <span>Em tempo real</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Completion Rate */}
       <motion.div {...anim(4)}>
-        <Card className="border-border/50">
-          <CardContent className="p-5">
+        <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-card/30 backdrop-blur-xl">
+          <div className="absolute -top-20 left-1/2 -translate-x-1/2 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+          <CardContent className="relative p-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-foreground">Taxa de Conclusão</span>
-              <span className="text-2xl font-bold tabular-nums text-primary">{completionRate}%</span>
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(73,93%,55%)]" />
+                <span className="text-sm font-semibold text-foreground">Taxa de Conclusão</span>
+              </div>
+              <span className="text-3xl font-bold tabular-nums text-primary tracking-tight">{completionRate}%</span>
             </div>
             <Progress value={completionRate} className="h-3" />
             <p className="mt-2 text-xs text-muted-foreground">{completedTasks.length} de {tasks.length} tarefas concluídas</p>
