@@ -112,27 +112,55 @@ export default function Dashboard() {
     .sort((a, b) => b[1] - a[1])
     .map(([name, value]) => ({ name, value: Math.round(value) }));
 
-  // LTV por cliente: meses ativos (do contract_start_date até hoje) × monthlyValue
-  // Inclui clientes Ativos, Pausados e Cancelados que já geraram receita histórica.
+  // LTV por cliente — baseado em contratos ASSINADOS reais.
+  // Para cada contrato: meses pagos = min(meses decorridos desde sent_at, duration_months).
+  // Filtra clientes que já pagaram pelo menos 1 mês completo.
   const todayDate = new Date();
-  const ltvByClient = clients
-    .filter(c => c.contractStartDate && c.monthlyValue > 0)
-    .map(c => {
-      const start = new Date(c.contractStartDate);
-      const monthsActive = isNaN(start.getTime())
-        ? 0
-        : Math.max(1, Math.round((todayDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
-      const ltv = monthsActive * c.monthlyValue;
-      return {
-        id: c.id,
-        name: c.companyName,
-        shortName: c.companyName.length > 18 ? c.companyName.slice(0, 18) + '…' : c.companyName,
-        ltv,
-        months: monthsActive,
-        monthlyValue: c.monthlyValue,
-        status: c.status,
+  const norm = (s: string) => (s || '').trim().toLowerCase();
+  const ltvMap: Record<string, {
+    name: string;
+    clientId: string | null;
+    ltv: number;
+    monthsPaid: number;
+    contractsCount: number;
+    monthlyValue: number;
+    status: string;
+  }> = {};
+
+  signedContracts.forEach(ct => {
+    const refDate = ct.sent_at ? new Date(ct.sent_at) : new Date(ct.created_at);
+    if (isNaN(refDate.getTime())) return;
+    const elapsedMonths = Math.floor(
+      (todayDate.getTime() - refDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
+    );
+    const monthsPaid = Math.max(0, Math.min(elapsedMonths, ct.duration_months || 0));
+    if (monthsPaid < 1) return; // só conta quem já pagou pelo menos 1 mês completo
+    const ltv = monthsPaid * (ct.monthly_value || 0);
+
+    // Casa o contrato com cliente cadastrado pelo nome (case-insensitive).
+    const matchedClient = clients.find(
+      c => norm(c.companyName) === norm(ct.client_name)
+    );
+    const key = matchedClient?.id || `name:${norm(ct.client_name)}`;
+
+    if (!ltvMap[key]) {
+      ltvMap[key] = {
+        name: matchedClient?.companyName || ct.client_name,
+        clientId: matchedClient?.id || null,
+        ltv: 0,
+        monthsPaid: 0,
+        contractsCount: 0,
+        monthlyValue: ct.monthly_value || 0,
+        status: matchedClient?.status || 'Sem cadastro',
       };
-    })
+    }
+    ltvMap[key].ltv += ltv;
+    ltvMap[key].monthsPaid += monthsPaid;
+    ltvMap[key].contractsCount += 1;
+  });
+
+  const ltvByClient = Object.entries(ltvMap)
+    .map(([id, v]) => ({ id, ...v }))
     .sort((a, b) => b.ltv - a.ltv);
   const totalLtv = ltvByClient.reduce((sum, c) => sum + c.ltv, 0);
   const avgLtv = ltvByClient.length > 0 ? totalLtv / ltvByClient.length : 0;
