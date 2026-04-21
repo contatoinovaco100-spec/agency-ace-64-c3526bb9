@@ -522,7 +522,21 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {/* Recent / New Clients */}
+          {/* LTV — Tabela completa ordenável */}
+          {ltvByClient.length > 0 && (
+            <motion.div {...anim(9)}>
+              <LtvTable rows={ltvByClient.map(c => ({
+                id: c.id,
+                name: c.name,
+                status: c.status,
+                monthlyValue: c.monthlyValue,
+                monthsPaid: c.monthsPaid,
+                contractsCount: c.contractsCount,
+                ltv: c.ltv,
+              }))} />
+            </motion.div>
+          )}
+
           {newClients.length > 0 && (
             <motion.div {...anim(8)}>
               <Card className="border-border/50">
