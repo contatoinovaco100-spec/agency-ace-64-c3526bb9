@@ -31,10 +31,10 @@ export default function NovaAssistantPage() {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const generateResponse = async (prompt: string): Promise<string> => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GROQ_API_KEY;
-    if (apiKey && import.meta.env.VITE_GEMINI_API_KEY) {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (apiKey) {
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ parts: [{ text: `Você é a Nova, assistente da INOVA Co., uma produtora audiovisual premium. Responda em português brasileiro de forma profissional e criativa.\n\nUsuário: ${prompt}` }] }] })
