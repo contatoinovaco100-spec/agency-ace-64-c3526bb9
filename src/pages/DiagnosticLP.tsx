@@ -16,6 +16,51 @@ const THEMES: Record<string, { primary: string; primaryDark: string }> = {
   black: { primary: '#000000', primaryDark: '#111111' },
 };
 
+const DEMO_CONFIG = {
+  cliente: { nome: '@sua_empresa', tema: 'teal', primaryColor: '#0D6E5E' },
+  intro: { texto: 'Análise completa da maturidade digital da sua empresa com recomendações estratégicas personalizadas para melhorar sua presença online e aumentar conversões.' },
+  scores: { posicionamento: 72, autoridade: 65, presenca: 78, conversao: 55 },
+  positivos: [
+    'Presença consolidada nas principais redes sociais',
+    'Marca possui identidade visual consistente',
+    'Content marketing bem estruturado',
+    'Engajamento médio acima do mercado'
+  ],
+  negativos: [
+    'Bio não otimizada para conversão',
+    'Falta call-to-action claro no perfil',
+    'Links não direcionam para página específica',
+    'Ausência de estratégia de automação'
+  ],
+  final: {
+    destaque: 'Em Ascensão',
+    texto: 'A empresa possui fundamentos sólidos, mas precisa otimizar a conversão do tráfego em resultados.',
+    acao1: 'Otimizar bio com link para landing page',
+    acao2: 'Criar sequência de automação no Direct',
+    acao3: 'Implementar estratégia de remarketing',
+    acao4: 'Desenvolver conteúdo para nutrir leads',
+    acao5: 'Setup de Pixel para rastreamento'
+  },
+  semanas: [
+    { label: 'Semana 1', titulo: 'Fundamentos', cards: [
+      { tipo: 'Post', titulo: 'Reels Viral', gancho: 'Frase de impacto', estrutura: 'Hook + Valor + CTA', cta: 'Salvar' },
+      { tipo: 'Story', titulo: 'Highlights', gancho: 'Categorização', estrutura: 'Capa + Ícones', cta: 'Ver mais' }
+    ]},
+    { label: 'Semana 2', titulo: 'Automação', cards: [
+      { tipo: 'Automação', titulo: 'Sequência Welcome', gancho: 'Boas-vindas', estrutura: 'Mensagem inicial +follow-up', cta: 'Começar' },
+      { tipo: 'Bot', titulo: 'Respostas', gancho: 'Perguntas frequentes', estrutura: 'Menu + opções', cta: 'Ativar' }
+    ]},
+    { label: 'Semana 3', titulo: 'Tráfego', cards: [
+      { tipo: 'Ads', titulo: 'Campanha', gancho: 'Captura de leads', estrutura: 'Copy + creativo', cta: 'Launch' },
+      { tipo: 'Orgânico', titulo: 'Viralização', gancho: 'Conteúdo shareable', estrutura: 'Trend + valor', cta: 'Postar' }
+    ]},
+    { label: 'Semana 4', titulo: 'Conversão', cards: [
+      { tipo: 'Landing', titulo: 'Página', gancho: 'Oferta principal', estrutura: 'Hero + Prova + CTA', cta: 'Converter' },
+      { tipo: 'Follow-up', titulo: 'Fechamento', gancho: 'Objection handling', estrutura: 'Pergunta + solução', cta: 'Fechar' }
+    ]}
+  ]
+};
+
 export default function DiagnosticLP() {
   const { slug } = useParams();
   const { user } = useAuth();
@@ -74,15 +119,7 @@ export default function DiagnosticLP() {
     </div>
   );
 
-  if (!config) return (
-    <div className="flex h-screen w-full flex-col items-center justify-center bg-[#F5F3EE] text-center p-6 text-gray-800">
-      <h1 className="text-2xl font-bold text-[#3A0A1E] mb-4 uppercase tracking-tighter">Diagnóstico não encontrado</h1>
-      <p className="opacity-50 mb-8 max-w-md">O link que você seguiu pode estar quebrado ou o diagnóstico foi removido.</p>
-      <Link to="/diagnostico/editar" className="bg-[#0D6E5E] text-white px-8 py-3 rounded-full font-black uppercase tracking-widest text-[10px] hover:bg-[#095045] transition-all shadow-xl shadow-[#0D6E5E]/20">
-        Criar meu Diagnóstico
-      </Link>
-    </div>
-  );
+  const displayConfig = config || DEMO_CONFIG;
 
   const currentTheme = THEMES[config?.cliente?.tema] || THEMES.teal;
   const theme = {
@@ -227,10 +264,10 @@ export default function DiagnosticLP() {
                 <div className="relative bg-white p-6 sm:p-10 lg:p-14 rounded-[32px] sm:rounded-[50px] shadow-2xl border border-[#e8e4dc] space-y-8 sm:space-y-10 transform -rotate-1 transition-transform hover:rotate-0">
                     <div className="grid grid-cols-2 gap-5 sm:gap-8 lg:gap-12">
                         {[
-                            { label: 'Posicionamento', val: config.scores.posicionamento, icon: Target, color: '#0D6E5E' },
-                            { label: 'Autoridade', val: config.scores.autoridade, icon: Sparkles, color: '#3A0A1E' },
-                            { label: 'Presença Digital', val: config.scores.presenca, icon: Zap, color: '#bff720' },
-                            { label: 'Conversão', val: config.scores.conversao, icon: TrendingUp, color: '#6a11cb' },
+                            { label: 'Posicionamento', val: displayConfig.scores.posicionamento, icon: Target, color: '#0D6E5E' },
+                            { label: 'Autoridade', val: displayConfig.scores.autoridade, icon: Sparkles, color: '#3A0A1E' },
+                            { label: 'Presença Digital', val: displayConfig.scores.presenca, icon: Zap, color: '#bff720' },
+                            { label: 'Conversão', val: displayConfig.scores.conversao, icon: TrendingUp, color: '#6a11cb' },
                         ].map((s, idx) => (
                             <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.1 }} className="space-y-4">
                                 <div className="flex items-center gap-3">
@@ -255,7 +292,7 @@ export default function DiagnosticLP() {
                         <div>
                             <p className="text-[9px] font-black uppercase tracking-[4px] text-black/30">Maturidade Geral</p>
                             <p className="text-2xl sm:text-3xl font-black text-black uppercase tracking-tight">
-                                {Math.round((config.scores.posicionamento + config.scores.presenca + config.scores.autoridade + config.scores.conversao) / 4)}%
+                                {Math.round((displayConfig.scores.posicionamento + displayConfig.scores.presenca + displayConfig.scores.autoridade + displayConfig.scores.conversao) / 4)}%
                             </p>
                         </div>
                         <motion.div whileHover={{ scale: 1.05 }} className="bg-[#bff720] text-black text-[9px] font-black uppercase tracking-widest px-4 sm:px-5 py-2.5 sm:py-3 rounded-full shadow-xl shadow-[#bff720]/30 shrink-0">
@@ -289,7 +326,7 @@ export default function DiagnosticLP() {
                     <h4 className="text-[10px] font-black uppercase tracking-[4px] sm:tracking-[6px] text-[#bff720]">Pontos de Força</h4>
                 </motion.div>
                 <div className="grid gap-4 sm:gap-5">
-                    {config.positivos.map((p: string, i: number) => (
+                    {displayConfig.positivos.map((p: string, i: number) => (
                         <motion.div key={i} initial={{ opacity: 0, x: -40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.12 }}
                             whileHover={{ x: 10, scale: 1.02 }}
                             className="bg-white/[0.08] border border-white/[0.1] p-5 sm:p-8 rounded-[28px] sm:rounded-[40px] group hover:bg-white/[0.12] hover:border-[#bff720]/30 transition-all duration-500 cursor-pointer">
@@ -311,7 +348,7 @@ export default function DiagnosticLP() {
                     <h4 className="text-[10px] font-black uppercase tracking-[4px] sm:tracking-[6px] text-white/40">Gargalos de Conversão</h4>
                 </motion.div>
                 <div className="grid gap-4 sm:gap-5">
-                    {config.negativos.map((n: string, i: number) => (
+                    {displayConfig.negativos.map((n: string, i: number) => (
                         <motion.div key={i} initial={{ opacity: 0, x: 40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.12 }}
                             whileHover={{ x: -10, scale: 1.02 }}
                             className="bg-black/[0.25] border border-white/[0.08] p-5 sm:p-8 rounded-[28px] sm:rounded-[40px] group hover:bg-black/[0.35] hover:border-white/20 transition-all duration-500 cursor-pointer">
@@ -333,7 +370,7 @@ export default function DiagnosticLP() {
       </section>
 
       {/* SEÇÃO IA: AUDITORIA DE PERFIL (Condicional) */}
-      {config.aiAnalise && (
+      {displayConfig.aiAnalise && (
         <section className="min-h-[80vh] px-4 sm:px-6 lg:px-24 py-16 sm:py-28 bg-white border-y border-gray-100 overflow-hidden relative">
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #000 1px, transparent 0)', backgroundSize: '24px 24px' }} />
@@ -341,7 +378,7 @@ export default function DiagnosticLP() {
             <div className="max-w-7xl mx-auto space-y-12 sm:space-y-20">
                 
                 {/* Print da Análise (Novo) */}
-                {config.aiAnalise.analysisImageUrl && (
+                {displayConfig.aiAnalise.analysisImageUrl && (
                   <motion.div initial={{ opacity: 0, scale: 0.95, y: 30 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true }} className="space-y-10">
                       <div className="text-center space-y-5">
                           <motion.div initial={{ opacity: 0, y: -10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
@@ -353,7 +390,7 @@ export default function DiagnosticLP() {
                       </div>
                       <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
                         className="relative max-w-5xl mx-auto rounded-[28px] sm:rounded-[50px] overflow-hidden shadow-2xl border-4 sm:border-8 border-gray-100 group">
-                          <img src={config.aiAnalise.analysisImageUrl} alt="Print da Análise" className="w-full h-auto grayscale-[0.15] group-hover:grayscale-0 transition-all duration-700" />
+                          <img src={displayConfig.aiAnalise.analysisImageUrl} alt="Print da Análise" className="w-full h-auto grayscale-[0.15] group-hover:grayscale-0 transition-all duration-700" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
                           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ delay: 0.5 }} className="absolute bottom-6 right-6 px-4 py-2 bg-black/80 backdrop-blur-md rounded-full">
                             <span className="text-[9px] font-black text-white uppercase tracking-widest">Análise IA</span>
@@ -381,14 +418,14 @@ export default function DiagnosticLP() {
                             <h3 className="text-xl sm:text-2xl lg:text-3xl font-black text-black">Audit da Biografia</h3>
                         </div>
                         <div className="space-y-4 sm:space-y-5">
-                            {config.aiAnalise.bioPositivos?.map((p: string, i: number) => (
+                            {displayConfig.aiAnalise.bioPositivos?.map((p: string, i: number) => (
                                 <motion.div key={i} initial={{ opacity: 0, x: -10 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                                     className="flex gap-3 sm:gap-4 text-sm sm:text-base font-bold text-black/70 items-start">
                                     <CheckCircle2 className="text-[#0D6E5E] shrink-0 mt-0.5" size={18} /> 
                                     <span>{p}</span>
                                 </motion.div>
                             ))}
-                            {config.aiAnalise.bioNegativos?.map((n: string, i: number) => (
+                            {displayConfig.aiAnalise.bioNegativos?.map((n: string, i: number) => (
                                 <motion.div key={i} initial={{ opacity: 0, x: -10 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                                     className="flex gap-3 sm:gap-4 text-sm sm:text-base font-medium text-black/40 italic items-start">
                                     <AlertCircle className="text-black/20 shrink-0 mt-0.5" size={18} /> 
@@ -409,14 +446,14 @@ export default function DiagnosticLP() {
                             <h3 className="text-xl sm:text-2xl lg:text-3xl font-black text-white">Análise Visual</h3>
                         </div>
                         <div className="space-y-4 sm:space-y-5 relative z-10">
-                            {config.aiAnalise.presencaPositivos?.map((p: string, i: number) => (
+                            {displayConfig.aiAnalise.presencaPositivos?.map((p: string, i: number) => (
                                 <motion.div key={i} initial={{ opacity: 0, x: 10 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                                     className="flex gap-3 sm:gap-4 text-sm sm:text-base font-bold text-white/80 items-start">
                                     <CheckCircle2 className="text-[#bff720] shrink-0 mt-0.5" size={18} /> 
                                     <span>{p}</span>
                                 </motion.div>
                             ))}
-                            {config.aiAnalise.presencaNegativos?.map((n: string, i: number) => (
+                            {displayConfig.aiAnalise.presencaNegativos?.map((n: string, i: number) => (
                                 <motion.div key={i} initial={{ opacity: 0, x: 10 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                                     className="flex gap-3 sm:gap-4 text-sm sm:text-base font-medium text-white/35 italic items-start">
                                     <AlertCircle className="text-white/15 shrink-0 mt-0.5" size={18} /> 
@@ -444,20 +481,20 @@ export default function DiagnosticLP() {
                         <span className="text-[10px] sm:text-sm font-black text-[#bff720] uppercase tracking-[4px] sm:tracking-[8px]">O Veredito Final</span>
                     </motion.div>
                     <h2 className="text-4xl sm:text-6xl lg:text-9xl font-black text-white uppercase tracking-tighter leading-[0.88] break-words">
-                        {config.final.destaque}
+                        {displayConfig.final.destaque}
                     </h2>
                     <p className="text-base sm:text-xl lg:text-3xl font-light text-white/35 max-w-4xl mx-auto italic leading-relaxed px-2">
-                        "{config.final.texto}"
+                        "{displayConfig.final.texto}"
                     </p>
                 </motion.div>
 
                 <div className="grid gap-4 sm:gap-5 text-left max-w-4xl mx-auto">
-                    {[1,2,3,4,5].map(i => config.final[`acao${i}`] ? (
+                    {[1,2,3,4,5].map(i => displayConfig.final[`acao${i}`] ? (
                         <motion.div key={i} initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }}
                             whileHover={{ x: 15, scale: 1.01 }}
                             className="group flex items-center bg-white/[0.04] border border-white/[0.08] p-5 sm:p-7 lg:p-9 rounded-[24px] sm:rounded-[32px] lg:rounded-[40px] transition-all duration-500 cursor-pointer hover:bg-white/[0.08] hover:border-[#bff720]/30">
                             <span className="text-2xl sm:text-3xl lg:text-5xl font-black text-white/[0.08] group-hover:text-[#bff720]/15 transition-colors mr-4 sm:mr-8 lg:mr-12 w-10 sm:w-16 shrink-0">{String(i).padStart(2, '0')}</span>
-                            <p className="text-sm sm:text-lg lg:text-xl font-bold text-white/80 tracking-tight">{config.final[`acao${i}`]}</p>
+                            <p className="text-sm sm:text-lg lg:text-xl font-bold text-white/80 tracking-tight">{displayConfig.final[`acao${i}`]}</p>
                             <ArrowRight className="hidden lg:block ml-auto text-white/10 group-hover:text-[#bff720] transition-all translate-x-4 group-hover:translate-x-0 shrink-0" />
                         </motion.div>
                     ) : null)}
@@ -471,7 +508,7 @@ export default function DiagnosticLP() {
 
       {/* PAGE 5-7 — DETALHAMENTO DO CRONOGRAMA */}
       <div className="bg-[#F5F3EE]">
-            {config.semanas.map((s: any, i: number) => (
+            {displayConfig.semanas.map((s: any, i: number) => (
                 <section key={i} className="min-h-[90vh] px-4 sm:px-6 lg:px-24 py-20 sm:py-32 border-t border-[#e8e4dc] relative overflow-hidden">
                     {/* Section Background Pattern */}
                     <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #000 1px, transparent 0)', backgroundSize: '20px 20px' }} />
