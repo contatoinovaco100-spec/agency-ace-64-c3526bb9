@@ -103,8 +103,8 @@ export default function LoginPage() {
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4 pt-2">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input id="login-email" type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} placeholder="seu@email.com" />
+                    <Label htmlFor="login-email">E-mail ou usuário</Label>
+                    <Input id="login-email" type="text" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} placeholder="seu@email.com ou marcos" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Senha</Label>
