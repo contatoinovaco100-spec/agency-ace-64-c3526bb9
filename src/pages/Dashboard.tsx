@@ -774,7 +774,120 @@ export default function Dashboard() {
   );
 }
 
-// Task-focused dashboard for team members (non-admin)
+// Sortable LTV table
+type LtvRow = {
+  id: string;
+  name: string;
+  status: string;
+  monthlyValue: number;
+  monthsPaid: number;
+  contractsCount: number;
+  ltv: number;
+};
+type SortKey = 'name' | 'status' | 'monthlyValue' | 'monthsPaid' | 'contractsCount' | 'ltv';
+
+function LtvTable({ rows }: { rows: LtvRow[] }) {
+  const [sortKey, setSortKey] = useState<SortKey>('ltv');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const sorted = useMemo(() => {
+    const copy = [...rows];
+    copy.sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      if (typeof av === 'string' && typeof bv === 'string') {
+        return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+      }
+      return sortDir === 'asc' ? (av as number) - (bv as number) : (bv as number) - (av as number);
+    });
+    return copy;
+  }, [rows, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir(key === 'name' || key === 'status' ? 'asc' : 'desc');
+    }
+  };
+
+  const SortIcon = ({ k }: { k: SortKey }) => {
+    if (sortKey !== k) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
+    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />;
+  };
+
+  const headerBtn = (label: string, k: SortKey, align: 'left' | 'right' = 'left') => (
+    <button
+      onClick={() => toggleSort(k)}
+      className={`inline-flex items-center gap-1.5 hover:text-foreground transition-colors ${align === 'right' ? 'justify-end w-full' : ''}`}
+    >
+      {label}
+      <SortIcon k={k} />
+    </button>
+  );
+
+  const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  const statusColor = (s: string) =>
+    s === 'Ativo' ? 'bg-[hsl(var(--success))]/10 text-[hsl(var(--success))]'
+    : s === 'Pausado' ? 'bg-[hsl(var(--warning))]/10 text-[hsl(var(--warning))]'
+    : s === 'Cancelado' ? 'bg-destructive/10 text-destructive'
+    : 'bg-muted text-muted-foreground';
+
+  return (
+    <Card className="border-border/50 overflow-hidden">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <FileText className="h-4 w-4 text-primary" /> Ranking Completo de LTV
+          <Badge variant="secondary" className="ml-1 text-[10px] font-normal">
+            {rows.length} {rows.length === 1 ? 'cliente' : 'clientes'}
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border/50 hover:bg-transparent">
+                <TableHead className="text-muted-foreground text-xs font-semibold">{headerBtn('Cliente', 'name')}</TableHead>
+                <TableHead className="text-muted-foreground text-xs font-semibold">{headerBtn('Status', 'status')}</TableHead>
+                <TableHead className="text-muted-foreground text-xs font-semibold text-right">{headerBtn('Valor mensal', 'monthlyValue', 'right')}</TableHead>
+                <TableHead className="text-muted-foreground text-xs font-semibold text-right">{headerBtn('Meses pagos', 'monthsPaid', 'right')}</TableHead>
+                <TableHead className="text-muted-foreground text-xs font-semibold text-right hidden sm:table-cell">{headerBtn('Contratos', 'contractsCount', 'right')}</TableHead>
+                <TableHead className="text-muted-foreground text-xs font-semibold text-right">{headerBtn('LTV total', 'ltv', 'right')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sorted.map((r) => (
+                <TableRow key={r.id} className="border-border/40 hover:bg-secondary/30">
+                  <TableCell className="font-medium text-sm">{r.name}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className={`text-[10px] px-2 py-0 ${statusColor(r.status)}`}>
+                      {r.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-sm">{fmt(r.monthlyValue)}</TableCell>
+                  <TableCell className="text-right tabular-nums text-sm">{r.monthsPaid}</TableCell>
+                  <TableCell className="text-right tabular-nums text-sm hidden sm:table-cell">{r.contractsCount}</TableCell>
+                  <TableCell className="text-right tabular-nums text-sm font-bold text-primary">{fmt(r.ltv)}</TableCell>
+                </TableRow>
+              ))}
+              {sorted.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                    Nenhum contrato assinado encontrado.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
 function SimpleDashboard({ clients, tasks, leads, mrr, activeClients, pendingTasks }: {
   clients: any[]; tasks: any[]; leads: any[]; mrr: number; activeClients: any[]; pendingTasks: any[];
 }) {
