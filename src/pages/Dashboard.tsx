@@ -88,6 +88,31 @@ export default function Dashboard() {
     .sort((a, b) => b[1] - a[1])
     .map(([name, value]) => ({ name, value: Math.round(value) }));
 
+  // LTV por cliente: meses ativos (do contract_start_date até hoje) × monthlyValue
+  // Inclui clientes Ativos, Pausados e Cancelados que já geraram receita histórica.
+  const todayDate = new Date();
+  const ltvByClient = clients
+    .filter(c => c.contractStartDate && c.monthlyValue > 0)
+    .map(c => {
+      const start = new Date(c.contractStartDate);
+      const monthsActive = isNaN(start.getTime())
+        ? 0
+        : Math.max(1, Math.round((todayDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
+      const ltv = monthsActive * c.monthlyValue;
+      return {
+        id: c.id,
+        name: c.companyName,
+        shortName: c.companyName.length > 18 ? c.companyName.slice(0, 18) + '…' : c.companyName,
+        ltv,
+        months: monthsActive,
+        monthlyValue: c.monthlyValue,
+        status: c.status,
+      };
+    })
+    .sort((a, b) => b.ltv - a.ltv);
+  const totalLtv = ltvByClient.reduce((sum, c) => sum + c.ltv, 0);
+  const avgLtv = ltvByClient.length > 0 ? totalLtv / ltvByClient.length : 0;
+
   // Client status distribution
   const clientStatusData = [
     { name: 'Ativos', value: activeClients.length, color: CHART_COLORS[1] },
