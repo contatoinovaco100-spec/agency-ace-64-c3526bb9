@@ -1,54 +1,66 @@
 import { useEffect, useState } from 'react';
-import { Link2, Plus, Trash2, Eye, GripVertical, ExternalLink, Copy, CheckCheck, Loader2, Save, ArrowUp, ArrowDown, MousePointerClick } from 'lucide-react';
+import { Link2, Plus, Trash2, Eye, ExternalLink, Loader2, Pencil } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/components/ui/sonner';
-import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-interface LinkItem {
+interface LinktreeRow {
   id: string;
-  title: string;
-  url: string;
-  active: boolean;
-  icon: string;
-  sort_order: number;
-  clicks: number;
-}
-
-interface Profile {
+  slug: string;
   display_name: string;
   bio: string;
+  avatar_url: string | null;
   avatar_emoji: string;
+  theme: string;
+  bg_color: string;
+  button_color: string;
+  button_text_color: string;
+  text_color: string;
+  border_color: string;
+  button_style: string;
 }
 
-const PUBLIC_URL = `${window.location.origin}/links`;
+const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 60);
 
 export default function LinktreePage() {
-  const [links, setLinks] = useState<LinkItem[]>([]);
-  const [profile, setProfile] = useState<Profile>({ display_name: 'INOVA Co.', bio: 'Produtora Audiovisual', avatar_emoji: '🎬' });
+  const [linktrees, setLinktrees] = useState<LinktreeRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [preview, setPreview] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [form, setForm] = useState({ title: '', url: '', icon: '🔗' });
+  const [linkCounts, setLinkCounts] = useState<Record<string, number>>({});
+  const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState({ display_name: '', slug: '', bio: '' });
+  const [creating, setCreating] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const [linksRes, profileRes] = await Promise.all([
-      supabase.from('linktree_links').select('*').order('sort_order', { ascending: true }),
-      supabase.from('linktree_profile').select('*').eq('id', 1).maybeSingle(),
-    ]);
-    setLinks((linksRes.data as LinkItem[]) || []);
-    if (profileRes.data) {
-      setProfile({
-        display_name: profileRes.data.display_name,
-        bio: profileRes.data.bio,
-        avatar_emoji: profileRes.data.avatar_emoji,
+    const { data: lts } = await supabase.from('linktrees').select('*').order('created_at', { ascending: true });
+    const list = (lts as LinktreeRow[]) || [];
+    setLinktrees(list);
+
+    if (list.length > 0) {
+      const { data: links } = await supabase
+        .from('linktree_links')
+        .select('linktree_id')
+        .in(
+          'linktree_id',
+          list.map((l) => l.id),
+        );
+      const counts: Record<string, number> = {};
+      (links || []).forEach((l: { linktree_id: string }) => {
+        counts[l.linktree_id] = (counts[l.linktree_id] || 0) + 1;
       });
+      setLinkCounts(counts);
     }
     setLoading(false);
   };
@@ -57,95 +69,47 @@ export default function LinktreePage() {
     load();
   }, []);
 
-  const addLink = async () => {
-    if (!form.title || !form.url) {
-      toast.error('Preencha título e URL');
+  const createLinktree = async () => {
+    if (!form.display_name.trim()) {
+      toast.error('Informe um nome');
       return;
     }
-    const nextOrder = links.length > 0 ? Math.max(...links.map((l) => l.sort_order)) + 1 : 1;
+    const finalSlug = slugify(form.slug || form.display_name);
+    if (!finalSlug) {
+      toast.error('Slug inválido');
+      return;
+    }
+    setCreating(true);
     const { data, error } = await supabase
-      .from('linktree_links')
-      .insert({ title: form.title, url: form.url, icon: form.icon, active: true, sort_order: nextOrder })
+      .from('linktrees')
+      .insert({
+        display_name: form.display_name.trim(),
+        slug: finalSlug,
+        bio: form.bio.trim(),
+      })
       .select()
       .single();
+    setCreating(false);
     if (error) {
-      toast.error('Erro ao adicionar link');
+      toast.error(error.message.includes('duplicate') ? 'Esse slug já existe' : 'Erro ao criar');
       return;
     }
-    setLinks((l) => [...l, data as LinkItem]);
-    setForm({ title: '', url: '', icon: '🔗' });
-    toast.success('Link adicionado!');
+    toast.success('Linktree criado!');
+    setCreateOpen(false);
+    setForm({ display_name: '', slug: '', bio: '' });
+    setLinktrees((arr) => [...arr, data as LinktreeRow]);
   };
 
-  const toggleLink = async (id: string) => {
-    const link = links.find((l) => l.id === id);
-    if (!link) return;
-    const newActive = !link.active;
-    setLinks((l) => l.map((x) => (x.id === id ? { ...x, active: newActive } : x)));
-    const { error } = await supabase.from('linktree_links').update({ active: newActive }).eq('id', id);
-    if (error) {
-      toast.error('Erro ao atualizar');
-      load();
-    }
-  };
-
-  const removeLink = async (id: string) => {
-    if (!confirm('Remover este link?')) return;
-    setLinks((l) => l.filter((x) => x.id !== id));
-    const { error } = await supabase.from('linktree_links').delete().eq('id', id);
+  const removeLinktree = async (id: string, name: string) => {
+    if (!confirm(`Remover o linktree "${name}"? Todos os links também serão apagados.`)) return;
+    const { error } = await supabase.from('linktrees').delete().eq('id', id);
     if (error) {
       toast.error('Erro ao remover');
-      load();
-    } else {
-      toast.success('Link removido');
+      return;
     }
+    setLinktrees((arr) => arr.filter((l) => l.id !== id));
+    toast.success('Removido');
   };
-
-  const moveLink = async (id: string, direction: 'up' | 'down') => {
-    const idx = links.findIndex((l) => l.id === id);
-    if (idx < 0) return;
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= links.length) return;
-    const a = links[idx];
-    const b = links[swapIdx];
-    const newLinks = [...links];
-    newLinks[idx] = { ...b, sort_order: a.sort_order };
-    newLinks[swapIdx] = { ...a, sort_order: b.sort_order };
-    setLinks(newLinks);
-    await Promise.all([
-      supabase.from('linktree_links').update({ sort_order: b.sort_order }).eq('id', a.id),
-      supabase.from('linktree_links').update({ sort_order: a.sort_order }).eq('id', b.id),
-    ]);
-  };
-
-  const updateLinkField = async (id: string, field: 'title' | 'url' | 'icon', value: string) => {
-    setLinks((l) => l.map((x) => (x.id === id ? { ...x, [field]: value } : x)));
-  };
-
-  const persistLinkField = async (id: string, field: 'title' | 'url' | 'icon', value: string) => {
-    const { error } = await supabase.from('linktree_links').update({ [field]: value }).eq('id', id);
-    if (error) toast.error('Erro ao salvar');
-  };
-
-  const saveProfile = async () => {
-    setSaving(true);
-    const { error } = await supabase
-      .from('linktree_profile')
-      .update({ display_name: profile.display_name, bio: profile.bio, avatar_emoji: profile.avatar_emoji })
-      .eq('id', 1);
-    setSaving(false);
-    if (error) toast.error('Erro ao salvar perfil');
-    else toast.success('Perfil salvo!');
-  };
-
-  const copyUrl = () => {
-    navigator.clipboard.writeText(PUBLIC_URL);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const activeLinks = links.filter((l) => l.active);
-  const totalClicks = links.reduce((sum, l) => sum + (l.clicks || 0), 0);
 
   if (loading) {
     return (
@@ -160,187 +124,128 @@ export default function LinktreePage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Link2 className="h-6 w-6 text-primary" /> Linktree
+            <Link2 className="h-6 w-6 text-primary" /> Linktrees
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">Sua página pública de links — salva no banco de dados</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            Gerencie linktrees personalizados — um para a INOVA e um para cada cliente
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={copyUrl} className="flex items-center gap-2">
-            {copied ? <CheckCheck className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
-            {copied ? 'Copiado!' : 'Copiar Link'}
-          </Button>
-          <Button asChild variant="outline">
-            <a href="/links" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-              <ExternalLink className="h-4 w-4" /> Abrir página
-            </a>
-          </Button>
-          <Button onClick={() => setPreview(!preview)} variant={preview ? 'default' : 'outline'} className="flex items-center gap-2">
-            <Eye className="h-4 w-4" /> {preview ? 'Editar' : 'Pré-visualizar'}
-          </Button>
-        </div>
+        <Button onClick={() => setCreateOpen(true)} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" /> Novo Linktree
+        </Button>
       </div>
 
-      {preview ? (
-        <div className="flex justify-center py-8">
-          <div className="w-80 space-y-4 text-center">
-            <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto text-3xl">{profile.avatar_emoji}</div>
-            <div>
-              <h2 className="text-xl font-bold text-foreground">{profile.display_name}</h2>
-              <p className="text-sm text-muted-foreground">{profile.bio}</p>
-            </div>
-            <div className="space-y-3">
-              {activeLinks.map((link) => (
-                <a
-                  key={link.id}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 w-full px-5 py-3.5 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all group"
-                >
-                  <span className="text-xl">{link.icon}</span>
-                  <span className="flex-1 font-medium text-foreground text-sm text-left">{link.title}</span>
-                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
-                </a>
-              ))}
-            </div>
-          </div>
+      {linktrees.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border p-12 text-center">
+          <Link2 className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-muted-foreground mb-4">Nenhum linktree ainda.</p>
+          <Button onClick={() => setCreateOpen(true)}>Criar o primeiro</Button>
         </div>
       ) : (
-        <div className="grid md:grid-cols-[1fr,300px] gap-6">
-          <div className="space-y-4">
-            {/* Profile editor */}
-            <div className="rounded-xl border border-border bg-card p-4 space-y-4">
-              <h3 className="font-semibold text-foreground">Perfil</h3>
-              <div className="grid grid-cols-[60px,1fr,1fr] gap-2">
-                <div>
-                  <Label className="text-xs">Avatar</Label>
-                  <Input value={profile.avatar_emoji} onChange={(e) => setProfile((p) => ({ ...p, avatar_emoji: e.target.value }))} className="mt-1 text-center text-lg" maxLength={2} />
-                </div>
-                <div>
-                  <Label className="text-xs">Nome</Label>
-                  <Input value={profile.display_name} onChange={(e) => setProfile((p) => ({ ...p, display_name: e.target.value }))} className="mt-1" />
-                </div>
-                <div>
-                  <Label className="text-xs">Bio</Label>
-                  <Input value={profile.bio} onChange={(e) => setProfile((p) => ({ ...p, bio: e.target.value }))} className="mt-1" />
-                </div>
-              </div>
-              <Button onClick={saveProfile} disabled={saving} className="w-full flex items-center gap-2">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar Perfil
-              </Button>
-            </div>
-
-            {/* Add link */}
-            <div className="rounded-xl border border-border bg-card p-4 space-y-4">
-              <h3 className="font-semibold text-foreground">Adicionar Link</h3>
-              <div className="grid grid-cols-[60px,1fr,1fr] gap-2">
-                <div>
-                  <Label className="text-xs">Ícone</Label>
-                  <Input value={form.icon} onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))} className="mt-1 text-center text-lg" maxLength={2} />
-                </div>
-                <div>
-                  <Label className="text-xs">Título</Label>
-                  <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Ex: Instagram" className="mt-1" />
-                </div>
-                <div>
-                  <Label className="text-xs">URL</Label>
-                  <Input value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="https://..." className="mt-1" />
-                </div>
-              </div>
-              <Button onClick={addLink} className="w-full flex items-center gap-2">
-                <Plus className="h-4 w-4" /> Adicionar
-              </Button>
-            </div>
-
-            {/* Links list */}
-            <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
-              {links.length === 0 ? (
-                <p className="text-center text-sm text-muted-foreground py-8">Nenhum link cadastrado.</p>
-              ) : (
-                links.map((link, idx) => (
-                  <div key={link.id} className={cn('flex items-center gap-2 px-3 py-3', !link.active && 'opacity-50')}>
-                    <div className="flex flex-col">
-                      <button onClick={() => moveLink(link.id, 'up')} disabled={idx === 0} className="text-muted-foreground hover:text-primary disabled:opacity-30">
-                        <ArrowUp className="h-3 w-3" />
-                      </button>
-                      <button onClick={() => moveLink(link.id, 'down')} disabled={idx === links.length - 1} className="text-muted-foreground hover:text-primary disabled:opacity-30">
-                        <ArrowDown className="h-3 w-3" />
-                      </button>
-                    </div>
-                    <GripVertical className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={link.icon}
-                      onChange={(e) => updateLinkField(link.id, 'icon', e.target.value)}
-                      onBlur={(e) => persistLinkField(link.id, 'icon', e.target.value)}
-                      className="w-12 text-center text-lg p-1 h-9"
-                      maxLength={2}
-                    />
-                    <div className="flex-1 min-w-0 grid grid-cols-2 gap-2">
-                      <Input
-                        value={link.title}
-                        onChange={(e) => updateLinkField(link.id, 'title', e.target.value)}
-                        onBlur={(e) => persistLinkField(link.id, 'title', e.target.value)}
-                        className="h-9 text-sm"
-                      />
-                      <Input
-                        value={link.url}
-                        onChange={(e) => updateLinkField(link.id, 'url', e.target.value)}
-                        onBlur={(e) => persistLinkField(link.id, 'url', e.target.value)}
-                        className="h-9 text-sm"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground" title="Cliques">
-                      <MousePointerClick className="h-3 w-3" />
-                      {link.clicks || 0}
-                    </div>
-                    <Switch checked={link.active} onCheckedChange={() => toggleLink(link.id)} />
-                    <button onClick={() => removeLink(link.id)} className="text-muted-foreground hover:text-destructive transition-colors">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {linktrees.map((lt) => (
+            <div
+              key={lt.id}
+              className="rounded-xl border border-border bg-card overflow-hidden group hover:border-primary/50 transition-all"
+            >
+              {/* Preview header with theme colors */}
+              <div
+                className="h-28 flex items-center justify-center relative"
+                style={{ background: lt.bg_color }}
+              >
+                {lt.avatar_url ? (
+                  <img src={lt.avatar_url} alt="" className="h-16 w-16 rounded-full object-cover ring-2" style={{ boxShadow: `0 0 0 3px ${lt.button_color}80` }} />
+                ) : (
+                  <div
+                    className="h-16 w-16 rounded-full flex items-center justify-center text-3xl ring-2"
+                    style={{ background: `${lt.button_color}30`, boxShadow: `0 0 0 3px ${lt.button_color}80` }}
+                  >
+                    {lt.avatar_emoji}
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-card p-4">
-              <h3 className="font-semibold text-foreground mb-3">Status</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Links ativos</span>
-                  <Badge className="bg-primary/10 text-primary">{activeLinks.length}</Badge>
+                )}
+                <Badge className="absolute top-2 right-2 bg-black/40 text-white border-0 text-xs">
+                  /{lt.slug}
+                </Badge>
+              </div>
+              <div className="p-4 space-y-3">
+                <div>
+                  <h3 className="font-semibold text-foreground truncate">{lt.display_name}</h3>
+                  {lt.bio && <p className="text-xs text-muted-foreground truncate">{lt.bio}</p>}
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Links inativos</span>
-                  <Badge variant="outline">{links.length - activeLinks.length}</Badge>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{linkCounts[lt.id] || 0} links</span>
+                  <span className="capitalize">{lt.theme}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total</span>
-                  <span className="font-semibold text-foreground">{links.length}</span>
-                </div>
-                <div className="flex justify-between text-sm pt-2 border-t border-border">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <MousePointerClick className="h-3 w-3" /> Cliques totais
-                  </span>
-                  <span className="font-semibold text-primary">{totalClicks}</span>
+                <div className="flex gap-2">
+                  <Button asChild size="sm" variant="default" className="flex-1">
+                    <Link to={`/linktree/${lt.id}`} className="flex items-center gap-1">
+                      <Pencil className="h-3 w-3" /> Editar
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline">
+                    <a href={`/links/${lt.slug}`} target="_blank" rel="noopener noreferrer" title="Abrir página pública">
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => removeLinktree(lt.id, lt.display_name)}
+                    className="text-destructive hover:bg-destructive/10"
+                    title="Remover"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
                 </div>
               </div>
             </div>
-            <div className="rounded-xl border border-border bg-card p-4">
-              <h3 className="font-semibold text-foreground mb-2">Seu Link</h3>
-              <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
-                <Link2 className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                <span className="text-xs text-muted-foreground truncate">{PUBLIC_URL}</span>
-              </div>
-              <Button onClick={copyUrl} variant="outline" size="sm" className="w-full mt-2 text-xs">
-                {copied ? '✓ Copiado!' : 'Copiar URL'}
-              </Button>
-            </div>
-          </div>
+          ))}
         </div>
       )}
+
+      {/* Create dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo Linktree</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs">Nome / Cliente</Label>
+              <Input
+                value={form.display_name}
+                onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value, slug: f.slug || slugify(e.target.value) }))}
+                placeholder="Ex: Empresa XYZ"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Slug (URL)</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">/links/</span>
+                <Input
+                  value={form.slug}
+                  onChange={(e) => setForm((f) => ({ ...f, slug: slugify(e.target.value) }))}
+                  placeholder="empresa-xyz"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Bio (opcional)</Label>
+              <Input value={form.bio} onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))} placeholder="Descrição curta" className="mt-1" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={createLinktree} disabled={creating}>
+              {creating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Criar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
