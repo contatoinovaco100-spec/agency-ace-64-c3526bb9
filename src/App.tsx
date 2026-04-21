@@ -38,6 +38,7 @@ const SalesEditorPage      = lazy(() => import("@/pages/SalesEditorPage"));
 const DiagnosticEditorPage = lazy(() => import("@/pages/DiagnosticEditorPage"));
 const DiagnosticLP         = lazy(() => import("@/pages/DiagnosticLP"));
 const PublicPortfolioPage  = lazy(() => import("./pages/PublicPortfolioPage"));
+const PublicLinktreePage   = lazy(() => import("./pages/PublicLinktreePage"));
 const ClientPortalPage     = lazy(() => import("./pages/ClientPortalPage"));
 const NotFound             = lazy(() => import("./pages/NotFound"));
 const BriefingFormPage     = lazy(() => import("./pages/BriefingFormPage"));
@@ -72,6 +73,7 @@ function AppRoutes() {
     location.pathname.startsWith('/portal/') ||
     location.pathname.startsWith('/contrato/') ||
     location.pathname.startsWith('/vitrine') ||
+    location.pathname.startsWith('/links') ||
     location.pathname.startsWith('/briefing') ||
     location.pathname.startsWith('/proposta') ||
     (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar'));
@@ -84,6 +86,7 @@ function AppRoutes() {
           <Route path="/portal/:clientId"    element={<ClientPortalPage />} />
           <Route path="/contrato/:contractId" element={<ContractSignPage />} />
           <Route path="/vitrine"             element={<PublicPortfolioPage />} />
+          <Route path="/links"               element={<PublicLinktreePage />} />
           <Route path="/briefing"            element={<BriefingFormPage />} />
           <Route path="/proposta"            element={<SalesLP />} />
           <Route path="/proposta/:slug"      element={<SalesLP />} />
