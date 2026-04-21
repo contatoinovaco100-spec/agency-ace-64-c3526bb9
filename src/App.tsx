@@ -55,6 +55,7 @@ const OnboardingPage            = lazy(() => import("./pages/OnboardingPage"));
 const CalculatorPage            = lazy(() => import("./pages/CalculatorPage"));
 const RoletaPage                = lazy(() => import("./pages/RoletaPage"));
 const LinktreePage              = lazy(() => import("./pages/LinktreePage"));
+const LinktreeEditorPage        = lazy(() => import("./pages/LinktreeEditorPage"));
 const NovaAssistantPage         = lazy(() => import("./pages/NovaAssistantPage"));
 const CollaboratorContractsPage = lazy(() => import("./pages/CollaboratorContractsPage"));
 
@@ -87,6 +88,7 @@ function AppRoutes() {
           <Route path="/contrato/:contractId" element={<ContractSignPage />} />
           <Route path="/vitrine"             element={<PublicPortfolioPage />} />
           <Route path="/links"               element={<PublicLinktreePage />} />
+          <Route path="/links/:slug"         element={<PublicLinktreePage />} />
           <Route path="/briefing"            element={<BriefingFormPage />} />
           <Route path="/proposta"            element={<SalesLP />} />
           <Route path="/proposta/:slug"      element={<SalesLP />} />
@@ -132,6 +134,7 @@ function AppRoutes() {
                     <Route path="/calculadora"         element={<CalculatorPage />} />
                     <Route path="/roleta"              element={<RoletaPage />} />
                     <Route path="/linktree"            element={<LinktreePage />} />
+                    <Route path="/linktree/:id"        element={<LinktreeEditorPage />} />
                     <Route path="/nova"                element={<NovaAssistantPage />} />
                     <Route path="*"                    element={<NotFound />} />
                   </Routes>
