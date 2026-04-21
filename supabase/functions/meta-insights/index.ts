@@ -140,8 +140,9 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("Meta insights error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    const message = err instanceof Error ? err.message : "Erro interno";
+    console.error("Meta insights error:", message);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

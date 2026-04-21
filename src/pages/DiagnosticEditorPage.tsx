@@ -234,32 +234,22 @@ export default function DiagnosticEditorPage() {
     const toastId = toast.loading("IA aprofundando o diagnóstico...");
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: `Aprofunde este diagnóstico estratégico de marketing, tornando-o mais técnico e detalhado, mas MANTENHA A CONCISÃO. Evite textos longos, foque em insights de alto impacto. Retorne o mesmo formato JSON:\n\n${JSON.stringify(config)}` }]
-          }],
-          generation_config: {}
-        })
+      const { data, error } = await supabase.functions.invoke('ai-copywriter', {
+        body: {
+          systemPrompt: "Você é um Consultor de Marketing Estratégico Sênior. Aprofunde diagnósticos retornando SEMPRE JSON válido no mesmo formato recebido, sem texto fora do JSON.",
+          userMessage: `Aprofunde este diagnóstico estratégico de marketing, tornando-o mais técnico e detalhado, mas MANTENHA A CONCISÃO. Evite textos longos, foque em insights de alto impacto. Retorne o mesmo formato JSON:\n\n${JSON.stringify(config)}`,
+        },
       });
 
-      if (!response.ok) throw new Error("Falha ao refinar");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      const resData = await response.json();
-      const text = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error("Resposta vazia");
-      
-      const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      const result = JSON.parse(cleanText);
-      
+      const result = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
       setConfig(result);
       toast.success("Diagnóstico refinado com IA! ✨", { id: toastId });
     } catch (err) {
-      toast.error("Erro ao refinar análise.", { id: toastId });
+      const msg = err instanceof Error ? err.message : "Erro ao refinar análise.";
+      toast.error(msg, { id: toastId });
     } finally {
       setIsRefining(false);
     }
