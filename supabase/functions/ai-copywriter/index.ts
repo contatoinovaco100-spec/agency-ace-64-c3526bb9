@@ -11,48 +11,59 @@ serve(async (req) => {
   }
 
   try {
-    const { systemPrompt, userMessage, apiKey, model = "gpt-4o-mini" } = await req.json();
+    const { systemPrompt, userMessage, model = "google/gemini-2.5-flash" } = await req.json();
 
-    const openAiKey = apiKey || Deno.env.get('OPENAI_API_KEY');
-    if (!openAiKey) {
-      throw new Error("A chave OPENAI_API_KEY não foi configurada e não foi enviada pelo painel.");
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY não configurada.");
     }
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${openAiKey}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
         model,
-        response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: systemPrompt || "Você é um assistente útil. Responda sempre em JSON válido." },
           { role: "user", content: userMessage }
         ],
-        temperature: 0.7,
       }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("OpenAI API Error:", errorData);
-      throw new Error(errorData.error?.message || "Erro de comunicação com a OpenAI");
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Limite de requisições atingido. Tente novamente em instantes." }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos de IA esgotados. Adicione créditos no workspace." }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const errorText = await response.text();
+      console.error("AI Gateway Error:", response.status, errorText);
+      throw new Error("Erro de comunicação com o AI Gateway");
     }
 
     const data = await response.json();
-    const content = data.choices[0]?.message?.content;
-    
+    const content = data.choices?.[0]?.message?.content;
+
     if (!content) {
       throw new Error("A resposta da IA veio vazia.");
     }
 
-    let parsedContent;
+    let parsedContent: unknown;
     try {
-      parsedContent = JSON.parse(content);
-    } catch(e) {
-      parsedContent = content; // Fallback se não for JSON válido
+      const cleaned = String(content).replace(/```json/g, '').replace(/```/g, '').trim();
+      parsedContent = JSON.parse(cleaned);
+    } catch {
+      parsedContent = content;
     }
 
     return new Response(JSON.stringify({ result: parsedContent }), {
@@ -60,10 +71,11 @@ serve(async (req) => {
       status: 200,
     });
 
-  } catch (error: any) {
-    console.error("Edge function error:", error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erro interno";
+    console.error("Edge function error:", message);
     return new Response(
-      JSON.stringify({ error: error.message || "Erro interno do servidor" }),
+      JSON.stringify({ error: message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
