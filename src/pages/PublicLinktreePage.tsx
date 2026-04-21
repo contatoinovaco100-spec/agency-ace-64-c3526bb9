@@ -101,12 +101,12 @@ export default function PublicLinktreePage() {
             <img
               src={linktree.avatar_url}
               alt={linktree.display_name}
-              className="h-24 w-24 rounded-full mx-auto object-cover"
+              className="h-40 w-40 rounded-full mx-auto object-cover"
               style={{ boxShadow: `0 0 0 4px ${linktree.button_color}40` }}
             />
           ) : (
             <div
-              className="h-24 w-24 rounded-full flex items-center justify-center mx-auto text-4xl"
+              className="h-40 w-40 rounded-full flex items-center justify-center mx-auto text-6xl"
               style={{ background: `${linktree.button_color}20`, boxShadow: `0 0 0 4px ${linktree.button_color}40` }}
             >
               {linktree.avatar_emoji || '🎬'}
