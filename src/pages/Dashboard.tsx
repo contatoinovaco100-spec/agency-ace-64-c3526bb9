@@ -43,10 +43,34 @@ function formatCurrency(v: number) {
   return `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 }
 
+type SignedContract = {
+  id: string;
+  client_id: string | null;
+  client_name: string;
+  monthly_value: number;
+  duration_months: number;
+  sent_at: string | null;
+  created_at: string;
+  status: string;
+};
+
 export default function Dashboard() {
   const { clients, tasks, leads } = useAgency();
   const { isAdmin } = useModuleAccess();
   const { triggerNotification, requestPermission } = usePushNotification();
+
+  const [signedContracts, setSignedContracts] = useState<SignedContract[]>([]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    (async () => {
+      const { data } = await supabase
+        .from('contracts')
+        .select('id, client_id, client_name, monthly_value, duration_months, sent_at, created_at, status')
+        .eq('status', 'assinado');
+      if (data) setSignedContracts(data as SignedContract[]);
+    })();
+  }, [isAdmin]);
 
   const [alertsHidden, setAlertsHidden] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
