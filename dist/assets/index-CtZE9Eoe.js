@@ -1,1 +1,0 @@
-import{r as s,a8 as o,ah as u}from"./index-DYho8laz.js";var i=u[" useId ".trim().toString()]||(()=>{}),c=0;function n(a){const[t,r]=s.useState(i());return o(()=>{r(e=>e??String(c++))},[a]),t?`radix-${t}`:""}export{n as u};

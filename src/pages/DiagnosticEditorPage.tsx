@@ -17,10 +17,19 @@ import { DIAGNOSTIC_RULES, DiagnosticRule, BusinessType } from '@/data/diagnosti
 import { AIVisionConverter } from '@/components/diagnostic/AIVisionConverter';
 
 /* ═══════ THEME COLORS ═══════ */
-const THEMES: Record<string, { primary: string; primaryDark: string }> = {
-  teal: { primary: '#0D6E5E', primaryDark: '#095045' },
-  burgundy: { primary: '#3A0A1E', primaryDark: '#2A0616' },
-  black: { primary: '#000000', primaryDark: '#111111' },
+const THEMES: Record<string, { primary: string; primaryDark: string; name: string }> = {
+  teal: { primary: '#0D6E5E', primaryDark: '#095045', name: 'Verde' },
+  burgundy: { primary: '#3A0A1E', primaryDark: '#2A0616', name: 'Vinho' },
+  black: { primary: '#000000', primaryDark: '#111111', name: 'Preto' },
+  blue: { primary: '#1e40af', primaryDark: '#1e3a8a', name: 'Azul' },
+  purple: { primary: '#6b21a8', primaryDark: '#581c87', name: 'Roxo' },
+  orange: { primary: '#c2410c', primaryDark: '#9a3412', name: 'Laranja' },
+  pink: { primary: '#be185d', primaryDark: '#9d174d', name: 'Rosa' },
+  green: { primary: '#166534', primaryDark: '#14532d', name: 'Verde Escuro' },
+  gold: { primary: '#b45309', primaryDark: '#78350f', name: 'Dourado' },
+  navy: { primary: '#1e3a5f', primaryDark: '#0f172a', name: 'Azul Marinho' },
+  red: { primary: '#991b1b', primaryDark: '#7f1d1d', name: 'Vermelho' },
+  emerald: { primary: '#047857', primaryDark: '#065f46', name: 'Esmeralda' },
 };
 
 /* ═══════ HELPER COMPONENTS ═══════ */
@@ -673,13 +682,14 @@ export default function DiagnosticEditorPage() {
                       </div>
                       <div className="space-y-1.5">
                            <Label className="text-[8px] font-black uppercase tracking-widest text-white/30">Tema Visual</Label>
-                           <div className="flex gap-2 mb-2">
-                             {Object.keys(THEMES).map(t => (
+                           <div className="grid grid-cols-6 gap-2 mb-3">
+                             {Object.entries(THEMES).map(([key, theme]) => (
                                <button 
-                                 key={t}
-                                 onClick={() => setClientInfo({...clientInfo, tema: t})}
-                                 className={`w-6 h-6 rounded-full border-2 ${clientInfo.tema === t ? 'border-[#bff720] scale-110' : 'border-transparent'}`}
-                                 style={{ background: THEMES[t].primary }}
+                                 key={key}
+                                 onClick={() => setClientInfo({...clientInfo, tema: key, primaryColor: theme.primary})}
+                                 className={`w-10 h-10 rounded-xl border-2 transition-all ${clientInfo.tema === key ? 'border-[#bff720] scale-105' : 'border-transparent hover:scale-105'}`}
+                                 style={{ background: theme.primary }}
+                                 title={theme.name}
                                />
                              ))}
                            </div>

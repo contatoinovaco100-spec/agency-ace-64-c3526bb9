@@ -14,6 +14,15 @@ const THEMES: Record<string, { primary: string; primaryDark: string }> = {
   teal: { primary: '#0D6E5E', primaryDark: '#095045' },
   burgundy: { primary: '#3A0A1E', primaryDark: '#2A0616' },
   black: { primary: '#000000', primaryDark: '#111111' },
+  blue: { primary: '#1e40af', primaryDark: '#1e3a8a' },
+  purple: { primary: '#6b21a8', primaryDark: '#581c87' },
+  orange: { primary: '#c2410c', primaryDark: '#9a3412' },
+  pink: { primary: '#be185d', primaryDark: '#9d174d' },
+  green: { primary: '#166534', primaryDark: '#14532d' },
+  gold: { primary: '#b45309', primaryDark: '#78350f' },
+  navy: { primary: '#1e3a5f', primaryDark: '#0f172a' },
+  red: { primary: '#991b1b', primaryDark: '#7f1d1d' },
+  emerald: { primary: '#047857', primaryDark: '#065f46' },
 };
 
 const DEMO_CONFIG = {
