@@ -1,5 +1,5 @@
-// trigger fresh sync 4 - Cache Invalidation Logic
-const APP_VERSION = '1.0.4'; // Increment this to force a full cache clear on all devices
+// trigger fresh sync 5 - Cache Invalidation Logic
+const APP_VERSION = '1.0.5'; // Increment this to force a full cache clear on all devices
 
 import { lazy, Suspense, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
