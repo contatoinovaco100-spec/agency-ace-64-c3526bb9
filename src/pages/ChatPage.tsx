@@ -205,7 +205,7 @@ export default function ChatPage() {
             <span className="text-xs text-muted-foreground truncate flex-1">
               {myProfile?.full_name || user?.email}
             </span>
-            <span className="h-2 w-2 rounded-full bg-green-500" />
+            <span className="h-2 w-2 rounded-full bg-primary" />
           </div>
         </div>
       </aside>
