@@ -87,6 +87,36 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          author_avatar: string | null
+          author_id: string
+          author_name: string
+          channel: string
+          content: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          author_avatar?: string | null
+          author_id: string
+          author_name?: string
+          channel?: string
+          content: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          author_avatar?: string | null
+          author_id?: string
+          author_name?: string
+          channel?: string
+          content?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       client_briefings: {
         Row: {
           audience_desires: string
