@@ -6,8 +6,6 @@ node_modules
 baileys_store.json
 auth_info_baileys
 dist
-*.ts
-!*.d.ts
 deploy.sh
 README.md
 .env
