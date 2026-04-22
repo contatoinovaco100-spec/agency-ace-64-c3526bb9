@@ -140,7 +140,7 @@ function CardContent({ task, clientName }: { task: Task; clientName?: string }) 
           Baixar vídeo
         </a>
       )}
-      <div className="mt-2.5 flex items-center justify-between gap-2">
+      <div className="mt-2.5 flex items-start justify-between gap-2">
         <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', PRIORITY_BADGE[task.priority])}>
           {task.priority}
         </span>
@@ -150,10 +150,20 @@ function CardContent({ task, clientName }: { task: Task; clientName?: string }) 
               {task.assignee.charAt(0).toUpperCase()}
             </div>
           )}
-          {task.dueDate && (
-            <span className="text-[10px] tabular-nums text-muted-foreground truncate">
-              {new Date(task.dueDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-            </span>
+          {(task.dueDate || task.postDate) && (
+            <div className="flex flex-col items-end gap-0.5 min-w-0">
+              {task.dueDate && (
+                <span className="text-[10px] tabular-nums text-muted-foreground truncate" title="Data de entrega">
+                  Entrega: {new Date(task.dueDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                </span>
+              )}
+              {task.postDate && (
+                <span className="text-[10px] tabular-nums text-primary/80 truncate" title="Data de postagem">
+                  Post: {new Date(task.postDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                  {task.postTime ? ` ${task.postTime.slice(0, 5)}` : ''}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>
