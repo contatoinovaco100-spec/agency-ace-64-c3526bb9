@@ -96,8 +96,17 @@ function rowToLead(row: Tables<'leads'>): Lead {
     stage: row.stage as Lead['stage'], estimatedValue: Number(row.estimated_value), createdAt: row.created_at,
   };
 }
-function rowToTeamMember(row: Tables<'team_members'>): TeamMember {
-  return { id: row.id, name: row.name, role: row.role, email: row.email, permissions: row.permissions, avatar: row.avatar || undefined };
+// Team members are derived from `profiles` (employees with username) — single source of truth.
+const EMPLOYEE_EMAIL_DOMAIN = 'inovaco.app';
+function profileToTeamMember(row: any, adminIds: Set<string>): TeamMember {
+  return {
+    id: row.id,
+    name: row.full_name || 'Sem nome',
+    role: row.job_title || '',
+    email: row.username ? `${row.username}@${EMPLOYEE_EMAIL_DOMAIN}` : '',
+    permissions: adminIds.has(row.id) ? 'Admin' : 'Editor',
+    avatar: row.avatar_url || undefined,
+  };
 }
 function rowToEvent(row: Tables<'calendar_events'>): CalendarEvent {
   return { id: row.id, title: row.title, date: row.date, type: row.type as CalendarEvent['type'], clientId: row.client_id || undefined };
