@@ -79,6 +79,8 @@ export interface Task {
   copywriter: string;
   director: string;
   videomaker: string;
+  // Final delivery
+  videoUrl?: string;
 }
 
 export interface TaskChecklistItem {
