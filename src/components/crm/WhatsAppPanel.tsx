@@ -326,12 +326,16 @@ export function WhatsAppPanel() {
             {waSession.qr_code ? (
               <div className="space-y-6">
                 <div className="bg-white p-4 rounded-xl shadow-xl inline-block">
-                  <QRCodeSVG value={waSession.qr_code} size={256} />
+                  {waSession.qr_code.startsWith('data:') ? (
+                    <img src={waSession.qr_code} alt="QR Code WhatsApp" width={256} height={256} />
+                  ) : (
+                    <QRCodeSVG value={waSession.qr_code} size={256} />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold text-foreground">Escaneie o QR Code</h3>
                   <p className="text-muted-foreground max-w-sm mx-auto">
-                    Abra o WhatsApp no seu celular, vá em Aparelhos Conectados e scaneie o código acima para integrar com o CRM.
+                    Abra o WhatsApp no seu celular, vá em Aparelhos Conectados e escaneie o código acima.
                   </p>
                 </div>
                 <div className="flex items-center justify-center gap-2 text-success animate-pulse">
@@ -343,13 +347,14 @@ export function WhatsAppPanel() {
               <div className="space-y-4">
                 <WifiOff className="mx-auto h-12 w-12 text-muted-foreground opacity-30" />
                 <div className="space-y-1">
-                  <p className="text-lg font-medium">WhatsApp Desconectado</p>
-                  <p className="text-muted-foreground">Inicie o serviço localmente para gerar o QR Code.</p>
+                  <p className="text-lg font-medium">Conectando ao servidor...</p>
+                  <p className="text-muted-foreground text-caption">
+                    Servidor: <code className="text-xs">inova-whatsapp.fly.dev</code>
+                  </p>
                 </div>
-                <div className="p-4 bg-background/50 border border-dashed border-border rounded-lg text-left font-mono text-[11px] text-muted-foreground">
-                  <p className="mb-2">Execute no seu terminal:</p>
-                  <code>cd whatsapp-service-standalone && bun run start</code>
-                </div>
+                <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                  <RefreshCw className="h-3.5 w-3.5 mr-2" /> Tentar novamente
+                </Button>
               </div>
             )}
           </div>
