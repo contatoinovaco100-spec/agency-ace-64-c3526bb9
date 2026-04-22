@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Dialog, 
   DialogContent, 
@@ -166,33 +167,22 @@ export default function ProspectionPage() {
       Se não houver telefone no lead, ignore-o. Se não houver website ou instagram, deixe como string vazia "".
       Texto: ${magicText}`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-copywriter', {
+        body: {
+          systemPrompt: 'Você é um extrator de dados. Responda APENAS com um array JSON válido, sem markdown, sem explicações.',
+          userMessage: prompt,
         },
-        body: JSON.stringify({
-          contents: [
-            { parts: [{ text: prompt }] }
-          ],
-          generation_config: {}
-        }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error?.message || `Erro ${response.status}`;
-        throw new Error(errorMessage);
+      if (fnError) throw new Error(fnError.message || 'Erro ao chamar IA');
+      if (fnData?.error) throw new Error(fnData.error);
+
+      let extractedLeads: any = fnData?.result;
+      if (typeof extractedLeads === 'string') {
+        const jsonStr = extractedLeads.replace(/```json/g, '').replace(/```/g, '').trim();
+        extractedLeads = JSON.parse(jsonStr);
       }
 
-      const data = await response.json();
-      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      
-      if (!content) throw new Error("A IA não retornou nenhum dado.");
-      
-      // Limpar possível markdown
-      const jsonStr = content.replace(/```json/g, '').replace(/```/g, '').trim();
-      const extractedLeads = JSON.parse(jsonStr);
 
       if (!Array.isArray(extractedLeads) || extractedLeads.length === 0) {
         toast.error('Não foi possível encontrar leads válidos no texto.');
@@ -297,18 +287,18 @@ REGRAS DA MENSAGEM:
 
 Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-copywriter', {
+        body: {
+          systemPrompt: 'Você é um copywriter especialista em prospecção via WhatsApp. Retorne APENAS o texto da mensagem em texto puro (sem JSON, sem markdown, sem aspas).',
+          userMessage: prompt,
+        },
       });
 
-      if (!response.ok) throw new Error('Erro ao gerar mensagem');
+      if (fnError) throw new Error(fnError.message || 'Erro ao gerar mensagem');
+      if (fnData?.error) throw new Error(fnData.error);
 
-      const data = await response.json();
-      const message = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      const raw = fnData?.result;
+      const message = (typeof raw === 'string' ? raw : JSON.stringify(raw)).trim();
 
       if (!message) throw new Error('Resposta vazia da IA');
 
