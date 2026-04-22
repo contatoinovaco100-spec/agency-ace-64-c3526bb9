@@ -39,10 +39,12 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
   
   const isPosted = task.status === 'Postado';
   const isProgramado = task.status === 'Programado';
-  const displayDate = task.scheduled_date || task.due_date;
+  const displayDate = task.post_date || task.scheduled_date || task.due_date;
   const formattedDate = displayDate 
-    ? new Date(displayDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+    ? new Date(displayDate + (task.post_date && !displayDate.includes('T') ? 'T00:00:00' : '')).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
     : 'Sem data';
+  const postTime = (task as any).post_time as string | null | undefined;
+  const formattedTime = postTime ? postTime.slice(0, 5) : null;
   const isPast = displayDate && new Date(displayDate) < new Date();
 
   const sections = [
@@ -88,7 +90,7 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
               isPast && !isPosted ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "text-muted-foreground bg-secondary/50"
             )}>
               <Calendar className="h-3 w-3" />
-              {formattedDate}
+              {formattedDate}{formattedTime ? ` • ${formattedTime}` : ''}
             </span>
           </div>
         </div>
