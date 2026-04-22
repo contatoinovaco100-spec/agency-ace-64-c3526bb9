@@ -1,105 +1,81 @@
-import { useState } from 'react';
 import { useAgency } from '@/contexts/AgencyContext';
-import { TeamMember } from '@/types/agency';
-import { Plus, Mail } from 'lucide-react';
+import { Mail, Info, UserCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
-
-const permOptions = ['Admin', 'Editor', 'Visualizador'];
+import { useNavigate } from 'react-router-dom';
 
 export default function TeamPage() {
-  const { team, tasks, addTeamMember, updateTeamMember, deleteTeamMember } = useAgency();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<TeamMember | null>(null);
-  const [form, setForm] = useState<Partial<TeamMember>>({});
+  const { team, tasks } = useAgency();
+  const navigate = useNavigate();
 
-  const openNew = () => { setEditing(null); setForm({ permissions: 'Editor' }); setDialogOpen(true); };
-  const openEdit = (m: TeamMember) => { setEditing(m); setForm(m); setDialogOpen(true); };
-
-  const handleSave = () => {
-    if (!form.name) return;
-    if (editing) {
-      updateTeamMember({ ...editing, ...form } as TeamMember);
-    } else {
-      addTeamMember({ ...form, id: crypto.randomUUID() } as TeamMember);
-    }
-    setDialogOpen(false);
-  };
-
-  const getTaskCount = (name: string) => tasks.filter(t => t.assignee === name && t.status !== 'Concluído').length;
+  const getTaskCount = (name: string) =>
+    tasks.filter(t => t.assignee === name && t.status !== 'Concluído').length;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-heading font-semibold text-foreground">Equipe</h1>
-          <p className="text-body text-muted-foreground">{team.length} membros</p>
+          <p className="text-body text-muted-foreground">{team.length} membros ativos</p>
         </div>
-        <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Novo Membro</Button>
+        <Button onClick={() => navigate('/funcionarios')} className="gap-2">
+          <UserCog className="h-4 w-4" /> Gerenciar Funcionários
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {team.map((member, i) => (
-          <motion.div
-            key={member.id}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="card-shadow cursor-pointer rounded-lg bg-card p-5 transition-default hover:bg-secondary/30"
-            onClick={() => openEdit(member)}
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-body font-semibold text-primary">
-                {member.name.charAt(0)}
-              </div>
-              <div>
-                <p className="text-body font-medium text-foreground">{member.name}</p>
-                <p className="text-caption text-muted-foreground">{member.role}</p>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center justify-between">
-              <div className="flex items-center gap-1 text-caption text-muted-foreground">
-                <Mail className="h-3 w-3" />
-                <span>{member.email}</span>
-              </div>
-              <span className="rounded bg-secondary px-1.5 py-0.5 text-caption text-muted-foreground">{member.permissions}</span>
-            </div>
-            <div className="mt-2 text-caption text-muted-foreground">
-              {getTaskCount(member.name)} tarefas pendentes
-            </div>
-          </motion.div>
-        ))}
+      <div className="flex items-start gap-2 rounded-lg border border-border bg-secondary/30 p-3 text-caption text-muted-foreground">
+        <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+        <p>
+          A lista abaixo reflete os funcionários cadastrados. Para adicionar, editar ou desativar membros, vá em{' '}
+          <button onClick={() => navigate('/funcionarios')} className="text-primary underline-offset-2 hover:underline">
+            Funcionários
+          </button>.
+        </p>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editing ? 'Editar Membro' : 'Novo Membro'}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-2">
-            <div><Label>Nome</Label><Input value={form.name || ''} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-            <div><Label>Cargo</Label><Input value={form.role || ''} onChange={e => setForm({ ...form, role: e.target.value })} /></div>
-            <div><Label>Email</Label><Input type="email" value={form.email || ''} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
-            <div>
-              <Label>Permissões</Label>
-              <Select value={form.permissions || 'Editor'} onValueChange={v => setForm({ ...form, permissions: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{permOptions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleSave} className="flex-1">{editing ? 'Salvar' : 'Adicionar'}</Button>
-              {editing && (
-                <Button variant="outline" className="text-destructive" onClick={() => { deleteTeamMember(editing.id); setDialogOpen(false); }}>Excluir</Button>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {team.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border p-10 text-center">
+          <p className="text-body text-muted-foreground">Nenhum funcionário cadastrado ainda.</p>
+          <Button variant="outline" className="mt-4" onClick={() => navigate('/funcionarios')}>
+            Cadastrar primeiro funcionário
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {team.map((member, i) => (
+            <motion.div
+              key={member.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="card-shadow rounded-lg bg-card p-5 transition-default"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-body font-semibold text-primary">
+                  {member.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-body font-medium text-foreground truncate">{member.name}</p>
+                  <p className="text-caption text-muted-foreground truncate">{member.role || 'Sem cargo'}</p>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1 text-caption text-muted-foreground min-w-0">
+                  <Mail className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{member.email}</span>
+                </div>
+                <Badge variant={member.permissions === 'Admin' ? 'default' : 'secondary'} className="text-[10px]">
+                  {member.permissions}
+                </Badge>
+              </div>
+              <div className="mt-2 text-caption text-muted-foreground">
+                {getTaskCount(member.name)} tarefas pendentes
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
