@@ -41,6 +41,8 @@ export const APP_PAGES: AppPage[] = [
 
   // Comercial
   { path: '/crm',                 label: 'CRM',                 icon: Target,          category: 'Comercial' },
+  { path: '/whatsapp',            label: 'WhatsApp',            icon: MessageSquare,   category: 'Comercial' },
+  { path: '/whatsapp/config',     label: 'Config. WhatsApp',    icon: Settings,        category: 'Comercial', adminOnly: true },
   { path: '/prospeccao',          label: 'Prospecção IA',       icon: Bot,             category: 'Comercial' },
   { path: '/proposta',            label: 'Proposta Comercial',  icon: Sparkles,        category: 'Comercial' },
   { path: '/proposta/editar',     label: 'Editar Proposta',     icon: Settings,        category: 'Comercial' },
