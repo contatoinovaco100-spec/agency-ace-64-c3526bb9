@@ -90,7 +90,7 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
               isPast && !isPosted ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "text-muted-foreground bg-secondary/50"
             )}>
               <Calendar className="h-3 w-3" />
-              {formattedDate}
+              {formattedDate}{formattedTime ? ` • ${formattedTime}` : ''}
             </span>
           </div>
         </div>
