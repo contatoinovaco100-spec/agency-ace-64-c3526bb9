@@ -76,6 +76,8 @@ const NovaAssistantPage         = lazy(() => import("./pages/NovaAssistantPage")
 const CollaboratorContractsPage = lazy(() => import("./pages/CollaboratorContractsPage"));
 const EmployeesPage             = lazy(() => import("./pages/EmployeesPage"));
 const MyTasksPage               = lazy(() => import("./pages/MyTasksPage"));
+const WhatsAppPage              = lazy(() => import("./pages/WhatsAppPage"));
+const WhatsAppConfigPage        = lazy(() => import("./pages/WhatsAppConfigPage"));
 
 function PageLoader() {
   return (
@@ -156,6 +158,8 @@ function AppRoutes() {
                     <Route path="/nova"                element={<NovaAssistantPage />} />
                     <Route path="/funcionarios"        element={<EmployeesPage />} />
                     <Route path="/minhas-tarefas"      element={<MyTasksPage />} />
+                    <Route path="/whatsapp"            element={<WhatsAppPage />} />
+                    <Route path="/whatsapp/config"     element={<WhatsAppConfigPage />} />
                     <Route path="*"                    element={<NotFound />} />
                   </Routes>
                 </AppLayout>
