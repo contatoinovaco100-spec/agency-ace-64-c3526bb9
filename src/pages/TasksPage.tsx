@@ -616,9 +616,9 @@ export default function TasksPage() {
 
       {/* Kanban board */}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4 lg:grid lg:grid-cols-7 lg:gap-2 min-h-0 flex-1 scroller-hide">
+        <div className="flex gap-3 overflow-x-auto pb-4 xl:grid xl:grid-cols-7 xl:gap-2 min-h-0 flex-1 scroller-hide">
           {KANBAN_COLUMNS.map(col => (
-            <div key={col} className="min-w-[280px] lg:min-w-0 flex flex-col h-full">
+            <div key={col} className="min-w-[260px] xl:min-w-0 flex flex-col h-full">
               <KanbanColumn column={col} tasks={tasksByColumn[col]} onCardClick={openCard} onAdd={openNew} getClientName={getClientName} onAdvanceTask={(task, nextStage) => updateTask({ ...task, status: nextStage as any })} />
             </div>
           ))}
