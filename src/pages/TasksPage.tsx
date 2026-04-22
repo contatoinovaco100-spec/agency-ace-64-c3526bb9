@@ -530,7 +530,7 @@ export default function TasksPage() {
           <div>
             <h1 className="text-xl font-semibold text-foreground">Tarefas</h1>
             <p className="text-sm text-muted-foreground">
-              {filteredTasks.filter(t => mapStatusToColumn(t.status) !== 'Finalizado').length} em andamento
+              {filteredTasks.filter(t => !['Finalizado', 'Concluído'].includes(mapStatusToColumn(t.status))).length} em andamento
               {selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}
             </p>
           </div>
@@ -604,38 +604,25 @@ export default function TasksPage() {
         )}
       </div>
 
-      {/* Kanban board (without Finalizado) */}
+      {/* Kanban board */}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4 lg:grid lg:grid-cols-6 lg:gap-2 min-h-0 flex-1 scroller-hide">
+        <div className="flex gap-4 overflow-x-auto pb-4 lg:grid lg:grid-cols-7 lg:gap-2 min-h-0 flex-1 scroller-hide">
           {KANBAN_COLUMNS.map(col => (
             <div key={col} className="min-w-[280px] lg:min-w-0 flex flex-col h-full">
               <KanbanColumn column={col} tasks={tasksByColumn[col]} onCardClick={openCard} onAdd={openNew} getClientName={getClientName} onAdvanceTask={(task, nextStage) => updateTask({ ...task, status: nextStage as any })} />
             </div>
           ))}
         </div>
-        {/* Finalizado + Concluído drop zones */}
-        <div className="space-y-2">
-          <ArchiveDropZone
-            id="Finalizado"
-            label="Finalizados"
-            helperText="Visíveis para o cliente"
-            tasks={tasksByColumn['Finalizado']}
-            onCardClick={openCard}
-            getClientName={getClientName}
-            accentClass="border-success bg-success/10"
-            iconColorClass="text-success"
-          />
-          <ArchiveDropZone
-            id="Concluído"
-            label="Concluídos (arquivo interno)"
-            helperText="Ocultos do cliente"
-            tasks={tasksByColumn['Concluído']}
-            onCardClick={openCard}
-            getClientName={getClientName}
-            accentClass="border-muted-foreground bg-muted/30"
-            iconColorClass="text-muted-foreground"
-          />
-        </div>
+        <ArchiveDropZone
+          id="Concluído"
+          label="Concluídos (arquivo interno)"
+          helperText="Ocultos do cliente"
+          tasks={tasksByColumn['Concluído']}
+          onCardClick={openCard}
+          getClientName={getClientName}
+          accentClass="border-muted-foreground bg-muted/30"
+          iconColorClass="text-muted-foreground"
+        />
         <DragOverlay>
           {activeTask && (
             <div className={cn('w-[200px] rounded-lg border-l-[3px] bg-card p-3 shadow-lg', PRIORITY_COLORS[activeTask.priority])}>
