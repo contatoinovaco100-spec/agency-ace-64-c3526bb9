@@ -23,9 +23,6 @@ interface AgencyContextType {
   updateLead: (lead: Lead) => Promise<void>;
   deleteLead: (id: string) => Promise<void>;
   convertLeadToClient: (leadId: string, clientData: Partial<Client>) => Promise<void>;
-  addTeamMember: (member: TeamMember) => Promise<void>;
-  updateTeamMember: (member: TeamMember) => Promise<void>;
-  deleteTeamMember: (id: string) => Promise<void>;
   addEvent: (event: CalendarEvent) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
   getChecklist: (taskId: string) => Promise<TaskChecklistItem[]>;
