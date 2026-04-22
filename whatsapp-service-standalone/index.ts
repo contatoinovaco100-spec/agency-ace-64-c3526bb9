@@ -9,6 +9,7 @@ import {
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import qrcode from 'qrcode-terminal';
+import QRCode from 'qrcode';
 import pino from 'pino';
 import { writeFileSync, readFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -99,6 +100,19 @@ app.get('/status', (req, res) => {
         status: connectionStatus, 
         qr: qrCodeValue 
     });
+});
+
+app.get('/qr', async (req, res) => {
+    try {
+        if (!qrCodeValue) {
+            res.set(corsHeaders).json({ qr: null, status: connectionStatus });
+            return;
+        }
+        const dataUrl = await QRCode.toDataURL(qrCodeValue, { width: 320, margin: 1 });
+        res.set(corsHeaders).json({ qr: dataUrl, raw: qrCodeValue, status: connectionStatus });
+    } catch (err: any) {
+        res.set(corsHeaders).status(500).json({ error: err.message });
+    }
 });
 
 app.get('/chats', (req, res) => {
