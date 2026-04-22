@@ -81,6 +81,9 @@ export interface Task {
   videomaker: string;
   // Final delivery
   videoUrl?: string;
+  // Post scheduling
+  postDate?: string;
+  postTime?: string;
 }
 
 export interface TaskChecklistItem {
