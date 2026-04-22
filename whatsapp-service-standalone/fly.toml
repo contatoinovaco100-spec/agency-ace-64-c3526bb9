@@ -1,0 +1,28 @@
+app = "inova-whatsapp"
+primary_region = "gru"
+
+[build]
+  builder = "paketobuildpacks/builder:nodejs20"
+
+[[mounts]]
+  source = "whatsapp_data"
+  destination = "/app/auth_info_baileys"
+
+[[services]]
+  http_checks = []
+  internal_port = 3001
+  processes = ["app"]
+  protocol = "tcp"
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = 3001
+
+[vm]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+[http_service]
+  auto_stop_machines = false
+  auto_start_machines = false
+  min_machines = 1
