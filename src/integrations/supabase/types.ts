@@ -1757,6 +1757,27 @@ export type Database = {
           },
         ]
       }
+      wa_sync_v1: {
+        Row: {
+          id: string
+          qr_code: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          qr_code?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          qr_code?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       wa_templates: {
         Row: {
           body_text: string

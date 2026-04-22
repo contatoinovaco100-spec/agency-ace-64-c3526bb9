@@ -1,0 +1,27 @@
+# Configuração do Fly.io para o servidor WhatsApp
+# Ajuste o app name após rodar `fly launch`
+app = "inova-whatsapp"
+primary_region = "gru"  # São Paulo
+
+[build]
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false   # NÃO desligar — precisa ficar 24/7
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+# Volume persistente para guardar a sessão do WhatsApp
+[mounts]
+  source = "wa_session"
+  destination = "/app/auth"
