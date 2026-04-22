@@ -1,38 +1,35 @@
 
 
-## Finalizar integração WhatsApp via Fly.io
+## Unificar Equipe com Funcionários
 
-Servidor já está no ar em `https://inova-whatsapp.fly.dev`. Faltam 4 ajustes pra tudo funcionar.
+Hoje **Equipe** e **Funcionários** são duas listas independentes:
 
-### 1. Corrigir erro de build (bloqueia deploy do app)
-O arquivo `supabase/functions/wa-webhook/index.ts` tem erro de TypeScript na linha 108 (`'existing' is possibly 'null'`). Adicionar verificação de null antes de acessar `existing.unread_count`.
+| Aba | Tabela | O que faz |
+|---|---|---|
+| Funcionários (`/funcionarios`) | `profiles` (com `username`) | Cria login real + permissões de página |
+| Equipe (`/equipe`) | `team_members` (legada) | Cadastro manual usado em dropdowns de "Responsável" em Tarefas/CRM |
 
-### 2. Apontar painel WhatsApp para o servidor Fly.io
-O `src/components/crm/WhatsAppPanel.tsx` chama `http://localhost:3001` (só funciona no seu Mac). Trocar por `https://inova-whatsapp.fly.dev` para funcionar em produção, no celular, em qualquer lugar.
+Resultado atual: quem você cria em Funcionários **não aparece** em Equipe nem nos seletores de responsável das tarefas. Precisa cadastrar duas vezes.
 
-### 3. Exibir QR Code direto no painel
-Adicionar endpoint `/qr` no servidor (`whatsapp-service-standalone/index.ts`) que retorna o QR em formato data-URL, e atualizar o `WhatsAppPanel.tsx` para fazer polling desse endpoint quando o status for `DISCONNECTED` — assim você escaneia direto na interface, sem precisar de `fly logs`.
+### Solução: Equipe passa a refletir os Funcionários
 
-### 4. Cadastrar `WA_SERVER_URL` nos secrets
-Adicionar o secret `WA_SERVER_URL = https://inova-whatsapp.fly.dev` para a edge function `wa-baileys-send` poder enviar mensagens via servidor Fly.
+**1. Página Equipe (`/equipe`) vira somente leitura dos Funcionários**
+- Lê de `profiles` (filtrando `username IS NOT NULL`, igual à página Funcionários)
+- Mostra: nome, cargo (`job_title`), e-mail (`username@domínio`), badge Admin/Inativo, contagem de tarefas pendentes (mantém)
+- Remove botões "Novo Membro", edição inline e exclusão
+- Adiciona aviso: *"Para adicionar ou editar membros, vá em Funcionários"* + botão de atalho para `/funcionarios`
 
-### Comandos que VOCÊ precisa rodar no terminal (depois das correções)
+**2. AgencyContext expõe `team` baseado em `profiles`**
+- Substituir o fetch de `team_members` por fetch de `profiles` filtrando `username IS NOT NULL` e `is_active = true`
+- Mapear para o tipo `TeamMember` existente: `name = full_name`, `role = job_title`, `email = username@domínio`, `permissions = is_admin ? 'Admin' : 'Editor'`
+- Manter assinatura `team: TeamMember[]` para não quebrar `CRMPage`, `TasksPage`, `TaskDetailPanel`, `MyTasksPage` etc. que já consomem `team` para os dropdowns de responsável
+- Remover `addTeamMember` / `updateTeamMember` / `deleteTeamMember` (não usados em mais nenhum lugar além de TeamPage)
 
-```bash
-cd "/Users/lucassoares/Desktop/Inova/Inova Lab/whatsapp-service-standalone"
+**3. Tabela `team_members`**
+- Mantém-se na base intocada por enquanto (não vamos apagar dados). Apenas deixa de ser lida/escrita pelo app.
 
-# Cria volume persistente (sessão sobrevive a reinícios)
-fly volume create whatsapp_data --size 1 --region gru
-
-# Re-deploy com as correções do servidor
-fly deploy
-```
-
-Depois disso, abra o painel WhatsApp no CRM — o QR Code aparece na tela, você escaneia, e tá conectado 24/7.
-
-### Observações técnicas
-
-- A URL correta é `https://inova-whatsapp.fly.dev` (sem `:3001` — o Fly faz o proxy automático da porta interna 3001 pra 443/HTTPS).
-- Sem o volume, **toda vez que a máquina reiniciar** (deploy, restart) você perde a sessão e precisa escanear o QR de novo. Por isso o passo do volume é importante.
-- O painel vai mostrar status em tempo real: Conectado / Aguardando QR / Desconectado.
+### Resultado
+- Cadastrou um Funcionário → ele aparece automaticamente na **Equipe** e nos **dropdowns de responsável** de Tarefas e CRM
+- Uma única fonte de verdade
+- Nenhuma migration de banco necessária
 
