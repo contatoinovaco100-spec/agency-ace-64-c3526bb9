@@ -322,7 +322,7 @@ export default function ClientContentPage() {
     today.setHours(0, 0, 0, 0);
     return date < today && isInternal;
   });
-  const postedTasks = tasks.filter(t => t.status === 'Postado' && t.status !== 'Concluído');
+  const postedTasks = tasks.filter(t => t.status === 'Postado');
   const displayedTasks = showPosted ? tasks.filter(t => t.status !== 'Concluído') : [...pendingTasks, ...(isInternal && showPastDue ? pastDueTasks : [])];
 
   return (
