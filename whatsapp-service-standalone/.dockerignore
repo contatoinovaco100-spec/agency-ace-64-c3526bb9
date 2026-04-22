@@ -1,14 +1,8 @@
 node_modules
-.git
-.gitignore
+auth_info_baileys
+baileys_store*.json
 *.log
 .DS_Store
-baileys_store.json
-auth_info_baileys
-dist
-*.ts
-!*.d.ts
+.env
 deploy.sh
 README.md
-.env
-package-lock.json
