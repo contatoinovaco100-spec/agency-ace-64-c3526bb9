@@ -1650,6 +1650,149 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_conversations: {
+        Row: {
+          client_id: string | null
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          id: string
+          last_message: string
+          last_message_at: string
+          lead_id: string | null
+          unread_count: number
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          contact_name?: string
+          contact_phone: string
+          created_at?: string
+          id?: string
+          last_message?: string
+          last_message_at?: string
+          lead_id?: string | null
+          unread_count?: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          id?: string
+          last_message?: string
+          last_message_at?: string
+          lead_id?: string | null
+          unread_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_conversations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          direction: string
+          error_message: string | null
+          id: string
+          media_mime_type: string | null
+          media_url: string | null
+          status: string
+          template_name: string | null
+          type: string
+          wa_message_id: string | null
+        }
+        Insert: {
+          content?: string
+          conversation_id: string
+          created_at?: string
+          direction: string
+          error_message?: string | null
+          id?: string
+          media_mime_type?: string | null
+          media_url?: string | null
+          status?: string
+          template_name?: string | null
+          type?: string
+          wa_message_id?: string | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          direction?: string
+          error_message?: string | null
+          id?: string
+          media_mime_type?: string | null
+          media_url?: string | null
+          status?: string
+          template_name?: string | null
+          type?: string
+          wa_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_templates: {
+        Row: {
+          body_text: string
+          category: string
+          created_at: string
+          id: string
+          language: string
+          name: string
+          status: string
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          body_text?: string
+          category?: string
+          created_at?: string
+          id?: string
+          language?: string
+          name: string
+          status?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          body_text?: string
+          category?: string
+          created_at?: string
+          id?: string
+          language?: string
+          name?: string
+          status?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
