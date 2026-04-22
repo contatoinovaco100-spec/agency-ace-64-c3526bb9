@@ -144,17 +144,21 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [cRes, tRes, lRes, tmRes, eRes] = await Promise.all([
+    const [cRes, tRes, lRes, pRes, rRes, eRes] = await Promise.all([
       supabase.from('clients').select('*').order('created_at'),
       supabase.from('tasks').select('*').order('created_at'),
       supabase.from('leads').select('*').order('created_at'),
-      supabase.from('team_members').select('*').order('created_at'),
+      supabase.from('profiles').select('id, full_name, username, job_title, avatar_url, is_active').not('username', 'is', null).eq('is_active', true),
+      supabase.from('user_roles').select('user_id').eq('role', 'admin'),
       supabase.from('calendar_events').select('*').order('date'),
     ]);
     if (cRes.data) setAllClients(cRes.data.map(rowToClient));
     if (tRes.data) setTasks(tRes.data.map(rowToTask));
     if (lRes.data) setLeads(lRes.data.map(rowToLead));
-    if (tmRes.data) setTeam(tmRes.data.map(rowToTeamMember));
+    if (pRes.data) {
+      const adminIds = new Set((rRes.data ?? []).map((r: any) => r.user_id));
+      setTeam(pRes.data.map((p: any) => profileToTeamMember(p, adminIds)).sort((a, b) => a.name.localeCompare(b.name)));
+    }
     if (eRes.data) setEvents(eRes.data.map(rowToEvent));
     setLoading(false);
   }, []);
