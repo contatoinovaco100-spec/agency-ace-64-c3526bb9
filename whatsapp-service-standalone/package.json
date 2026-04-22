@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "build": "tsc --version",
+    "start": "node --loader tsx index.ts",
     "dev": "tsx watch index.ts"
   },
   "dependencies": {
