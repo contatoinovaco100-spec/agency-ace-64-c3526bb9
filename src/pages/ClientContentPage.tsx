@@ -30,6 +30,7 @@ interface TaskData {
   creative_direction: string;
   editing_style: string;
   strategic_notes: string;
+  video_url?: string | null;
 }
 
 function TaskCard({ task, index }: { task: TaskData; index: number }) {
