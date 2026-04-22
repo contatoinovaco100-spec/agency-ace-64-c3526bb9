@@ -1,0 +1,20 @@
+{
+  "name": "inova-whatsapp-server",
+  "version": "1.0.0",
+  "description": "Servidor WhatsApp Baileys para INOVA CRM (Fly.io)",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "@whiskeysockets/baileys": "^6.7.8",
+    "express": "^4.19.2",
+    "pino": "^9.4.0",
+    "qrcode": "^1.5.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
