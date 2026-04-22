@@ -294,22 +294,30 @@ function KanbanColumn({
   );
 }
 
-// ── Finalizado Drop Zone + Client Folders ──────────────────
-function FinalizadoDropZone({
+// ── Finalizado / Concluído Drop Zone + Client Folders ─────
+function ArchiveDropZone({
+  id,
+  label,
+  helperText,
   tasks,
   onCardClick,
   getClientName,
-  clients,
+  accentClass,
+  iconColorClass,
 }: {
+  id: 'Finalizado' | 'Concluído';
+  label: string;
+  helperText: string;
   tasks: Task[];
   onCardClick: (t: Task) => void;
   getClientName: (id: string) => string;
-  clients: { id: string; companyName: string }[];
+  accentClass: string;
+  iconColorClass: string;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: 'Finalizado' });
+  const { setNodeRef, isOver } = useDroppable({ id });
   const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});
+  const [open, setOpen] = useState(id === 'Finalizado');
 
-  // Group finished tasks by client
   const byClient = useMemo(() => {
     const map: Record<string, Task[]> = {};
     tasks.forEach(t => {
@@ -320,8 +328,8 @@ function FinalizadoDropZone({
     return map;
   }, [tasks]);
 
-  const toggleClient = (id: string) => {
-    setExpandedClients(prev => ({ ...prev, [id]: !prev[id] }));
+  const toggleClient = (cid: string) => {
+    setExpandedClients(prev => ({ ...prev, [cid]: !prev[cid] }));
   };
 
   return (
@@ -329,17 +337,22 @@ function FinalizadoDropZone({
       ref={setNodeRef}
       className={cn(
         'rounded-lg border border-dashed p-3 transition-colors',
-        isOver ? 'border-success bg-success/10' : 'border-border bg-secondary/5'
+        isOver ? `${accentClass} ` : 'border-border bg-secondary/5'
       )}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <FolderCheck className="h-4 w-4 text-success" />
-        <span className="text-sm font-semibold text-foreground">Finalizados</span>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center gap-2 mb-2"
+      >
+        {open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+        <FolderCheck className={cn('h-4 w-4', iconColorClass)} />
+        <span className="text-sm font-semibold text-foreground">{label}</span>
         <span className="text-xs text-muted-foreground">({tasks.length})</span>
-        {isOver && <span className="text-xs text-success font-medium ml-auto">Solte aqui para finalizar</span>}
-      </div>
+        <span className="ml-2 text-[10px] text-muted-foreground italic hidden sm:inline">{helperText}</span>
+        {isOver && <span className="text-xs font-medium ml-auto text-foreground">Solte aqui</span>}
+      </button>
 
-      {tasks.length > 0 && (
+      {open && tasks.length > 0 && (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {Object.entries(byClient).map(([clientId, clientTasks]) => {
             const name = clientId === '_no_client' ? 'Sem cliente' : getClientName(clientId);
@@ -567,8 +580,29 @@ export default function TasksPage() {
             </div>
           ))}
         </div>
-        {/* Finalizado drop zone (invisible but droppable) */}
-        <FinalizadoDropZone tasks={tasksByColumn['Finalizado']} onCardClick={openCard} getClientName={getClientName} clients={clients} />
+        {/* Finalizado + Concluído drop zones */}
+        <div className="space-y-2">
+          <ArchiveDropZone
+            id="Finalizado"
+            label="Finalizados"
+            helperText="Visíveis para o cliente"
+            tasks={tasksByColumn['Finalizado']}
+            onCardClick={openCard}
+            getClientName={getClientName}
+            accentClass="border-success bg-success/10"
+            iconColorClass="text-success"
+          />
+          <ArchiveDropZone
+            id="Concluído"
+            label="Concluídos (arquivo interno)"
+            helperText="Ocultos do cliente"
+            tasks={tasksByColumn['Concluído']}
+            onCardClick={openCard}
+            getClientName={getClientName}
+            accentClass="border-muted-foreground bg-muted/30"
+            iconColorClass="text-muted-foreground"
+          />
+        </div>
         <DragOverlay>
           {activeTask && (
             <div className={cn('w-[200px] rounded-lg border-l-[3px] bg-card p-3 shadow-lg', PRIORITY_COLORS[activeTask.priority])}>
