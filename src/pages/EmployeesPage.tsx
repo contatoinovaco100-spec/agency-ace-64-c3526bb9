@@ -49,7 +49,8 @@ export default function EmployeesPage() {
   const loadEmployees = async () => {
     setLoading(true);
     const [{ data: profiles }, { data: roles }] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, username, job_title, is_active'),
+      // Apenas funcionários criados via /funcionarios (têm username preenchido)
+      supabase.from('profiles').select('id, full_name, username, job_title, is_active').not('username', 'is', null),
       supabase.from('user_roles').select('user_id, role').eq('role', 'admin'),
     ]);
     const adminIds = new Set(roles?.map(r => r.user_id) ?? []);
@@ -61,8 +62,7 @@ export default function EmployeesPage() {
       is_active: p.is_active ?? true,
       is_admin: adminIds.has(p.id),
     }));
-    // Show employees (with username) first, then any other profiles
-    list.sort((a, b) => Number(!!b.username) - Number(!!a.username) || a.full_name.localeCompare(b.full_name));
+    list.sort((a, b) => a.full_name.localeCompare(b.full_name));
     setEmployees(list);
     setLoading(false);
   };
