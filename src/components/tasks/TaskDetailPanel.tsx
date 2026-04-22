@@ -321,12 +321,32 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               <Label className="text-[10px] sm:text-xs text-primary uppercase tracking-wider font-semibold flex items-center gap-1.5">
                 <Link className="h-3 w-3" /> Link do vídeo finalizado (Drive / YouTube / Vimeo)
               </Label>
-              <Input
-                value={form.videoUrl || ''}
-                onChange={e => setForm({ ...form, videoUrl: e.target.value })}
-                placeholder="https://drive.google.com/file/d/..."
-                className="mt-2"
-              />
+              <div className="mt-2 flex gap-2">
+                <Input
+                  value={form.videoUrl || ''}
+                  onChange={e => setForm({ ...form, videoUrl: e.target.value })}
+                  placeholder="https://drive.google.com/file/d/..."
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  onClick={async () => {
+                    if (!task) { toast.error('Salve a tarefa primeiro'); return; }
+                    const url = (form.videoUrl || '').trim();
+                    try {
+                      const { error } = await supabase.from('tasks').update({ video_url: url || null }).eq('id', task.id);
+                      if (error) throw error;
+                      toast.success('Link salvo!');
+                    } catch (err: any) {
+                      console.error(err);
+                      toast.error('Erro ao salvar link');
+                    }
+                  }}
+                  className="shrink-0"
+                >
+                  Salvar link
+                </Button>
+              </div>
               <p className="text-[10px] text-muted-foreground mt-1.5">
                 Cole aqui o link quando o vídeo estiver pronto. Aparecerá automaticamente na Galeria de Entregas.
               </p>
