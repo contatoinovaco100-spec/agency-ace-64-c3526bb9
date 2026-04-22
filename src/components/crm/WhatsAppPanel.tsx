@@ -38,16 +38,18 @@ export function WhatsAppPanel() {
   const [waSession, setWaSession] = useState<{ status: string; qr_code: string | null }>({ status: 'DISCONNECTED', qr_code: null });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const WA_SERVER_URL = 'https://inova-whatsapp.fly.dev';
+
   const callLocalService = async (endpoint: string, options: RequestInit = {}) => {
     try {
-      const response = await fetch(`http://localhost:3001${endpoint}`, {
+      const response = await fetch(`${WA_SERVER_URL}${endpoint}`, {
         ...options,
         headers: {
           ...options.headers,
           'Content-Type': 'application/json'
         }
       });
-      if (!response.ok) throw new Error('Local service error');
+      if (!response.ok) throw new Error('WA service error');
       return await response.json();
     } catch (err) {
       return null;
@@ -152,48 +154,33 @@ export function WhatsAppPanel() {
   };
 
   useEffect(() => {
-    callZapi('get-status').then((data) => {
-      setConnected(data?.connected ?? false);
-    }).catch(() => setConnected(false));
-    loadChats();
-
-    // Listener Realtime para a sessão do WhatsApp
-    const channel = supabase
-      .channel('whatsapp_session_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'wa_sync_v1', filter: 'id=eq.default-session' },
-        (payload) => {
-          const newData = payload.new as any;
-          if (newData) {
-            setWaSession({ status: newData.status || 'DISCONNECTED', qr_code: newData.qr_code || null });
-            setConnected(newData.status === 'CONNECTED');
+    const refreshStatus = async () => {
+      const status = await callLocalService('/status');
+      if (status) {
+        setConnected(status.connected);
+        setWaSession(prev => ({
+          status: status.status || 'DISCONNECTED',
+          qr_code: status.connected ? null : prev.qr_code,
+        }));
+        if (!status.connected) {
+          const qrData = await callLocalService('/qr');
+          if (qrData?.qr) {
+            setWaSession({ status: status.status || 'DISCONNECTED', qr_code: qrData.qr });
           }
         }
-      )
-      .subscribe();
-
-    // Carregar estado inicial
-    const fetchSession = async () => {
-      try {
-        const { data, error } = await (supabase
-          .from('wa_sync_v1' as any)
-          .select('*')
-          .eq('id', 'default-session')
-          .maybeSingle() as any);
-        
-        if (data) {
-          setWaSession({ status: data.status, qr_code: data.qr_code });
-          setConnected(data.status === 'CONNECTED');
-        }
-      } catch (err) {
-        console.error('Erro ao carregar sessão do WA');
+      } else {
+        setConnected(false);
       }
     };
-    fetchSession();
+
+    refreshStatus();
+    loadChats();
+
+    // Polling do status + QR a cada 5s
+    const interval = setInterval(refreshStatus, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, []);
 
@@ -339,12 +326,16 @@ export function WhatsAppPanel() {
             {waSession.qr_code ? (
               <div className="space-y-6">
                 <div className="bg-white p-4 rounded-xl shadow-xl inline-block">
-                  <QRCodeSVG value={waSession.qr_code} size={256} />
+                  {waSession.qr_code.startsWith('data:') ? (
+                    <img src={waSession.qr_code} alt="QR Code WhatsApp" width={256} height={256} />
+                  ) : (
+                    <QRCodeSVG value={waSession.qr_code} size={256} />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold text-foreground">Escaneie o QR Code</h3>
                   <p className="text-muted-foreground max-w-sm mx-auto">
-                    Abra o WhatsApp no seu celular, vá em Aparelhos Conectados e scaneie o código acima para integrar com o CRM.
+                    Abra o WhatsApp no seu celular, vá em Aparelhos Conectados e escaneie o código acima.
                   </p>
                 </div>
                 <div className="flex items-center justify-center gap-2 text-success animate-pulse">
@@ -356,13 +347,14 @@ export function WhatsAppPanel() {
               <div className="space-y-4">
                 <WifiOff className="mx-auto h-12 w-12 text-muted-foreground opacity-30" />
                 <div className="space-y-1">
-                  <p className="text-lg font-medium">WhatsApp Desconectado</p>
-                  <p className="text-muted-foreground">Inicie o serviço localmente para gerar o QR Code.</p>
+                  <p className="text-lg font-medium">Conectando ao servidor...</p>
+                  <p className="text-muted-foreground text-caption">
+                    Servidor: <code className="text-xs">inova-whatsapp.fly.dev</code>
+                  </p>
                 </div>
-                <div className="p-4 bg-background/50 border border-dashed border-border rounded-lg text-left font-mono text-[11px] text-muted-foreground">
-                  <p className="mb-2">Execute no seu terminal:</p>
-                  <code>cd whatsapp-service-standalone && bun run start</code>
-                </div>
+                <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                  <RefreshCw className="h-3.5 w-3.5 mr-2" /> Tentar novamente
+                </Button>
               </div>
             )}
           </div>
