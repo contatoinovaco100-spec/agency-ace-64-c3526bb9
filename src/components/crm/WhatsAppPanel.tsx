@@ -38,16 +38,18 @@ export function WhatsAppPanel() {
   const [waSession, setWaSession] = useState<{ status: string; qr_code: string | null }>({ status: 'DISCONNECTED', qr_code: null });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const WA_SERVER_URL = 'https://inova-whatsapp.fly.dev';
+
   const callLocalService = async (endpoint: string, options: RequestInit = {}) => {
     try {
-      const response = await fetch(`http://localhost:3001${endpoint}`, {
+      const response = await fetch(`${WA_SERVER_URL}${endpoint}`, {
         ...options,
         headers: {
           ...options.headers,
           'Content-Type': 'application/json'
         }
       });
-      if (!response.ok) throw new Error('Local service error');
+      if (!response.ok) throw new Error('WA service error');
       return await response.json();
     } catch (err) {
       return null;
@@ -152,48 +154,33 @@ export function WhatsAppPanel() {
   };
 
   useEffect(() => {
-    callZapi('get-status').then((data) => {
-      setConnected(data?.connected ?? false);
-    }).catch(() => setConnected(false));
-    loadChats();
-
-    // Listener Realtime para a sessão do WhatsApp
-    const channel = supabase
-      .channel('whatsapp_session_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'wa_sync_v1', filter: 'id=eq.default-session' },
-        (payload) => {
-          const newData = payload.new as any;
-          if (newData) {
-            setWaSession({ status: newData.status || 'DISCONNECTED', qr_code: newData.qr_code || null });
-            setConnected(newData.status === 'CONNECTED');
+    const refreshStatus = async () => {
+      const status = await callLocalService('/status');
+      if (status) {
+        setConnected(status.connected);
+        setWaSession(prev => ({
+          status: status.status || 'DISCONNECTED',
+          qr_code: status.connected ? null : prev.qr_code,
+        }));
+        if (!status.connected) {
+          const qrData = await callLocalService('/qr');
+          if (qrData?.qr) {
+            setWaSession({ status: status.status || 'DISCONNECTED', qr_code: qrData.qr });
           }
         }
-      )
-      .subscribe();
-
-    // Carregar estado inicial
-    const fetchSession = async () => {
-      try {
-        const { data, error } = await (supabase
-          .from('wa_sync_v1' as any)
-          .select('*')
-          .eq('id', 'default-session')
-          .maybeSingle() as any);
-        
-        if (data) {
-          setWaSession({ status: data.status, qr_code: data.qr_code });
-          setConnected(data.status === 'CONNECTED');
-        }
-      } catch (err) {
-        console.error('Erro ao carregar sessão do WA');
+      } else {
+        setConnected(false);
       }
     };
-    fetchSession();
+
+    refreshStatus();
+    loadChats();
+
+    // Polling do status + QR a cada 5s
+    const interval = setInterval(refreshStatus, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, []);
 
