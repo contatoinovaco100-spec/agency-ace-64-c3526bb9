@@ -30,11 +30,11 @@ const KANBAN_COLUMNS = [
   'Em Gravação',
   'Em Edição',
   'Revisão',
+  'Finalizado',
 ] as const;
 
 const COLUMNS = [
   ...KANBAN_COLUMNS,
-  'Finalizado',
   'Concluído',
 ] as const;
 
