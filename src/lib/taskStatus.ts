@@ -5,6 +5,7 @@ export const UI_TO_DB_TASK_STATUS: Record<string, string> = {
   'Em Gravação': 'Em gravação',
   'Em Edição': 'Em edição',
   'Finalizado': 'Finalizado',
+  'Concluído': 'Concluído',
 };
 
 export const DB_TO_UI_TASK_STATUS: Record<string, string> = {
@@ -15,7 +16,7 @@ export const DB_TO_UI_TASK_STATUS: Record<string, string> = {
   'Em gravação': 'Em Gravação',
   'Em edição': 'Em Edição',
   'Revisão': 'Revisão',
-  'Concluído': 'Finalizado',
+  'Concluído': 'Concluído',
   'Finalizado': 'Finalizado',
 };
 
