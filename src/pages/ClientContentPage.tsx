@@ -85,12 +85,9 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
             )}>
               {isPosted ? 'Postado' : task.status || 'Pendente'}
             </span>
-            <span className={cn(
-              "flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full",
-              isPast && !isPosted ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "text-muted-foreground bg-secondary/50"
-            )}>
+            <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-[#bff720]/20 text-[#5a7a00] dark:text-[#bff720] font-semibold">
               <Calendar className="h-3 w-3" />
-              {formattedDate}{formattedTime ? ` • ${formattedTime}` : ''}
+              Postar: {formattedDate}{formattedTime ? ` às ${formattedTime}` : ''}
             </span>
           </div>
         </div>
