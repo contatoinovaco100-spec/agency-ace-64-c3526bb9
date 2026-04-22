@@ -107,6 +107,8 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         director: form.director || '',
         videomaker: form.videomaker || '',
         videoUrl: form.videoUrl || '',
+        postDate: form.postDate || '',
+        postTime: form.postTime || '',
       };
       await onSave(data);
     } catch (err) {
@@ -230,6 +232,16 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               <div>
                 <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Data de entrega</Label>
                 <Input type="date" value={form.dueDate || ''} onChange={e => setForm({ ...form, dueDate: e.target.value })} className="mt-1" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
+              <div>
+                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Data de postagem (cliente)</Label>
+                <Input type="date" value={form.postDate || ''} onChange={e => setForm({ ...form, postDate: e.target.value })} className="mt-1" />
+              </div>
+              <div>
+                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Hora de postagem</Label>
+                <Input type="time" value={form.postTime || ''} onChange={e => setForm({ ...form, postTime: e.target.value })} className="mt-1" />
               </div>
             </div>
           </div>
