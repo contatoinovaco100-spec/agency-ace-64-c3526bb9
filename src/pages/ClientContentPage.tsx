@@ -301,6 +301,8 @@ export default function ClientContentPage() {
   const pendingTasks = tasks.filter(t => {
     if (taskId && t.id === taskId) return true;
     
+    // Tarefas marcadas como "Concluído" são arquivadas internamente e não aparecem para o cliente
+    if (t.status === 'Concluído') return false;
     if (t.status === 'Postado') return false;
     const taskDate = t.scheduled_date || t.due_date;
     if (!taskDate) return true;
@@ -311,6 +313,7 @@ export default function ClientContentPage() {
     return true;
   });
   const pastDueTasks = tasks.filter(t => {
+    if (t.status === 'Concluído') return false;
     if (t.status === 'Postado') return false;
     const taskDate = t.scheduled_date || t.due_date;
     if (!taskDate) return false;
@@ -319,8 +322,8 @@ export default function ClientContentPage() {
     today.setHours(0, 0, 0, 0);
     return date < today && isInternal;
   });
-  const postedTasks = tasks.filter(t => t.status === 'Postado');
-  const displayedTasks = showPosted ? tasks : [...pendingTasks, ...(isInternal && showPastDue ? pastDueTasks : [])];
+  const postedTasks = tasks.filter(t => t.status === 'Postado' && t.status !== 'Concluído');
+  const displayedTasks = showPosted ? tasks.filter(t => t.status !== 'Concluído') : [...pendingTasks, ...(isInternal && showPastDue ? pastDueTasks : [])];
 
   return (
     <div className="min-h-screen bg-background">
