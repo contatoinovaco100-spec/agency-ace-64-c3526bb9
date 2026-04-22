@@ -295,6 +295,46 @@ function KanbanColumn({
 }
 
 // ── Finalizado / Concluído Drop Zone + Client Folders ─────
+function ArchiveDraggableItem({ task, onClick }: { task: Task; onClick: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
+  const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerDownPos.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (pointerDownPos.current) {
+      const dx = Math.abs(e.clientX - pointerDownPos.current.x);
+      const dy = Math.abs(e.clientY - pointerDownPos.current.y);
+      if (dx < 5 && dy < 5) onClick();
+    }
+    pointerDownPos.current = null;
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      onPointerDown={(e) => {
+        handlePointerDown(e);
+        listeners?.onPointerDown?.(e as any);
+      }}
+      onClick={handleClick}
+      className={cn(
+        'flex items-center gap-2 rounded px-2 py-1.5 cursor-grab hover:bg-secondary/30 transition-colors active:cursor-grabbing',
+        isDragging && 'opacity-40'
+      )}
+    >
+      <div className={cn('h-1.5 w-1.5 rounded-full', PRIORITY_COLORS[task.priority]?.replace('border-l-', 'bg-') || 'bg-muted')} />
+      <span className="text-xs text-foreground truncate">{task.videoName || task.title || 'Sem título'}</span>
+    </div>
+  );
+}
+
 function ArchiveDropZone({
   id,
   label,
@@ -370,14 +410,7 @@ function ArchiveDropZone({
                 {isOpen && (
                   <div className="border-t border-border p-2 space-y-1.5">
                     {clientTasks.map(t => (
-                      <div
-                        key={t.id}
-                        onClick={() => onCardClick(t)}
-                        className="flex items-center gap-2 rounded px-2 py-1.5 cursor-pointer hover:bg-secondary/30 transition-colors"
-                      >
-                        <div className={cn('h-1.5 w-1.5 rounded-full', PRIORITY_COLORS[t.priority]?.replace('border-l-', 'bg-') || 'bg-muted')} />
-                        <span className="text-xs text-foreground truncate">{t.videoName || t.title || 'Sem título'}</span>
-                      </div>
+                      <ArchiveDraggableItem key={t.id} task={t} onClick={() => onCardClick(t)} />
                     ))}
                   </div>
                 )}
