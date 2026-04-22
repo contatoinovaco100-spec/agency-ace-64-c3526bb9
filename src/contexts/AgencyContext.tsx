@@ -83,6 +83,7 @@ function rowToTask(row: any): Task {
     strategicNotes: row.strategic_notes || '', recordingNotes: row.recording_notes || '',
     editorComments: row.editor_comments || '', currentStageOwner: row.current_stage_owner || '',
     copywriter: row.copywriter || '', director: row.director || '', videomaker: row.videomaker || '',
+    videoUrl: row.video_url || '',
   };
 }
 
@@ -176,6 +177,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     recording_notes: t.recordingNotes, editor_comments: t.editorComments,
     current_stage_owner: t.currentStageOwner, copywriter: t.copywriter,
     director: t.director, videomaker: t.videomaker,
+    video_url: t.videoUrl || null,
   });
 
   const addClient = async (c: Client) => { await supabase.from('clients').insert(clientToRow(c)); await fetchAll(); };
