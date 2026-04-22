@@ -1,22 +1,28 @@
-app = "inova-whatsapp"
-primary_region = "gru"
+# fly.toml app configuration file generated for inova-whatsapp on 2026-04-21T23:28:32-03:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'inova-whatsapp'
+primary_region = 'gru'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [processes]
-  app = "./dist/index.js"
+  app = './dist/index.js'
 
 [[services]]
-  http_checks = []
+  protocol = 'tcp'
   internal_port = 3001
-  processes = ["app"]
-  protocol = "tcp"
+  processes = ['app']
 
   [[services.ports]]
-    handlers = ["http"]
     port = 3001
+    handlers = ['http']
 
-[vm]
-  size = "shared-cpu-1x"
-  memory = "512mb"
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '256mb'
+  cpus = 1
+  memory_mb = 256

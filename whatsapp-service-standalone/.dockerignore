@@ -1,5 +1,6 @@
 node_modules
 .git
+.gitignore
 *.log
 .DS_Store
 baileys_store.json
@@ -7,3 +8,7 @@ auth_info_baileys
 dist
 *.ts
 !*.d.ts
+deploy.sh
+README.md
+.env
+package-lock.json
