@@ -2,11 +2,10 @@ app = "inova-whatsapp"
 primary_region = "gru"
 
 [build]
-  builder = "paketobuildpacks/builder:nodejs20"
+  dockerfile = "Dockerfile"
 
-[[mounts]]
-  source = "whatsapp_data"
-  destination = "/app/auth_info_baileys"
+[processes]
+  app = "./dist/index.js"
 
 [[services]]
   http_checks = []
@@ -21,8 +20,3 @@ primary_region = "gru"
 [vm]
   size = "shared-cpu-1x"
   memory = "512mb"
-
-[http_service]
-  auto_stop_machines = false
-  auto_start_machines = false
-  min_machines = 1
