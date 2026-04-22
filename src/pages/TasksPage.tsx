@@ -35,6 +35,7 @@ const KANBAN_COLUMNS = [
 const COLUMNS = [
   ...KANBAN_COLUMNS,
   'Finalizado',
+  'Concluído',
 ] as const;
 
 type ColumnId = (typeof COLUMNS)[number];
@@ -47,6 +48,7 @@ const COLUMN_COLORS: Record<string, string> = {
   'Em Edição': 'bg-accent border-accent-foreground/20',
   'Revisão': 'bg-destructive/8 border-destructive/30',
   'Finalizado': 'bg-success/8 border-success/30',
+  'Concluído': 'bg-muted/40 border-muted-foreground/30',
 };
 
 const COLUMN_DOT: Record<string, string> = {
@@ -57,6 +59,7 @@ const COLUMN_DOT: Record<string, string> = {
   'Em Edição': 'bg-accent-foreground',
   'Revisão': 'bg-destructive',
   'Finalizado': 'bg-success',
+  'Concluído': 'bg-muted-foreground',
 };
 
 const CARD_STAGE_COLOR: Record<string, string> = {
@@ -67,6 +70,7 @@ const CARD_STAGE_COLOR: Record<string, string> = {
   'Em Edição': 'border-l-accent-foreground',
   'Revisão': 'border-l-destructive',
   'Finalizado': 'border-l-success',
+  'Concluído': 'border-l-muted-foreground',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
