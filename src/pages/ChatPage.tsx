@@ -48,10 +48,12 @@ export default function ChatPage() {
   useEffect(() => {
     if (!user) return;
     (async () => {
+      // Mostrar apenas funcionários criados via /funcionarios (têm username preenchido)
       const { data: profs } = await supabase
         .from('profiles')
         .select('id, full_name, username, job_title, avatar_url, is_active')
         .eq('is_active', true)
+        .not('username', 'is', null)
         .order('full_name');
       const list = (profs || []) as Employee[];
       setEmployees(list);
