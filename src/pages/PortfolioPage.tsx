@@ -65,7 +65,9 @@ export default function PortfolioPage() {
   };
 
   const getVideoEmbed = (url: string) => {
-    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+    if (!url) return null;
+    // Cobre youtube.com/watch?v=, youtu.be/, youtube.com/shorts/ e youtube.com/embed/
+    const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
     const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
     if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
