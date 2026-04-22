@@ -287,18 +287,18 @@ REGRAS DA MENSAGEM:
 
 Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-copywriter', {
+        body: {
+          systemPrompt: 'Você é um copywriter especialista em prospecção via WhatsApp. Retorne APENAS o texto da mensagem em texto puro (sem JSON, sem markdown, sem aspas).',
+          userMessage: prompt,
+        },
       });
 
-      if (!response.ok) throw new Error('Erro ao gerar mensagem');
+      if (fnError) throw new Error(fnError.message || 'Erro ao gerar mensagem');
+      if (fnData?.error) throw new Error(fnData.error);
 
-      const data = await response.json();
-      const message = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      const raw = fnData?.result;
+      const message = (typeof raw === 'string' ? raw : JSON.stringify(raw)).trim();
 
       if (!message) throw new Error('Resposta vazia da IA');
 
