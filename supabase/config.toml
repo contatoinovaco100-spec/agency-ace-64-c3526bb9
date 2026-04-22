@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.wa-config-test]
 verify_jwt = false
+
+[functions.wa-baileys-send]
+verify_jwt = false
