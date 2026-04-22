@@ -378,15 +378,15 @@ export default function TasksPage() {
     today.setHours(0, 0, 0, 0);
 
     return tasks.filter(t => {
-      // Oculta tarefas Finalizadas cuja data de postagem (ou prazo) já passou
+      // Oculta tarefas Finalizadas cuja data (post/prazo) já passou
       if (t.status === 'Finalizado') {
-        const refDateStr = (t as any).post_date || t.dueDate;
+        const refDateStr = (t as any).post_date || (t as any).postDate || t.dueDate;
         if (refDateStr) {
           const ref = new Date(refDateStr);
           ref.setHours(0, 0, 0, 0);
           if (ref < today) return false;
         } else {
-          // Finalizado sem data de referência → também esconde (já entregue)
+          // Finalizado sem data → considera entregue e oculta
           return false;
         }
       }
