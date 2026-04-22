@@ -106,6 +106,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         copywriter: form.copywriter || '',
         director: form.director || '',
         videomaker: form.videomaker || '',
+        videoUrl: form.videoUrl || '',
       };
       await onSave(data);
     } catch (err) {
@@ -315,6 +316,20 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
             <div>
               <Label className="text-xs text-muted-foreground">Observações</Label>
               <Textarea rows={2} value={form.observations || ''} onChange={e => setForm({ ...form, observations: e.target.value })} placeholder="Notas adicionais..." className="mt-1" />
+            </div>
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <Label className="text-[10px] sm:text-xs text-primary uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                <Link className="h-3 w-3" /> Link do vídeo finalizado (Drive / YouTube / Vimeo)
+              </Label>
+              <Input
+                value={form.videoUrl || ''}
+                onChange={e => setForm({ ...form, videoUrl: e.target.value })}
+                placeholder="https://drive.google.com/file/d/..."
+                className="mt-2"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                Cole aqui o link quando o vídeo estiver pronto. Aparecerá automaticamente na Galeria de Entregas.
+              </p>
             </div>
           </div>
 
