@@ -35,6 +35,7 @@ const KANBAN_COLUMNS = [
 const COLUMNS = [
   ...KANBAN_COLUMNS,
   'Finalizado',
+  'Concluído',
 ] as const;
 
 type ColumnId = (typeof COLUMNS)[number];
@@ -47,6 +48,7 @@ const COLUMN_COLORS: Record<string, string> = {
   'Em Edição': 'bg-accent border-accent-foreground/20',
   'Revisão': 'bg-destructive/8 border-destructive/30',
   'Finalizado': 'bg-success/8 border-success/30',
+  'Concluído': 'bg-muted/40 border-muted-foreground/30',
 };
 
 const COLUMN_DOT: Record<string, string> = {
@@ -57,6 +59,7 @@ const COLUMN_DOT: Record<string, string> = {
   'Em Edição': 'bg-accent-foreground',
   'Revisão': 'bg-destructive',
   'Finalizado': 'bg-success',
+  'Concluído': 'bg-muted-foreground',
 };
 
 const CARD_STAGE_COLOR: Record<string, string> = {
@@ -67,6 +70,7 @@ const CARD_STAGE_COLOR: Record<string, string> = {
   'Em Edição': 'border-l-accent-foreground',
   'Revisão': 'border-l-destructive',
   'Finalizado': 'border-l-success',
+  'Concluído': 'border-l-muted-foreground',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -91,7 +95,7 @@ function mapStatusToColumn(status: string): ColumnId {
     'Em gravação': 'Em Gravação',
     'Em edição': 'Em Edição',
     'Revisão': 'Revisão',
-    'Concluído': 'Finalizado',
+    'Concluído': 'Concluído',
     'Finalizado': 'Finalizado',
     'Ideias / Backlog': 'Ideias / Backlog',
     'Em Copy': 'Em Copy',
@@ -213,14 +217,14 @@ function DraggableCard({ task, onClick, clientName, column, onAdvance }: { task:
 }
 
 function getNextStageLabel(column: string): string | null {
-  const order = ['Ideias / Backlog', 'Em Copy', 'Em Direção', 'Em Gravação', 'Em Edição', 'Revisão', 'Finalizado'];
+  const order = ['Ideias / Backlog', 'Em Copy', 'Em Direção', 'Em Gravação', 'Em Edição', 'Revisão', 'Finalizado', 'Concluído'];
   const idx = order.indexOf(column);
   if (idx < 0 || idx >= order.length - 1) return null;
   return `→ ${order[idx + 1]}`;
 }
 
 function getNextStage(column: string): string | null {
-  const order = ['Ideias / Backlog', 'Em Copy', 'Em Direção', 'Em Gravação', 'Em Edição', 'Revisão', 'Finalizado'];
+  const order = ['Ideias / Backlog', 'Em Copy', 'Em Direção', 'Em Gravação', 'Em Edição', 'Revisão', 'Finalizado', 'Concluído'];
   const idx = order.indexOf(column);
   if (idx < 0 || idx >= order.length - 1) return null;
   return order[idx + 1];
@@ -394,24 +398,7 @@ export default function TasksPage() {
   );
 
   const filteredTasks = useMemo(() => {
-    // "Hoje" no fuso local, zerado para comparar apenas a data
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     return tasks.filter(t => {
-      // Oculta tarefas Finalizadas cuja data (post/prazo) já passou
-      if (t.status === 'Finalizado') {
-        const refDateStr = (t as any).post_date || (t as any).postDate || t.dueDate;
-        if (refDateStr) {
-          const ref = new Date(refDateStr);
-          ref.setHours(0, 0, 0, 0);
-          if (ref < today) return false;
-        } else {
-          // Finalizado sem data → considera entregue e oculta
-          return false;
-        }
-      }
-
       // Client filter (main)
       if (selectedClient !== 'all' && t.clientId !== selectedClient) return false;
       if (search) {
