@@ -179,6 +179,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     current_stage_owner: t.currentStageOwner, copywriter: t.copywriter,
     director: t.director, videomaker: t.videomaker,
     video_url: t.videoUrl || null,
+    post_date: t.postDate || null, post_time: t.postTime || null,
   });
 
   const addClient = async (c: Client) => { await supabase.from('clients').insert(clientToRow(c)); await fetchAll(); };
