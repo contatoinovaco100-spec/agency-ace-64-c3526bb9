@@ -237,9 +237,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     await updateLead({ ...lead, stage: 'Cliente fechado' });
   };
 
-  const addTeamMember = async (m: TeamMember) => { await supabase.from('team_members').insert({ id: m.id, name: m.name, role: m.role, email: m.email, permissions: m.permissions, avatar: m.avatar || null }); await fetchAll(); };
-  const updateTeamMember = async (m: TeamMember) => { await supabase.from('team_members').update({ name: m.name, role: m.role, email: m.email, permissions: m.permissions, avatar: m.avatar || null }).eq('id', m.id); await fetchAll(); };
-  const deleteTeamMember = async (id: string) => { await supabase.from('team_members').delete().eq('id', id); await fetchAll(); };
+  // Team members are now derived from `profiles` (see fetchAll). Manage employees in /funcionarios.
 
   const addEvent = async (e: CalendarEvent) => { await supabase.from('calendar_events').insert({ id: e.id, title: e.title, date: e.date, type: e.type, client_id: e.clientId || null }); await fetchAll(); };
   const deleteEvent = async (id: string) => { await supabase.from('calendar_events').delete().eq('id', id); await fetchAll(); };
