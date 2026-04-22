@@ -373,7 +373,24 @@ export default function TasksPage() {
   );
 
   const filteredTasks = useMemo(() => {
+    // "Hoje" no fuso local, zerado para comparar apenas a data
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     return tasks.filter(t => {
+      // Oculta tarefas Finalizadas cuja data (post/prazo) já passou
+      if (t.status === 'Finalizado') {
+        const refDateStr = (t as any).post_date || (t as any).postDate || t.dueDate;
+        if (refDateStr) {
+          const ref = new Date(refDateStr);
+          ref.setHours(0, 0, 0, 0);
+          if (ref < today) return false;
+        } else {
+          // Finalizado sem data → considera entregue e oculta
+          return false;
+        }
+      }
+
       // Client filter (main)
       if (selectedClient !== 'all' && t.clientId !== selectedClient) return false;
       if (search) {
