@@ -1,101 +1,107 @@
 
 
-## Plano: Sistema de Funcionários com E-mail Fictício e Permissões Auto-Atualizáveis
+## Plano: WhatsApp Cloud API + CRM (defaults aplicados)
 
-### O que será construído
+### Decisões automáticas que tomei pra você
 
-**1. Cadastro de funcionário sem e-mail real** (`/funcionarios`)
-- Admin define apenas: nome, cargo, "usuário" (ex: `marcos`) e senha
-- Sistema gera automaticamente o e-mail interno: `{usuario}@inova.mov`
-- Sem envio de e-mail de confirmação (auto-confirmado via service_role)
-- Funcionário faz login normalmente com `marcos@inova.mov` + senha
-- Admin pode resetar senha a qualquer momento (define nova senha direto, sem link por e-mail)
+- **Phone Number ID**: já capturei do print → `1166311709888295`
+- **Token**: começo com seu token atual (24h) só pra validar a integração. Crio tela `/whatsapp/config` pra você colar o token permanente quando gerar o System User
+- **WABA ID**: deixo campo na tela `/whatsapp/config` — você cola quando achar (te explico onde no final)
+- **Número**: assumo que está verificado e pronto
 
-**2. Registry centralizado de páginas** (`src/config/app-pages.ts`)
-- Arquivo único com a lista de TODAS as páginas do sistema (path, label, ícone, categoria, se é admin-only)
-- **Toda página nova criada na plataforma só precisa ser adicionada nesse arquivo** — automaticamente aparece no menu lateral, no controle de permissões e na proteção de rotas
-- Categorias: Comercial, Operacional, Produção, Financeiro, Administração
+### O que vou construir
 
-**3. Permissões granulares por página**
-- Nova tabela `user_page_access` (user_id + page_path) substitui o controle antigo por módulo
-- Página `/permissoes` reformulada:
-  - Lista todos os funcionários com avatar e usuário
-  - Para cada um, mostra **todas as páginas do registry agrupadas por categoria** com toggles
-  - Botão "Liberar tudo" / "Bloquear tudo" por funcionário
-  - Botão "Copiar permissões de outro funcionário"
-  - Aviso visual quando uma página nova é detectada no registry mas ninguém tem acesso ainda
+**1. Tela de configuração** — `/whatsapp/config` (só admin)
+- Campos: Phone Number ID (já preenchido `1166311709888295`), WABA ID, Access Token, Verify Token (gero automático: `inova-wa-verify-2026`)
+- Tudo salvo como **secrets criptografados** no backend, nunca exposto no frontend
+- Botão **"Testar conexão"** — faz uma chamada real pra Meta API e mostra ✓ Conectado / ✗ Erro com mensagem clara
+- Mostra a URL exata do webhook pra você colar no Meta
 
-**4. Painel "Minhas Tarefas"** (`/minhas-tarefas`)
-- Página padrão para funcionários ao logar (admin continua indo para `/`)
-- Mostra apenas tarefas onde o funcionário é responsável (assignee, copywriter, editor, director, videomaker, script_writer batem com seu nome)
-- Visão Kanban + Lista, com filtros (prioridade, prazo, cliente)
-- Resumo no topo: pendentes, atrasadas, para hoje
-- Funcionário pode mover tarefa entre colunas e comentar
+**2. Inbox de conversas** — `/whatsapp`
+- Layout estilo WhatsApp Web: lista de conversas (esquerda) + chat (centro) + painel do lead/cliente vinculado (direita)
+- Mensagens em **tempo real** via Supabase Realtime (chega na hora)
+- Suporte a: texto, imagem, áudio, vídeo, documento, emoji
+- Confirmações ✓ enviado, ✓✓ entregue, ✓✓ azul lido
+- Badge de não lidas, busca por nome/telefone
 
-**5. Menu lateral dinâmico**
-- Lê o registry de páginas + permissões do usuário
-- Mostra somente o que ele pode acessar, agrupado por categoria
-- Admin sempre vê tudo
+**3. Vínculo automático com CRM**
+- Mensagem chega → busca telefone em `leads` e `clients` → vincula sozinho
+- Se não achar → botão "Criar lead" no topo da conversa abre modal pré-preenchido
+- Card do lead/cliente ganha aba "Conversas WhatsApp" com histórico
 
-### Estrutura técnica
+**4. Disparo de mensagens**
+- Botão **"Enviar WhatsApp"** em todo card do CRM, cliente e tarefa (substitui os links wa.me atuais)
+- **Templates HSM** pré-aprovados pelo Meta (necessários pra abrir conversa fora da janela de 24h)
+- Modal de **disparo em massa**: seleciona leads do funil + escolhe template + variáveis `{{nome}}`, `{{empresa}}`
 
-**Banco de dados (migração):**
-- Nova tabela `user_page_access (user_id uuid, page_path text, unique(user_id, page_path))` com RLS: admin gerencia, usuário lê o próprio
-- Coluna `username` em `profiles` (string única, ex: "marcos")
-- Coluna `job_title` em `profiles`
-- Coluna `is_active` em `profiles` (boolean, default true)
-- Função `has_page_access(_user_id uuid, _path text)` security definer
+**5. Notificações**
+- Sino do CRM pisca em mensagem nova
+- Badge de não lidas no menu lateral
+- `/whatsapp` adicionado ao registry → aparece automático nas permissões
 
-**Edge Functions (usam service_role):**
-- `create-employee` — cria usuário no auth com `email_confirm: true`, gera e-mail `{username}@inova.mov`, cria profile, popula `user_page_access` com as páginas marcadas
-- `reset-employee-password` — admin define nova senha diretamente
-- `delete-employee` — desativa (`is_active = false`) sem apagar histórico
-
-**Frontend:**
-- `src/config/app-pages.ts` — registry central (fonte única de verdade)
-- `src/pages/EmployeesPage.tsx` (nova) — gestão de funcionários
-- `src/pages/PermissionsPage.tsx` (reformulada) — toggles por página agrupados por categoria
-- `src/pages/MyTasksPage.tsx` (nova) — painel do funcionário
-- `src/hooks/useUserRole.ts` — adicionar `usePageAccess()` lendo `user_page_access`
-- `src/components/ProtectedRoute.tsx` — checa `hasPageAccess(pathname)` em vez de módulo
-- `src/components/AppLayout.tsx` (sidebar) — menu construído a partir do registry filtrado por permissões
-- `src/App.tsx` — pós-login: admin → `/`, funcionário → `/minhas-tarefas`
-
-### Fluxo de uso
+### Arquitetura
 
 ```text
-ADMIN cadastra funcionário              FUNCIONÁRIO
-├─ Nome: Marcos Silva                    │
-├─ Cargo: Editor                         │
-├─ Usuário: marcos                       │
-│  → e-mail gerado: marcos@inova.mov     │
-├─ Senha: ••••••••                       │
-└─ Marca páginas liberadas ──────────────┼─→ login com marcos@inova.mov
-                                         │
-ADMIN cria nova página /relatorios-x     ├─ vai para /minhas-tarefas
-└─ Adiciona em app-pages.ts              │  (vê só suas tarefas)
-   → aparece em /permissoes              │
-   com aviso "nova página"               │  Menu lateral mostra
-                                         │  apenas páginas liberadas
+SEU CELULAR (WhatsApp Business +55 24 98157-6858)
+         │
+         ▼
+    Meta Cloud API
+         │
+         ├── envia ◄── Edge Function "wa-send" ◄── CRM (botão "Enviar")
+         │
+         └── recebe ──► Edge Function "wa-webhook" ──► Supabase
+                                                          │
+                                                    Realtime
+                                                          │
+                                                          ▼
+                                                       CRM (inbox)
 ```
 
-### Decisões importantes
+### Banco de dados (3 tabelas novas)
 
-- **E-mail fictício**: domínio fixo `@inova.mov` (configurável no código). Nenhum e-mail real é enviado.
-- **Auto-confirmação**: service_role cria usuários já confirmados (sem link de verificação).
-- **Reset de senha**: admin define nova senha direto na interface (não há fluxo "esqueci minha senha" para funcionários, já que não têm e-mail real).
-- **Páginas sempre liberadas**: Dashboard, Calendário, Notificações, Chat (configurável no registry com flag `alwaysAllowed`).
-- **Páginas só admin** (flag `adminOnly` no registry): Funcionários, Permissões, Contratos, Despesas, Relatórios.
-- **Atualizar quando criar página nova**: basta adicionar uma linha em `src/config/app-pages.ts` — o restante do sistema (menu, permissões, proteção de rotas) lê dali automaticamente.
-- **Migração dos dados atuais**: a página `/equipe` (puramente visual) é mantida temporariamente. Acessos por módulo existentes serão convertidos em acessos por página correspondentes.
+- **`wa_conversations`** — id, contact_phone, contact_name, last_message, last_message_at, unread_count, lead_id?, client_id?
+- **`wa_messages`** — id, conversation_id, wa_message_id, direction (in/out), type (text/image/audio/video/document/template), content, media_url, status (sent/delivered/read/failed), created_at
+- **`wa_templates`** — id, name, language, category, body_text, variables (cache dos templates aprovados)
+
+Realtime habilitado nas duas primeiras. RLS: admin + quem tem `/whatsapp` liberado.
+
+### Edge Functions (4)
+
+- **`wa-config-test`** — valida token+IDs com a Meta API e retorna status
+- **`wa-send`** — envia mensagem (texto livre dentro de 24h ou template HSM fora)
+- **`wa-webhook`** — endpoint público que o Meta chama; valida `verify_token`, salva mensagem, dispara realtime
+- **`wa-templates-sync`** — busca templates aprovados do Meta e cacheia local
+
+### Secrets que vou pedir pra adicionar
+
+- `META_WA_TOKEN` (você cola o token de 24h agora pra testar)
+- `META_WA_PHONE_ID` = `1166311709888295` (já tenho)
+- `META_WA_BUSINESS_ID` (você cola depois quando achar o WABA ID)
+- `META_WA_VERIFY_TOKEN` = `inova-wa-verify-2026` (eu gero)
+
+### O que VOCÊ faz no Meta (te guio passo a passo)
+
+1. **Achar o WABA ID** (3 cliques): Meta Business Suite → Configurações → Contas do WhatsApp → copiar o ID
+2. **Configurar webhook** (depois que eu deployar): colar a URL `https://cdzzewovtxotkghzeafr.supabase.co/functions/v1/wa-webhook` + verify token `inova-wa-verify-2026` na aba "Configuração" → "Webhooks" → assinar evento `messages`
+3. **Trocar token** (depois, quando quiser produção): Business Settings → System Users → Create → Generate Token (permanente)
+
+### Limitações importantes (transparência)
+
+- **Janela de 24h**: texto livre só se cliente respondeu nas últimas 24h. Fora disso, **só templates aprovados** pelo Meta (aprovação leva ~1h, é grátis)
+- **Templates iniciais**: vou deixar 3 templates de exemplo pra você submeter pro Meta aprovar ("primeira abordagem", "follow-up proposta", "lembrete reunião")
+- **Custo**: grátis até 1.000 conversas/mês, depois ~R$ 0,40/conversa
+- **Sem QR Code**: conexão é via token oficial, mais estável
 
 ### Ordem de implementação
 
-1. Migração do banco (`user_page_access`, colunas em `profiles`, função `has_page_access`)
-2. Registry `src/config/app-pages.ts`
-3. Edge Functions (`create-employee`, `reset-employee-password`, `delete-employee`)
-4. Página `/funcionarios` (admin)
-5. Página `/permissoes` reformulada (toggles por página + auto-detecção de páginas novas)
-6. Página `/minhas-tarefas` (funcionário)
-7. Atualizar `ProtectedRoute`, sidebar e redirecionamento pós-login
+1. Migração do banco (3 tabelas + RLS + realtime)
+2. Adicionar 4 secrets no Supabase
+3. Edge Functions (`wa-config-test`, `wa-send`, `wa-webhook`, `wa-templates-sync`)
+4. Página `/whatsapp/config` com teste de conexão
+5. Página `/whatsapp` (inbox completo + realtime)
+6. Substituir botões wa.me por "Enviar WhatsApp" nativo no CRM/clientes/tarefas
+7. Modal de disparo em massa com templates
+8. Notificações no sino e menu lateral
+9. Adicionar `/whatsapp` no registry `src/config/app-pages.ts`
+10. Te passo print do caminho exato pra colar webhook no Meta
 
