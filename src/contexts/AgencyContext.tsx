@@ -273,7 +273,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
       addClient, updateClient, deleteClient,
       addTask, updateTask, deleteTask, advanceVideoStage,
       addLead, updateLead, deleteLead, convertLeadToClient,
-      addTeamMember, updateTeamMember, deleteTeamMember,
+      addTeamMember: undefined as any, updateTeamMember: undefined as any, deleteTeamMember: undefined as any,
       addEvent, deleteEvent,
       getChecklist, upsertChecklistItem, deleteChecklistItem,
       getComments, addComment, getAttachments, addAttachment, deleteAttachment,
