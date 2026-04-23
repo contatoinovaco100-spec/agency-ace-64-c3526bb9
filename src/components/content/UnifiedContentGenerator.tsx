@@ -8,6 +8,7 @@ import { Plus, X, FileDown, Edit3, Sparkles, Wand2, Calendar, FileText, Loader2,
 import { Badge } from '@/components/ui/badge';
 import { useAgency } from '@/contexts/AgencyContext';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // Formata texto com quebras de linha e destaca [INSTRUÇÕES] de gravação
 function FormattedText({ text, className }: { text: string; className?: string }) {
