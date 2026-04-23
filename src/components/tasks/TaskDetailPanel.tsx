@@ -171,7 +171,11 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
     setShowLinkInput(false);
   };
 
-  const renderMentions = (text: string) => text.replace(/@(\w+)/g, '<span class="text-primary font-semibold">@$1</span>');
+  const renderMentions = (text: string) => {
+    // Strip every HTML tag/attribute first to prevent stored XSS, then re-apply mention styling.
+    const escaped = DOMPurify.sanitize(text, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    return escaped.replace(/@(\w+)/g, '<span class="text-primary font-semibold">@$1</span>');
+  };
 
   return (
     <div className="flex flex-col h-full w-full">

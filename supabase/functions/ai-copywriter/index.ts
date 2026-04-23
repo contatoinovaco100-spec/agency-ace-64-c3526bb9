@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,12 +12,51 @@ serve(async (req) => {
   }
 
   try {
-    const { systemPrompt, userMessage, model = "google/gemini-2.5-flash" } = await req.json();
+    // --- Auth guard: require a valid Supabase JWT ---
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { systemPrompt, userMessage, model = "google/gemini-2.5-flash", imageBase64, imageMimeType } = await req.json();
+
+    if (!userMessage || typeof userMessage !== 'string') {
+      return new Response(JSON.stringify({ error: "userMessage é obrigatório." }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY não configurada.");
     }
+
+    // Build user content (supports optional image for vision)
+    const userContent: unknown = imageBase64 && imageMimeType
+      ? [
+          { type: "text", text: userMessage },
+          { type: "image_url", image_url: { url: `data:${imageMimeType};base64,${imageBase64}` } },
+        ]
+      : userMessage;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -28,7 +68,7 @@ serve(async (req) => {
         model,
         messages: [
           { role: "system", content: systemPrompt || "Você é um assistente útil. Responda sempre em JSON válido." },
-          { role: "user", content: userMessage }
+          { role: "user", content: userContent }
         ],
       }),
     });
