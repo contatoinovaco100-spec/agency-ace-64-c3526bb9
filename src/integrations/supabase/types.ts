@@ -813,6 +813,36 @@ export type Database = {
         }
         Relationships: []
       }
+      instagram_posts: {
+        Row: {
+          created_at: string
+          id: string
+          post_result: string
+          post_url: string
+          sort_order: number
+          strategic_description: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_result?: string
+          post_url: string
+          sort_order?: number
+          strategic_description?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_result?: string
+          post_url?: string
+          sort_order?: number
+          strategic_description?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           assignee: string
