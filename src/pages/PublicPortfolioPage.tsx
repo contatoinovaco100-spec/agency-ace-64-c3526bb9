@@ -348,7 +348,7 @@ export default function PublicPortfolioPage() {
             animate={heroInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
           >
-            Somos uma produtora audiovisual que transforma ideias em narrativas que conectam marcas a pessoas — com estética, estratégia e alma.
+            Somos uma produtora audiovisual que transforma ideias em narrativas que conectam marcas a pessoas com estética, estratégia e alma.
           </motion.p>
 
           <motion.div
