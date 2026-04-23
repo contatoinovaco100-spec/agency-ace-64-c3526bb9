@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAgency } from '@/contexts/AgencyContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, ExternalLink, Trash2, Film, Copy, Link } from 'lucide-react';
+import { Plus, ExternalLink, Trash2, Film, Copy, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PortfolioProject {
@@ -26,15 +26,16 @@ interface PortfolioProject {
 
 const CATEGORIES = ['Institucional', 'Publicitário', 'Social Media', 'Documentário', 'Evento', 'Motion Graphics', 'Outro'];
 
+const emptyForm = { title: '', description: '', client_id: '', video_url: '', thumbnail_url: '', category: '', completed_at: '' };
+
 export default function PortfolioPage() {
   const { clients } = useAgency();
   const [projects, setProjects] = useState<PortfolioProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [filterCat, setFilterCat] = useState('all');
-  const [form, setForm] = useState({
-    title: '', description: '', client_id: '', video_url: '', thumbnail_url: '', category: '', completed_at: '',
-  });
+  const [form, setForm] = useState(emptyForm);
 
   const fetchProjects = async () => {
     const { data } = await supabase.from('portfolio_projects').select('*').order('created_at', { ascending: false });
@@ -44,17 +45,47 @@ export default function PortfolioPage() {
 
   useEffect(() => { fetchProjects(); }, []);
 
+  const openNew = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setOpen(true);
+  };
+
+  const openEdit = (p: PortfolioProject) => {
+    setEditingId(p.id);
+    setForm({
+      title: p.title || '',
+      description: p.description || '',
+      client_id: p.client_id || '',
+      video_url: p.video_url || '',
+      thumbnail_url: p.thumbnail_url || '',
+      category: p.category || '',
+      completed_at: p.completed_at ? p.completed_at.slice(0, 10) : '',
+    });
+    setOpen(true);
+  };
+
   const handleSave = async () => {
     if (!form.title) { toast.error('Título é obrigatório'); return; }
-    await supabase.from('portfolio_projects').insert({
-      title: form.title, description: form.description,
-      client_id: form.client_id || null, video_url: form.video_url,
-      thumbnail_url: form.thumbnail_url, category: form.category,
+    const payload = {
+      title: form.title,
+      description: form.description,
+      client_id: form.client_id || null,
+      video_url: form.video_url,
+      thumbnail_url: form.thumbnail_url,
+      category: form.category,
       completed_at: form.completed_at || null,
-    } as any);
-    setForm({ title: '', description: '', client_id: '', video_url: '', thumbnail_url: '', category: '', completed_at: '' });
+    };
+    if (editingId) {
+      await supabase.from('portfolio_projects').update(payload as any).eq('id', editingId);
+      toast.success('Projeto atualizado');
+    } else {
+      await supabase.from('portfolio_projects').insert(payload as any);
+      toast.success('Projeto adicionado ao portfólio');
+    }
+    setForm(emptyForm);
+    setEditingId(null);
     setOpen(false);
-    toast.success('Projeto adicionado ao portfólio');
     fetchProjects();
   };
 
@@ -66,7 +97,6 @@ export default function PortfolioPage() {
 
   const getVideoEmbed = (url: string) => {
     if (!url) return null;
-    // Cobre youtube.com/watch?v=, youtu.be/, youtube.com/shorts/ e youtube.com/embed/
     const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
     const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
@@ -81,7 +111,7 @@ export default function PortfolioPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Portfólio</h1>
-          <p className="text-sm text-muted-foreground">Galeria de projetos finalizados — atualiza em tempo real na LP</p>
+          <p className="text-sm text-muted-foreground">Galeria de projetos finalizados, atualiza em tempo real na LP</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -97,33 +127,33 @@ export default function PortfolioPage() {
           <a href="/vitrine" target="_blank" rel="noreferrer">
             <Button variant="outline"><ExternalLink className="mr-2 h-4 w-4" />Ver LP</Button>
           </a>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setForm(emptyForm); } }}>
             <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" />Novo Projeto</Button>
+              <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo Projeto</Button>
             </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Adicionar Projeto</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div><Label>Título *</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
-              <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-              <div><Label>URL do Vídeo (YouTube/Vimeo)</Label><Input value={form.video_url} onChange={e => setForm({ ...form, video_url: e.target.value })} placeholder="https://youtube.com/watch?v=..." /></div>
-              <div><Label>URL da Thumbnail</Label><Input value={form.thumbnail_url} onChange={e => setForm({ ...form, thumbnail_url: e.target.value })} /></div>
-              <div><Label>Categoria</Label>
-                <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                </Select>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>{editingId ? 'Editar Projeto' : 'Adicionar Projeto'}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div><Label>Título *</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
+                <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+                <div><Label>URL do Vídeo (YouTube/Vimeo)</Label><Input value={form.video_url} onChange={e => setForm({ ...form, video_url: e.target.value })} placeholder="https://youtube.com/watch?v=..." /></div>
+                <div><Label>URL da Thumbnail</Label><Input value={form.thumbnail_url} onChange={e => setForm({ ...form, thumbnail_url: e.target.value })} /></div>
+                <div><Label>Categoria</Label>
+                  <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Cliente</Label>
+                  <Select value={form.client_id} onValueChange={v => setForm({ ...form, client_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                    <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.companyName}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Data de Conclusão</Label><Input type="date" value={form.completed_at} onChange={e => setForm({ ...form, completed_at: e.target.value })} /></div>
+                <Button className="w-full" onClick={handleSave}>{editingId ? 'Salvar alterações' : 'Salvar'}</Button>
               </div>
-              <div><Label>Cliente</Label>
-                <Select value={form.client_id} onValueChange={v => setForm({ ...form, client_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                  <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.companyName}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div><Label>Data de Conclusão</Label><Input type="date" value={form.completed_at} onChange={e => setForm({ ...form, completed_at: e.target.value })} /></div>
-              <Button className="w-full" onClick={handleSave}>Salvar</Button>
-            </div>
-          </DialogContent>
+            </DialogContent>
           </Dialog>
         </div>
       </div>
@@ -155,14 +185,23 @@ export default function PortfolioPage() {
                   <div className="aspect-video bg-muted flex items-center justify-center"><Film className="h-10 w-10 text-muted-foreground" /></div>
                 )}
                 <CardContent className="p-4 space-y-2">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{p.title}</h3>
-                      {client && <p className="text-xs text-muted-foreground">{client.companyName}</p>}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-foreground truncate">{p.title}</h3>
+                      {client && <p className="text-xs text-muted-foreground truncate">{client.companyName}</p>}
                     </div>
-                    <div className="flex gap-1">
-                      {p.video_url && <a href={p.video_url} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" /></a>}
-                      <button onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" /></button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {p.video_url && (
+                        <a href={p.video_url} target="_blank" rel="noreferrer" title="Abrir vídeo">
+                          <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
+                        </a>
+                      )}
+                      <button onClick={() => openEdit(p)} title="Editar projeto" aria-label="Editar projeto">
+                        <Pencil className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
+                      </button>
+                      <button onClick={() => handleDelete(p.id)} title="Excluir projeto" aria-label="Excluir projeto">
+                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive transition-colors" />
+                      </button>
                     </div>
                   </div>
                   {p.description && <p className="text-sm text-muted-foreground line-clamp-2">{p.description}</p>}

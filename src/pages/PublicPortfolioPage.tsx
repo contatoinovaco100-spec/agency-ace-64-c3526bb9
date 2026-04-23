@@ -442,7 +442,7 @@ export default function PublicPortfolioPage() {
             <span className="text-[#bff720]">propósito</span> e estratégia.
           </h2>
           <p className="mt-6 text-lg text-white/45 max-w-xl leading-relaxed">
-            Da concepção à entrega final — produzimos conteúdo que comunica, emociona e gera resultado.
+            Da concepção à entrega final, produzimos conteúdo que comunica, emociona e gera resultado.
           </p>
         </motion.div>
 
@@ -530,7 +530,7 @@ export default function PublicPortfolioPage() {
             </h2>
           </div>
           <p className="text-white/45 max-w-sm md:text-right leading-relaxed">
-            Uma seleção dos nossos projetos mais recentes — produzidos com carinho do briefing à entrega.
+            Uma seleção dos nossos projetos mais recentes, produzidos com carinho do briefing à entrega.
           </p>
         </motion.div>
 
@@ -580,7 +580,7 @@ export default function PublicPortfolioPage() {
               <span className="text-[#bff720]">performam.</span>
             </h2>
             <p className="mt-6 text-white/45 max-w-xl mx-auto leading-relaxed">
-              Posts reais publicados nas redes dos nossos clientes — com dados públicos e contexto estratégico.
+              Posts reais publicados nas redes dos nossos clientes, com dados públicos e contexto estratégico.
             </p>
           </motion.div>
 
