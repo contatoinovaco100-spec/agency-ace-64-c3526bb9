@@ -87,6 +87,7 @@ function ProjectCard({ project, index, onClick }: { project: Project; index: num
 
 export default function PublicPortfolioPage() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [igPosts, setIgPosts] = useState<IGPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -100,13 +101,15 @@ export default function PublicPortfolioPage() {
   ];
 
   useEffect(() => {
-    supabase.from('portfolio_projects').select('*').order('created_at', { ascending: false })
-      .then(({ data, error }) => { 
-        if (error) console.error('Erro ao carregar projetos:', error);
-        const fetchedProjects = (data as Project[]) || [];
-        setProjects(fetchedProjects.length > 0 ? fetchedProjects : DEMO_PROJECTS); 
-        setLoading(false); 
-      });
+    Promise.all([
+      supabase.from('portfolio_projects').select('*').order('created_at', { ascending: false }),
+      supabase.from('instagram_posts' as any).select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: false }),
+    ]).then(([projectsRes, igRes]) => {
+      const fetchedProjects = (projectsRes.data as Project[]) || [];
+      setProjects(fetchedProjects.length > 0 ? fetchedProjects : DEMO_PROJECTS);
+      setIgPosts(((igRes.data as any[]) || []) as IGPost[]);
+      setLoading(false);
+    });
   }, []);
 
   const categories = [...new Set(projects.map(p => p.category).filter(Boolean))];
