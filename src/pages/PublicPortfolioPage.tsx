@@ -291,7 +291,81 @@ export default function PublicPortfolioPage() {
         )}
       </section>
 
-      {/* CTA */}
+      {/* Instagram Posts */}
+      {igPosts.length > 0 && (
+        <section className="relative max-w-7xl mx-auto px-6 py-20 border-t border-white/5">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="text-center mb-14"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#bff720]/20 bg-[#bff720]/5 backdrop-blur-md text-xs font-medium text-[#bff720]/70 mb-5">
+              <Instagram className="h-3.5 w-3.5 text-[#bff720]" />
+              Em destaque no Instagram
+            </div>
+            <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+              Conteúdos que <span className="text-[#bff720]">performam</span>
+            </h2>
+            <p className="mt-4 text-white/40 max-w-xl mx-auto">
+              Posts reais publicados nas redes sociais dos nossos clientes
+            </p>
+          </motion.div>
+
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {igPosts.map((post, i) => (
+              <motion.div
+                key={post.id}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-50px' }}
+                transition={{ duration: 0.6, delay: i * 0.08 }}
+                className="rounded-2xl bg-white/[0.02] border border-white/5 overflow-hidden hover:border-[#bff720]/20 transition-all"
+              >
+                <div className="bg-white p-2 flex items-center justify-center min-h-[400px]">
+                  <InstagramEmbed url={post.post_url} />
+                </div>
+                {(post.strategic_description || post.post_result) && (
+                  <div className="p-5 space-y-4">
+                    {post.strategic_description && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1.5">
+                          Estratégia
+                        </p>
+                        <p className="text-sm text-white/80 leading-relaxed">{post.strategic_description}</p>
+                      </div>
+                    )}
+                    {post.post_result && (
+                      <div className="pt-3 border-t border-white/5">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-[#bff720] mb-1.5">
+                          Resultado
+                        </p>
+                        <p className="text-sm text-white/80 leading-relaxed">{post.post_result}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="px-5 pb-4 flex items-center justify-between gap-3">
+                  <a
+                    href={post.post_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs text-[#bff720] hover:text-[#d4ff5c] transition-colors font-medium"
+                  >
+                    <ExternalLinkIcon className="h-3 w-3" /> Ver no Instagram
+                  </a>
+                  <p className="text-[10px] text-white/25 text-right leading-tight">
+                    Apenas dados públicos.<br />Métricas privadas não inclusas.
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
+
+
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-[#015f57]/15 to-[#bff720]/5" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(191,247,32,0.06)_0%,_transparent_70%)]" />
