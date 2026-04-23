@@ -30,11 +30,12 @@ const KANBAN_COLUMNS = [
   'Em Gravação',
   'Em Edição',
   'Revisão',
+  'Finalizado',
 ] as const;
 
 const COLUMNS = [
   ...KANBAN_COLUMNS,
-  'Finalizado',
+  'Concluído',
 ] as const;
 
 type ColumnId = (typeof COLUMNS)[number];
@@ -47,6 +48,7 @@ const COLUMN_COLORS: Record<string, string> = {
   'Em Edição': 'bg-accent border-accent-foreground/20',
   'Revisão': 'bg-destructive/8 border-destructive/30',
   'Finalizado': 'bg-success/8 border-success/30',
+  'Concluído': 'bg-muted/40 border-muted-foreground/30',
 };
 
 const COLUMN_DOT: Record<string, string> = {
@@ -57,6 +59,7 @@ const COLUMN_DOT: Record<string, string> = {
   'Em Edição': 'bg-accent-foreground',
   'Revisão': 'bg-destructive',
   'Finalizado': 'bg-success',
+  'Concluído': 'bg-muted-foreground',
 };
 
 const CARD_STAGE_COLOR: Record<string, string> = {
@@ -67,6 +70,7 @@ const CARD_STAGE_COLOR: Record<string, string> = {
   'Em Edição': 'border-l-accent-foreground',
   'Revisão': 'border-l-destructive',
   'Finalizado': 'border-l-success',
+  'Concluído': 'border-l-muted-foreground',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -91,7 +95,7 @@ function mapStatusToColumn(status: string): ColumnId {
     'Em gravação': 'Em Gravação',
     'Em edição': 'Em Edição',
     'Revisão': 'Revisão',
-    'Concluído': 'Finalizado',
+    'Concluído': 'Concluído',
     'Finalizado': 'Finalizado',
     'Ideias / Backlog': 'Ideias / Backlog',
     'Em Copy': 'Em Copy',
@@ -115,7 +119,28 @@ function CardContent({ task, clientName }: { task: Task; clientName?: string }) 
       {task.description && (
         <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{task.description}</p>
       )}
-      <div className="mt-2.5 flex items-center justify-between gap-2">
+      {task.videoUrl && (
+        <a
+          href={task.videoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/20 transition-colors"
+          title="Baixar vídeo finalizado"
+        >
+          <svg width="12" height="12" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+            <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+            <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
+            <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+            <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+            <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+            <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+          </svg>
+          Baixar vídeo
+        </a>
+      )}
+      <div className="mt-2.5 flex items-start justify-between gap-2">
         <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', PRIORITY_BADGE[task.priority])}>
           {task.priority}
         </span>
@@ -125,10 +150,20 @@ function CardContent({ task, clientName }: { task: Task; clientName?: string }) 
               {task.assignee.charAt(0).toUpperCase()}
             </div>
           )}
-          {task.dueDate && (
-            <span className="text-[10px] tabular-nums text-muted-foreground truncate">
-              {new Date(task.dueDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-            </span>
+          {(task.dueDate || task.postDate) && (
+            <div className="flex flex-col items-end gap-0.5 min-w-0">
+              {task.dueDate && (
+                <span className="text-[10px] tabular-nums text-muted-foreground truncate" title="Data de entrega">
+                  Entrega: {new Date(task.dueDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                </span>
+              )}
+              {task.postDate && (
+                <span className="text-[10px] tabular-nums text-primary/80 truncate" title="Data de postagem">
+                  Post: {new Date(task.postDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                  {task.postTime ? ` ${task.postTime.slice(0, 5)}` : ''}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -192,14 +227,14 @@ function DraggableCard({ task, onClick, clientName, column, onAdvance }: { task:
 }
 
 function getNextStageLabel(column: string): string | null {
-  const order = ['Ideias / Backlog', 'Em Copy', 'Em Direção', 'Em Gravação', 'Em Edição', 'Revisão', 'Finalizado'];
+  const order = ['Ideias / Backlog', 'Em Copy', 'Em Direção', 'Em Gravação', 'Em Edição', 'Revisão', 'Finalizado', 'Concluído'];
   const idx = order.indexOf(column);
   if (idx < 0 || idx >= order.length - 1) return null;
   return `→ ${order[idx + 1]}`;
 }
 
 function getNextStage(column: string): string | null {
-  const order = ['Ideias / Backlog', 'Em Copy', 'Em Direção', 'Em Gravação', 'Em Edição', 'Revisão', 'Finalizado'];
+  const order = ['Ideias / Backlog', 'Em Copy', 'Em Direção', 'Em Gravação', 'Em Edição', 'Revisão', 'Finalizado', 'Concluído'];
   const idx = order.indexOf(column);
   if (idx < 0 || idx >= order.length - 1) return null;
   return order[idx + 1];
@@ -269,22 +304,70 @@ function KanbanColumn({
   );
 }
 
-// ── Finalizado Drop Zone + Client Folders ──────────────────
-function FinalizadoDropZone({
+// ── Finalizado / Concluído Drop Zone + Client Folders ─────
+function ArchiveDraggableItem({ task, onClick }: { task: Task; onClick: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
+  const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerDownPos.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (pointerDownPos.current) {
+      const dx = Math.abs(e.clientX - pointerDownPos.current.x);
+      const dy = Math.abs(e.clientY - pointerDownPos.current.y);
+      if (dx < 5 && dy < 5) onClick();
+    }
+    pointerDownPos.current = null;
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      onPointerDown={(e) => {
+        handlePointerDown(e);
+        listeners?.onPointerDown?.(e as any);
+      }}
+      onClick={handleClick}
+      className={cn(
+        'flex items-center gap-2 rounded px-2 py-1.5 cursor-grab hover:bg-secondary/30 transition-colors active:cursor-grabbing',
+        isDragging && 'opacity-40'
+      )}
+    >
+      <div className={cn('h-1.5 w-1.5 rounded-full', PRIORITY_COLORS[task.priority]?.replace('border-l-', 'bg-') || 'bg-muted')} />
+      <span className="text-xs text-foreground truncate">{task.videoName || task.title || 'Sem título'}</span>
+    </div>
+  );
+}
+
+function ArchiveDropZone({
+  id,
+  label,
+  helperText,
   tasks,
   onCardClick,
   getClientName,
-  clients,
+  accentClass,
+  iconColorClass,
 }: {
+  id: 'Finalizado' | 'Concluído';
+  label: string;
+  helperText: string;
   tasks: Task[];
   onCardClick: (t: Task) => void;
   getClientName: (id: string) => string;
-  clients: { id: string; companyName: string }[];
+  accentClass: string;
+  iconColorClass: string;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: 'Finalizado' });
+  const { setNodeRef, isOver } = useDroppable({ id });
   const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});
+  const [open, setOpen] = useState(id === 'Finalizado');
 
-  // Group finished tasks by client
   const byClient = useMemo(() => {
     const map: Record<string, Task[]> = {};
     tasks.forEach(t => {
@@ -295,8 +378,8 @@ function FinalizadoDropZone({
     return map;
   }, [tasks]);
 
-  const toggleClient = (id: string) => {
-    setExpandedClients(prev => ({ ...prev, [id]: !prev[id] }));
+  const toggleClient = (cid: string) => {
+    setExpandedClients(prev => ({ ...prev, [cid]: !prev[cid] }));
   };
 
   return (
@@ -304,17 +387,22 @@ function FinalizadoDropZone({
       ref={setNodeRef}
       className={cn(
         'rounded-lg border border-dashed p-3 transition-colors',
-        isOver ? 'border-success bg-success/10' : 'border-border bg-secondary/5'
+        isOver ? `${accentClass} ` : 'border-border bg-secondary/5'
       )}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <FolderCheck className="h-4 w-4 text-success" />
-        <span className="text-sm font-semibold text-foreground">Finalizados</span>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center gap-2 mb-2"
+      >
+        {open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+        <FolderCheck className={cn('h-4 w-4', iconColorClass)} />
+        <span className="text-sm font-semibold text-foreground">{label}</span>
         <span className="text-xs text-muted-foreground">({tasks.length})</span>
-        {isOver && <span className="text-xs text-success font-medium ml-auto">Solte aqui para finalizar</span>}
-      </div>
+        <span className="ml-2 text-[10px] text-muted-foreground italic hidden sm:inline">{helperText}</span>
+        {isOver && <span className="text-xs font-medium ml-auto text-foreground">Solte aqui</span>}
+      </button>
 
-      {tasks.length > 0 && (
+      {open && tasks.length > 0 && (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {Object.entries(byClient).map(([clientId, clientTasks]) => {
             const name = clientId === '_no_client' ? 'Sem cliente' : getClientName(clientId);
@@ -332,14 +420,7 @@ function FinalizadoDropZone({
                 {isOpen && (
                   <div className="border-t border-border p-2 space-y-1.5">
                     {clientTasks.map(t => (
-                      <div
-                        key={t.id}
-                        onClick={() => onCardClick(t)}
-                        className="flex items-center gap-2 rounded px-2 py-1.5 cursor-pointer hover:bg-secondary/30 transition-colors"
-                      >
-                        <div className={cn('h-1.5 w-1.5 rounded-full', PRIORITY_COLORS[t.priority]?.replace('border-l-', 'bg-') || 'bg-muted')} />
-                        <span className="text-xs text-foreground truncate">{t.videoName || t.title || 'Sem título'}</span>
-                      </div>
+                      <ArchiveDraggableItem key={t.id} task={t} onClick={() => onCardClick(t)} />
                     ))}
                   </div>
                 )}
@@ -459,7 +540,7 @@ export default function TasksPage() {
           <div>
             <h1 className="text-xl font-semibold text-foreground">Tarefas</h1>
             <p className="text-sm text-muted-foreground">
-              {filteredTasks.filter(t => mapStatusToColumn(t.status) !== 'Finalizado').length} em andamento
+              {filteredTasks.filter(t => !['Finalizado', 'Concluído'].includes(mapStatusToColumn(t.status))).length} em andamento
               {selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}
             </p>
           </div>
@@ -533,17 +614,25 @@ export default function TasksPage() {
         )}
       </div>
 
-      {/* Kanban board (without Finalizado) */}
+      {/* Kanban board */}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4 lg:grid lg:grid-cols-6 lg:gap-2 min-h-0 flex-1 scroller-hide">
+        <div className="flex gap-4 overflow-x-auto pb-4 lg:grid lg:grid-cols-7 lg:gap-2 min-h-0 flex-1 scroller-hide">
           {KANBAN_COLUMNS.map(col => (
             <div key={col} className="min-w-[280px] lg:min-w-0 flex flex-col h-full">
               <KanbanColumn column={col} tasks={tasksByColumn[col]} onCardClick={openCard} onAdd={openNew} getClientName={getClientName} onAdvanceTask={(task, nextStage) => updateTask({ ...task, status: nextStage as any })} />
             </div>
           ))}
         </div>
-        {/* Finalizado drop zone (invisible but droppable) */}
-        <FinalizadoDropZone tasks={tasksByColumn['Finalizado']} onCardClick={openCard} getClientName={getClientName} clients={clients} />
+        <ArchiveDropZone
+          id="Concluído"
+          label="Concluídos (arquivo interno)"
+          helperText="Ocultos do cliente"
+          tasks={tasksByColumn['Concluído']}
+          onCardClick={openCard}
+          getClientName={getClientName}
+          accentClass="border-muted-foreground bg-muted/30"
+          iconColorClass="text-muted-foreground"
+        />
         <DragOverlay>
           {activeTask && (
             <div className={cn('w-[200px] rounded-lg border-l-[3px] bg-card p-3 shadow-lg', PRIORITY_COLORS[activeTask.priority])}>

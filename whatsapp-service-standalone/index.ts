@@ -131,7 +131,7 @@ app.get('/messages', (req, res) => {
     return;
   }
 
-  const jid = `${phone.replace(/\D/g, '')}@s.whatsapp.net`;
+  const jid = `${phone.replace(/\\D/g, '')}@s.whatsapp.net`;
   const messages = store.messages[jid]?.all() || [];
   res.set(corsHeaders).json(messages);
 });
@@ -144,7 +144,7 @@ app.post('/send-text', async (req, res) => {
       return;
     }
 
-    const jid = `${phone.replace(/\D/g, '')}@s.whatsapp.net`;
+    const jid = `${phone.replace(/\\D/g, '')}@s.whatsapp.net`;
     await sock.sendMessage(jid, { text: message });
     res.set(corsHeaders).json({ success: true });
   } catch (err: any) {

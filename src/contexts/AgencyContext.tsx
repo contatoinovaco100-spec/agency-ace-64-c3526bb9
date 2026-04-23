@@ -23,9 +23,6 @@ interface AgencyContextType {
   updateLead: (lead: Lead) => Promise<void>;
   deleteLead: (id: string) => Promise<void>;
   convertLeadToClient: (leadId: string, clientData: Partial<Client>) => Promise<void>;
-  addTeamMember: (member: TeamMember) => Promise<void>;
-  updateTeamMember: (member: TeamMember) => Promise<void>;
-  deleteTeamMember: (id: string) => Promise<void>;
   addEvent: (event: CalendarEvent) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
   getChecklist: (taskId: string) => Promise<TaskChecklistItem[]>;
@@ -86,6 +83,8 @@ function rowToTask(row: any): Task {
     strategicNotes: row.strategic_notes || '', recordingNotes: row.recording_notes || '',
     editorComments: row.editor_comments || '', currentStageOwner: row.current_stage_owner || '',
     copywriter: row.copywriter || '', director: row.director || '', videomaker: row.videomaker || '',
+    videoUrl: row.video_url || '',
+    postDate: row.post_date || '', postTime: row.post_time || '',
   };
 }
 
@@ -96,8 +95,17 @@ function rowToLead(row: Tables<'leads'>): Lead {
     stage: row.stage as Lead['stage'], estimatedValue: Number(row.estimated_value), createdAt: row.created_at,
   };
 }
-function rowToTeamMember(row: Tables<'team_members'>): TeamMember {
-  return { id: row.id, name: row.name, role: row.role, email: row.email, permissions: row.permissions, avatar: row.avatar || undefined };
+// Team members are derived from `profiles` (employees with username) — single source of truth.
+const EMPLOYEE_EMAIL_DOMAIN = 'inovaco.app';
+function profileToTeamMember(row: any, adminIds: Set<string>): TeamMember {
+  return {
+    id: row.id,
+    name: row.full_name || 'Sem nome',
+    role: row.job_title || '',
+    email: row.username ? `${row.username}@${EMPLOYEE_EMAIL_DOMAIN}` : '',
+    permissions: adminIds.has(row.id) ? 'Admin' : 'Editor',
+    avatar: row.avatar_url || undefined,
+  };
 }
 function rowToEvent(row: Tables<'calendar_events'>): CalendarEvent {
   return { id: row.id, title: row.title, date: row.date, type: row.type as CalendarEvent['type'], clientId: row.client_id || undefined };
@@ -138,17 +146,21 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [cRes, tRes, lRes, tmRes, eRes] = await Promise.all([
+    const [cRes, tRes, lRes, pRes, rRes, eRes] = await Promise.all([
       supabase.from('clients').select('*').order('created_at'),
       supabase.from('tasks').select('*').order('created_at'),
       supabase.from('leads').select('*').order('created_at'),
-      supabase.from('team_members').select('*').order('created_at'),
+      supabase.from('profiles').select('id, full_name, username, job_title, avatar_url, is_active').not('username', 'is', null).eq('is_active', true),
+      supabase.from('user_roles').select('user_id').eq('role', 'admin'),
       supabase.from('calendar_events').select('*').order('date'),
     ]);
     if (cRes.data) setAllClients(cRes.data.map(rowToClient));
     if (tRes.data) setTasks(tRes.data.map(rowToTask));
     if (lRes.data) setLeads(lRes.data.map(rowToLead));
-    if (tmRes.data) setTeam(tmRes.data.map(rowToTeamMember));
+    if (pRes.data) {
+      const adminIds = new Set((rRes.data ?? []).map((r: any) => r.user_id));
+      setTeam(pRes.data.map((p: any) => profileToTeamMember(p, adminIds)).sort((a, b) => a.name.localeCompare(b.name)));
+    }
     if (eRes.data) setEvents(eRes.data.map(rowToEvent));
     setLoading(false);
   }, []);
@@ -166,6 +178,8 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     recording_notes: t.recordingNotes, editor_comments: t.editorComments,
     current_stage_owner: t.currentStageOwner, copywriter: t.copywriter,
     director: t.director, videomaker: t.videomaker,
+    video_url: t.videoUrl || null,
+    post_date: t.postDate || null, post_time: t.postTime || null,
   });
 
   const addClient = async (c: Client) => { await supabase.from('clients').insert(clientToRow(c)); await fetchAll(); };
@@ -227,9 +241,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     await updateLead({ ...lead, stage: 'Cliente fechado' });
   };
 
-  const addTeamMember = async (m: TeamMember) => { await supabase.from('team_members').insert({ id: m.id, name: m.name, role: m.role, email: m.email, permissions: m.permissions, avatar: m.avatar || null }); await fetchAll(); };
-  const updateTeamMember = async (m: TeamMember) => { await supabase.from('team_members').update({ name: m.name, role: m.role, email: m.email, permissions: m.permissions, avatar: m.avatar || null }).eq('id', m.id); await fetchAll(); };
-  const deleteTeamMember = async (id: string) => { await supabase.from('team_members').delete().eq('id', id); await fetchAll(); };
+  // Team members are now derived from `profiles` (see fetchAll). Manage employees in /funcionarios.
 
   const addEvent = async (e: CalendarEvent) => { await supabase.from('calendar_events').insert({ id: e.id, title: e.title, date: e.date, type: e.type, client_id: e.clientId || null }); await fetchAll(); };
   const deleteEvent = async (id: string) => { await supabase.from('calendar_events').delete().eq('id', id); await fetchAll(); };
@@ -265,7 +277,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
       addClient, updateClient, deleteClient,
       addTask, updateTask, deleteTask, advanceVideoStage,
       addLead, updateLead, deleteLead, convertLeadToClient,
-      addTeamMember, updateTeamMember, deleteTeamMember,
+      
       addEvent, deleteEvent,
       getChecklist, upsertChecklistItem, deleteChecklistItem,
       getComments, addComment, getAttachments, addAttachment, deleteAttachment,

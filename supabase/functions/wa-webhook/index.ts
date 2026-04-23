@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         let convId = existing?.id;
-        if (!convId) {
+        if (!convId || !existing) {
           // Tenta vincular a lead/cliente pelo telefone
           const { data: leadMatch } = await supabase
             .from('leads')
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
               contact_name: contactName,
               last_message: content,
               last_message_at: new Date().toISOString(),
-              unread_count: (existing.unread_count || 0) + 1,
+              unread_count: ((existing?.unread_count) || 0) + 1,
             })
             .eq('id', convId);
         }

@@ -30,6 +30,7 @@ interface TaskData {
   creative_direction: string;
   editing_style: string;
   strategic_notes: string;
+  video_url?: string | null;
 }
 
 function TaskCard({ task, index }: { task: TaskData; index: number }) {
@@ -38,10 +39,12 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
   
   const isPosted = task.status === 'Postado';
   const isProgramado = task.status === 'Programado';
-  const displayDate = task.scheduled_date || task.due_date;
+  const displayDate = task.post_date || task.scheduled_date || task.due_date;
   const formattedDate = displayDate 
-    ? new Date(displayDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+    ? new Date(displayDate + (task.post_date && !displayDate.includes('T') ? 'T00:00:00' : '')).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
     : 'Sem data';
+  const postTime = (task as any).post_time as string | null | undefined;
+  const formattedTime = postTime ? postTime.slice(0, 5) : null;
   const isPast = displayDate && new Date(displayDate) < new Date();
 
   const sections = [
@@ -82,12 +85,9 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
             )}>
               {isPosted ? 'Postado' : task.status || 'Pendente'}
             </span>
-            <span className={cn(
-              "flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full",
-              isPast && !isPosted ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "text-muted-foreground bg-secondary/50"
-            )}>
+            <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-[#bff720]/20 text-[#5a7a00] dark:text-[#bff720] font-semibold">
               <Calendar className="h-3 w-3" />
-              {formattedDate}
+              Postar: {formattedDate}{formattedTime ? ` às ${formattedTime}` : ''}
             </span>
           </div>
         </div>
@@ -99,6 +99,31 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
         <div className="border-t border-border p-5 space-y-4">
           {task.description && (
             <p className="text-sm text-muted-foreground">{task.description}</p>
+          )}
+          {task.video_url && (
+            <a
+              href={task.video_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex w-full items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/20 hover:border-primary/50 transition-all"
+              title="Baixar vídeo finalizado"
+            >
+              <span className="flex items-center gap-2.5">
+                <svg width="20" height="20" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+                  <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                  <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
+                  <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+                  <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                  <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                  <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                </svg>
+                Baixar vídeo finalizado
+              </span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                <path d="M7 7h10v10"/>
+                <path d="M7 17 17 7"/>
+              </svg>
+            </a>
           )}
           {sections.map((section, i) => (
             <div key={i}>
@@ -275,6 +300,8 @@ export default function ClientContentPage() {
   const pendingTasks = tasks.filter(t => {
     if (taskId && t.id === taskId) return true;
     
+    // Tarefas marcadas como "Concluído" são arquivadas internamente e não aparecem para o cliente
+    if (t.status === 'Concluído') return false;
     if (t.status === 'Postado') return false;
     const taskDate = t.scheduled_date || t.due_date;
     if (!taskDate) return true;
@@ -285,6 +312,7 @@ export default function ClientContentPage() {
     return true;
   });
   const pastDueTasks = tasks.filter(t => {
+    if (t.status === 'Concluído') return false;
     if (t.status === 'Postado') return false;
     const taskDate = t.scheduled_date || t.due_date;
     if (!taskDate) return false;
@@ -294,7 +322,7 @@ export default function ClientContentPage() {
     return date < today && isInternal;
   });
   const postedTasks = tasks.filter(t => t.status === 'Postado');
-  const displayedTasks = showPosted ? tasks : [...pendingTasks, ...(isInternal && showPastDue ? pastDueTasks : [])];
+  const displayedTasks = showPosted ? tasks.filter(t => t.status !== 'Concluído') : [...pendingTasks, ...(isInternal && showPastDue ? pastDueTasks : [])];
 
   return (
     <div className="min-h-screen bg-background">

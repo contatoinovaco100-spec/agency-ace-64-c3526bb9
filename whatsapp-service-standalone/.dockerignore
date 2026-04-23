@@ -3,6 +3,7 @@ auth_info_baileys
 baileys_store*.json
 *.log
 .DS_Store
-.env
+dist
 deploy.sh
 README.md
+.env

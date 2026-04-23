@@ -106,6 +106,9 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         copywriter: form.copywriter || '',
         director: form.director || '',
         videomaker: form.videomaker || '',
+        videoUrl: form.videoUrl || '',
+        postDate: form.postDate || '',
+        postTime: form.postTime || '',
       };
       await onSave(data);
     } catch (err) {
@@ -231,6 +234,16 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                 <Input type="date" value={form.dueDate || ''} onChange={e => setForm({ ...form, dueDate: e.target.value })} className="mt-1" />
               </div>
             </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
+              <div>
+                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Data de postagem (cliente)</Label>
+                <Input type="date" value={form.postDate || ''} onChange={e => setForm({ ...form, postDate: e.target.value })} className="mt-1" />
+              </div>
+              <div>
+                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Hora de postagem</Label>
+                <Input type="time" value={form.postTime || ''} onChange={e => setForm({ ...form, postTime: e.target.value })} className="mt-1" />
+              </div>
+            </div>
           </div>
 
           <Separator />
@@ -315,6 +328,40 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
             <div>
               <Label className="text-xs text-muted-foreground">Observações</Label>
               <Textarea rows={2} value={form.observations || ''} onChange={e => setForm({ ...form, observations: e.target.value })} placeholder="Notas adicionais..." className="mt-1" />
+            </div>
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <Label className="text-[10px] sm:text-xs text-primary uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                <Link className="h-3 w-3" /> Link do vídeo finalizado (Drive / YouTube / Vimeo)
+              </Label>
+              <div className="mt-2 flex gap-2">
+                <Input
+                  value={form.videoUrl || ''}
+                  onChange={e => setForm({ ...form, videoUrl: e.target.value })}
+                  placeholder="https://drive.google.com/file/d/..."
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  onClick={async () => {
+                    if (!task) { toast.error('Salve a tarefa primeiro'); return; }
+                    const url = (form.videoUrl || '').trim();
+                    try {
+                      const { error } = await supabase.from('tasks').update({ video_url: url || null }).eq('id', task.id);
+                      if (error) throw error;
+                      toast.success('Link salvo!');
+                    } catch (err: any) {
+                      console.error(err);
+                      toast.error('Erro ao salvar link');
+                    }
+                  }}
+                  className="shrink-0"
+                >
+                  Salvar link
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                Cole aqui o link quando o vídeo estiver pronto. Aparecerá automaticamente na Galeria de Entregas.
+              </p>
             </div>
           </div>
 
