@@ -7,7 +7,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
+# Dependencies - block ALL node_modules everywhere
+node_modules/
+**/node_modules/
+
+# Lock files from sub-projects
+**/bun.lock
+**/package-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
+
+# Build
+dist
 dist-ssr
 *.local
 
