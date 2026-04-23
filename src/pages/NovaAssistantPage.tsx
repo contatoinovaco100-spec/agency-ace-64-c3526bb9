@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Bot, Send, Sparkles, RefreshCw, Copy, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,19 +32,20 @@ export default function NovaAssistantPage() {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const generateResponse = async (prompt: string): Promise<string> => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (apiKey) {
-      try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: `Você é a Nova, assistente da INOVA Co., uma produtora audiovisual premium. Responda em português brasileiro de forma profissional e criativa.\n\nUsuário: ${prompt}` }] }] })
-        });
-        const data = await res.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || smartReply(prompt);
-      } catch { return smartReply(prompt); }
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-copywriter', {
+        body: {
+          systemPrompt: 'Você é a Nova, assistente da INOVA Co., uma produtora audiovisual premium. Responda em português brasileiro de forma profissional e criativa. Responda em texto livre (não JSON).',
+          userMessage: prompt,
+          model: 'google/gemini-2.5-flash',
+        },
+      });
+      if (error || data?.error) return smartReply(prompt);
+      const result = data?.result;
+      return typeof result === 'string' ? result : (result ? JSON.stringify(result) : smartReply(prompt));
+    } catch {
+      return smartReply(prompt);
     }
-    return smartReply(prompt);
   };
 
   const smartReply = (prompt: string): string => {

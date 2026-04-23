@@ -60,11 +60,9 @@ export const AIVisionConverter: React.FC<AIVisionConverterProps> = ({ onDataExtr
         .from('task-attachments')
         .getPublicUrl(filePath);
 
-      // 2. Process with AI
+      // 2. Process with AI via secure edge function (key stays server-side)
       const base64Data = image.split(',')[1];
-      
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      
+
       const systemPrompt = `Você é um Consultor de Marketing Estratégico Sênior. Sua tarefa é analisar um PRINT de tela (audit de rede social, bio ou análise manual) e transformar isso em um DIAGNÓSTICO ESTRATÉGICO PROFISSIONAL.
       
 REGRAS DE OURO:
@@ -105,36 +103,25 @@ O SEU RESULTADO DEVE SER UM JSON NO SEGUINTE FORMATO:
 
 IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: systemPrompt },
-              { inline_data: { mime_type: file.type, data: base64Data } }
-            ]
-          }],
-          generation_config: {}
-        })
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-copywriter', {
+        body: {
+          systemPrompt,
+          userMessage: 'Analise o print enviado e gere o diagnóstico no formato JSON especificado.',
+          model: 'google/gemini-2.5-flash',
+          imageBase64: base64Data,
+          imageMimeType: file.type,
+        },
       });
 
-      if (!response.ok) {
-        const errorDetail = await response.json().catch(() => ({}));
-        console.error("Gemini API Error Detail:", errorDetail);
-        const errorMessage = errorDetail.error?.message || `Status ${response.status}`;
-        throw new Error(errorMessage);
-      }
+      if (fnError) throw new Error(fnError.message || 'Erro ao chamar IA');
+      if (fnData?.error) throw new Error(fnData.error);
 
-      const resData = await response.json();
-      const text = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) {
-        console.error("Gemini Response Data:", resData);
-        throw new Error("IA não retornou dados");
+      let result: any = fnData?.result;
+      if (typeof result === 'string') {
+        const cleanText = result.replace(/```json/g, '').replace(/```/g, '').trim();
+        result = JSON.parse(cleanText);
       }
-
-      const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      const result = JSON.parse(cleanText);
+      if (!result) throw new Error('IA não retornou dados');
       // Add the public URL to the result
       result.imageUrl = publicUrl;
       

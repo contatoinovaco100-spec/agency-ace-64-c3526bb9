@@ -110,9 +110,6 @@ export function UnifiedContentGenerator({ clientId }: { clientId: string }) {
       return;
     }
 
-    // Split the key to bypass GitHub secret scanning rules that block the push
-    let apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
     updateItem(itemId, 'isGeneratingAi', true);
 
     try {
@@ -155,39 +152,24 @@ Retorne SOMENTE um JSON válido:
 
 IMPORTANTE: Cada roteiro deve ser ÚNICO, INESPERADO e fazer a pessoa pensar "caramba, isso é genial". Nunca seja óbvio ou previsível.`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-copywriter', {
+        body: {
+          systemPrompt,
+          userMessage: prompt,
+          model: 'google/gemini-2.5-flash',
         },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: systemPrompt }]
-          },
-          contents: [
-            { parts: [{ text: prompt }] }
-          ],
-          generation_config: {}
-        }),
       });
 
-      if (!response.ok) {
-        if (response.status === 400 || response.status === 403) {
-           throw new Error("Sua chave do Gemini embutida está inválida ou restrita.");
-        }
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `Erro de conexão com Gemini (${response.status})`);
+      if (fnError) throw new Error(fnError.message || 'Erro ao chamar IA');
+      if (fnData?.error) throw new Error(fnData.error);
+
+      let result: any = fnData?.result;
+      if (typeof result === 'string') {
+        const cleanContent = result.replace(/```json/g, '').replace(/```/g, '').trim();
+        result = JSON.parse(cleanContent);
       }
 
-      const data = await response.json();
-      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      
-      if (!content) throw new Error("A resposta da IA veio vazia.");
-      
-      const cleanContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
-      const result = JSON.parse(cleanContent);
-
-      if (result) {
+      if (!result) throw new Error("A resposta da IA veio vazia.");
         setItems(prev => prev.map(i => {
           if (i.id === itemId) {
             return {
