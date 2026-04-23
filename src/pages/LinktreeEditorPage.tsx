@@ -222,7 +222,7 @@ export default function LinktreeEditorPage() {
   };
 
   const persistLinkField = async (linkId: string, field: 'title' | 'url' | 'icon', value: string) => {
-    await supabase.from('linktree_links').update({ [field]: value }).eq('id', linkId);
+    await supabase.from('linktree_links').update({ [field]: value } as never).eq('id', linkId);
   };
 
   const copyUrl = () => {
