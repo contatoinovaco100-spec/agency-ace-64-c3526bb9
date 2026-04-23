@@ -58,6 +58,7 @@ export const APP_PAGES: AppPage[] = [
   // Produção
   { path: '/galeria',             label: 'Galeria',             icon: Images,          category: 'Produção' },
   { path: '/portfolio',           label: 'Portfólio',           icon: Film,            category: 'Produção' },
+  { path: '/portfolio-instagram', label: 'Posts Instagram',     icon: Sparkles,        category: 'Produção' },
   { path: '/gravacoes',           label: 'Gravações',           icon: Clapperboard,    category: 'Produção' },
 
   // Ferramentas
