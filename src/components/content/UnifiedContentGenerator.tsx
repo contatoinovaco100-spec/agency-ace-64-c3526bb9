@@ -170,23 +170,20 @@ IMPORTANTE: Cada roteiro deve ser ÚNICO, INESPERADO e fazer a pessoa pensar "ca
       }
 
       if (!result) throw new Error("A resposta da IA veio vazia.");
-        setItems(prev => prev.map(i => {
-          if (i.id === itemId) {
-            return {
-              ...i,
-              title: i.title || prompt.substring(0, 30) + '...',
-              hook: result.hook || i.hook,
-              development: result.development || i.development,
-              cta: result.cta || i.cta
-            };
-          }
-          return i;
-        }));
-        toast.success('✨ Roteiro gerado pelo Gemini!');
-        setPromptData(prev => ({ ...prev, [itemId]: '' })); // clear prompt box
-      } else {
-        throw new Error("Formato json inválido retornado pelo Gemini.");
-      }
+      setItems(prev => prev.map(i => {
+        if (i.id === itemId) {
+          return {
+            ...i,
+            title: i.title || prompt.substring(0, 30) + '...',
+            hook: result.hook || i.hook,
+            development: result.development || i.development,
+            cta: result.cta || i.cta
+          };
+        }
+        return i;
+      }));
+      toast.success('✨ Roteiro gerado pelo Gemini!');
+      setPromptData(prev => ({ ...prev, [itemId]: '' })); // clear prompt box
     } catch (err: any) {
       console.error('AI Error:', err);
       toast.error(`Falha: ${err.message}`);
