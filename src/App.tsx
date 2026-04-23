@@ -45,6 +45,7 @@ const ContractsPage        = lazy(() => import("./pages/ContractsPage"));
 const ContractSignPage     = lazy(() => import("./pages/ContractSignPage"));
 const ReportsPage          = lazy(() => import("./pages/ReportsPage"));
 const PortfolioPage        = lazy(() => import("./pages/PortfolioPage"));
+const InstagramPostsPage   = lazy(() => import("./pages/InstagramPostsPage"));
 const ShootingSchedulePage = lazy(() => import("./pages/ShootingSchedulePage"));
 const WhiteboardPage       = lazy(() => import("./pages/WhiteboardPage"));
 const ContentPlanningPage  = lazy(() => import("@/pages/ContentPlanningPage"));
@@ -137,6 +138,7 @@ function AppRoutes() {
                     <Route path="/briefings"           element={<BriefingsPage />} />
                     <Route path="/relatorios"          element={<ReportsPage />} />
                     <Route path="/portfolio"           element={<PortfolioPage />} />
+                    <Route path="/portfolio-instagram" element={<InstagramPostsPage />} />
                     <Route path="/gravacoes"           element={<ShootingSchedulePage />} />
                     <Route path="/whiteboard"          element={<WhiteboardPage />} />
                     <Route path="/prospeccao"          element={<ProspectionPage />} />
