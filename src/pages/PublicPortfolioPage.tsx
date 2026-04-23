@@ -1,12 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
-import { Play, X, Instagram, ArrowRight, Film, Sparkles, MessageCircle } from 'lucide-react';
+import { Play, X, Instagram, ArrowRight, Film, Sparkles, MessageCircle, Heart, MessageCircle as CommentIcon, ExternalLink as ExternalLinkIcon } from 'lucide-react';
 import logoInova from '@/assets/logo-inova.png';
+import { InstagramEmbed } from '@/components/InstagramEmbed';
 
 interface Project {
   id: string; title: string; description: string; video_url: string;
   thumbnail_url: string; category: string; completed_at: string | null;
+}
+
+interface IGPost {
+  id: string;
+  post_url: string;
+  strategic_description: string;
+  post_result: string;
 }
 
 const CATEGORIES_LABELS: Record<string, string> = {
