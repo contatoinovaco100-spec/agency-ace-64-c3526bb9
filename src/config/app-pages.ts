@@ -3,7 +3,7 @@ import {
   Shield, FileText, BarChart3, Film, Clapperboard, Palette,
   LayoutList, Bot, Sparkles, Settings, Bell, Calendar,
   MessageSquare, TrendingUp, Images, BookOpen, CalculatorIcon,
-  Gift, Link2, ListChecks, Wallet,
+  Gift, Link2, ListChecks, Wallet, Network,
 } from 'lucide-react';
 
 export type PageCategory =
@@ -76,6 +76,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/contratos-prestadores', label: 'Contratos Prestadores', icon: FileText,    category: 'Administração', adminOnly: true },
   { path: '/relatorios',          label: 'Relatórios',          icon: BarChart3,       category: 'Administração', adminOnly: true },
   { path: '/financeiro',          label: 'Financeiro',          icon: Wallet,          category: 'Administração', adminOnly: true },
+  { path: '/rede/admin',          label: 'Rede de Negócios',    icon: Network,         category: 'Administração', adminOnly: true },
 ];
 
 export const PAGE_CATEGORIES: PageCategory[] = [

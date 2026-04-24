@@ -1254,6 +1254,110 @@ export type Database = {
           },
         ]
       }
+      rede_companies: {
+        Row: {
+          city: string
+          created_at: string
+          description: string
+          id: string
+          instagram: string
+          is_active: boolean
+          is_featured: boolean
+          logo_url: string
+          name: string
+          niche: string
+          owner_user_id: string | null
+          services: string[]
+          updated_at: string
+          website: string
+          whatsapp: string
+        }
+        Insert: {
+          city?: string
+          created_at?: string
+          description?: string
+          id?: string
+          instagram?: string
+          is_active?: boolean
+          is_featured?: boolean
+          logo_url?: string
+          name: string
+          niche?: string
+          owner_user_id?: string | null
+          services?: string[]
+          updated_at?: string
+          website?: string
+          whatsapp?: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          description?: string
+          id?: string
+          instagram?: string
+          is_active?: boolean
+          is_featured?: boolean
+          logo_url?: string
+          name?: string
+          niche?: string
+          owner_user_id?: string | null
+          services?: string[]
+          updated_at?: string
+          website?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
+      rede_posts: {
+        Row: {
+          author_user_id: string | null
+          company_id: string
+          content: string
+          created_at: string
+          id: string
+          is_featured: boolean
+          is_hidden: boolean
+          media_type: string
+          media_url: string
+          post_type: string
+          updated_at: string
+        }
+        Insert: {
+          author_user_id?: string | null
+          company_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_featured?: boolean
+          is_hidden?: boolean
+          media_type?: string
+          media_url?: string
+          post_type?: string
+          updated_at?: string
+        }
+        Update: {
+          author_user_id?: string | null
+          company_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_featured?: boolean
+          is_hidden?: boolean
+          media_type?: string
+          media_url?: string
+          post_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rede_posts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "rede_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_contracts: {
         Row: {
           activities: string[]
