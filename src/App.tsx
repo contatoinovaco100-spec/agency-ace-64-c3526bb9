@@ -81,6 +81,9 @@ const WhatsAppPage              = lazy(() => import("./pages/WhatsAppPage"));
 const WhatsAppConfigPage        = lazy(() => import("./pages/WhatsAppConfigPage"));
 const FinancialPage             = lazy(() => import("./pages/FinancialPage"));
 const PublicInvoicePage         = lazy(() => import("./pages/PublicInvoicePage"));
+const RedeNegociosPage          = lazy(() => import("./pages/RedeNegociosPage"));
+const RedeNovoPostPage          = lazy(() => import("./pages/RedeNovoPostPage"));
+const RedeAdminPage             = lazy(() => import("./pages/RedeAdminPage"));
 
 function PageLoader() {
   return (
@@ -101,6 +104,7 @@ function AppRoutes() {
     location.pathname.startsWith('/briefing') ||
     location.pathname.startsWith('/fatura/') ||
     location.pathname.startsWith('/proposta') ||
+    location.pathname === '/negocios' ||
     (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar'));
 
   return (
@@ -120,6 +124,7 @@ function AppRoutes() {
           <Route path="/proposta/editar"     element={<SalesEditorPage />} />
           <Route path="/diagnostico"         element={<DiagnosticLP />} />
           <Route path="/diagnostico/:slug"   element={<DiagnosticLP />} />
+          <Route path="/negocios"            element={<RedeNegociosPage />} />
         </Routes>
       ) : (
         <Routes>
@@ -167,6 +172,8 @@ function AppRoutes() {
                     <Route path="/whatsapp"            element={<WhatsAppPage />} />
                     <Route path="/whatsapp/config"     element={<WhatsAppConfigPage />} />
                     <Route path="/financeiro"          element={<FinancialPage />} />
+                    <Route path="/rede/novo"           element={<RedeNovoPostPage />} />
+                    <Route path="/rede/admin"          element={<RedeAdminPage />} />
                     <Route path="*"                    element={<NotFound />} />
                   </Routes>
                 </AppLayout>
