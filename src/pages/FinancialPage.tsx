@@ -49,6 +49,7 @@ const formatBRL = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export default function FinancialPage() {
+  const { clients } = useAgency();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [settings, setSettings] = useState<PixSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +57,7 @@ export default function FinancialPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [form, setForm] = useState({
+    client_id: '',
     client_name: '',
     client_contact: '',
     description: '',
