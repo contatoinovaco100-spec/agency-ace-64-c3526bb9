@@ -234,7 +234,7 @@ export default function RedeNegociosPage() {
                   size="lg"
                   variant="outline"
                   className="gap-2"
-                  onClick={async () => { await signOut(); }}
+                  onClick={async () => { await signOut(); navigate('/login'); }}
                 >
                   <LogOut className="h-4 w-4" /> Sair
                 </Button>
