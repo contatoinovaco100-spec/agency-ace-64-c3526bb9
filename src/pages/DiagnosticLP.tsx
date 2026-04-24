@@ -138,6 +138,7 @@ export default function DiagnosticLP() {
   const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0 } };
 
   const clienteNome = displayConfig?.cliente?.nome || '@empresa';
+  const fotoPerfil = displayConfig?.cliente?.foto || displayConfig?.aiAnalise?.analysisImageUrl || '';
   const introTexto = displayConfig?.intro?.texto || 'Análise completa da sua presença digital e recomendações estratégicas para melhorar seu posicionamento online.';
 
   return (
@@ -199,10 +200,10 @@ export default function DiagnosticLP() {
         <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.8, duration: 0.8 }}
           className="mt-12 sm:mt-20 space-y-6 sm:space-y-8 relative z-10 w-full">
           <div className="inline-flex flex-wrap items-center justify-center gap-3 sm:gap-6 px-5 sm:px-10 py-3 sm:py-4 bg-white/10 rounded-full backdrop-blur-xl border border-white/10 max-w-full">
-              {displayConfig?.cliente?.foto && (
+              {fotoPerfil && (
                 <div className="w-8 h-8 rounded-full border-2 border-[#bff720] overflow-hidden shrink-0 bg-white/10">
                   <img 
-                    src={displayConfig.cliente.foto} 
+                    src={fotoPerfil} 
                     alt="Profile" 
                     className="w-full h-full object-cover" 
                     referrerPolicy="no-referrer"
@@ -267,11 +268,11 @@ export default function DiagnosticLP() {
                 </p>
                 <div className="flex items-center gap-6 pt-4">
                     <div className="flex -space-x-3">
-                        {displayConfig?.cliente?.foto && (
+                        {fotoPerfil && (
                             <motion.div initial={{ scale: 0 }} whileInView={{ scale: 1 }} viewport={{ once: true }}
                                 className="w-12 h-12 rounded-full border-4 border-[#F5F3EE] bg-gray-100 overflow-hidden">
                                 <img 
-                                    src={displayConfig.cliente.foto} 
+                                    src={fotoPerfil} 
                                     className="w-full h-full object-cover" 
                                     referrerPolicy="no-referrer"
                                     crossOrigin="anonymous"

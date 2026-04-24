@@ -151,7 +151,8 @@ export default function DiagnosticEditorPage() {
         ...clientInfo,
         nome: data.cliente?.nome || clientInfo.nome,
         instaAgencia: clientInfo.instaAgencia,
-        whatsAgencia: clientInfo.whatsAgencia
+        whatsAgencia: clientInfo.whatsAgencia,
+        foto: data.imageUrl || clientInfo.foto || ''
       },
       intro: { 
         titulo: 'Diagnóstico Estratégico de IA', 
