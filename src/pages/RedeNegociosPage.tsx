@@ -44,6 +44,7 @@ export default function RedeNegociosPage() {
   const { isAdmin } = useUserRole();
   const { isRedeCompanyUser } = useIsRedeCompanyUser();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // filters from URL (persistent)
   const [search, setSearch] = useState(searchParams.get('q') ?? '');
