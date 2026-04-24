@@ -1425,6 +1425,95 @@ export type Database = {
           },
         ]
       }
+      referral_clients: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          token?: string
+        }
+        Relationships: []
+      }
+      referral_tiers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          prize_description: string
+          required_count: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          prize_description?: string
+          required_count?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          prize_description?: string
+          required_count?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          referred_name: string
+          referred_whatsapp: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          referred_name: string
+          referred_whatsapp?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          referred_name?: string
+          referred_whatsapp?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "referral_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_contracts: {
         Row: {
           activities: string[]
