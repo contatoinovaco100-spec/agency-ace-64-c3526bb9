@@ -200,8 +200,15 @@ export default function DiagnosticLP() {
           className="mt-12 sm:mt-20 space-y-6 sm:space-y-8 relative z-10 w-full">
           <div className="inline-flex flex-wrap items-center justify-center gap-3 sm:gap-6 px-5 sm:px-10 py-3 sm:py-4 bg-white/10 rounded-full backdrop-blur-xl border border-white/10 max-w-full">
               {displayConfig?.cliente?.foto && (
-                <div className="w-8 h-8 rounded-full border-2 border-[#bff720] overflow-hidden shrink-0">
-                  <img src={displayConfig.cliente.foto} alt="Profile" className="w-full h-full object-cover" />
+                <div className="w-8 h-8 rounded-full border-2 border-[#bff720] overflow-hidden shrink-0 bg-white/10">
+                  <img 
+                    src={displayConfig.cliente.foto} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover" 
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                    onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
+                  />
                 </div>
               )}
               <div className="w-2 h-2 bg-[#bff720] rounded-full animate-pulse shrink-0" />
@@ -263,7 +270,13 @@ export default function DiagnosticLP() {
                         {displayConfig?.cliente?.foto && (
                             <motion.div initial={{ scale: 0 }} whileInView={{ scale: 1 }} viewport={{ once: true }}
                                 className="w-12 h-12 rounded-full border-4 border-[#F5F3EE] bg-gray-100 overflow-hidden">
-                                <img src={displayConfig.cliente.foto} className="w-full h-full object-cover" />
+                                <img 
+                                    src={displayConfig.cliente.foto} 
+                                    className="w-full h-full object-cover" 
+                                    referrerPolicy="no-referrer"
+                                    crossOrigin="anonymous"
+                                    onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
+                                />
                             </motion.div>
                         )}
                         {[1,2].map(i => (
