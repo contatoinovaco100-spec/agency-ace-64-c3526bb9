@@ -1,22 +1,24 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
   Sparkles, MessageCircle, Instagram as InstagramIcon, Globe, Search,
-  Loader2, Building2, MapPin, Star, Plus,
+  Loader2, Building2, MapPin, Star, Plus, X,
 } from 'lucide-react';
 import {
   NICHES, POST_TYPE_LABELS, type RedePost, type RedePostType,
 } from '@/types/rede';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 const PAGE_SIZE = 12;
 
@@ -39,21 +41,39 @@ function igLink(handle: string) {
 export default function RedeNegociosPage() {
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // filters from URL (persistent)
+  const [search, setSearch] = useState(searchParams.get('q') ?? '');
+  const [filterType, setFilterType] = useState<'all' | RedePostType>(
+    (searchParams.get('type') as 'all' | RedePostType) ?? 'all',
+  );
+  const [filterNiche, setFilterNiche] = useState<string>(searchParams.get('niche') ?? 'all');
+  const [filterCity, setFilterCity] = useState<string>(searchParams.get('city') ?? '');
+
+  const debouncedSearch = useDebouncedValue(search, 350);
+  const debouncedCity = useDebouncedValue(filterCity, 350);
+
+  // sync URL whenever filters change
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (debouncedSearch.trim()) params.q = debouncedSearch.trim();
+    if (filterType !== 'all') params.type = filterType;
+    if (filterNiche !== 'all') params.niche = filterNiche;
+    if (debouncedCity.trim()) params.city = debouncedCity.trim();
+    setSearchParams(params, { replace: true });
+  }, [debouncedSearch, filterType, filterNiche, debouncedCity, setSearchParams]);
+
   const [posts, setPosts] = useState<RedePost[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-
-  // filters
-  const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<'all' | RedePostType>('all');
-  const [filterNiche, setFilterNiche] = useState<string>('all');
-  const [filterCity, setFilterCity] = useState<string>('');
-
   const loaderRef = useRef<HTMLDivElement>(null);
+  const requestIdRef = useRef(0);
 
   const fetchPage = useCallback(async (pageIndex: number, replace = false) => {
+    const reqId = ++requestIdRef.current;
     if (pageIndex === 0) setLoading(true); else setLoadingMore(true);
 
     const from = pageIndex * PAGE_SIZE;
@@ -61,7 +81,7 @@ export default function RedeNegociosPage() {
 
     let query = supabase
       .from('rede_posts')
-      .select('*, company:rede_companies(*)', { count: 'exact' })
+      .select('*, company:rede_companies!inner(*)')
       .eq('is_hidden', false)
       .order('is_featured', { ascending: false })
       .order('created_at', { ascending: false })
@@ -69,42 +89,43 @@ export default function RedeNegociosPage() {
 
     if (filterType !== 'all') query = query.eq('post_type', filterType);
 
+    // server-side filters via joined table (PostgREST embedded filtering)
+    if (filterNiche !== 'all') {
+      query = query.eq('company.niche', filterNiche);
+    }
+    if (debouncedCity.trim()) {
+      query = query.ilike('company.city', `%${debouncedCity.trim()}%`);
+    }
+    if (debouncedSearch.trim()) {
+      // OR across content + company name
+      const s = debouncedSearch.trim().replace(/[%,]/g, ' ');
+      query = query.or(`content.ilike.%${s}%,company.name.ilike.%${s}%`);
+    }
+
     const { data, error } = await query;
+    // ignore stale responses
+    if (reqId !== requestIdRef.current) return;
+
     if (error) {
       console.error(error);
       setLoading(false); setLoadingMore(false);
       return;
     }
 
-    let rows = (data ?? []) as unknown as RedePost[];
-    // client-side filters that depend on company
-    if (filterNiche !== 'all') rows = rows.filter(p => p.company?.niche === filterNiche);
-    if (filterCity.trim()) {
-      const c = filterCity.trim().toLowerCase();
-      rows = rows.filter(p => (p.company?.city || '').toLowerCase().includes(c));
-    }
-    if (search.trim()) {
-      const s = search.trim().toLowerCase();
-      rows = rows.filter(p =>
-        p.content.toLowerCase().includes(s) ||
-        (p.company?.name || '').toLowerCase().includes(s) ||
-        (p.company?.services || []).some(srv => srv.toLowerCase().includes(s)),
-      );
-    }
-
-    setHasMore((data?.length ?? 0) === PAGE_SIZE);
+    const rows = (data ?? []) as unknown as RedePost[];
+    setHasMore(rows.length === PAGE_SIZE);
     setPosts(prev => replace ? rows : [...prev, ...rows]);
     setLoading(false);
     setLoadingMore(false);
-  }, [filterType, filterNiche, filterCity, search]);
+  }, [filterType, filterNiche, debouncedCity, debouncedSearch]);
 
   // reset on filter change
   useEffect(() => {
     setPage(0);
     fetchPage(0, true);
-  }, [filterType, filterNiche, filterCity, search, fetchPage]);
+  }, [fetchPage]);
 
-  // infinite scroll observer
+  // infinite scroll observer (rootMargin pre-fetches before reaching the bottom)
   useEffect(() => {
     const el = loaderRef.current;
     if (!el || !hasMore || loading) return;
@@ -114,12 +135,12 @@ export default function RedeNegociosPage() {
         setPage(next);
         fetchPage(next);
       }
-    }, { threshold: 0.5 });
+    }, { threshold: 0, rootMargin: '600px 0px' });
     obs.observe(el);
     return () => obs.disconnect();
   }, [page, hasMore, loading, loadingMore, fetchPage]);
 
-  // realtime
+  // realtime — only refetch first page silently
   useEffect(() => {
     const ch = supabase
       .channel('rede_posts_feed')
@@ -143,6 +164,16 @@ export default function RedeNegociosPage() {
     }
     return out;
   }, [posts]);
+
+  const hasActiveFilters =
+    !!search.trim() || filterType !== 'all' || filterNiche !== 'all' || !!filterCity.trim();
+
+  const clearFilters = () => {
+    setSearch('');
+    setFilterType('all');
+    setFilterNiche('all');
+    setFilterCity('');
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -187,13 +218,13 @@ export default function RedeNegociosPage() {
         </div>
       </header>
 
-      {/* FILTROS */}
-      <div className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur">
+      {/* FILTROS — sticky, persistem ao rolar */}
+      <div className="sticky top-0 z-20 border-b border-border/50 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">
         <div className="container mx-auto px-4 py-3 max-w-6xl flex flex-col md:flex-row gap-2 md:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar empresa, serviço ou texto…"
+              placeholder="Buscar empresa ou texto…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -221,6 +252,11 @@ export default function RedeNegociosPage() {
             onChange={(e) => setFilterCity(e.target.value)}
             className="md:w-40"
           />
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 shrink-0">
+              <X className="h-3.5 w-3.5" /> Limpar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -228,9 +264,7 @@ export default function RedeNegociosPage() {
         {/* FEED */}
         <main className="space-y-4">
           {loading ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+            <PostListSkeleton />
           ) : posts.length === 0 ? (
             <Card className="p-12 text-center text-muted-foreground">
               Nenhuma publicação encontrada com esses filtros.
@@ -289,9 +323,31 @@ export default function RedeNegociosPage() {
   );
 }
 
+function PostListSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Card key={i} className="p-5">
+          <div className="flex items-start gap-3">
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+            <Skeleton className="h-6 w-24" />
+          </div>
+          <Skeleton className="h-4 w-full mt-4" />
+          <Skeleton className="h-4 w-4/5 mt-2" />
+          <Skeleton className="h-40 w-full mt-4 rounded-lg" />
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 function CompanyLogo({ url, name, className = 'h-12 w-12' }: { url: string; name: string; className?: string }) {
   if (url) {
-    return <img src={url} alt={name} className={`${className} rounded-full object-cover bg-muted`} />;
+    return <img src={url} alt={name} className={`${className} rounded-full object-cover bg-muted`} loading="lazy" />;
   }
   const initials = name.slice(0, 2).toUpperCase();
   return (
@@ -338,10 +394,10 @@ function PostCard({ post }: { post: RedePost }) {
       )}
 
       {post.media_url && post.media_type === 'image' && (
-        <img src={post.media_url} alt="" className="mt-4 rounded-lg w-full object-cover max-h-[480px] bg-muted" />
+        <img src={post.media_url} alt="" loading="lazy" className="mt-4 rounded-lg w-full object-cover max-h-[480px] bg-muted" />
       )}
       {post.media_url && post.media_type === 'video' && (
-        <video src={post.media_url} controls className="mt-4 rounded-lg w-full max-h-[480px] bg-black" />
+        <video src={post.media_url} controls preload="metadata" className="mt-4 rounded-lg w-full max-h-[480px] bg-black" />
       )}
 
       <footer className="mt-4 flex flex-wrap gap-2">
