@@ -132,7 +132,8 @@ export default function RedeAdminPage() {
   }
 
   async function togglePost(id: string, field: 'is_hidden' | 'is_featured', value: boolean) {
-    const { error } = await supabase.from('rede_posts').update({ [field]: value }).eq('id', id);
+    const payload = field === 'is_hidden' ? { is_hidden: value } : { is_featured: value };
+    const { error } = await supabase.from('rede_posts').update(payload).eq('id', id);
     if (error) return toast.error(error.message);
     refresh();
   }
