@@ -167,7 +167,7 @@ export default function FinancialPage() {
     toast.success('Fatura criada com sucesso!');
     setOpen(false);
     setForm({
-      client_name: '', client_contact: '', description: '',
+      client_id: '', client_name: '', client_contact: '', description: '',
       amount: '', due_date: '', custom_message: '', notes: '',
     });
     load();
