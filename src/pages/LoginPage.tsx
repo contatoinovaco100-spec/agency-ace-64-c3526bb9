@@ -42,10 +42,20 @@ export default function LoginPage() {
       const { supabase } = await import('@/integrations/supabase/client');
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        // 1) Admin → dashboard
         const { data: roleRow } = await supabase
           .from('user_roles').select('role')
           .eq('user_id', user.id).eq('role', 'admin').maybeSingle();
-        navigate(roleRow ? '/' : '/minhas-tarefas');
+        if (roleRow) { navigate('/'); return; }
+
+        // 2) Empresa da Rede de Negócios → feed /negocios
+        const { data: companyRow } = await supabase
+          .from('rede_companies').select('id')
+          .eq('owner_user_id', user.id).maybeSingle();
+        if (companyRow) { navigate('/negocios'); return; }
+
+        // 3) Funcionário Inova → minhas tarefas
+        navigate('/minhas-tarefas');
       } else {
         navigate('/');
       }
