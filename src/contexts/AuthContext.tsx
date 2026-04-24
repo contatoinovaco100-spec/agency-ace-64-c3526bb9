@@ -52,6 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    try {
+      Object.keys(sessionStorage).forEach(k => {
+        if (k.startsWith('role:') || k.startsWith('rede:')) sessionStorage.removeItem(k);
+      });
+    } catch { /* ignore */ }
     await supabase.auth.signOut();
   };
 
