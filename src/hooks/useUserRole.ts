@@ -3,6 +3,37 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { APP_PAGES } from '@/config/app-pages';
 
+// Whitelist absoluta para usuários da Rede de Negócios (empresas parceiras).
+export const REDE_COMPANY_ALLOWED_PATHS = ['/negocios', '/rede/perfil', '/rede/novo'];
+
+/**
+ * Identifica se o usuário logado é dono de uma empresa parceira da Rede.
+ * Esses usuários ficam confinados ao feed /negocios e ao seu perfil.
+ */
+export function useIsRedeCompanyUser() {
+  const { user } = useAuth();
+  const [isRedeCompanyUser, setIsRedeCompanyUser] = useState(false);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) { setIsRedeCompanyUser(false); setCompanyId(null); setLoading(false); return; }
+    setLoading(true);
+    supabase
+      .from('rede_companies')
+      .select('id')
+      .eq('owner_user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setIsRedeCompanyUser(!!data);
+        setCompanyId(data?.id ?? null);
+        setLoading(false);
+      });
+  }, [user]);
+
+  return { isRedeCompanyUser, companyId, loading };
+}
+
 export function useUserRole() {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -31,13 +62,21 @@ export function useUserRole() {
 export function usePageAccess() {
   const { user } = useAuth();
   const { isAdmin, loading: roleLoading } = useUserRole();
+  const { isRedeCompanyUser, loading: redeLoading } = useIsRedeCompanyUser();
   const [allowedPaths, setAllowedPaths] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) { setAllowedPaths(new Set()); setLoading(false); return; }
-    if (roleLoading) return;
+    if (roleLoading || redeLoading) return;
     if (isAdmin) { setAllowedPaths(new Set(APP_PAGES.map(p => p.path))); setLoading(false); return; }
+
+    // Empresa parceira da Rede: whitelist estrita.
+    if (isRedeCompanyUser) {
+      setAllowedPaths(new Set(REDE_COMPANY_ALLOWED_PATHS));
+      setLoading(false);
+      return;
+    }
 
     supabase
       .from('user_page_access')
@@ -50,23 +89,37 @@ export function usePageAccess() {
         setAllowedPaths(set);
         setLoading(false);
       });
-  }, [user, isAdmin, roleLoading]);
+  }, [user, isAdmin, roleLoading, isRedeCompanyUser, redeLoading]);
 
   const hasPageAccess = (path: string) => {
     if (isAdmin) return true;
+
+    // Empresa parceira: ignora alwaysAllowed e libera APENAS a whitelist da Rede.
+    if (isRedeCompanyUser) {
+      if (REDE_COMPANY_ALLOWED_PATHS.includes(path)) return true;
+      for (const allowed of REDE_COMPANY_ALLOWED_PATHS) {
+        if (path.startsWith(allowed + '/')) return true;
+      }
+      return false;
+    }
+
     const page = APP_PAGES.find(p => p.path === path);
     if (page?.alwaysAllowed) return true;
     if (page?.adminOnly) return false;
-    // For unknown paths (sub-routes), allow by default if matched any allowed prefix
     if (allowedPaths.has(path)) return true;
-    // Allow nested paths like /linktree/123 if /linktree is allowed
     for (const allowed of allowedPaths) {
       if (allowed !== '/' && path.startsWith(allowed + '/')) return true;
     }
     return false;
   };
 
-  return { allowedPaths, hasPageAccess, isAdmin, loading: loading || roleLoading };
+  return {
+    allowedPaths,
+    hasPageAccess,
+    isAdmin,
+    isRedeCompanyUser,
+    loading: loading || roleLoading || redeLoading,
+  };
 }
 
 // ===== Backward-compat exports (legacy module-based code) =====

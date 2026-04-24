@@ -106,6 +106,8 @@ function AppRoutes() {
     location.pathname.startsWith('/fatura/') ||
     location.pathname.startsWith('/proposta') ||
     location.pathname === '/negocios' ||
+    location.pathname === '/rede/perfil' ||
+    location.pathname === '/rede/novo' ||
     (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar'));
 
   return (
@@ -126,6 +128,8 @@ function AppRoutes() {
           <Route path="/diagnostico"         element={<DiagnosticLP />} />
           <Route path="/diagnostico/:slug"   element={<DiagnosticLP />} />
           <Route path="/negocios"            element={<RedeNegociosPage />} />
+          <Route path="/rede/perfil"         element={<RedePerfilPage />} />
+          <Route path="/rede/novo"           element={<RedeNovoPostPage />} />
         </Routes>
       ) : (
         <Routes>
@@ -173,8 +177,6 @@ function AppRoutes() {
                     <Route path="/whatsapp"            element={<WhatsAppPage />} />
                     <Route path="/whatsapp/config"     element={<WhatsAppConfigPage />} />
                     <Route path="/financeiro"          element={<FinancialPage />} />
-                    <Route path="/rede/novo"           element={<RedeNovoPostPage />} />
-                    <Route path="/rede/perfil"         element={<RedePerfilPage />} />
                     <Route path="/rede/admin"          element={<RedeAdminPage />} />
                     <Route path="*"                    element={<NotFound />} />
                   </Routes>

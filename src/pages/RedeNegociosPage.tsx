@@ -11,13 +11,13 @@ import {
 } from '@/components/ui/select';
 import {
   Sparkles, MessageCircle, Instagram as InstagramIcon, Globe, Search,
-  Loader2, Building2, MapPin, Star, Plus, X,
+  Loader2, Building2, MapPin, Star, Plus, X, LogOut,
 } from 'lucide-react';
 import {
   NICHES, POST_TYPE_LABELS, type RedePost, type RedePostType,
 } from '@/types/rede';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUserRole } from '@/hooks/useUserRole';
+import { useUserRole, useIsRedeCompanyUser } from '@/hooks/useUserRole';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 const PAGE_SIZE = 12;
@@ -39,8 +39,9 @@ function igLink(handle: string) {
 }
 
 export default function RedeNegociosPage() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { isAdmin } = useUserRole();
+  const { isRedeCompanyUser } = useIsRedeCompanyUser();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // filters from URL (persistent)
@@ -191,23 +192,46 @@ export default function RedeNegociosPage() {
           </p>
 
           <div className="flex flex-wrap gap-3 mt-6">
-            {user ? (
-              <Button asChild size="lg" className="gap-2">
-                <Link to="/rede/perfil">
-                  <Building2 className="h-4 w-4" /> Meu perfil
-                </Link>
-              </Button>
-            ) : (
+            {!user && (
               <Button asChild size="lg" variant="outline" className="gap-2">
                 <Link to="/login">Entrar para publicar</Link>
               </Button>
             )}
-            {user && (
-              <Button asChild size="lg" variant="secondary" className="gap-2">
-                <Link to="/rede/novo">
-                  <Plus className="h-4 w-4" /> Publicar
-                </Link>
-              </Button>
+            {user && isRedeCompanyUser && (
+              <>
+                <Button asChild size="lg" className="gap-2">
+                  <Link to="/rede/perfil">
+                    <Building2 className="h-4 w-4" /> Meu perfil
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="secondary" className="gap-2">
+                  <Link to="/rede/novo">
+                    <Plus className="h-4 w-4" /> Nova publicação
+                  </Link>
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={async () => { await signOut(); }}
+                >
+                  <LogOut className="h-4 w-4" /> Sair
+                </Button>
+              </>
+            )}
+            {user && !isRedeCompanyUser && (
+              <>
+                <Button asChild size="lg" className="gap-2">
+                  <Link to="/rede/perfil">
+                    <Building2 className="h-4 w-4" /> Meu perfil
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="secondary" className="gap-2">
+                  <Link to="/rede/novo">
+                    <Plus className="h-4 w-4" /> Publicar
+                  </Link>
+                </Button>
+              </>
             )}
             {isAdmin && (
               <Button asChild size="lg" variant="outline" className="gap-2">
