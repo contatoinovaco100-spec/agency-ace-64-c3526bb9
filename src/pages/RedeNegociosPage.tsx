@@ -14,11 +14,12 @@ import {
   Loader2, Building2, MapPin, Star, Plus, X, LogOut,
 } from 'lucide-react';
 import {
-  NICHES, POST_TYPE_LABELS, type RedePost, type RedePostType,
+  NICHES, type RedePost, type RedePostType,
 } from '@/types/rede';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole, useIsRedeCompanyUser } from '@/hooks/useUserRole';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { PostInteractions } from '@/components/rede/PostInteractions';
 
 const PAGE_SIZE = 12;
 
@@ -384,11 +385,6 @@ function CompanyLogo({ url, name, className = 'h-12 w-12' }: { url: string; name
 function PostCard({ post }: { post: RedePost }) {
   const c = post.company;
   if (!c) return null;
-  const typeColor: Record<RedePostType, string> = {
-    atualizacao: 'bg-secondary text-secondary-foreground',
-    oferecendo: 'bg-primary/15 text-primary border border-primary/30',
-    procurando: 'bg-accent text-accent-foreground',
-  };
 
   return (
     <Card className={`p-5 transition-shadow hover:shadow-lg ${post.is_featured ? 'border-primary/40 ring-1 ring-primary/20' : ''}`}>
@@ -410,7 +406,6 @@ function PostCard({ post }: { post: RedePost }) {
             <span>{formatDate(post.created_at)}</span>
           </div>
         </div>
-        <Badge className={typeColor[post.post_type]}>{POST_TYPE_LABELS[post.post_type]}</Badge>
       </header>
 
       {post.content && (
@@ -450,6 +445,11 @@ function PostCard({ post }: { post: RedePost }) {
           </Button>
         )}
       </footer>
+
+      <PostInteractions postId={post.id} />
     </Card>
   );
 }
+
+// Keep RedePostType used via filter
+void (null as unknown as RedePostType);

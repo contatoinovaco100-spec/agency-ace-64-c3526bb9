@@ -7,12 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2, Image as ImageIcon, Video, X, ArrowLeft } from 'lucide-react';
-import { POST_TYPE_LABELS, type RedePostType, type RedeCompany, containsForbidden } from '@/types/rede';
+import { type RedeCompany, containsForbidden } from '@/types/rede';
 import { Link } from 'react-router-dom';
 
 export default function RedeNovoPostPage() {
@@ -23,7 +20,6 @@ export default function RedeNovoPostPage() {
   const [saving, setSaving] = useState(false);
 
   const [content, setContent] = useState('');
-  const [postType, setPostType] = useState<RedePostType>('atualizacao');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState('');
 
@@ -88,7 +84,7 @@ export default function RedeNovoPostPage() {
       content: content.trim(),
       media_url,
       media_type,
-      post_type: postType,
+      post_type: 'atualizacao',
     });
 
     if (error) {
@@ -127,18 +123,6 @@ export default function RedeNovoPostPage() {
           <div>
             <h1 className="text-2xl font-bold">Nova publicação</h1>
             <p className="text-sm text-muted-foreground">Publicando como <span className="text-foreground font-medium">{company.name}</span></p>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Tipo de publicação</Label>
-            <Select value={postType} onValueChange={(v) => setPostType(v as RedePostType)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {(Object.keys(POST_TYPE_LABELS) as RedePostType[]).map(k => (
-                  <SelectItem key={k} value={k}>{POST_TYPE_LABELS[k]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="space-y-2">
