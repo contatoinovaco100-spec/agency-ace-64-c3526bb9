@@ -1,7 +1,4 @@
-// trigger fresh sync 5 - Cache Invalidation Logic
-const APP_VERSION = '1.0.5'; // Increment this to force a full cache clear on all devices
-
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -201,18 +198,6 @@ function AppRoutes() {
 }
 
 const App = () => {
-  // Global Cache Invalidation Logic
-  useEffect(() => {
-    const savedVersion = localStorage.getItem('app_version');
-    if (savedVersion !== APP_VERSION) {
-      console.log(`New version detected: ${APP_VERSION}. Clearing cache...`);
-      localStorage.clear();
-      sessionStorage.clear();
-      localStorage.setItem('app_version', APP_VERSION);
-      window.location.reload();
-    }
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
