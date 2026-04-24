@@ -843,6 +843,57 @@ export type Database = {
         }
         Relationships: []
       }
+      invoices: {
+        Row: {
+          amount: number
+          client_contact: string
+          client_name: string
+          created_at: string
+          created_by: string | null
+          custom_message: string
+          description: string
+          due_date: string | null
+          id: string
+          notes: string
+          paid_at: string | null
+          pix_code: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          client_contact?: string
+          client_name: string
+          created_at?: string
+          created_by?: string | null
+          custom_message?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          notes?: string
+          paid_at?: string | null
+          pix_code?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_contact?: string
+          client_name?: string
+          created_at?: string
+          created_by?: string | null
+          custom_message?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          notes?: string
+          paid_at?: string | null
+          pix_code?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           assignee: string
@@ -1036,6 +1087,36 @@ export type Database = {
           meeting_date?: string
           status?: string
           title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pix_settings: {
+        Row: {
+          city: string
+          created_at: string
+          id: string
+          key_type: string
+          pix_key: string
+          receiver_name: string
+          updated_at: string
+        }
+        Insert: {
+          city?: string
+          created_at?: string
+          id?: string
+          key_type?: string
+          pix_key?: string
+          receiver_name?: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          id?: string
+          key_type?: string
+          pix_key?: string
+          receiver_name?: string
           updated_at?: string
         }
         Relationships: []
