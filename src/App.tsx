@@ -86,6 +86,9 @@ const EmployeesPage             = lazy(() => import("./pages/EmployeesPage"));
 const MyTasksPage               = lazy(() => import("./pages/MyTasksPage"));
 const WhatsAppPage              = lazy(() => import("./pages/WhatsAppPage"));
 const WhatsAppConfigPage        = lazy(() => import("./pages/WhatsAppConfigPage"));
+
+// Finance & Rede
+const FinancePage               = lazy(() => import("./pages/FinancePage"));
 const FinancialPage             = lazy(() => import("./pages/FinancialPage"));
 const PublicInvoicePage         = lazy(() => import("./pages/PublicInvoicePage"));
 const RedeNegociosPage          = lazy(() => import("./pages/RedeNegociosPage"));
@@ -187,7 +190,8 @@ function AppRoutes() {
                     <Route path="/minhas-tarefas"      element={<MyTasksPage />} />
                     <Route path="/whatsapp"            element={<WhatsAppPage />} />
                     <Route path="/whatsapp/config"     element={<WhatsAppConfigPage />} />
-                    <Route path="/financeiro"          element={<FinancialPage />} />
+                    <Route path="/financeiro"          element={<FinancePage />} />
+                    <Route path="/financeiro-base"     element={<FinancialPage />} />
                     <Route path="/rede/admin"          element={<RedeAdminPage />} />
                     <Route path="/indicacoes-admin"    element={<ReferralsAdminPage />} />
                     <Route path="*"                    element={<NotFound />} />
