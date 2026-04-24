@@ -55,8 +55,8 @@ export default function DiagnosticEditorPage() {
   const [step, setStep] = useState<'setup' | 'choice' | 'wizard' | 'ai_upload' | 'preview'>('setup');
   const [wizardStep, setWizardStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [clientInfo, setClientInfo] = useState<{nome: string; nicho: string; subtitulo: string; tema: string; primaryColor?: string; tipo: BusinessType; instaAgencia?: string; whatsAgencia?: string}>({ 
-    nome: '', nicho: '', subtitulo: 'Diagnóstico de Maturidade Estratégica', tema: 'teal', primaryColor: '#0D6E5E', tipo: 'servico', instaAgencia: '@inovaco.br', whatsAgencia: '(62) 99999-9999' 
+  const [clientInfo, setClientInfo] = useState<{nome: string; nicho: string; subtitulo: string; tema: string; primaryColor?: string; tipo: BusinessType; instaAgencia?: string; whatsAgencia?: string; foto?: string}>({ 
+    nome: '', nicho: '', subtitulo: 'Diagnóstico de Maturidade Estratégica', tema: 'teal', primaryColor: '#0D6E5E', tipo: 'servico', instaAgencia: '@inovaco.br', whatsAgencia: '(62) 99999-9999', foto: '' 
   });
   const [slug, setSlug] = useState('');
   const [config, setConfig] = useState<any>(null);
@@ -424,6 +424,10 @@ export default function DiagnosticEditorPage() {
                     <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase tracking-[3px] text-white/40 ml-1">Nicho / Especialidade</Label>
                         <Input className="h-16 bg-white/5 border-white/10 text-white rounded-[20px] focus:border-[#bff720]/50 transition-all text-xl" placeholder="Ex: Estética Avançada" value={clientInfo.nicho} onChange={e => setClientInfo({...clientInfo, nicho: e.target.value})} />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                        <Label className="text-[10px] font-black uppercase tracking-[3px] text-white/40 ml-1">URL da Foto de Perfil (Opcional)</Label>
+                        <Input className="h-16 bg-white/5 border-white/10 text-white rounded-[20px] focus:border-[#bff720]/50 transition-all text-sm" placeholder="https://instagram.fgyn..." value={clientInfo.foto} onChange={e => setClientInfo({...clientInfo, foto: e.target.value})} />
                     </div>
                 </div>
             </div>

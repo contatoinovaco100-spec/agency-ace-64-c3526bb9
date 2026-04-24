@@ -199,6 +199,11 @@ export default function DiagnosticLP() {
         <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.8, duration: 0.8 }}
           className="mt-12 sm:mt-20 space-y-6 sm:space-y-8 relative z-10 w-full">
           <div className="inline-flex flex-wrap items-center justify-center gap-3 sm:gap-6 px-5 sm:px-10 py-3 sm:py-4 bg-white/10 rounded-full backdrop-blur-xl border border-white/10 max-w-full">
+              {displayConfig?.cliente?.foto && (
+                <div className="w-8 h-8 rounded-full border-2 border-[#bff720] overflow-hidden shrink-0">
+                  <img src={displayConfig.cliente.foto} alt="Profile" className="w-full h-full object-cover" />
+                </div>
+              )}
               <div className="w-2 h-2 bg-[#bff720] rounded-full animate-pulse shrink-0" />
               <p className="text-[10px] sm:text-[11px] font-black text-[#bff720] tracking-[0.4em] sm:tracking-[0.9em] uppercase break-all">
                 @{clienteNome.replace('@','')}
@@ -255,7 +260,13 @@ export default function DiagnosticLP() {
                 </p>
                 <div className="flex items-center gap-6 pt-4">
                     <div className="flex -space-x-3">
-                        {[1,2,3].map(i => (
+                        {displayConfig?.cliente?.foto && (
+                            <motion.div initial={{ scale: 0 }} whileInView={{ scale: 1 }} viewport={{ once: true }}
+                                className="w-12 h-12 rounded-full border-4 border-[#F5F3EE] bg-gray-100 overflow-hidden">
+                                <img src={displayConfig.cliente.foto} className="w-full h-full object-cover" />
+                            </motion.div>
+                        )}
+                        {[1,2].map(i => (
                             <motion.div key={i} initial={{ scale: 0 }} whileInView={{ scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                                 className="w-12 h-12 rounded-full border-4 border-[#F5F3EE] bg-gray-100 flex items-center justify-center" />
                         ))}
