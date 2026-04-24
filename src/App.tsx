@@ -30,7 +30,17 @@ if (typeof window !== 'undefined') {
   }
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,        // 5 min sem refetch automático
+      gcTime: 1000 * 60 * 30,          // 30 min em cache
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: 1,
+    },
+  },
+});
 
 // Pages
 const Dashboard            = lazy(() => import("./pages/Dashboard"));
