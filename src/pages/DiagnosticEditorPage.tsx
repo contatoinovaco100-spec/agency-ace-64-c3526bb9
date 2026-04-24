@@ -334,17 +334,30 @@ export default function DiagnosticEditorPage() {
     setIsSaving(true);
     try {
       const currentSlug = slug || clientInfo.nome.toLowerCase().replace(/\s+/g, '-').replace('@','');
+      const mergedConfig = {
+        ...config,
+        cliente: {
+          ...(config?.cliente || {}),
+          nome: config?.cliente?.nome || clientInfo.nome,
+          tema: clientInfo.tema,
+          primaryColor: clientInfo.primaryColor,
+          instaAgencia: clientInfo.instaAgencia,
+          whatsAgencia: clientInfo.whatsAgencia,
+          foto: config?.cliente?.foto || clientInfo.foto || '',
+        },
+      };
       const { error } = await supabase
         .from('diagnostics' as any)
         .upsert({
           user_id: user.id,
           slug: currentSlug.trim().toLowerCase(),
-          title: config.cliente?.nome || 'Diagnóstico',
-          config: config,
+          title: mergedConfig.cliente?.nome || 'Diagnóstico',
+          config: mergedConfig,
           updated_at: new Date().toISOString()
         }, { onConflict: 'slug' });
 
       if (error) throw error;
+      setConfig(mergedConfig);
       setSlug(currentSlug);
       fetchHistory(); // Refresh history
       toast.success('Diagnóstico Publicado! 🚀');
