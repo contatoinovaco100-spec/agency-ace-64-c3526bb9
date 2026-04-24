@@ -36,16 +36,6 @@
 
   <body>
     <div id="root"></div>
-    <script>
-      window.addEventListener('error', function(e) {
-        if (e.message && (e.message.indexOf('Loading chunk') > -1 || e.message.indexOf('unexpected token') > -1)) {
-          console.warn('Chunk load error or syntax error detected. Forcing clean reload...');
-          localStorage.clear();
-          sessionStorage.clear();
-          window.location.reload(true);
-        }
-      });
-    </script>
 
   </body>
 </html>
