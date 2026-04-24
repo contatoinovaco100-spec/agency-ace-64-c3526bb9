@@ -450,6 +450,3 @@ function PostCard({ post }: { post: RedePost }) {
     </Card>
   );
 }
-
-// Keep RedePostType used via filter
-void (null as unknown as RedePostType);
