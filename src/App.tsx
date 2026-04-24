@@ -79,6 +79,8 @@ const EmployeesPage             = lazy(() => import("./pages/EmployeesPage"));
 const MyTasksPage               = lazy(() => import("./pages/MyTasksPage"));
 const WhatsAppPage              = lazy(() => import("./pages/WhatsAppPage"));
 const WhatsAppConfigPage        = lazy(() => import("./pages/WhatsAppConfigPage"));
+const FinancialPage             = lazy(() => import("./pages/FinancialPage"));
+const PublicInvoicePage         = lazy(() => import("./pages/PublicInvoicePage"));
 
 function PageLoader() {
   return (
@@ -97,6 +99,7 @@ function AppRoutes() {
     location.pathname.startsWith('/vitrine') ||
     location.pathname.startsWith('/links') ||
     location.pathname.startsWith('/briefing') ||
+    location.pathname.startsWith('/fatura/') ||
     location.pathname.startsWith('/proposta') ||
     (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar'));
 
@@ -111,6 +114,7 @@ function AppRoutes() {
           <Route path="/links"               element={<PublicLinktreePage />} />
           <Route path="/links/:slug"         element={<PublicLinktreePage />} />
           <Route path="/briefing"            element={<BriefingFormPage />} />
+          <Route path="/fatura/:id"          element={<PublicInvoicePage />} />
           <Route path="/proposta"            element={<SalesLP />} />
           <Route path="/proposta/:slug"      element={<SalesLP />} />
           <Route path="/proposta/editar"     element={<SalesEditorPage />} />
@@ -162,6 +166,7 @@ function AppRoutes() {
                     <Route path="/minhas-tarefas"      element={<MyTasksPage />} />
                     <Route path="/whatsapp"            element={<WhatsAppPage />} />
                     <Route path="/whatsapp/config"     element={<WhatsAppConfigPage />} />
+                    <Route path="/financeiro"          element={<FinancialPage />} />
                     <Route path="*"                    element={<NotFound />} />
                   </Routes>
                 </AppLayout>
