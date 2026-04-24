@@ -38,6 +38,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/notificacoes',        label: 'Notificações',        icon: Bell,            category: 'Geral', alwaysAllowed: true },
   { path: '/chat',                label: 'Chat Interno',        icon: MessageSquare,   category: 'Geral', alwaysAllowed: true },
   { path: '/roleta',              label: 'Roleta de Prêmios',   icon: Gift,            category: 'Geral', alwaysAllowed: true },
+  { path: '/negocios',            label: 'Rede de Negócios',    icon: Network,         category: 'Geral', alwaysAllowed: true },
 
   // Comercial
   { path: '/crm',                 label: 'CRM',                 icon: Target,          category: 'Comercial' },
