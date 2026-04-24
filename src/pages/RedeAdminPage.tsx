@@ -118,12 +118,7 @@ export default function RedeAdminPage() {
     const forbidden = services.find(s => containsForbidden(s)) || containsForbidden(editing.description || '');
     if (forbidden) { toast.error(`Termo não permitido: "${forbidden}".`); return; }
 
-    let owner_user_id = editing.owner_user_id ?? null;
-    if (ownerEmail.trim() && !owner_user_id) {
-      // Best-effort: try to find user by email via profiles (full_name not email)
-      // We don't have email lookup; admin can set later.
-      toast.message('Para vincular a um login, preencha o owner depois via banco se necessário.');
-    }
+    const owner_user_id = editing.owner_user_id ?? null;
 
     const payload = {
       name: editing.name!.trim(),
