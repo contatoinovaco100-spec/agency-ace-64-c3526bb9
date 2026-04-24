@@ -285,8 +285,40 @@ export default function FinancialPage() {
             <DialogDescription>Crie uma cobrança Pix em segundos.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+            <Field label="Vincular a um cliente existente">
+              <Select
+                value={form.client_id || 'none'}
+                onValueChange={v => {
+                  if (v === 'none') {
+                    setForm({ ...form, client_id: '', client_name: '', client_contact: '' });
+                    return;
+                  }
+                  const c = clients.find(cl => cl.id === v);
+                  if (c) {
+                    setForm({
+                      ...form,
+                      client_id: c.id,
+                      client_name: c.companyName || c.contactName,
+                      client_contact: c.phone || c.email || '',
+                    });
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um cliente ou preencha manualmente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Cliente avulso (preencher manualmente) —</SelectItem>
+                  {clients.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.companyName} {c.contactName ? `· ${c.contactName}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
             <Field label="Nome do cliente *">
-              <Input value={form.client_name} onChange={e => setForm({ ...form, client_name: e.target.value })} />
+              <Input value={form.client_name} onChange={e => setForm({ ...form, client_name: e.target.value, client_id: '' })} />
             </Field>
             <Field label="Contato (WhatsApp ou e-mail)">
               <Input
