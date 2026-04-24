@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
-  Loader2, Plus, EyeOff, Eye, Trash2, Star, StarOff, ArrowLeft, Building2, Pencil,
+  Loader2, Plus, EyeOff, Eye, Trash2, Star, StarOff, ArrowLeft, Building2, Pencil, KeyRound, CheckCircle2,
 } from 'lucide-react';
 import { NICHES, POST_TYPE_LABELS, containsForbidden, type RedeCompany, type RedePost } from '@/types/rede';
 
@@ -38,7 +38,13 @@ export default function RedeAdminPage() {
   // company form state
   const [editing, setEditing] = useState<Partial<RedeCompany> | null>(null);
   const [servicesText, setServicesText] = useState('');
-  const [ownerEmail, setOwnerEmail] = useState('');
+
+  // access modal state
+  const [accessFor, setAccessFor] = useState<RedeCompany | null>(null);
+  const [accessEmail, setAccessEmail] = useState('');
+  const [accessPassword, setAccessPassword] = useState('');
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [accessResult, setAccessResult] = useState<{ email: string; password: string } | null>(null);
 
   useEffect(() => {
     if (authLoading || roleLoading) return;
@@ -61,13 +67,48 @@ export default function RedeAdminPage() {
   function openNewCompany() {
     setEditing({ ...empty });
     setServicesText('');
-    setOwnerEmail('');
   }
 
   function openEditCompany(c: RedeCompany) {
     setEditing({ ...c });
     setServicesText(c.services.join(', '));
-    setOwnerEmail('');
+  }
+
+  function openCreateAccess(c: RedeCompany) {
+    setAccessFor(c);
+    setAccessEmail('');
+    setAccessPassword(genPassword());
+    setAccessResult(null);
+  }
+
+  function genPassword() {
+    return Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 6);
+  }
+
+  async function createAccess() {
+    if (!accessFor) return;
+    if (!accessEmail.trim() || !accessPassword.trim()) {
+      toast.error('Preencha email e senha.');
+      return;
+    }
+    setAccessLoading(true);
+    const { data, error } = await supabase.functions.invoke('rede-create-company-user', {
+      body: {
+        company_id: accessFor.id,
+        email: accessEmail.trim(),
+        password: accessPassword.trim(),
+        full_name: accessFor.name,
+      },
+    });
+    setAccessLoading(false);
+    if (error || (data as { error?: string })?.error) {
+      const msg = (data as { error?: string })?.error || error?.message || 'Falha ao criar acesso.';
+      toast.error(msg);
+      return;
+    }
+    setAccessResult({ email: accessEmail.trim(), password: accessPassword });
+    toast.success('Acesso criado com sucesso!');
+    refresh();
   }
 
   async function saveCompany() {
@@ -77,12 +118,7 @@ export default function RedeAdminPage() {
     const forbidden = services.find(s => containsForbidden(s)) || containsForbidden(editing.description || '');
     if (forbidden) { toast.error(`Termo não permitido: "${forbidden}".`); return; }
 
-    let owner_user_id = editing.owner_user_id ?? null;
-    if (ownerEmail.trim() && !owner_user_id) {
-      // Best-effort: try to find user by email via profiles (full_name not email)
-      // We don't have email lookup; admin can set later.
-      toast.message('Para vincular a um login, preencha o owner depois via banco se necessário.');
-    }
+    const owner_user_id = editing.owner_user_id ?? null;
 
     const payload = {
       name: editing.name!.trim(),
@@ -263,10 +299,16 @@ export default function RedeAdminPage() {
                       <span className="font-medium truncate">{c.name}</span>
                       {c.is_featured && <Badge className="gap-1 bg-primary/15 text-primary border border-primary/30"><Star className="h-3 w-3" /> Destaque</Badge>}
                       {!c.is_active && <Badge variant="outline" className="text-muted-foreground">Inativa</Badge>}
+                      {c.owner_user_id
+                        ? <Badge variant="outline" className="gap-1 text-[hsl(var(--success))]"><CheckCircle2 className="h-3 w-3" /> Acesso ativo</Badge>
+                        : <Badge variant="outline" className="text-muted-foreground">Sem acesso</Badge>}
                     </div>
                     <div className="text-xs text-muted-foreground truncate">{c.niche || 'Sem nicho'} · {c.city || 'Sem cidade'}</div>
                   </div>
                   <div className="flex gap-1">
+                    {!c.owner_user_id && (
+                      <Button size="icon" variant="ghost" title="Criar acesso" onClick={() => openCreateAccess(c)}><KeyRound className="h-4 w-4" /></Button>
+                    )}
                     <Button size="icon" variant="ghost" onClick={() => openEditCompany(c)}><Pencil className="h-4 w-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => deleteCompany(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                   </div>
@@ -311,6 +353,68 @@ export default function RedeAdminPage() {
           </div>
         )}
       </div>
+
+      {/* MODAL — criar acesso da empresa */}
+      <Dialog open={!!accessFor} onOpenChange={(o) => { if (!o) { setAccessFor(null); setAccessResult(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar acesso — {accessFor?.name}</DialogTitle>
+          </DialogHeader>
+          {accessResult ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-[hsl(var(--success))]">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="font-medium">Acesso criado com sucesso!</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Envie estas credenciais para a empresa. Eles podem entrar em <code>/login</code> e
+                publicar pelo botão "Meu perfil" no feed.
+              </p>
+              <Card className="p-3 space-y-1 bg-muted/40">
+                <div className="text-xs"><span className="text-muted-foreground">E-mail:</span> <strong>{accessResult.email}</strong></div>
+                <div className="text-xs"><span className="text-muted-foreground">Senha inicial:</span> <strong>{accessResult.password}</strong></div>
+              </Card>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(`Login: ${accessResult.email}\nSenha: ${accessResult.password}\nAcesse: ${window.location.origin}/login`);
+                  toast.success('Credenciais copiadas.');
+                }}
+              >
+                Copiar credenciais
+              </Button>
+              <div className="flex justify-end pt-2">
+                <Button onClick={() => { setAccessFor(null); setAccessResult(null); }}>Fechar</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Crie um login para esta empresa publicar no feed. O acesso é vinculado automaticamente a <strong>{accessFor?.name}</strong>.
+              </p>
+              <div className="space-y-2">
+                <Label>E-mail da empresa</Label>
+                <Input type="email" value={accessEmail} onChange={(e) => setAccessEmail(e.target.value)} placeholder="contato@empresa.com" />
+              </div>
+              <div className="space-y-2">
+                <Label>Senha inicial</Label>
+                <div className="flex gap-2">
+                  <Input value={accessPassword} onChange={(e) => setAccessPassword(e.target.value)} />
+                  <Button variant="outline" type="button" onClick={() => setAccessPassword(genPassword())}>Gerar</Button>
+                </div>
+                <p className="text-xs text-muted-foreground">A empresa poderá trocar depois pelo painel de perfil.</p>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setAccessFor(null)}>Cancelar</Button>
+                <Button onClick={createAccess} disabled={accessLoading} className="gap-2">
+                  {accessLoading && <Loader2 className="h-4 w-4 animate-spin" />} Criar acesso
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

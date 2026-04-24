@@ -130,6 +130,10 @@ export default function LoginPage() {
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? 'Entrando...' : 'Entrar'}
                   </Button>
+                  <div className="text-center text-xs text-muted-foreground border-t border-border pt-3 mt-2">
+                    É uma empresa da <strong>Rede de Negócios Inova</strong>?<br />
+                    Use o login enviado pela equipe Inova para acessar seu perfil e publicar.
+                  </div>
                 </form>
               </TabsContent>
 

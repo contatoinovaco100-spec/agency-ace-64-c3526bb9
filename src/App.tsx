@@ -84,6 +84,7 @@ const PublicInvoicePage         = lazy(() => import("./pages/PublicInvoicePage")
 const RedeNegociosPage          = lazy(() => import("./pages/RedeNegociosPage"));
 const RedeNovoPostPage          = lazy(() => import("./pages/RedeNovoPostPage"));
 const RedeAdminPage             = lazy(() => import("./pages/RedeAdminPage"));
+const RedePerfilPage            = lazy(() => import("./pages/RedePerfilPage"));
 
 function PageLoader() {
   return (
@@ -173,6 +174,7 @@ function AppRoutes() {
                     <Route path="/whatsapp/config"     element={<WhatsAppConfigPage />} />
                     <Route path="/financeiro"          element={<FinancialPage />} />
                     <Route path="/rede/novo"           element={<RedeNovoPostPage />} />
+                    <Route path="/rede/perfil"         element={<RedePerfilPage />} />
                     <Route path="/rede/admin"          element={<RedeAdminPage />} />
                     <Route path="*"                    element={<NotFound />} />
                   </Routes>
