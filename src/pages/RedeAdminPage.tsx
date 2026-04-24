@@ -353,6 +353,68 @@ export default function RedeAdminPage() {
           </div>
         )}
       </div>
+
+      {/* MODAL — criar acesso da empresa */}
+      <Dialog open={!!accessFor} onOpenChange={(o) => { if (!o) { setAccessFor(null); setAccessResult(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar acesso — {accessFor?.name}</DialogTitle>
+          </DialogHeader>
+          {accessResult ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-[hsl(var(--success))]">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="font-medium">Acesso criado com sucesso!</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Envie estas credenciais para a empresa. Eles podem entrar em <code>/login</code> e
+                publicar pelo botão "Meu perfil" no feed.
+              </p>
+              <Card className="p-3 space-y-1 bg-muted/40">
+                <div className="text-xs"><span className="text-muted-foreground">E-mail:</span> <strong>{accessResult.email}</strong></div>
+                <div className="text-xs"><span className="text-muted-foreground">Senha inicial:</span> <strong>{accessResult.password}</strong></div>
+              </Card>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(`Login: ${accessResult.email}\nSenha: ${accessResult.password}\nAcesse: ${window.location.origin}/login`);
+                  toast.success('Credenciais copiadas.');
+                }}
+              >
+                Copiar credenciais
+              </Button>
+              <div className="flex justify-end pt-2">
+                <Button onClick={() => { setAccessFor(null); setAccessResult(null); }}>Fechar</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Crie um login para esta empresa publicar no feed. O acesso é vinculado automaticamente a <strong>{accessFor?.name}</strong>.
+              </p>
+              <div className="space-y-2">
+                <Label>E-mail da empresa</Label>
+                <Input type="email" value={accessEmail} onChange={(e) => setAccessEmail(e.target.value)} placeholder="contato@empresa.com" />
+              </div>
+              <div className="space-y-2">
+                <Label>Senha inicial</Label>
+                <div className="flex gap-2">
+                  <Input value={accessPassword} onChange={(e) => setAccessPassword(e.target.value)} />
+                  <Button variant="outline" type="button" onClick={() => setAccessPassword(genPassword())}>Gerar</Button>
+                </div>
+                <p className="text-xs text-muted-foreground">A empresa poderá trocar depois pelo painel de perfil.</p>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setAccessFor(null)}>Cancelar</Button>
+                <Button onClick={createAccess} disabled={accessLoading} className="gap-2">
+                  {accessLoading && <Loader2 className="h-4 w-4 animate-spin" />} Criar acesso
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
