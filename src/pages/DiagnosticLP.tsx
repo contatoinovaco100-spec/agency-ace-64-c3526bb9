@@ -76,6 +76,8 @@ export default function DiagnosticLP() {
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<any>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [resolvedProfileImage, setResolvedProfileImage] = useState('');
+  const [resolvedAnalysisImage, setResolvedAnalysisImage] = useState('');
 
   useEffect(() => {
     const fetchDiagnostic = async () => {
@@ -122,6 +124,44 @@ export default function DiagnosticLP() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [slug]);
 
+  useEffect(() => {
+    const resolveStorageUrl = async (url?: string | null) => {
+      if (!url) return '';
+
+      const storagePrefix = '/storage/v1/object/public/task-attachments/';
+      if (!url.includes(storagePrefix)) return url;
+
+      const filePath = decodeURIComponent(url.split(storagePrefix)[1] || '');
+      if (!filePath) return url;
+
+      const { data, error } = await supabase.storage
+        .from('task-attachments')
+        .createSignedUrl(filePath, 60 * 60 * 24 * 7);
+
+      if (error || !data?.signedUrl) {
+        console.error('Erro ao gerar URL assinada da imagem do diagnóstico:', error);
+        return url;
+      }
+
+      return data.signedUrl;
+    };
+
+    const resolveImages = async () => {
+      const profileCandidate = config?.cliente?.foto || config?.aiAnalise?.analysisImageUrl || '';
+      const analysisCandidate = config?.aiAnalise?.analysisImageUrl || '';
+
+      const [profileUrl, analysisUrl] = await Promise.all([
+        resolveStorageUrl(profileCandidate),
+        resolveStorageUrl(analysisCandidate),
+      ]);
+
+      setResolvedProfileImage(profileUrl);
+      setResolvedAnalysisImage(analysisUrl);
+    };
+
+    void resolveImages();
+  }, [config]);
+
   if (loading) return (
     <div className="flex h-screen w-full items-center justify-center bg-[#0a0a0a]">
       <Spinner className="h-8 w-8 animate-spin text-[#bff720]" />
@@ -138,7 +178,7 @@ export default function DiagnosticLP() {
   const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0 } };
 
   const clienteNome = displayConfig?.cliente?.nome || '@empresa';
-  const fotoPerfil = displayConfig?.cliente?.foto || displayConfig?.aiAnalise?.analysisImageUrl || '';
+  const fotoPerfil = resolvedProfileImage || displayConfig?.cliente?.foto || displayConfig?.aiAnalise?.analysisImageUrl || '';
   const introTexto = displayConfig?.intro?.texto || 'Análise completa da sua presença digital e recomendações estratégicas para melhorar seu posicionamento online.';
 
   return (
@@ -412,7 +452,7 @@ export default function DiagnosticLP() {
             <div className="max-w-7xl mx-auto space-y-12 sm:space-y-20">
                 
                 {/* Print da Análise (Novo) */}
-                {displayConfig.aiAnalise.analysisImageUrl && (
+                {(resolvedAnalysisImage || displayConfig.aiAnalise.analysisImageUrl) && (
                   <motion.div initial={{ opacity: 0, scale: 0.95, y: 30 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true }} className="space-y-10">
                       <div className="text-center space-y-5">
                           <motion.div initial={{ opacity: 0, y: -10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
@@ -424,7 +464,7 @@ export default function DiagnosticLP() {
                       </div>
                       <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
                         className="relative max-w-5xl mx-auto rounded-[28px] sm:rounded-[50px] overflow-hidden shadow-2xl border-4 sm:border-8 border-gray-100 group">
-                          <img src={displayConfig.aiAnalise.analysisImageUrl} alt="Print da Análise" className="w-full h-auto grayscale-[0.15] group-hover:grayscale-0 transition-all duration-700" />
+                          <img src={resolvedAnalysisImage || displayConfig.aiAnalise.analysisImageUrl} alt="Print da Análise" className="w-full h-auto grayscale-[0.15] group-hover:grayscale-0 transition-all duration-700" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
                           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ delay: 0.5 }} className="absolute bottom-6 right-6 px-4 py-2 bg-black/80 backdrop-blur-md rounded-full">
                             <span className="text-[9px] font-black text-white uppercase tracking-widest">Análise IA</span>
