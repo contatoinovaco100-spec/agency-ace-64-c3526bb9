@@ -6,27 +6,51 @@ import { APP_PAGES } from '@/config/app-pages';
 // Whitelist absoluta para usuários da Rede de Negócios (empresas parceiras).
 export const REDE_COMPANY_ALLOWED_PATHS = ['/negocios', '/rede/perfil', '/rede/novo'];
 
+// Cache em sessão para eliminar latência de checagem de role/empresa em navegações.
+const roleCache = new Map<string, boolean>();
+const redeCache = new Map<string, { is: boolean; id: string | null }>();
+
+function readSessionCache<T>(key: string): T | null {
+  try { const raw = sessionStorage.getItem(key); return raw ? (JSON.parse(raw) as T) : null; } catch { return null; }
+}
+function writeSessionCache(key: string, value: unknown) {
+  try { sessionStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
+}
+
 /**
  * Identifica se o usuário logado é dono de uma empresa parceira da Rede.
  * Esses usuários ficam confinados ao feed /negocios e ao seu perfil.
  */
 export function useIsRedeCompanyUser() {
   const { user } = useAuth();
-  const [isRedeCompanyUser, setIsRedeCompanyUser] = useState(false);
-  const [companyId, setCompanyId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cached = user
+    ? (redeCache.get(`rede:${user.id}`) ?? readSessionCache<{ is: boolean; id: string | null }>(`rede:${user.id}`))
+    : null;
+  const [isRedeCompanyUser, setIsRedeCompanyUser] = useState(cached?.is ?? false);
+  const [companyId, setCompanyId] = useState<string | null>(cached?.id ?? null);
+  const [loading, setLoading] = useState(!cached);
 
   useEffect(() => {
     if (!user) { setIsRedeCompanyUser(false); setCompanyId(null); setLoading(false); return; }
-    setLoading(true);
+    const key = `rede:${user.id}`;
+    const sessionCached = redeCache.get(key) ?? readSessionCache<{ is: boolean; id: string | null }>(key);
+    if (sessionCached) {
+      setIsRedeCompanyUser(sessionCached.is);
+      setCompanyId(sessionCached.id);
+      setLoading(false);
+      return;
+    }
     supabase
       .from('rede_companies')
       .select('id')
       .eq('owner_user_id', user.id)
       .maybeSingle()
       .then(({ data }) => {
-        setIsRedeCompanyUser(!!data);
-        setCompanyId(data?.id ?? null);
+        const value = { is: !!data, id: data?.id ?? null };
+        redeCache.set(key, value);
+        writeSessionCache(key, value);
+        setIsRedeCompanyUser(value.is);
+        setCompanyId(value.id);
         setLoading(false);
       });
   }, [user]);
@@ -36,18 +60,29 @@ export function useIsRedeCompanyUser() {
 
 export function useUserRole() {
   const { user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const cached = user ? (roleCache.get(`role:${user.id}`) ?? readSessionCache<boolean>(`role:${user.id}`)) : null;
+  const [isAdmin, setIsAdmin] = useState<boolean>(cached ?? false);
+  const [loading, setLoading] = useState(cached === null || cached === undefined);
 
   useEffect(() => {
     if (!user) { setIsAdmin(false); setLoading(false); return; }
+    const key = `role:${user.id}`;
+    const sessionCached = roleCache.get(key) ?? readSessionCache<boolean>(key);
+    if (sessionCached !== null && sessionCached !== undefined) {
+      setIsAdmin(sessionCached);
+      setLoading(false);
+      return;
+    }
     supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .eq('role', 'admin')
       .then(({ data }) => {
-        setIsAdmin(!!data && data.length > 0);
+        const admin = !!data && data.length > 0;
+        roleCache.set(key, admin);
+        writeSessionCache(key, admin);
+        setIsAdmin(admin);
         setLoading(false);
       });
   }, [user]);

@@ -182,9 +182,19 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     post_date: t.postDate || null, post_time: t.postTime || null,
   });
 
-  const addClient = async (c: Client) => { await supabase.from('clients').insert(clientToRow(c)); await fetchAll(); };
-  const updateClient = async (c: Client) => { const { id, ...rest } = clientToRow(c); await supabase.from('clients').update(rest).eq('id', c.id); await fetchAll(); };
-  const deleteClient = async (id: string) => { await supabase.from('clients').delete().eq('id', id); await fetchAll(); };
+  const addClient = async (c: Client) => {
+    await supabase.from('clients').insert(clientToRow(c));
+    setAllClients(prev => [...prev, c]);
+  };
+  const updateClient = async (c: Client) => {
+    const { id, ...rest } = clientToRow(c);
+    await supabase.from('clients').update(rest).eq('id', c.id);
+    setAllClients(prev => prev.map(x => x.id === c.id ? c : x));
+  };
+  const deleteClient = async (id: string) => {
+    await supabase.from('clients').delete().eq('id', id);
+    setAllClients(prev => prev.filter(x => x.id !== id));
+  };
 
   const addTask = async (t: Task) => {
     const { error } = await supabase.from('tasks').insert(taskToRow(t) as any);
@@ -194,16 +204,19 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
         .map((label, i) => ({ id: crypto.randomUUID(), task_id: t.id, label, checked: false, sort_order: i }));
       await supabase.from('task_checklist_items').insert(items);
     }
-    await fetchAll();
+    setTasks(prev => [...prev, t]);
   };
 
   const updateTask = async (t: Task) => {
     const { id, ...rest } = taskToRow(t);
     await supabase.from('tasks').update(rest as any).eq('id', t.id);
-    await fetchAll();
+    setTasks(prev => prev.map(x => x.id === t.id ? t : x));
   };
 
-  const deleteTask = async (id: string) => { await supabase.from('tasks').delete().eq('id', id); await fetchAll(); };
+  const deleteTask = async (id: string) => {
+    await supabase.from('tasks').delete().eq('id', id);
+    setTasks(prev => prev.filter(x => x.id !== id));
+  };
 
   const advanceVideoStage = async (task: Task, changedBy: string) => {
     const stages = ['Em copy', 'Em direção', 'Em gravação', 'Em edição', 'Finalizado'];
@@ -223,9 +236,18 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     } as any);
   };
 
-  const addLead = async (l: Lead) => { await supabase.from('leads').insert({ id: l.id, name: l.name, company: l.company, email: l.email, phone: l.phone, source: l.source, assignee: l.assignee, notes: l.notes, stage: l.stage, estimated_value: l.estimatedValue }); await fetchAll(); };
-  const updateLead = async (l: Lead) => { await supabase.from('leads').update({ name: l.name, company: l.company, email: l.email, phone: l.phone, source: l.source, assignee: l.assignee, notes: l.notes, stage: l.stage, estimated_value: l.estimatedValue }).eq('id', l.id); await fetchAll(); };
-  const deleteLead = async (id: string) => { await supabase.from('leads').delete().eq('id', id); await fetchAll(); };
+  const addLead = async (l: Lead) => {
+    await supabase.from('leads').insert({ id: l.id, name: l.name, company: l.company, email: l.email, phone: l.phone, source: l.source, assignee: l.assignee, notes: l.notes, stage: l.stage, estimated_value: l.estimatedValue });
+    setLeads(prev => [...prev, l]);
+  };
+  const updateLead = async (l: Lead) => {
+    await supabase.from('leads').update({ name: l.name, company: l.company, email: l.email, phone: l.phone, source: l.source, assignee: l.assignee, notes: l.notes, stage: l.stage, estimated_value: l.estimatedValue }).eq('id', l.id);
+    setLeads(prev => prev.map(x => x.id === l.id ? l : x));
+  };
+  const deleteLead = async (id: string) => {
+    await supabase.from('leads').delete().eq('id', id);
+    setLeads(prev => prev.filter(x => x.id !== id));
+  };
 
   const convertLeadToClient = async (leadId: string, clientData: Partial<Client>) => {
     const lead = leads.find(l => l.id === leadId);
@@ -243,8 +265,14 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
 
   // Team members are now derived from `profiles` (see fetchAll). Manage employees in /funcionarios.
 
-  const addEvent = async (e: CalendarEvent) => { await supabase.from('calendar_events').insert({ id: e.id, title: e.title, date: e.date, type: e.type, client_id: e.clientId || null }); await fetchAll(); };
-  const deleteEvent = async (id: string) => { await supabase.from('calendar_events').delete().eq('id', id); await fetchAll(); };
+  const addEvent = async (e: CalendarEvent) => {
+    await supabase.from('calendar_events').insert({ id: e.id, title: e.title, date: e.date, type: e.type, client_id: e.clientId || null });
+    setEvents(prev => [...prev, e]);
+  };
+  const deleteEvent = async (id: string) => {
+    await supabase.from('calendar_events').delete().eq('id', id);
+    setEvents(prev => prev.filter(x => x.id !== id));
+  };
 
   const getChecklist = async (taskId: string): Promise<TaskChecklistItem[]> => {
     const { data } = await supabase.from('task_checklist_items').select('*').eq('task_id', taskId).order('sort_order');
