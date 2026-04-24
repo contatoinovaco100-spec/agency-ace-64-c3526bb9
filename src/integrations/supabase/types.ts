@@ -1308,6 +1308,73 @@ export type Database = {
         }
         Relationships: []
       }
+      rede_post_comments: {
+        Row: {
+          author_avatar: string
+          author_name: string
+          author_user_id: string
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+        }
+        Insert: {
+          author_avatar?: string
+          author_name?: string
+          author_user_id: string
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+        }
+        Update: {
+          author_avatar?: string
+          author_name?: string
+          author_user_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rede_post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "rede_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rede_post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rede_post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "rede_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rede_posts: {
         Row: {
           author_user_id: string | null
