@@ -138,6 +138,7 @@ export default function DiagnosticLP() {
   const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0 } };
 
   const clienteNome = displayConfig?.cliente?.nome || '@empresa';
+  const fotoPerfil = displayConfig?.cliente?.foto || displayConfig?.aiAnalise?.analysisImageUrl || '';
   const introTexto = displayConfig?.intro?.texto || 'Análise completa da sua presença digital e recomendações estratégicas para melhorar seu posicionamento online.';
 
   return (
