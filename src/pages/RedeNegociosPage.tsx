@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +44,7 @@ export default function RedeNegociosPage() {
   const { isAdmin } = useUserRole();
   const { isRedeCompanyUser } = useIsRedeCompanyUser();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // filters from URL (persistent)
   const [search, setSearch] = useState(searchParams.get('q') ?? '');
@@ -233,7 +234,7 @@ export default function RedeNegociosPage() {
                   size="lg"
                   variant="outline"
                   className="gap-2"
-                  onClick={async () => { await signOut(); }}
+                  onClick={async () => { await signOut(); navigate('/login'); }}
                 >
                   <LogOut className="h-4 w-4" /> Sair
                 </Button>
