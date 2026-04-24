@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
-  Loader2, Plus, EyeOff, Eye, Trash2, Star, StarOff, ArrowLeft, Building2, Pencil,
+  Loader2, Plus, EyeOff, Eye, Trash2, Star, StarOff, ArrowLeft, Building2, Pencil, KeyRound, CheckCircle2,
 } from 'lucide-react';
 import { NICHES, POST_TYPE_LABELS, containsForbidden, type RedeCompany, type RedePost } from '@/types/rede';
 
@@ -38,7 +38,13 @@ export default function RedeAdminPage() {
   // company form state
   const [editing, setEditing] = useState<Partial<RedeCompany> | null>(null);
   const [servicesText, setServicesText] = useState('');
-  const [ownerEmail, setOwnerEmail] = useState('');
+
+  // access modal state
+  const [accessFor, setAccessFor] = useState<RedeCompany | null>(null);
+  const [accessEmail, setAccessEmail] = useState('');
+  const [accessPassword, setAccessPassword] = useState('');
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [accessResult, setAccessResult] = useState<{ email: string; password: string } | null>(null);
 
   useEffect(() => {
     if (authLoading || roleLoading) return;
@@ -61,13 +67,48 @@ export default function RedeAdminPage() {
   function openNewCompany() {
     setEditing({ ...empty });
     setServicesText('');
-    setOwnerEmail('');
   }
 
   function openEditCompany(c: RedeCompany) {
     setEditing({ ...c });
     setServicesText(c.services.join(', '));
-    setOwnerEmail('');
+  }
+
+  function openCreateAccess(c: RedeCompany) {
+    setAccessFor(c);
+    setAccessEmail('');
+    setAccessPassword(genPassword());
+    setAccessResult(null);
+  }
+
+  function genPassword() {
+    return Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 6);
+  }
+
+  async function createAccess() {
+    if (!accessFor) return;
+    if (!accessEmail.trim() || !accessPassword.trim()) {
+      toast.error('Preencha email e senha.');
+      return;
+    }
+    setAccessLoading(true);
+    const { data, error } = await supabase.functions.invoke('rede-create-company-user', {
+      body: {
+        company_id: accessFor.id,
+        email: accessEmail.trim(),
+        password: accessPassword.trim(),
+        full_name: accessFor.name,
+      },
+    });
+    setAccessLoading(false);
+    if (error || (data as { error?: string })?.error) {
+      const msg = (data as { error?: string })?.error || error?.message || 'Falha ao criar acesso.';
+      toast.error(msg);
+      return;
+    }
+    setAccessResult({ email: accessEmail.trim(), password: accessPassword });
+    toast.success('Acesso criado com sucesso!');
+    refresh();
   }
 
   async function saveCompany() {
