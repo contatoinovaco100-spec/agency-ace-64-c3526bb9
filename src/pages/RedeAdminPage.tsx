@@ -299,10 +299,16 @@ export default function RedeAdminPage() {
                       <span className="font-medium truncate">{c.name}</span>
                       {c.is_featured && <Badge className="gap-1 bg-primary/15 text-primary border border-primary/30"><Star className="h-3 w-3" /> Destaque</Badge>}
                       {!c.is_active && <Badge variant="outline" className="text-muted-foreground">Inativa</Badge>}
+                      {c.owner_user_id
+                        ? <Badge variant="outline" className="gap-1 text-[hsl(var(--success))]"><CheckCircle2 className="h-3 w-3" /> Acesso ativo</Badge>
+                        : <Badge variant="outline" className="text-muted-foreground">Sem acesso</Badge>}
                     </div>
                     <div className="text-xs text-muted-foreground truncate">{c.niche || 'Sem nicho'} · {c.city || 'Sem cidade'}</div>
                   </div>
                   <div className="flex gap-1">
+                    {!c.owner_user_id && (
+                      <Button size="icon" variant="ghost" title="Criar acesso" onClick={() => openCreateAccess(c)}><KeyRound className="h-4 w-4" /></Button>
+                    )}
                     <Button size="icon" variant="ghost" onClick={() => openEditCompany(c)}><Pencil className="h-4 w-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => deleteCompany(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                   </div>
