@@ -74,6 +74,25 @@ export default function RedeNegociosPage() {
   const loaderRef = useRef<HTMLDivElement>(null);
   const requestIdRef = useRef(0);
 
+  // Lista completa de empresas ativas para o painel de contatos
+  const [allCompanies, setAllCompanies] = useState<RedePost['company'][]>([]);
+  const [companySearch, setCompanySearch] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data } = await supabase
+        .from('rede_companies')
+        .select('*')
+        .eq('is_active', true)
+        .order('is_featured', { ascending: false })
+        .order('name', { ascending: true });
+      if (!alive) return;
+      setAllCompanies((data ?? []) as unknown as RedePost['company'][]);
+    })();
+    return () => { alive = false; };
+  }, []);
+
   const fetchPage = useCallback(async (pageIndex: number, replace = false) => {
     const reqId = ++requestIdRef.current;
     if (pageIndex === 0) setLoading(true); else setLoadingMore(true);
