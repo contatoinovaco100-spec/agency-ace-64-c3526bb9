@@ -90,6 +90,8 @@ const FinancialPage             = lazy(() => import("./pages/FinancialPage"));
 const PublicInvoicePage         = lazy(() => import("./pages/PublicInvoicePage"));
 const RedeNegociosPage          = lazy(() => import("./pages/RedeNegociosPage"));
 const RedeNovoPostPage          = lazy(() => import("./pages/RedeNovoPostPage"));
+const PublicReferralsPage       = lazy(() => import("./pages/PublicReferralsPage"));
+const ReferralsAdminPage        = lazy(() => import("./pages/ReferralsAdminPage"));
 const RedeAdminPage             = lazy(() => import("./pages/RedeAdminPage"));
 const RedePerfilPage            = lazy(() => import("./pages/RedePerfilPage"));
 
@@ -112,6 +114,7 @@ function AppRoutes() {
     location.pathname.startsWith('/briefing') ||
     location.pathname.startsWith('/fatura/') ||
     location.pathname.startsWith('/proposta') ||
+    location.pathname.startsWith('/indicacoes/') ||
     location.pathname === '/negocios' ||
     location.pathname === '/rede/perfil' ||
     location.pathname === '/rede/novo' ||
@@ -137,6 +140,7 @@ function AppRoutes() {
           <Route path="/negocios"            element={<RedeNegociosPage />} />
           <Route path="/rede/perfil"         element={<RedePerfilPage />} />
           <Route path="/rede/novo"           element={<RedeNovoPostPage />} />
+          <Route path="/indicacoes/:token"   element={<PublicReferralsPage />} />
         </Routes>
       ) : (
         <Routes>
@@ -185,6 +189,7 @@ function AppRoutes() {
                     <Route path="/whatsapp/config"     element={<WhatsAppConfigPage />} />
                     <Route path="/financeiro"          element={<FinancialPage />} />
                     <Route path="/rede/admin"          element={<RedeAdminPage />} />
+                    <Route path="/indicacoes-admin"    element={<ReferralsAdminPage />} />
                     <Route path="*"                    element={<NotFound />} />
                   </Routes>
                 </AppLayout>
