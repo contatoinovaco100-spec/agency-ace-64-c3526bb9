@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { generatePixPayload } from '@/lib/pix';
 import { Link } from 'react-router-dom';
+import { useAgency } from '@/contexts/AgencyContext';
 
 type Invoice = {
   id: string;
