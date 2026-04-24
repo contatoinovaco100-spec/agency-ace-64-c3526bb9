@@ -173,18 +173,18 @@ export default function RedeNegociosPage() {
     return () => { supabase.removeChannel(ch); };
   }, [fetchPage]);
 
-  const featuredCompanies = useMemo(() => {
-    const seen = new Set<string>();
-    const out: typeof posts[number]['company'][] = [];
-    for (const p of posts) {
-      if (p.company && p.company.is_featured && !seen.has(p.company.id)) {
-        seen.add(p.company.id);
-        out.push(p.company);
-        if (out.length >= 4) break;
-      }
-    }
-    return out;
-  }, [posts]);
+  const filteredCompanies = useMemo(() => {
+    const s = companySearch.trim().toLowerCase();
+    if (!s) return allCompanies;
+    return allCompanies.filter(c =>
+      c && (
+        c.name.toLowerCase().includes(s) ||
+        c.niche?.toLowerCase().includes(s) ||
+        c.city?.toLowerCase().includes(s) ||
+        c.services?.some(sv => sv.toLowerCase().includes(s))
+      ),
+    );
+  }, [allCompanies, companySearch]);
 
   const hasActiveFilters =
     !!search.trim() || filterType !== 'all' || filterNiche !== 'all' || !!filterCity.trim();
