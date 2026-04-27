@@ -1,14 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, X, Loader2, BarChart3, Wand2, AlertTriangle,
   CheckCircle2, AlertCircle, TrendingUp, TrendingDown, Target, Zap, MessageCircle,
   Sparkles, Download, Share2, ArrowRight, Eye, MousePointerClick,
   DollarSign, Users, Activity, Trophy, Rocket, Lightbulb,
+  History, Trash2, ExternalLink, Copy, Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import LogoInova from '@/assets/logo-inova.png';
 
@@ -89,10 +93,21 @@ function getMetricIcon(name: string) {
 }
 
 export default function AdsAuditPage() {
+  const { user } = useAuth();
+  const { slug: routeSlug } = useParams<{ slug?: string }>();
+  const navigate = useNavigate();
+  const isPublicView = !!routeSlug;
+
   const [file, setFile] = useState<File | null>(null);
   const [image, setImage] = useState<string | null>(null);
+  const [clientName, setClientName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoadingSlug, setIsLoadingSlug] = useState(false);
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
+  const [savedSlug, setSavedSlug] = useState<string | null>(null);
+  const [savedClient, setSavedClient] = useState<string>('');
+  const [history, setHistory] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -104,6 +119,38 @@ export default function AdsAuditPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Load by slug if public view OR direct link
+  useEffect(() => {
+    if (!routeSlug) return;
+    setIsLoadingSlug(true);
+    supabase.from('ads_audits').select('*').eq('slug', routeSlug).maybeSingle()
+      .then(({ data, error }) => {
+        if (error || !data) {
+          toast.error('Relatório não encontrado.');
+          setIsLoadingSlug(false);
+          return;
+        }
+        setDiagnosis(data.diagnosis as unknown as Diagnosis);
+        setSavedSlug(data.slug);
+        setSavedClient(data.client_name || '');
+        setIsLoadingSlug(false);
+      });
+  }, [routeSlug]);
+
+  // Load history when authenticated
+  const fetchHistory = async () => {
+    if (!user || isPublicView) return;
+    setIsLoadingHistory(true);
+    const { data } = await supabase
+      .from('ads_audits')
+      .select('id, slug, client_name, campaign_name, platform, score, created_at')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    setHistory(data || []);
+    setIsLoadingHistory(false);
+  };
+  useEffect(() => { fetchHistory(); }, [user, isPublicView]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -136,11 +183,28 @@ export default function AdsAuditPage() {
     setFile(null);
     setImage(null);
     setDiagnosis(null);
+    setClientName('');
+    setSavedSlug(null);
+    setSavedClient('');
+    if (isPublicView) navigate('/diagnostico-anuncios');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const generateSlug = (name: string) => {
+    const base = (name || 'cliente')
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 40) || 'cliente';
+    const rand = Math.random().toString(36).substring(2, 8);
+    return `${base}-${rand}`;
   };
 
   const analyze = async () => {
     if (!file || !image) return;
+    if (!clientName.trim()) {
+      toast.error('Informe o nome do cliente antes de gerar o relatório.');
+      return;
+    }
     setIsProcessing(true);
     setDiagnosis(null);
     const toastId = toast.loading('Analisando dados e gerando relatório estratégico…');
@@ -232,6 +296,26 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
       }
       if (!result?.resumo) throw new Error('IA não retornou um relatório válido');
 
+      // Save to DB with unique slug
+      const newSlug = generateSlug(clientName);
+      const { error: insertError } = await supabase.from('ads_audits').insert({
+        user_id: user?.id ?? null,
+        slug: newSlug,
+        client_name: clientName.trim(),
+        campaign_name: result?.campanha?.nome || '',
+        platform: result?.campanha?.plataforma || '',
+        score: result?.resumo?.scoreGeral ?? 0,
+        diagnosis: result,
+      });
+      if (insertError) {
+        console.warn('Erro ao salvar relatório:', insertError);
+        toast.warning('Relatório gerado, mas não pôde ser salvo no histórico.');
+      } else {
+        setSavedSlug(newSlug);
+        setSavedClient(clientName.trim());
+        fetchHistory();
+      }
+
       setDiagnosis(result as Diagnosis);
       toast.success('Relatório pronto!', { id: toastId });
       setTimeout(() => {
@@ -245,6 +329,24 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
     }
   };
 
+  const deleteAudit = async (id: string) => {
+    if (!confirm('Excluir este relatório do histórico?')) return;
+    const { error } = await supabase.from('ads_audits').delete().eq('id', id);
+    if (error) { toast.error('Erro ao excluir.'); return; }
+    toast.success('Relatório excluído.');
+    fetchHistory();
+  };
+
+  const copyShareLink = async (slug: string) => {
+    const url = `${window.location.origin}/diagnostico-anuncios/${slug}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Link copiado!');
+    } catch {
+      toast.error('Não foi possível copiar.');
+    }
+  };
+
   const openWhatsApp = () => {
     const msg = encodeURIComponent(
       'Olá INOVA! Acabei de fazer o diagnóstico dos meus anúncios e quero ajuda para melhorar os resultados.'
@@ -255,16 +357,19 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
   const handlePrint = () => window.print();
 
   const handleShare = async () => {
+    const publicUrl = savedSlug
+      ? `${window.location.origin}/diagnostico-anuncios/${savedSlug}`
+      : window.location.href;
     const shareData = {
-      title: 'Diagnóstico de Anúncios — INOVA Co.',
-      text: 'Veja o relatório completo da minha campanha analisado pela INOVA.',
-      url: window.location.href,
+      title: `Diagnóstico de Anúncios — ${savedClient || 'INOVA Co.'}`,
+      text: 'Veja o relatório completo da campanha analisado pela INOVA.',
+      url: publicUrl,
     };
     try {
       if (navigator.share) await navigator.share(shareData);
       else {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success('Link copiado!');
+        await navigator.clipboard.writeText(publicUrl);
+        toast.success('Link público copiado!');
       }
     } catch {}
   };
@@ -279,8 +384,30 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
         />
       )}
 
-      {/* UPLOAD VIEW */}
-      {!diagnosis && (
+      {/* PUBLIC SLUG LOADING */}
+      {isPublicView && isLoadingSlug && (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground uppercase tracking-widest font-bold">Carregando relatório…</p>
+        </div>
+      )}
+
+      {/* PUBLIC SLUG NOT FOUND */}
+      {isPublicView && !isLoadingSlug && !diagnosis && (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center">
+          <AlertCircle className="w-12 h-12 text-muted-foreground" />
+          <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">Relatório não encontrado</h2>
+          <p className="text-sm text-muted-foreground max-w-md">
+            O link pode estar incorreto ou o relatório foi removido.
+          </p>
+          <Button onClick={() => navigate('/diagnostico-anuncios')} className="mt-2">
+            Criar novo diagnóstico
+          </Button>
+        </div>
+      )}
+
+      {/* UPLOAD VIEW (only when not public view) */}
+      {!isPublicView && !diagnosis && (
         <div className="min-h-screen p-4 sm:p-6 lg:p-10">
           <div className="max-w-5xl mx-auto">
             <motion.div
@@ -295,15 +422,31 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
                 Diagnóstico de Anúncios
               </h1>
               <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
-                Envie um print do seu gerenciador de anúncios e receba um <strong className="text-foreground">relatório visual completo</strong> com diagnóstico estratégico, KPIs e plano de ação — pronto para apresentar.
+                Envie um print do gerenciador de anúncios e gere um <strong className="text-foreground">relatório visual completo</strong> com link próprio para enviar ao cliente.
               </p>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-card/50 border border-border rounded-3xl p-6 sm:p-8 backdrop-blur-sm"
+              className="bg-card/50 border border-border rounded-3xl p-6 sm:p-8 backdrop-blur-sm space-y-5"
             >
+              {/* Client name */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                  Nome do cliente <span className="text-primary">*</span>
+                </label>
+                <Input
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  placeholder="Ex: Restaurante Sabor & Arte"
+                  className="h-12 text-base"
+                />
+                <p className="text-[10px] text-muted-foreground/70 mt-1">
+                  Usado para gerar o link único do relatório.
+                </p>
+              </div>
+
               {!image ? (
                 <label
                   onDragOver={(e) => e.preventDefault()}
@@ -325,16 +468,16 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
               ) : (
                 <div className="relative h-72 sm:h-80 w-full rounded-2xl overflow-hidden border border-border shadow-lg">
                   <img src={image} alt="Print das métricas" className="w-full h-full object-contain bg-black/40" />
-                  <Button variant="destructive" size="icon" onClick={reset} className="absolute top-3 right-3 rounded-full h-9 w-9 shadow-lg">
+                  <Button variant="destructive" size="icon" onClick={() => { setFile(null); setImage(null); }} className="absolute top-3 right-3 rounded-full h-9 w-9 shadow-lg">
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
               )}
 
-              <div className="mt-6 flex justify-center">
+              <div className="flex justify-center pt-2">
                 <Button
                   onClick={analyze}
-                  disabled={!image || isProcessing}
+                  disabled={!image || !clientName.trim() || isProcessing}
                   className="bg-primary text-primary-foreground font-black px-10 h-14 rounded-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100 uppercase tracking-wider"
                 >
                   {isProcessing ? (
@@ -352,8 +495,92 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
               </div>
             </motion.div>
 
+            {/* HISTORY */}
+            {user && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="mt-8"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <History className="w-5 h-5 text-primary" />
+                  <h2 className="text-lg font-black uppercase tracking-tight text-foreground">
+                    Histórico de relatórios
+                  </h2>
+                  <span className="text-xs text-muted-foreground">({history.length})</span>
+                </div>
+
+                {isLoadingHistory ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : history.length === 0 ? (
+                  <div className="text-center py-10 bg-card/40 border border-dashed border-border rounded-2xl">
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum relatório gerado ainda. Crie o primeiro acima!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {history.map((item) => {
+                      const status: Status = item.score >= 70 ? 'good' : item.score >= 40 ? 'warning' : 'bad';
+                      const s = STATUS_STYLES[status];
+                      return (
+                        <div
+                          key={item.id}
+                          className="group bg-card border border-border rounded-2xl p-4 hover:border-primary/40 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div className="min-w-0 flex-1">
+                              <h3 className="font-black text-foreground truncate">{item.client_name || 'Sem nome'}</h3>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {item.platform || 'Plataforma —'} · {item.campaign_name || 'Campanha'}
+                              </p>
+                            </div>
+                            <div className={cn('shrink-0 px-2.5 py-1 rounded-full text-xs font-black tabular-nums', s.bg, s.text)}>
+                              {item.score}/100
+                            </div>
+                          </div>
+                          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/70 mb-3">
+                            {new Date(item.created_at).toLocaleString('pt-BR')}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/diagnostico-anuncios/${item.slug}`)}
+                              className="h-8 text-xs"
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1.5" /> Abrir
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => copyShareLink(item.slug)}
+                              className="h-8 text-xs"
+                            >
+                              <Copy className="w-3.5 h-3.5 mr-1.5" /> Link
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => deleteAudit(item.id)}
+                              className="h-8 text-xs text-destructive hover:text-destructive ml-auto"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
             <p className="text-[10px] text-muted-foreground/60 text-center mt-10 italic">
-              🔒 Sua imagem é processada apenas para a análise e não é armazenada permanentemente.
+              🔒 Sua imagem é processada apenas para a análise. Os relatórios ficam salvos para compartilhamento via link.
             </p>
           </div>
         </div>
@@ -370,16 +597,27 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
             className="bg-background"
           >
             {/* Floating action toolbar */}
-            <div className="fixed top-4 right-4 z-40 flex gap-2 print:hidden">
+            <div className="fixed top-4 right-4 z-40 flex flex-wrap gap-2 print:hidden max-w-[calc(100vw-2rem)] justify-end">
+              {!isPublicView && (
+                <Button onClick={reset} variant="outline" size="sm" className="rounded-full shadow-lg backdrop-blur-md bg-background/80">
+                  <Plus className="w-4 h-4 mr-2" /> Novo
+                </Button>
+              )}
               <Button onClick={handlePrint} variant="outline" size="sm" className="rounded-full shadow-lg backdrop-blur-md bg-background/80">
-                <Download className="w-4 h-4 mr-2" /> Salvar PDF
+                <Download className="w-4 h-4 mr-2" /> PDF
               </Button>
               <Button onClick={handleShare} variant="outline" size="sm" className="rounded-full shadow-lg backdrop-blur-md bg-background/80">
                 <Share2 className="w-4 h-4 mr-2" /> Compartilhar
               </Button>
-              <Button onClick={reset} variant="outline" size="sm" className="rounded-full shadow-lg backdrop-blur-md bg-background/80">
-                <X className="w-4 h-4" />
-              </Button>
+              {!isPublicView && savedSlug && (
+                <Button
+                  onClick={() => window.open(`/diagnostico-anuncios/${savedSlug}`, '_blank')}
+                  variant="outline" size="sm"
+                  className="rounded-full shadow-lg backdrop-blur-md bg-background/80"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" /> Link cliente
+                </Button>
+              )}
             </div>
 
             {/* HERO */}

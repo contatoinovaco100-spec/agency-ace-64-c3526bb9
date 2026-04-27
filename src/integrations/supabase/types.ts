@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      ads_audits: {
+        Row: {
+          campaign_name: string
+          client_name: string
+          created_at: string
+          diagnosis: Json
+          id: string
+          platform: string
+          score: number
+          slug: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          campaign_name?: string
+          client_name?: string
+          created_at?: string
+          diagnosis?: Json
+          id?: string
+          platform?: string
+          score?: number
+          slug: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          campaign_name?: string
+          client_name?: string
+          created_at?: string
+          diagnosis?: Json
+          id?: string
+          platform?: string
+          score?: number
+          slug?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       budget_items: {
         Row: {
           actual_cost: number
