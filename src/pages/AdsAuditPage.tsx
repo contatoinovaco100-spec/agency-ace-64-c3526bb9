@@ -597,16 +597,27 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
             className="bg-background"
           >
             {/* Floating action toolbar */}
-            <div className="fixed top-4 right-4 z-40 flex gap-2 print:hidden">
+            <div className="fixed top-4 right-4 z-40 flex flex-wrap gap-2 print:hidden max-w-[calc(100vw-2rem)] justify-end">
+              {!isPublicView && (
+                <Button onClick={reset} variant="outline" size="sm" className="rounded-full shadow-lg backdrop-blur-md bg-background/80">
+                  <Plus className="w-4 h-4 mr-2" /> Novo
+                </Button>
+              )}
               <Button onClick={handlePrint} variant="outline" size="sm" className="rounded-full shadow-lg backdrop-blur-md bg-background/80">
-                <Download className="w-4 h-4 mr-2" /> Salvar PDF
+                <Download className="w-4 h-4 mr-2" /> PDF
               </Button>
               <Button onClick={handleShare} variant="outline" size="sm" className="rounded-full shadow-lg backdrop-blur-md bg-background/80">
                 <Share2 className="w-4 h-4 mr-2" /> Compartilhar
               </Button>
-              <Button onClick={reset} variant="outline" size="sm" className="rounded-full shadow-lg backdrop-blur-md bg-background/80">
-                <X className="w-4 h-4" />
-              </Button>
+              {!isPublicView && savedSlug && (
+                <Button
+                  onClick={() => window.open(`/diagnostico-anuncios/${savedSlug}`, '_blank')}
+                  variant="outline" size="sm"
+                  className="rounded-full shadow-lg backdrop-blur-md bg-background/80"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" /> Link cliente
+                </Button>
+              )}
             </div>
 
             {/* HERO */}
