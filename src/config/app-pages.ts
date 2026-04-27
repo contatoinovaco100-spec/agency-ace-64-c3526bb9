@@ -31,8 +31,8 @@ export interface AppPage {
  * automatically appear in the sidebar, permissions screen and route guard.
  */
 export const APP_PAGES: AppPage[] = [
-  // Geral (sempre liberadas)
-  { path: '/',                    label: 'Dashboard',           icon: LayoutDashboard, category: 'Geral', alwaysAllowed: true },
+  // Geral
+  { path: '/',                    label: 'Dashboard',           icon: LayoutDashboard, category: 'Geral' },
   { path: '/minhas-tarefas',      label: 'Minhas Tarefas',      icon: ListChecks,      category: 'Geral', alwaysAllowed: true },
   { path: '/calendario',          label: 'Calendário',          icon: Calendar,        category: 'Geral', alwaysAllowed: true },
   { path: '/notificacoes',        label: 'Notificações',        icon: Bell,            category: 'Geral', alwaysAllowed: true },

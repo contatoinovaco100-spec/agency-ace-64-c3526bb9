@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import { UserCog, Plus, KeyRound, UserX, UserCheck, Loader2, Mail } from 'lucide-react';
+import { UserCog, Plus, KeyRound, UserX, UserCheck, Loader2, Mail, Shield } from 'lucide-react';
 import { APP_PAGES, EMPLOYEE_EMAIL_DOMAIN, PAGE_CATEGORIES } from '@/config/app-pages';
 
 interface Employee {
@@ -28,6 +28,8 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState<Employee | null>(null);
+  const [editPermissionsOpen, setEditPermissionsOpen] = useState<Employee | null>(null);
+  const [employeePermissions, setEmployeePermissions] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
 
   // Create form
@@ -133,6 +135,40 @@ export default function EmployeesPage() {
     loadEmployees();
   };
 
+  const openEditPermissions = async (emp: Employee) => {
+    setEditPermissionsOpen(emp);
+    setLoading(true);
+    const { data } = await supabase.from('user_page_access').select('page_path').eq('user_id', emp.id);
+    setEmployeePermissions(new Set(data?.map(x => x.page_path) ?? []));
+    setLoading(false);
+  };
+
+  const toggleEditPage = (path: string) => {
+    setEmployeePermissions(prev => {
+      const next = new Set(prev);
+      next.has(path) ? next.delete(path) : next.add(path);
+      return next;
+    });
+  };
+
+  const handleSavePermissions = async () => {
+    if (!editPermissionsOpen) return;
+    setSubmitting(true);
+    await supabase.from('user_page_access').delete().eq('user_id', editPermissionsOpen.id);
+    
+    const rows = Array.from(employeePermissions).map(p => ({
+      user_id: editPermissionsOpen.id,
+      page_path: p,
+    }));
+    if (rows.length > 0) {
+      await supabase.from('user_page_access').insert(rows);
+    }
+    
+    setSubmitting(false);
+    toast({ title: 'Permissões atualizadas com sucesso' });
+    setEditPermissionsOpen(null);
+  };
+
   if (roleLoading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
@@ -183,6 +219,9 @@ export default function EmployeesPage() {
                 </div>
                 {emp.username && !emp.is_admin && (
                   <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => openEditPermissions(emp)}>
+                      <Shield className="h-3.5 w-3.5 mr-1" /> Permissões
+                    </Button>
                     <Button size="sm" variant="outline" onClick={() => setResetOpen(emp)}>
                       <KeyRound className="h-3.5 w-3.5 mr-1" /> Senha
                     </Button>
@@ -286,6 +325,56 @@ export default function EmployeesPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => { setResetOpen(null); setNewPassword(''); }}>Cancelar</Button>
             <Button onClick={handleResetPassword} disabled={submitting}>
+              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit permissions dialog */}
+      <Dialog open={!!editPermissionsOpen} onOpenChange={(o) => { if (!o) setEditPermissionsOpen(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Permissões — {editPermissionsOpen?.full_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="mb-2 block">Páginas liberadas</Label>
+              <div className="rounded-lg border border-border max-h-96 overflow-y-auto p-3 space-y-3">
+                {PAGE_CATEGORIES.map(cat => {
+                  const items = APP_PAGES.filter(p => p.category === cat && !p.adminOnly);
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={cat}>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">{cat}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        {items.map(p => {
+                          const checked = employeePermissions.has(p.path) || !!p.alwaysAllowed;
+                          return (
+                            <label key={p.path} className="flex items-center justify-between gap-2 rounded-md border border-border/50 px-2 py-1.5 text-sm hover:bg-secondary/50">
+                              <span className="flex items-center gap-2 min-w-0">
+                                <p.icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                <span className="truncate">{p.label}</span>
+                                {p.alwaysAllowed && <Badge variant="secondary" className="text-[9px] py-0 px-1">sempre</Badge>}
+                              </span>
+                              <Switch
+                                checked={checked}
+                                disabled={!!p.alwaysAllowed}
+                                onCheckedChange={() => toggleEditPage(p.path)}
+                              />
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPermissionsOpen(null)}>Cancelar</Button>
+            <Button onClick={handleSavePermissions} disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Salvar
             </Button>
           </DialogFooter>
