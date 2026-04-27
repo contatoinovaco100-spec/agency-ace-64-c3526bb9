@@ -5,7 +5,7 @@ import { usePageAccess } from '@/hooks/useUserRole';
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
-  const { hasPageAccess, isAdmin, isRedeCompanyUser, loading: accessLoading } = usePageAccess();
+  const { hasPageAccess, allowedPaths, isAdmin, isRedeCompanyUser, loading: accessLoading } = usePageAccess();
 
   if (loading || accessLoading) {
     return (
@@ -22,7 +22,22 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   // Page-level access check (admin always passes)
   if (!hasPageAccess(location.pathname)) {
     if (isRedeCompanyUser) return <Navigate to="/negocios" replace />;
-    return <Navigate to={isAdmin ? '/' : '/minhas-tarefas'} replace />;
+    if (isAdmin) return <Navigate to="/" replace />;
+    
+    // Find the first path the user actually has access to
+    const firstAllowed = Array.from(allowedPaths)[0];
+    if (firstAllowed && firstAllowed !== location.pathname) {
+      return <Navigate to={firstAllowed} replace />;
+    }
+
+    // If they have literally 0 permissions, or are stuck, show an error state
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 text-center">
+        <h2 className="text-xl font-bold text-foreground mb-2">Acesso Restrito</h2>
+        <p className="text-muted-foreground mb-4">Você não tem permissão para acessar nenhuma página no momento.</p>
+        <button onClick={() => window.location.href = '/login'} className="text-primary hover:underline">Voltar para o Login</button>
+      </div>
+    );
   }
 
   return <>{children}</>;
