@@ -93,10 +93,21 @@ function getMetricIcon(name: string) {
 }
 
 export default function AdsAuditPage() {
+  const { user } = useAuth();
+  const { slug: routeSlug } = useParams<{ slug?: string }>();
+  const navigate = useNavigate();
+  const isPublicView = !!routeSlug;
+
   const [file, setFile] = useState<File | null>(null);
   const [image, setImage] = useState<string | null>(null);
+  const [clientName, setClientName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoadingSlug, setIsLoadingSlug] = useState(false);
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
+  const [savedSlug, setSavedSlug] = useState<string | null>(null);
+  const [savedClient, setSavedClient] = useState<string>('');
+  const [history, setHistory] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -108,6 +119,38 @@ export default function AdsAuditPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Load by slug if public view OR direct link
+  useEffect(() => {
+    if (!routeSlug) return;
+    setIsLoadingSlug(true);
+    supabase.from('ads_audits').select('*').eq('slug', routeSlug).maybeSingle()
+      .then(({ data, error }) => {
+        if (error || !data) {
+          toast.error('Relatório não encontrado.');
+          setIsLoadingSlug(false);
+          return;
+        }
+        setDiagnosis(data.diagnosis as unknown as Diagnosis);
+        setSavedSlug(data.slug);
+        setSavedClient(data.client_name || '');
+        setIsLoadingSlug(false);
+      });
+  }, [routeSlug]);
+
+  // Load history when authenticated
+  const fetchHistory = async () => {
+    if (!user || isPublicView) return;
+    setIsLoadingHistory(true);
+    const { data } = await supabase
+      .from('ads_audits')
+      .select('id, slug, client_name, campaign_name, platform, score, created_at')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    setHistory(data || []);
+    setIsLoadingHistory(false);
+  };
+  useEffect(() => { fetchHistory(); }, [user, isPublicView]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -140,11 +183,21 @@ export default function AdsAuditPage() {
     setFile(null);
     setImage(null);
     setDiagnosis(null);
+    setClientName('');
+    setSavedSlug(null);
+    setSavedClient('');
+    if (isPublicView) navigate('/diagnostico-anuncios');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const analyze = async () => {
-    if (!file || !image) return;
+  const generateSlug = (name: string) => {
+    const base = (name || 'cliente')
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 40) || 'cliente';
+    const rand = Math.random().toString(36).substring(2, 8);
+    return `${base}-${rand}`;
+  };
     setIsProcessing(true);
     setDiagnosis(null);
     const toastId = toast.loading('Analisando dados e gerando relatório estratégico…');
