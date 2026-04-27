@@ -1,53 +1,109 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, X, Loader2, BarChart3, Wand2, AlertTriangle,
-  CheckCircle2, AlertCircle, TrendingUp, Target, Zap, MessageCircle, Sparkles,
+  CheckCircle2, AlertCircle, TrendingUp, TrendingDown, Target, Zap, MessageCircle,
+  Sparkles, Download, Share2, ArrowRight, Eye, MousePointerClick,
+  DollarSign, Users, Activity, Trophy, Rocket, Lightbulb,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import LogoInova from '@/assets/logo-inova.png';
 
 type Status = 'good' | 'warning' | 'bad';
 
 interface MetricReading {
   name: string;
   value?: string;
-  classification: 'Alta' | 'Média' | 'Baixa' | 'Boa' | 'Regular' | 'Ruim' | string;
+  benchmark?: string;
+  classification: string;
   status: Status;
   interpretation: string;
+  icon?: string;
 }
 
 interface Diagnosis {
-  resumo: {
-    classificacao: Status; // 🟢 / 🟡 / 🔴
-    titulo: string;        // ex: "Boa", "Regular", "Ruim"
-    explicacao: string;
+  campanha?: {
+    nome?: string;
+    plataforma?: string;
+    periodo?: string;
+    objetivo?: string;
   };
+  resumo: {
+    classificacao: Status;
+    titulo: string;
+    explicacao: string;
+    scoreGeral: number; // 0-100
+  };
+  kpisDestaque?: {
+    label: string;
+    value: string;
+    delta?: string;
+    status: Status;
+  }[];
   metricas: MetricReading[];
+  scores?: {
+    criativo: number;
+    publico: number;
+    oferta: number;
+    estrutura: number;
+  };
   diagnosticoEstrategico: {
     problemaPrincipal: string;
-    gargalo: 'Criativo' | 'Público' | 'Oferta' | 'Estrutura' | string;
+    gargalo: string;
     detalhe: string;
+    pontosFortes?: string[];
+    pontosFracos?: string[];
   };
-  planoDeAcao: string[];
+  planoDeAcao: { titulo: string; descricao: string; prioridade?: 'alta' | 'media' | 'baixa' }[];
+  projecao?: {
+    cenarioAtual: string;
+    cenarioOtimizado: string;
+    potencial: string;
+  };
   alertas: { tipo: Status; mensagem: string }[];
 }
 
-const WHATSAPP_NUMBER = '5588994463203'; // INOVA Co.
+const WHATSAPP_NUMBER = '5588994463203';
 
-const STATUS_STYLES: Record<Status, { bg: string; text: string; border: string; icon: any; label: string }> = {
-  good:    { bg: 'bg-emerald-500/10',  text: 'text-emerald-400',  border: 'border-emerald-500/30',  icon: CheckCircle2,   label: 'Boa' },
-  warning: { bg: 'bg-amber-500/10',    text: 'text-amber-400',    border: 'border-amber-500/30',    icon: AlertCircle,    label: 'Atenção' },
-  bad:     { bg: 'bg-red-500/10',      text: 'text-red-400',      border: 'border-red-500/30',      icon: AlertTriangle,  label: 'Problema' },
+const STATUS_STYLES: Record<Status, { bg: string; text: string; border: string; icon: any; label: string; ring: string }> = {
+  good:    { bg: 'bg-emerald-500/10',  text: 'text-emerald-400',  border: 'border-emerald-500/30',  icon: CheckCircle2,   label: 'Boa',      ring: 'ring-emerald-500/40' },
+  warning: { bg: 'bg-amber-500/10',    text: 'text-amber-400',    border: 'border-amber-500/30',    icon: AlertCircle,    label: 'Atenção',  ring: 'ring-amber-500/40' },
+  bad:     { bg: 'bg-red-500/10',      text: 'text-red-400',      border: 'border-red-500/30',      icon: AlertTriangle,  label: 'Problema', ring: 'ring-red-500/40' },
 };
+
+const METRIC_ICONS: Record<string, any> = {
+  ctr: MousePointerClick, cpc: DollarSign, cpm: DollarSign, roas: TrendingUp,
+  frequencia: Activity, conversoes: Trophy, alcance: Eye, impressoes: Eye,
+  gasto: DollarSign, leads: Users,
+};
+
+function getMetricIcon(name: string) {
+  const key = name.toLowerCase().replace(/[^a-z]/g, '');
+  for (const k of Object.keys(METRIC_ICONS)) {
+    if (key.includes(k)) return METRIC_ICONS[k];
+  }
+  return TrendingUp;
+}
 
 export default function AdsAuditPage() {
   const [file, setFile] = useState<File | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const total = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(total > 0 ? (window.scrollY / total) * 100 : 0);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -80,57 +136,86 @@ export default function AdsAuditPage() {
     setFile(null);
     setImage(null);
     setDiagnosis(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const analyze = async () => {
     if (!file || !image) return;
     setIsProcessing(true);
     setDiagnosis(null);
-    const toastId = toast.loading('Analisando dados e gerando diagnóstico estratégico…');
+    const toastId = toast.loading('Analisando dados e gerando relatório estratégico…');
 
     try {
       const base64Data = image.split(',')[1];
 
-      const systemPrompt = `Você é um Consultor Sênior de Tráfego Pago (Meta Ads, Google Ads, TikTok Ads).
-Vai receber um PRINT de gerenciador de anúncios. Aplique OCR mental, identifique métricas (CTR, CPC, CPM, ROAS, frequência, conversões, gasto, alcance) e gere um diagnóstico ACIONÁVEL.
+      const systemPrompt = `Você é um Consultor Sênior de Tráfego Pago (Meta Ads, Google Ads, TikTok Ads) com 10+ anos de experiência.
+Vai receber um PRINT de gerenciador de anúncios. Faça OCR mental, identifique TODAS as métricas visíveis (CTR, CPC, CPM, ROAS, frequência, conversões, gasto, alcance, impressões, leads, CPA) e gere um RELATÓRIO VISUAL COMPLETO de nível agência premium.
 
-REGRAS:
-1. Seja DIRETO. Sem jargão técnico desnecessário. Frases curtas.
-2. Classifique a campanha como 🟢 boa, 🟡 regular ou 🔴 ruim, com base nos parâmetros do mercado brasileiro.
-3. Para cada métrica visível, dê: classificação (Alta/Média/Baixa) + 1 frase explicando o que significa NA PRÁTICA.
-4. Identifique o GARGALO REAL: Criativo, Público, Oferta ou Estrutura.
-5. Plano de ação: 4 a 6 ações IMEDIATAS, no imperativo (ex: "Crie 3 novos criativos com ganchos diferentes").
-6. Liste alertas só quando houver problema real (CTR baixo, CPC alto, frequência > 3, etc.).
-7. NUNCA dê resposta genérica. Se a métrica está boa, fale isso.
-8. Status válidos para metricas/alertas/resumo: "good" (verde), "warning" (amarelo), "bad" (vermelho).
+REGRAS DE OURO:
+1. Capture os VALORES REAIS visíveis no print (ex: "CTR: 1.24%", "Gasto: R$ 1.847,50"). Use os valores exatos.
+2. Identifique a plataforma (Meta/Facebook, Google, TikTok) e o objetivo da campanha se visível.
+3. Para CADA métrica visível, dê: valor real, benchmark do mercado BR, classificação (Excelente/Boa/Média/Baixa/Crítica) e 1 frase prática do que significa.
+4. Seja DIRETO. Sem jargão. O cliente é leigo.
+5. Score geral de 0-100 baseado em performance global.
+6. Scores por dimensão (criativo, publico, oferta, estrutura) de 0-100.
+7. Plano de ação: 5-7 ações com TÍTULO + DESCRIÇÃO + prioridade.
+8. KPIs destaque: 3-4 indicadores principais para colocar em cards grandes no topo.
+9. Projeção: descreva cenário atual vs cenário otimizado e potencial de ganho %.
+10. Status válidos: "good" (verde), "warning" (amarelo), "bad" (vermelho).
 
-Retorne APENAS JSON válido neste formato:
+Retorne APENAS JSON neste formato:
 {
+  "campanha": {
+    "nome": "Nome da campanha se visível ou 'Campanha analisada'",
+    "plataforma": "Meta Ads | Google Ads | TikTok Ads",
+    "periodo": "ex: Últimos 7 dias",
+    "objetivo": "ex: Conversões, Tráfego, Alcance"
+  },
   "resumo": {
     "classificacao": "good" | "warning" | "bad",
-    "titulo": "Boa" | "Regular" | "Ruim",
-    "explicacao": "1-2 frases diretas"
+    "titulo": "Boa" | "Regular" | "Ruim" | "Crítica" | "Excelente",
+    "explicacao": "2-3 frases diretas sobre o estado geral da campanha",
+    "scoreGeral": 65
   },
-  "metricas": [
-    { "name": "CTR", "value": "1.2%", "classification": "Baixa", "status": "bad", "interpretation": "..." }
+  "kpisDestaque": [
+    { "label": "ROAS", "value": "2.4x", "delta": "+15% vs meta", "status": "good" },
+    { "label": "CPA", "value": "R$ 47,80", "delta": "Acima do ideal", "status": "warning" }
   ],
-  "diagnosticoEstrategico": {
-    "problemaPrincipal": "...",
-    "gargalo": "Criativo" | "Público" | "Oferta" | "Estrutura",
-    "detalhe": "..."
+  "metricas": [
+    { "name": "CTR", "value": "1.24%", "benchmark": "Ideal: > 1.5%", "classification": "Baixa", "status": "warning", "interpretation": "Poucas pessoas estão clicando — o criativo precisa chamar mais atenção." }
+  ],
+  "scores": {
+    "criativo": 60,
+    "publico": 75,
+    "oferta": 50,
+    "estrutura": 80
   },
-  "planoDeAcao": ["...", "...", "..."],
+  "diagnosticoEstrategico": {
+    "problemaPrincipal": "Frase resumindo o maior problema",
+    "gargalo": "Criativo" | "Público" | "Oferta" | "Estrutura",
+    "detalhe": "Parágrafo explicando em detalhes o gargalo",
+    "pontosFortes": ["ponto 1", "ponto 2"],
+    "pontosFracos": ["ponto 1", "ponto 2", "ponto 3"]
+  },
+  "planoDeAcao": [
+    { "titulo": "Criar 3 novos criativos", "descricao": "Teste ganchos diferentes nos primeiros 3 segundos", "prioridade": "alta" }
+  ],
+  "projecao": {
+    "cenarioAtual": "Mantendo essa estrutura, você gasta R$ X para gerar Y leads/mês",
+    "cenarioOtimizado": "Com os ajustes sugeridos, é possível reduzir CPA em 30% e dobrar conversões",
+    "potencial": "+150% de ROI em 30 dias"
+  },
   "alertas": [
-    { "tipo": "warning", "mensagem": "Frequência alta (3.4) — possível saturação" }
+    { "tipo": "warning", "mensagem": "Frequência alta (3.4) — possível saturação do público" }
   ]
 }
 
-IMPORTANTE: Retorne SOMENTE o JSON, sem markdown.`;
+IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
 
       const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-copywriter', {
         body: {
           systemPrompt,
-          userMessage: 'Analise o print do gerenciador de anúncios e gere o diagnóstico no formato JSON pedido.',
+          userMessage: 'Analise o print do gerenciador de anúncios e gere o relatório completo no formato JSON pedido.',
           model: 'google/gemini-2.5-flash',
           imageBase64: base64Data,
           imageMimeType: file.type,
@@ -145,10 +230,13 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown.`;
         const cleaned = result.replace(/```json/g, '').replace(/```/g, '').trim();
         result = JSON.parse(cleaned);
       }
-      if (!result?.resumo) throw new Error('IA não retornou um diagnóstico válido');
+      if (!result?.resumo) throw new Error('IA não retornou um relatório válido');
 
       setDiagnosis(result as Diagnosis);
-      toast.success('Diagnóstico pronto!', { id: toastId });
+      toast.success('Relatório pronto!', { id: toastId });
+      setTimeout(() => {
+        reportRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 200);
     } catch (err: any) {
       console.error('Ads audit error:', err);
       toast.error(err.message || 'Erro ao analisar. Tente uma imagem mais nítida.', { id: toastId });
@@ -159,263 +247,611 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown.`;
 
   const openWhatsApp = () => {
     const msg = encodeURIComponent(
-      'Olá INOVA! Acabei de fazer um diagnóstico dos meus anúncios na plataforma e quero ajuda para melhorar os resultados.'
+      'Olá INOVA! Acabei de fazer o diagnóstico dos meus anúncios e quero ajuda para melhorar os resultados.'
     );
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
   };
 
+  const handlePrint = () => window.print();
+
+  const handleShare = async () => {
+    const shareData = {
+      title: 'Diagnóstico de Anúncios — INOVA Co.',
+      text: 'Veja o relatório completo da minha campanha analisado pela INOVA.',
+      url: window.location.href,
+    };
+    try {
+      if (navigator.share) await navigator.share(shareData);
+      else {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Link copiado!');
+      }
+    } catch {}
+  };
+
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-10">
-      <div className="max-w-5xl mx-auto">
-        {/* HEADER */}
+    <div className="min-h-screen bg-background">
+      {/* Progress bar */}
+      {diagnosis && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 sm:mb-12 text-center"
-        >
-          <div className="inline-flex p-3 bg-primary/10 rounded-2xl mb-4">
-            <BarChart3 className="w-7 h-7 text-primary" />
-          </div>
-          <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter italic text-foreground mb-3">
-            Diagnóstico de Anúncios
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
-            Envie um print das métricas dos seus anúncios e receba uma análise estratégica completa em segundos.
-          </p>
-        </motion.div>
+          className="fixed top-0 left-0 right-0 h-1 bg-primary z-50 origin-left print:hidden"
+          style={{ scaleX: scrollProgress / 100 }}
+        />
+      )}
 
-        {/* UPLOAD + ANALYZE */}
-        {!diagnosis && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-card/50 border border-border rounded-3xl p-6 sm:p-8 backdrop-blur-sm"
-          >
-            {!image ? (
-              <label
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={onDrop}
-                className="flex flex-col items-center justify-center w-full h-72 sm:h-80 border-2 border-dashed border-border rounded-2xl bg-background/40 hover:bg-background/60 hover:border-primary/50 transition-all cursor-pointer group"
-              >
-                <div className="p-4 bg-primary/10 rounded-full mb-4 group-hover:scale-110 transition-transform">
-                  <Upload className="w-8 h-8 text-primary" />
-                </div>
-                <p className="mb-2 text-sm font-bold uppercase tracking-widest text-foreground">
-                  Arraste ou clique para enviar
-                </p>
-                <p className="text-xs text-muted-foreground text-center px-4 max-w-md">
-                  Envie um print do seu gerenciador de anúncios contendo métricas como CTR, CPC, CPM, ROAS, frequência e conversões.
-                </p>
-                <p className="mt-3 text-[10px] text-muted-foreground/70">PNG, JPG, JPEG (máx 10MB)</p>
-                <input type="file" className="hidden" accept="image/png,image/jpeg" onChange={handleFileChange} />
-              </label>
-            ) : (
-              <div className="relative h-72 sm:h-80 w-full rounded-2xl overflow-hidden border border-border shadow-lg">
-                <img src={image} alt="Print das métricas" className="w-full h-full object-contain bg-black/40" />
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  onClick={reset}
-                  className="absolute top-3 right-3 rounded-full h-9 w-9 shadow-lg"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-
-            <div className="mt-6 flex justify-center">
-              <Button
-                onClick={analyze}
-                disabled={!image || isProcessing}
-                className="bg-primary text-primary-foreground font-black px-10 h-14 rounded-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100 uppercase tracking-wider"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                    Analisando dados e gerando diagnóstico estratégico…
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="w-5 h-5 mr-3" />
-                    Analisar métricas
-                  </>
-                )}
-              </Button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* RESULT */}
-        <AnimatePresence>
-          {diagnosis && (
+      {/* UPLOAD VIEW */}
+      {!diagnosis && (
+        <div className="min-h-screen p-4 sm:p-6 lg:p-10">
+          <div className="max-w-5xl mx-auto">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6"
+              className="mb-8 sm:mb-12 text-center"
             >
-              {/* 1. RESUMO EXECUTIVO */}
-              <ResumoCard resumo={diagnosis.resumo} />
+              <div className="inline-flex p-3 bg-primary/10 rounded-2xl mb-4">
+                <BarChart3 className="w-7 h-7 text-primary" />
+              </div>
+              <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter italic text-foreground mb-3">
+                Diagnóstico de Anúncios
+              </h1>
+              <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
+                Envie um print do seu gerenciador de anúncios e receba um <strong className="text-foreground">relatório visual completo</strong> com diagnóstico estratégico, KPIs e plano de ação — pronto para apresentar.
+              </p>
+            </motion.div>
 
-              {/* 2. LEITURA DAS MÉTRICAS */}
-              <SectionCard title="Leitura das métricas" icon={BarChart3}>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  {diagnosis.metricas?.map((m, i) => (
-                    <MetricCard key={i} metric={m} />
-                  ))}
-                </div>
-              </SectionCard>
-
-              {/* 3. DIAGNÓSTICO ESTRATÉGICO */}
-              <SectionCard title="Diagnóstico estratégico" icon={Target}>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Gargalo:</span>
-                    <span className="px-3 py-1 rounded-full bg-primary/15 text-primary text-xs font-black uppercase tracking-wider">
-                      {diagnosis.diagnosticoEstrategico.gargalo}
-                    </span>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-card/50 border border-border rounded-3xl p-6 sm:p-8 backdrop-blur-sm"
+            >
+              {!image ? (
+                <label
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={onDrop}
+                  className="flex flex-col items-center justify-center w-full h-72 sm:h-80 border-2 border-dashed border-border rounded-2xl bg-background/40 hover:bg-background/60 hover:border-primary/50 transition-all cursor-pointer group"
+                >
+                  <div className="p-4 bg-primary/10 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                    <Upload className="w-8 h-8 text-primary" />
                   </div>
-                  <p className="text-foreground font-semibold">{diagnosis.diagnosticoEstrategico.problemaPrincipal}</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{diagnosis.diagnosticoEstrategico.detalhe}</p>
+                  <p className="mb-2 text-sm font-bold uppercase tracking-widest text-foreground">
+                    Arraste ou clique para enviar
+                  </p>
+                  <p className="text-xs text-muted-foreground text-center px-4 max-w-md">
+                    Print do Meta Ads, Google Ads ou TikTok Ads com métricas visíveis (CTR, CPC, ROAS, frequência, conversões…).
+                  </p>
+                  <p className="mt-3 text-[10px] text-muted-foreground/70">PNG, JPG, JPEG (máx 10MB)</p>
+                  <input type="file" className="hidden" accept="image/png,image/jpeg" onChange={handleFileChange} />
+                </label>
+              ) : (
+                <div className="relative h-72 sm:h-80 w-full rounded-2xl overflow-hidden border border-border shadow-lg">
+                  <img src={image} alt="Print das métricas" className="w-full h-full object-contain bg-black/40" />
+                  <Button variant="destructive" size="icon" onClick={reset} className="absolute top-3 right-3 rounded-full h-9 w-9 shadow-lg">
+                    <X className="w-4 h-4" />
+                  </Button>
                 </div>
-              </SectionCard>
-
-              {/* 4. PLANO DE AÇÃO */}
-              <SectionCard title="Plano de ação" icon={Zap} highlight>
-                <ul className="space-y-3">
-                  {diagnosis.planoDeAcao?.map((acao, i) => (
-                    <li key={i} className="flex gap-3 items-start">
-                      <span className="shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground font-black text-sm flex items-center justify-center">
-                        {i + 1}
-                      </span>
-                      <span className="text-sm sm:text-base text-foreground leading-relaxed pt-0.5">{acao}</span>
-                    </li>
-                  ))}
-                </ul>
-              </SectionCard>
-
-              {/* 5. ALERTAS */}
-              {diagnosis.alertas?.length > 0 && (
-                <SectionCard title="Alertas importantes" icon={AlertTriangle}>
-                  <div className="space-y-2">
-                    {diagnosis.alertas.map((a, i) => {
-                      const s = STATUS_STYLES[a.tipo] || STATUS_STYLES.warning;
-                      const Icon = s.icon;
-                      return (
-                        <div key={i} className={cn('flex gap-3 items-start p-3 rounded-xl border', s.bg, s.border)}>
-                          <Icon className={cn('w-5 h-5 shrink-0 mt-0.5', s.text)} />
-                          <p className="text-sm text-foreground">{a.mensagem}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </SectionCard>
               )}
 
-              {/* CTA WHATSAPP */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="rounded-3xl p-6 sm:p-8 text-center bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border border-primary/30"
-              >
-                <Sparkles className="w-8 h-8 text-primary mx-auto mb-3" />
-                <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-foreground mb-2">
-                  Quer transformar esse diagnóstico em resultado?
-                </h3>
-                <p className="text-sm text-muted-foreground mb-5 max-w-lg mx-auto">
-                  A INOVA Co. cuida dos seus anúncios de ponta a ponta — criativo, estratégia, otimização e escala.
-                </p>
+              <div className="mt-6 flex justify-center">
                 <Button
-                  onClick={openWhatsApp}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-black px-8 h-13 rounded-2xl uppercase tracking-wider hover:scale-105 transition-all"
+                  onClick={analyze}
+                  disabled={!image || isProcessing}
+                  className="bg-primary text-primary-foreground font-black px-10 h-14 rounded-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100 uppercase tracking-wider"
                 >
-                  <MessageCircle className="w-5 h-5 mr-2" />
-                  Quero ajuda para melhorar meus anúncios
-                </Button>
-              </motion.div>
-
-              {/* RESET */}
-              <div className="flex justify-center pt-2">
-                <Button variant="ghost" onClick={reset} className="text-muted-foreground hover:text-foreground uppercase tracking-widest text-xs font-bold">
-                  Analisar outro print
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                      Gerando relatório estratégico…
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-5 h-5 mr-3" />
+                      Gerar relatório
+                    </>
+                  )}
                 </Button>
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>
 
-        <p className="text-[10px] text-muted-foreground/60 text-center mt-10 italic">
-          🔒 Sua imagem é processada apenas para a análise e não é armazenada permanentemente.
-        </p>
+            <p className="text-[10px] text-muted-foreground/60 text-center mt-10 italic">
+              🔒 Sua imagem é processada apenas para a análise e não é armazenada permanentemente.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* REPORT VIEW (LANDING PAGE STYLE) */}
+      <AnimatePresence>
+        {diagnosis && (
+          <motion.div
+            ref={reportRef}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="bg-background"
+          >
+            {/* Floating action toolbar */}
+            <div className="fixed top-4 right-4 z-40 flex gap-2 print:hidden">
+              <Button onClick={handlePrint} variant="outline" size="sm" className="rounded-full shadow-lg backdrop-blur-md bg-background/80">
+                <Download className="w-4 h-4 mr-2" /> Salvar PDF
+              </Button>
+              <Button onClick={handleShare} variant="outline" size="sm" className="rounded-full shadow-lg backdrop-blur-md bg-background/80">
+                <Share2 className="w-4 h-4 mr-2" /> Compartilhar
+              </Button>
+              <Button onClick={reset} variant="outline" size="sm" className="rounded-full shadow-lg backdrop-blur-md bg-background/80">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* HERO */}
+            <HeroSection diagnosis={diagnosis} />
+
+            {/* CONTENT */}
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-12 sm:py-20 space-y-12 sm:space-y-20">
+              {/* KPIs DESTAQUE */}
+              {diagnosis.kpisDestaque && diagnosis.kpisDestaque.length > 0 && (
+                <KpisSection kpis={diagnosis.kpisDestaque} />
+              )}
+
+              {/* SCORES POR DIMENSÃO */}
+              {diagnosis.scores && <ScoresSection scores={diagnosis.scores} />}
+
+              {/* MÉTRICAS DETALHADAS */}
+              <MetricsSection metricas={diagnosis.metricas} />
+
+              {/* DIAGNÓSTICO ESTRATÉGICO */}
+              <StrategicSection diag={diagnosis.diagnosticoEstrategico} />
+
+              {/* PROJEÇÃO */}
+              {diagnosis.projecao && <ProjectionSection projecao={diagnosis.projecao} />}
+
+              {/* PLANO DE AÇÃO */}
+              <ActionPlanSection acoes={diagnosis.planoDeAcao} />
+
+              {/* ALERTAS */}
+              {diagnosis.alertas && diagnosis.alertas.length > 0 && (
+                <AlertsSection alertas={diagnosis.alertas} />
+              )}
+
+              {/* CTA FINAL */}
+              <CtaSection onWhatsApp={openWhatsApp} />
+
+              {/* FOOTER */}
+              <footer className="pt-10 pb-4 text-center border-t border-border">
+                <img src={LogoInova} alt="INOVA Co." className="h-8 mx-auto mb-3 opacity-60" />
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60">
+                  Relatório gerado por INOVA Co. · {new Date().toLocaleDateString('pt-BR')}
+                </p>
+              </footer>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ───────────────── SECTIONS ───────────────── */
+
+function HeroSection({ diagnosis }: { diagnosis: Diagnosis }) {
+  const s = STATUS_STYLES[diagnosis.resumo.classificacao] || STATUS_STYLES.warning;
+  const score = diagnosis.resumo.scoreGeral ?? 50;
+  const campanha = diagnosis.campanha;
+
+  return (
+    <section className="relative overflow-hidden bg-gradient-to-br from-black via-zinc-900 to-black text-white py-16 sm:py-24 px-4 sm:px-6 lg:px-10">
+      {/* Grid bg */}
+      <div className="absolute inset-0 opacity-[0.07]" style={{
+        backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+        backgroundSize: '50px 50px'
+      }} />
+      {/* Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] opacity-50" />
+
+      <div className="relative max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-12">
+          <img src={LogoInova} alt="INOVA" className="h-7 sm:h-9 brightness-0 invert opacity-80" />
+          <div className="text-[10px] uppercase tracking-widest text-white/40 font-bold">
+            Relatório Estratégico
+          </div>
+        </div>
+
+        <motion.p
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          className="text-[10px] sm:text-xs uppercase tracking-[0.4em] text-primary font-black mb-4"
+        >
+          Diagnóstico de Anúncios
+        </motion.p>
+
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tighter italic leading-[0.95] mb-6"
+        >
+          Sua campanha está<br />
+          <span className={cn('inline-block', s.text)}>{diagnosis.resumo.titulo.toLowerCase()}</span>
+        </motion.h1>
+
+        <motion.p
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+          className="text-base sm:text-lg text-white/70 max-w-2xl mb-10 leading-relaxed"
+        >
+          {diagnosis.resumo.explicacao}
+        </motion.p>
+
+        {/* Campaign meta */}
+        {campanha && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+            className="flex flex-wrap gap-2 mb-10"
+          >
+            {campanha.plataforma && (
+              <span className="px-3 py-1.5 rounded-full bg-white/10 text-xs font-bold text-white/80 border border-white/10">
+                {campanha.plataforma}
+              </span>
+            )}
+            {campanha.objetivo && (
+              <span className="px-3 py-1.5 rounded-full bg-white/10 text-xs font-bold text-white/80 border border-white/10">
+                Objetivo: {campanha.objetivo}
+              </span>
+            )}
+            {campanha.periodo && (
+              <span className="px-3 py-1.5 rounded-full bg-white/10 text-xs font-bold text-white/80 border border-white/10">
+                {campanha.periodo}
+              </span>
+            )}
+          </motion.div>
+        )}
+
+        {/* SCORE GAUGE */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}
+          className="inline-flex items-center gap-6 sm:gap-10 p-6 sm:p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl"
+        >
+          <ScoreGauge score={score} status={diagnosis.resumo.classificacao} />
+          <div>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-white/50 mb-1">Score Geral</p>
+            <p className="text-4xl sm:text-5xl font-black tabular-nums">{score}<span className="text-xl text-white/40">/100</span></p>
+            <p className={cn('text-xs font-bold uppercase tracking-wider mt-1', s.text)}>
+              {diagnosis.resumo.titulo}
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function ScoreGauge({ score, status }: { score: number; status: Status }) {
+  const circumference = 2 * Math.PI * 45;
+  const offset = circumference - (score / 100) * circumference;
+  const colors = { good: '#10b981', warning: '#f59e0b', bad: '#ef4444' };
+  return (
+    <div className="relative w-24 h-24 sm:w-32 sm:h-32 shrink-0">
+      <svg className="w-full h-full -rotate-90">
+        <circle cx="50%" cy="50%" r="45%" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
+        <motion.circle
+          cx="50%" cy="50%" r="45%" fill="none"
+          stroke={colors[status]} strokeWidth="8" strokeLinecap="round"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 1.5, ease: 'easeOut' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-2xl sm:text-3xl font-black tabular-nums">{score}</span>
       </div>
     </div>
   );
 }
 
-/* -------- subcomponents -------- */
+function KpisSection({ kpis }: { kpis: NonNullable<Diagnosis['kpisDestaque']> }) {
+  return (
+    <Section title="KPIs em destaque" subtitle="Os indicadores que mais impactam o resultado da campanha">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {kpis.map((kpi, i) => {
+          const s = STATUS_STYLES[kpi.status] || STATUS_STYLES.warning;
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              transition={{ delay: i * 0.05 }}
+              className={cn('p-4 sm:p-6 rounded-2xl border-2 backdrop-blur-sm', s.bg, s.border)}
+            >
+              <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-2">{kpi.label}</p>
+              <p className={cn('text-2xl sm:text-4xl font-black tabular-nums tracking-tight', s.text)}>{kpi.value}</p>
+              {kpi.delta && (
+                <p className="text-xs text-muted-foreground mt-2 leading-tight">{kpi.delta}</p>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
 
-function ResumoCard({ resumo }: { resumo: Diagnosis['resumo'] }) {
-  const s = STATUS_STYLES[resumo.classificacao] || STATUS_STYLES.warning;
-  const Icon = s.icon;
+function ScoresSection({ scores }: { scores: NonNullable<Diagnosis['scores']> }) {
+  const items = [
+    { label: 'Criativo', value: scores.criativo, icon: Sparkles },
+    { label: 'Público', value: scores.publico, icon: Users },
+    { label: 'Oferta', value: scores.oferta, icon: Target },
+    { label: 'Estrutura', value: scores.estrutura, icon: BarChart3 },
+  ];
+  return (
+    <Section title="Scores por dimensão" subtitle="Performance da campanha em cada pilar estratégico">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {items.map((item, i) => {
+          const status: Status = item.value >= 70 ? 'good' : item.value >= 40 ? 'warning' : 'bad';
+          const s = STATUS_STYLES[status];
+          const Icon = item.icon;
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              transition={{ delay: i * 0.05 }}
+              className="p-5 rounded-2xl bg-card border border-border"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Icon className={cn('w-4 h-4', s.text)} />
+                <p className="text-xs uppercase font-bold tracking-widest text-foreground">{item.label}</p>
+              </div>
+              <div className="flex items-end justify-between mb-2">
+                <span className="text-3xl font-black tabular-nums text-foreground">{item.value}</span>
+                <span className="text-xs text-muted-foreground">/100</span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }} whileInView={{ width: `${item.value}%` }} viewport={{ once: true }}
+                  transition={{ duration: 1, delay: i * 0.1 }}
+                  className={cn('h-full rounded-full', status === 'good' ? 'bg-emerald-500' : status === 'warning' ? 'bg-amber-500' : 'bg-red-500')}
+                />
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
+  return (
+    <Section title="Leitura completa das métricas" subtitle="Cada número da sua campanha interpretado por um consultor sênior">
+      <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
+        {metricas?.map((m, i) => {
+          const s = STATUS_STYLES[m.status] || STATUS_STYLES.warning;
+          const Icon = getMetricIcon(m.name);
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              transition={{ delay: i * 0.04 }}
+              className={cn('p-5 rounded-2xl border', s.bg, s.border)}
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className={cn('p-2 rounded-lg', s.bg, 'border', s.border)}>
+                    <Icon className={cn('w-4 h-4', s.text)} />
+                  </div>
+                  <div>
+                    <p className="font-black text-foreground text-sm uppercase tracking-wide">{m.name}</p>
+                    {m.benchmark && <p className="text-[10px] text-muted-foreground">{m.benchmark}</p>}
+                  </div>
+                </div>
+                <span className={cn('text-[10px] uppercase font-black tracking-widest px-2 py-1 rounded-full', s.bg, s.text)}>
+                  {m.classification}
+                </span>
+              </div>
+              {m.value && (
+                <p className="text-2xl sm:text-3xl font-black tabular-nums text-foreground mb-2">{m.value}</p>
+              )}
+              <p className="text-sm text-muted-foreground leading-relaxed">{m.interpretation}</p>
+            </motion.div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+function StrategicSection({ diag }: { diag: Diagnosis['diagnosticoEstrategico'] }) {
+  return (
+    <Section title="Diagnóstico estratégico" subtitle="Onde está o gargalo real da campanha">
+      <div className="rounded-3xl bg-gradient-to-br from-primary/10 via-card to-card border border-primary/20 p-6 sm:p-8 mb-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Target className="w-5 h-5 text-primary" />
+          <span className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Gargalo identificado</span>
+          <span className="px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider">
+            {diag.gargalo}
+          </span>
+        </div>
+        <h3 className="text-xl sm:text-2xl font-black text-foreground mb-3 leading-tight">{diag.problemaPrincipal}</h3>
+        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{diag.detalhe}</p>
+      </div>
+
+      {(diag.pontosFortes?.length || diag.pontosFracos?.length) ? (
+        <div className="grid sm:grid-cols-2 gap-4">
+          {diag.pontosFortes && diag.pontosFortes.length > 0 && (
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <h4 className="text-sm font-black uppercase tracking-widest text-emerald-400">Pontos fortes</h4>
+              </div>
+              <ul className="space-y-2">
+                {diag.pontosFortes.map((p, i) => (
+                  <li key={i} className="flex gap-2 text-sm text-foreground">
+                    <span className="text-emerald-400">✓</span>
+                    <span>{p}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {diag.pontosFracos && diag.pontosFracos.length > 0 && (
+            <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingDown className="w-5 h-5 text-red-400" />
+                <h4 className="text-sm font-black uppercase tracking-widest text-red-400">Pontos fracos</h4>
+              </div>
+              <ul className="space-y-2">
+                {diag.pontosFracos.map((p, i) => (
+                  <li key={i} className="flex gap-2 text-sm text-foreground">
+                    <span className="text-red-400">✗</span>
+                    <span>{p}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : null}
+    </Section>
+  );
+}
+
+function ProjectionSection({ projecao }: { projecao: NonNullable<Diagnosis['projecao']> }) {
+  return (
+    <Section title="Projeção de resultados" subtitle="O potencial real da sua campanha após os ajustes">
+      <div className="grid lg:grid-cols-3 gap-4">
+        <div className="rounded-2xl bg-card border border-border p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Activity className="w-4 h-4 text-muted-foreground" />
+            <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Cenário atual</span>
+          </div>
+          <p className="text-sm text-foreground leading-relaxed">{projecao.cenarioAtual}</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 border-2 border-primary/30 p-6 lg:scale-105">
+          <div className="flex items-center gap-2 mb-3">
+            <Rocket className="w-4 h-4 text-primary" />
+            <span className="text-[10px] uppercase font-bold tracking-widest text-primary">Cenário otimizado</span>
+          </div>
+          <p className="text-sm text-foreground leading-relaxed font-medium">{projecao.cenarioOtimizado}</p>
+        </div>
+        <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/30 p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Trophy className="w-4 h-4 text-emerald-400" />
+            <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400">Potencial</span>
+          </div>
+          <p className="text-2xl font-black text-emerald-400 leading-tight">{projecao.potencial}</p>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function ActionPlanSection({ acoes }: { acoes: Diagnosis['planoDeAcao'] }) {
+  const PRIORITY_COLORS: Record<string, string> = {
+    alta: 'bg-red-500 text-white',
+    media: 'bg-amber-500 text-black',
+    baixa: 'bg-zinc-500 text-white',
+  };
+  return (
+    <Section title="Plano de ação" subtitle="Passo a passo para destravar a performance" highlight>
+      <div className="space-y-3">
+        {acoes?.map((acao: any, i: number) => {
+          const a = typeof acao === 'string' ? { titulo: acao, descricao: '', prioridade: 'media' } : acao;
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -10 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+              transition={{ delay: i * 0.05 }}
+              className="flex gap-4 p-4 sm:p-5 rounded-2xl bg-card border border-border hover:border-primary/40 transition-colors"
+            >
+              <div className="shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary text-primary-foreground font-black text-base sm:text-lg flex items-center justify-center">
+                {i + 1}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-3 mb-1">
+                  <h4 className="text-base sm:text-lg font-black text-foreground leading-tight">{a.titulo}</h4>
+                  {a.prioridade && (
+                    <span className={cn('shrink-0 text-[9px] px-2 py-1 rounded-full uppercase font-black tracking-wider', PRIORITY_COLORS[a.prioridade] || PRIORITY_COLORS.media)}>
+                      {a.prioridade}
+                    </span>
+                  )}
+                </div>
+                {a.descricao && <p className="text-sm text-muted-foreground leading-relaxed">{a.descricao}</p>}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+function AlertsSection({ alertas }: { alertas: Diagnosis['alertas'] }) {
+  return (
+    <Section title="Alertas importantes" subtitle="Pontos de atenção que precisam de ação imediata">
+      <div className="space-y-2">
+        {alertas.map((a, i) => {
+          const s = STATUS_STYLES[a.tipo] || STATUS_STYLES.warning;
+          const Icon = s.icon;
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -10 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+              transition={{ delay: i * 0.05 }}
+              className={cn('flex gap-3 items-start p-4 rounded-xl border', s.bg, s.border)}
+            >
+              <Icon className={cn('w-5 h-5 shrink-0 mt-0.5', s.text)} />
+              <p className="text-sm text-foreground">{a.mensagem}</p>
+            </motion.div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+function CtaSection({ onWhatsApp }: { onWhatsApp: () => void }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={cn('rounded-3xl p-6 sm:p-8 border-2 backdrop-blur-sm', s.bg, s.border)}
+      initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
+      className="rounded-3xl p-8 sm:p-12 text-center bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-primary-foreground relative overflow-hidden print:hidden"
     >
-      <div className="flex items-start gap-4">
-        <div className={cn('p-3 rounded-2xl shrink-0', s.bg)}>
-          <Icon className={cn('w-7 h-7', s.text)} />
-        </div>
-        <div className="flex-1">
-          <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">Resumo executivo</p>
-          <h2 className={cn('text-2xl sm:text-3xl font-black uppercase tracking-tight mb-2', s.text)}>
-            Campanha {resumo.titulo}
-          </h2>
-          <p className="text-sm sm:text-base text-foreground leading-relaxed">{resumo.explicacao}</p>
-        </div>
+      <div className="absolute inset-0 opacity-10" style={{
+        backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 50%, white 1px, transparent 1px)',
+        backgroundSize: '50px 50px'
+      }} />
+      <div className="relative">
+        <Lightbulb className="w-10 h-10 mx-auto mb-4" />
+        <h3 className="text-2xl sm:text-4xl font-black uppercase tracking-tight mb-3 leading-tight">
+          Quer transformar esse<br />diagnóstico em resultado?
+        </h3>
+        <p className="text-sm sm:text-base opacity-90 mb-6 max-w-xl mx-auto">
+          A INOVA Co. cuida dos seus anúncios de ponta a ponta — criativo, estratégia, otimização e escala.
+        </p>
+        <Button
+          onClick={onWhatsApp}
+          size="lg"
+          className="bg-black hover:bg-zinc-900 text-white font-black px-8 h-14 rounded-2xl uppercase tracking-wider hover:scale-105 transition-all shadow-2xl"
+        >
+          <MessageCircle className="w-5 h-5 mr-2" />
+          Quero ajuda para melhorar meus anúncios
+          <ArrowRight className="w-5 h-5 ml-2" />
+        </Button>
       </div>
     </motion.div>
   );
 }
 
-function SectionCard({
-  title, icon: Icon, children, highlight,
-}: { title: string; icon: any; children: React.ReactNode; highlight?: boolean }) {
+function Section({
+  title, subtitle, children, highlight,
+}: { title: string; subtitle?: string; children: React.ReactNode; highlight?: boolean }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={cn(
-        'rounded-3xl p-5 sm:p-6 border backdrop-blur-sm',
-        highlight ? 'bg-primary/5 border-primary/30' : 'bg-card/50 border-border',
-      )}
+    <motion.section
+      initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }}
     >
-      <div className="flex items-center gap-2 mb-4">
-        <Icon className={cn('w-5 h-5', highlight ? 'text-primary' : 'text-muted-foreground')} />
-        <h3 className="text-sm font-black uppercase tracking-widest text-foreground">{title}</h3>
+      <div className="mb-6 sm:mb-8">
+        <h2 className={cn(
+          'text-2xl sm:text-4xl font-black uppercase tracking-tighter italic mb-2',
+          highlight ? 'text-primary' : 'text-foreground'
+        )}>
+          {title}
+        </h2>
+        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
       </div>
       {children}
-    </motion.div>
-  );
-}
-
-function MetricCard({ metric }: { metric: MetricReading }) {
-  const s = STATUS_STYLES[metric.status] || STATUS_STYLES.warning;
-  return (
-    <div className={cn('p-4 rounded-2xl border', s.bg, s.border)}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <TrendingUp className={cn('w-4 h-4', s.text)} />
-          <p className="font-black text-foreground text-sm uppercase tracking-wide">{metric.name}</p>
-        </div>
-        {metric.value && (
-          <span className="text-xs font-mono font-bold text-foreground/80">{metric.value}</span>
-        )}
-      </div>
-      <p className={cn('text-[10px] uppercase font-bold tracking-widest mb-2', s.text)}>{metric.classification}</p>
-      <p className="text-xs text-muted-foreground leading-relaxed">{metric.interpretation}</p>
-    </div>
+    </motion.section>
   );
 }
