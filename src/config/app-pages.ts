@@ -33,12 +33,12 @@ export interface AppPage {
 export const APP_PAGES: AppPage[] = [
   // Geral
   { path: '/',                    label: 'Dashboard',           icon: LayoutDashboard, category: 'Geral' },
-  { path: '/minhas-tarefas',      label: 'Minhas Tarefas',      icon: ListChecks,      category: 'Geral', alwaysAllowed: true },
-  { path: '/calendario',          label: 'Calendário',          icon: Calendar,        category: 'Geral', alwaysAllowed: true },
-  { path: '/notificacoes',        label: 'Notificações',        icon: Bell,            category: 'Geral', alwaysAllowed: true },
-  { path: '/chat',                label: 'Chat Interno',        icon: MessageSquare,   category: 'Geral', alwaysAllowed: true },
-  { path: '/roleta',              label: 'Roleta de Prêmios',   icon: Gift,            category: 'Geral', alwaysAllowed: true },
-  { path: '/negocios',            label: 'Rede de Negócios',    icon: Network,         category: 'Geral', alwaysAllowed: true },
+  { path: '/minhas-tarefas',      label: 'Minhas Tarefas',      icon: ListChecks,      category: 'Geral' },
+  { path: '/calendario',          label: 'Calendário',          icon: Calendar,        category: 'Geral' },
+  { path: '/notificacoes',        label: 'Notificações',        icon: Bell,            category: 'Geral' },
+  { path: '/chat',                label: 'Chat Interno',        icon: MessageSquare,   category: 'Geral' },
+  { path: '/roleta',              label: 'Roleta de Prêmios',   icon: Gift,            category: 'Geral' },
+  { path: '/negocios',            label: 'Rede de Negócios',    icon: Network,         category: 'Geral' },
 
   // Comercial
   { path: '/crm',                 label: 'CRM',                 icon: Target,          category: 'Comercial' },
