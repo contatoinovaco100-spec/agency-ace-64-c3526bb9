@@ -1023,12 +1023,28 @@ export default function DiagnosticEditorPage() {
                         <div className="space-y-4">
                            {config.aiAnalise.bioPositivos?.map((p: string, i: number) => (
                               <div key={i} className="flex gap-3 text-sm font-bold text-black/70">
-                                 <CheckCircle2 className="text-primary shrink-0" size={18} /> {p}
+                                 <CheckCircle2 className="text-primary shrink-0" size={18} /> 
+                                 <EditableText 
+                                     value={p} 
+                                     onChange={(v: string) => {
+                                         const newArr = [...config.aiAnalise.bioPositivos];
+                                         newArr[i] = v;
+                                         setConfig({...config, aiAnalise: {...config.aiAnalise, bioPositivos: newArr}});
+                                     }}
+                                 />
                               </div>
                            ))}
                            {config.aiAnalise.bioNegativos?.map((n: string, i: number) => (
                               <div key={i} className="flex gap-3 text-sm font-bold text-black/40 italic">
-                                 <AlertCircle className="text-black/20 shrink-0" size={18} /> {n}
+                                 <AlertCircle className="text-black/20 shrink-0" size={18} /> 
+                                 <EditableText 
+                                     value={n} 
+                                     onChange={(v: string) => {
+                                         const newArr = [...config.aiAnalise.bioNegativos];
+                                         newArr[i] = v;
+                                         setConfig({...config, aiAnalise: {...config.aiAnalise, bioNegativos: newArr}});
+                                     }}
+                                 />
                               </div>
                            ))}
                         </div>
@@ -1043,12 +1059,28 @@ export default function DiagnosticEditorPage() {
                         <div className="space-y-4">
                            {config.aiAnalise.presencaPositivos?.map((p: string, i: number) => (
                               <div key={i} className="flex gap-3 text-sm font-bold text-white/80">
-                                 <CheckCircle2 className="text-[#bff720] shrink-0" size={18} /> {p}
+                                 <CheckCircle2 className="text-[#bff720] shrink-0" size={18} /> 
+                                 <EditableText 
+                                     value={p} 
+                                     onChange={(v: string) => {
+                                         const newArr = [...config.aiAnalise.presencaPositivos];
+                                         newArr[i] = v;
+                                         setConfig({...config, aiAnalise: {...config.aiAnalise, presencaPositivos: newArr}});
+                                     }}
+                                 />
                               </div>
                            ))}
                            {config.aiAnalise.presencaNegativos?.map((n: string, i: number) => (
                               <div key={i} className="flex gap-3 text-sm font-bold text-white/30 italic">
-                                 <AlertCircle className="text-white/10 shrink-0" size={18} /> {n}
+                                 <AlertCircle className="text-white/10 shrink-0" size={18} /> 
+                                 <EditableText 
+                                     value={n} 
+                                     onChange={(v: string) => {
+                                         const newArr = [...config.aiAnalise.presencaNegativos];
+                                         newArr[i] = v;
+                                         setConfig({...config, aiAnalise: {...config.aiAnalise, presencaNegativos: newArr}});
+                                     }}
+                                 />
                               </div>
                            ))}
                         </div>
