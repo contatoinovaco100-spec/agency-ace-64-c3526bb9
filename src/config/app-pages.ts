@@ -68,6 +68,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/onboarding',          label: 'Onboarding Kit',      icon: BookOpen,        category: 'Ferramentas' },
   { path: '/calculadora',         label: 'Calculadora',         icon: CalculatorIcon,  category: 'Ferramentas' },
   { path: '/nova',                label: 'Nova Assistente',     icon: Bot,             category: 'Ferramentas' },
+  { path: '/diagnostico-anuncios', label: 'Diagnóstico de Anúncios', icon: BarChart3,    category: 'Ferramentas' },
 
   // Administração (só admin)
   { path: '/funcionarios',        label: 'Funcionários',        icon: UserCog,         category: 'Administração', adminOnly: true },
