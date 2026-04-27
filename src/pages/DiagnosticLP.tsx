@@ -725,6 +725,8 @@ export default function DiagnosticLP() {
             background: white !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            height: auto !important;
+            overflow: visible !important;
           }
 
           /* Force color printing */
@@ -733,49 +735,58 @@ export default function DiagnosticLP() {
             print-color-adjust: exact !important;
           }
 
-          /* Each section = 1 page */
-          .diagnostic-lp-root section,
-          .diagnostic-lp-root footer {
+          /* Remove height and overflow constraints that cause clipping */
+          .diagnostic-lp-root {
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
+          }
+
+          /* Make sections behave like blocks instead of flex to prevent flex-clipping */
+          .diagnostic-lp-root section {
+            display: block !important;
             page-break-after: always;
             break-after: page;
             page-break-inside: avoid;
             break-inside: avoid;
-            min-height: 100vh;
-            box-sizing: border-box;
+            min-height: 0 !important;
+            height: auto !important;
+            padding-top: 40px !important;
+            padding-bottom: 40px !important;
+            padding-left: 40px !important;
+            padding-right: 40px !important;
+            position: relative !important;
+            overflow: visible !important;
           }
 
           .diagnostic-lp-root footer {
+            display: block !important;
             page-break-after: auto;
-          }
-
-          /* Ensure full width */
-          .diagnostic-lp-root {
-            width: 100% !important;
-            max-width: 100% !important;
-            overflow: visible !important;
-          }
-
-          .diagnostic-lp-root section {
-            overflow: visible !important;
-            position: relative !important;
-          }
-
-          /* Fix grid columns for print */
-          .diagnostic-lp-root .grid {
             page-break-inside: avoid;
             break-inside: avoid;
           }
 
-          /* Reduce exaggerated paddings for print */
-          .diagnostic-lp-root section {
-            padding-left: 40px !important;
-            padding-right: 40px !important;
-          }
-
-          /* Week sections don't need full page height */
-          .diagnostic-lp-root .bg-\\[\\#F5F3EE\\] section {
-            min-height: auto;
+          /* Fix grid columns for print (force desktop-like grid) */
+          .diagnostic-lp-root .grid {
+            display: grid !important;
             page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          
+          /* Force columns for grids that might collapse to mobile on print */
+          .diagnostic-lp-root .lg\\:grid-cols-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+          .diagnostic-lp-root .lg\\:grid-cols-12 {
+            grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+          }
+          .diagnostic-lp-root .lg\\:col-span-6 {
+            grid-column: span 6 / span 6 !important;
+          }
+          .diagnostic-lp-root .lg\\:col-span-12 {
+            grid-column: span 12 / span 12 !important;
           }
 
           /* Cards avoid break */
@@ -784,30 +795,45 @@ export default function DiagnosticLP() {
             page-break-inside: avoid;
           }
 
-          /* Disable all animations for print */
+          /* Force framer-motion elements to be fully visible and in correct position */
           .diagnostic-lp-root * {
             animation: none !important;
             transition: none !important;
-            transform: none !important;
           }
 
-          /* Exception: keep scale transforms for progress bars */
-          .diagnostic-lp-root .h-2 > div,
-          .diagnostic-lp-root .h-1\\.5 > div {
-            transform: none !important;
+          /* Override inline styles set by framer motion for opacity and transform */
+          .diagnostic-lp-root div[style*="opacity"],
+          .diagnostic-lp-root h2[style*="opacity"],
+          .diagnostic-lp-root h3[style*="opacity"],
+          .diagnostic-lp-root h4[style*="opacity"],
+          .diagnostic-lp-root p[style*="opacity"],
+          .diagnostic-lp-root span[style*="opacity"],
+          .diagnostic-lp-root img[style*="opacity"] {
+             opacity: 1 !important;
+             transform: none !important;
           }
+
+          /* Re-apply tailwind opacity classes so we don't break decorative elements */
+          .diagnostic-lp-root .opacity-0 { opacity: 0 !important; }
+          .diagnostic-lp-root .opacity-5 { opacity: 0.05 !important; }
+          .diagnostic-lp-root .opacity-10 { opacity: 0.1 !important; }
+          .diagnostic-lp-root .opacity-[0.02] { opacity: 0.02 !important; }
+          .diagnostic-lp-root .opacity-[0.08] { opacity: 0.08 !important; }
+          .diagnostic-lp-root .opacity-20 { opacity: 0.2 !important; }
+          .diagnostic-lp-root .opacity-30 { opacity: 0.3 !important; }
+          .diagnostic-lp-root .opacity-40 { opacity: 0.4 !important; }
+          .diagnostic-lp-root .opacity-50 { opacity: 0.5 !important; }
 
           /* Hide blur/glow effects that don't print well */
           .diagnostic-lp-root [class*="blur-"] {
             filter: none !important;
             opacity: 0 !important;
+            display: none !important;
           }
 
-          /* But keep actual content visible */
-          .diagnostic-lp-root section > div,
-          .diagnostic-lp-root section > div > div {
-            opacity: 1 !important;
-            visibility: visible !important;
+          /* Scale down slightly if content is too large */
+          .diagnostic-lp-root {
+             zoom: 0.8;
           }
         }
       `}} />
