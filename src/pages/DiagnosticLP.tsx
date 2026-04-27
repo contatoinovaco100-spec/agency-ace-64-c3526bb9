@@ -713,6 +713,12 @@ export default function DiagnosticLP() {
       {/* PRINT / PDF STYLES */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
+          /* Force 16:9 Presentation Format */
+          @page {
+            size: 1920px 1080px; /* 16:9 aspect ratio */
+            margin: 0;
+          }
+
           /* Hide non-content elements */
           .no-print,
           .fixed,
@@ -725,62 +731,76 @@ export default function DiagnosticLP() {
             background: white !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            width: 1920px !important;
             height: auto !important;
-            overflow: visible !important;
           }
 
-          /* Force color printing */
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-
-          /* Remove height and overflow constraints that cause clipping */
+          /* Remove height and overflow constraints */
           .diagnostic-lp-root {
-            width: 100% !important;
-            max-width: 100% !important;
+            width: 1920px !important;
+            max-width: 1920px !important;
             height: auto !important;
-            overflow: visible !important;
+            overflow: hidden !important;
             display: block !important;
+            zoom: 1 !important; /* Reset zoom as we're explicitly sizing */
           }
 
-          /* Make sections behave like blocks instead of flex to prevent flex-clipping */
+          /* Make sections behave exactly like 16:9 slides */
           .diagnostic-lp-root section {
-            display: block !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            width: 1920px !important;
+            height: 1080px !important;
+            min-height: 1080px !important;
+            max-height: 1080px !important;
             page-break-after: always;
             break-after: page;
             page-break-inside: avoid;
             break-inside: avoid;
-            min-height: 0 !important;
-            height: auto !important;
-            padding-top: 40px !important;
-            padding-bottom: 40px !important;
-            padding-left: 40px !important;
-            padding-right: 40px !important;
+            padding: 80px 120px !important; /* Beautiful large padding for 16:9 */
+            box-sizing: border-box !important;
             position: relative !important;
-            overflow: visible !important;
+            overflow: hidden !important;
           }
 
+          /* Adjust footer to be a slide as well */
           .diagnostic-lp-root footer {
-            display: block !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+            width: 1920px !important;
+            height: 1080px !important;
+            padding: 80px 120px !important;
+            box-sizing: border-box !important;
             page-break-after: auto;
             page-break-inside: avoid;
             break-inside: avoid;
           }
 
-          /* Fix grid columns for print (force desktop-like grid) */
+          /* Ensure grids are correctly spaced for the large 1920x1080 layout */
+          .diagnostic-lp-root .max-w-7xl,
+          .diagnostic-lp-root .max-w-6xl,
+          .diagnostic-lp-root .max-w-5xl {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 auto !important;
+          }
+
           .diagnostic-lp-root .grid {
             display: grid !important;
             page-break-inside: avoid;
             break-inside: avoid;
           }
           
-          /* Force columns for grids that might collapse to mobile on print */
           .diagnostic-lp-root .lg\\:grid-cols-2 {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 80px !important; /* Larger gap for 16:9 */
           }
           .diagnostic-lp-root .lg\\:grid-cols-12 {
             grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+            gap: 60px !important;
           }
           .diagnostic-lp-root .lg\\:col-span-6 {
             grid-column: span 6 / span 6 !important;
@@ -789,19 +809,17 @@ export default function DiagnosticLP() {
             grid-column: span 12 / span 12 !important;
           }
 
-          /* Cards avoid break */
           .diagnostic-lp-root [class*="rounded-"] {
             break-inside: avoid;
             page-break-inside: avoid;
           }
 
-          /* Force framer-motion elements to be fully visible and in correct position */
+          /* Force framer-motion visibility */
           .diagnostic-lp-root * {
             animation: none !important;
             transition: none !important;
           }
 
-          /* Override inline styles set by framer motion for opacity and transform */
           .diagnostic-lp-root div[style*="opacity"],
           .diagnostic-lp-root h2[style*="opacity"],
           .diagnostic-lp-root h3[style*="opacity"],
@@ -813,7 +831,7 @@ export default function DiagnosticLP() {
              transform: none !important;
           }
 
-          /* Re-apply tailwind opacity classes so we don't break decorative elements */
+          /* Re-apply decorative opacities */
           .diagnostic-lp-root .opacity-0 { opacity: 0 !important; }
           .diagnostic-lp-root .opacity-5 { opacity: 0.05 !important; }
           .diagnostic-lp-root .opacity-10 { opacity: 0.1 !important; }
@@ -824,16 +842,10 @@ export default function DiagnosticLP() {
           .diagnostic-lp-root .opacity-40 { opacity: 0.4 !important; }
           .diagnostic-lp-root .opacity-50 { opacity: 0.5 !important; }
 
-          /* Hide blur/glow effects that don't print well */
           .diagnostic-lp-root [class*="blur-"] {
             filter: none !important;
             opacity: 0 !important;
             display: none !important;
-          }
-
-          /* Scale down slightly if content is too large */
-          .diagnostic-lp-root {
-             zoom: 0.8;
           }
         }
       `}} />
