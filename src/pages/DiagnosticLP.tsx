@@ -699,11 +699,27 @@ export default function DiagnosticLP() {
                     <div className="absolute -inset-16 bg-[#bff720]/10 blur-[80px] rounded-full pointer-events-none" />
                     <img src={LogoInova} className="h-14 sm:h-20 lg:h-28 brightness-0 invert opacity-50 relative z-10" alt="Inova" />
                 </motion.div>
-                <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.3 }} className="space-y-6 sm:space-y-8 max-w-xl">
-                    <h4 className="text-lg sm:text-2xl font-black text-white uppercase tracking-[6px] sm:tracking-[12px]">Estratégia <span className="text-[#bff720]">&</span> ROI</h4>
-                    <div className="w-16 h-[1px] bg-gradient-to-r from-transparent via-[#bff720] to-transparent mx-auto" />
+                <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.3 }} className="space-y-6 sm:space-y-8 max-w-2xl">
+                    <h4 className="text-lg sm:text-3xl font-black text-white uppercase tracking-tight sm:tracking-tight">
+                        Quer transformar esse<br className="hidden sm:block" /> diagnóstico em <span className="text-[#bff720]">resultado?</span>
+                    </h4>
+                    
+                    <p className="text-white/70 text-sm sm:text-base font-medium leading-relaxed">
+                        A INOVA Co. cuida dos seus anúncios de ponta a ponta —<br className="hidden sm:block" /> criativo, estratégia, otimização e escala.
+                    </p>
+
+                    <div className="pt-4">
+                        <a href={`https://wa.me/55${displayConfig?.cliente?.whatsapp || ''}?text=Ol%C3%A1%2C%20estou%20vendo%20meu%20diagn%C3%B3stico%20e%20quero%20ajuda%20para%20melhorar%20meus%20an%C3%BAncios!`} 
+                           target="_blank" rel="noopener noreferrer"
+                           className="inline-block text-[#bff720] hover:text-white text-lg sm:text-xl font-bold transition-colors underline decoration-[#bff720]/30 hover:decoration-white underline-offset-8">
+                            Quero ajuda para melhorar meus anúncios
+                        </a>
+                    </div>
+
+                    <div className="w-16 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mx-auto mt-12 mb-8" />
+                    
                     <p className="text-white/[0.25] text-[10px] font-medium leading-relaxed uppercase tracking-[3px] sm:tracking-[4px] break-words">
-                        Este documento é confidencial e exclusivo<br />para @{clienteNome.replace('@','')}.<br />
+                        Este documento é confidencial e exclusivo para @{clienteNome.replace('@','')}.<br />
                         © 2026 INOVA Co. High Performance Marketing.
                     </p>
                 </motion.div>
