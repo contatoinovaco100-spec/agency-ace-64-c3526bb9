@@ -709,11 +709,9 @@ export default function DiagnosticLP() {
                     </p>
 
                     <div className="pt-4">
-                        <a href={`https://wa.me/55${displayConfig?.cliente?.whatsapp || ''}?text=Ol%C3%A1%2C%20estou%20vendo%20meu%20diagn%C3%B3stico%20e%20quero%20ajuda%20para%20melhorar%20meus%20an%C3%BAncios!`} 
-                           target="_blank" rel="noopener noreferrer"
-                           className="inline-block text-[#bff720] hover:text-white text-lg sm:text-xl font-bold transition-colors underline decoration-[#bff720]/30 hover:decoration-white underline-offset-8">
+                        <span className="inline-block text-[#bff720] text-lg sm:text-xl font-bold">
                             Quero ajuda para melhorar meus anúncios
-                        </a>
+                        </span>
                     </div>
 
                     <div className="w-16 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mx-auto mt-12 mb-8" />
