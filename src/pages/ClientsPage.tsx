@@ -196,10 +196,12 @@ export default function ClientsPage() {
 
                          {client.notes && <p className="text-caption text-muted-foreground italic">Obs: {client.notes}</p>}
 
-                         <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
+                          <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
                            {client.phone && <WhatsAppButton phone={client.phone} name={client.contactName} size="md" />}
                            <Button size="sm" variant="outline" onClick={() => openEdit(client)} className="flex-1 sm:flex-none">Editar</Button>
-                           <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 flex-1 sm:flex-none" onClick={() => deleteClient(client.id)}>Excluir</Button>
+                           {isAdmin && (
+                             <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 flex-1 sm:flex-none" onClick={() => deleteClient(client.id)}>Excluir</Button>
+                           )}
                          </div>
                        </TabsContent>
 

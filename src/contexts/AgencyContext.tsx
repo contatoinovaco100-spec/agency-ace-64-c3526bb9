@@ -129,20 +129,14 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
       .then(({ data }) => {
         const admin = !!data && data.length > 0;
         setIsAdmin(admin);
-        if (!admin) {
-          supabase.from('user_client_access').select('client_id').eq('user_id', user.id)
-            .then(({ data: access }) => setAllowedClientIds(access?.map(a => a.client_id) ?? []));
-        } else {
-          setAllowedClientIds(null);
-        }
+        setAllowedClientIds(null); // Everyone can see clients, but sensitive info is hidden in the UI
       });
   }, [user]);
 
   // Filtered clients
   const clients = useMemo(() => {
-    if (allowedClientIds === null) return allClients; // admin sees all
-    return allClients.filter(c => allowedClientIds.includes(c.id));
-  }, [allClients, allowedClientIds]);
+    return allClients;
+  }, [allClients]);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
