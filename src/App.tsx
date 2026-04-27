@@ -142,6 +142,7 @@ function AppRoutes() {
           <Route path="/diagnostico"         element={<DiagnosticLP />} />
           <Route path="/diagnostico/:slug"   element={<DiagnosticLP />} />
           <Route path="/diagnostico-anuncios" element={<AdsAuditPage />} />
+          <Route path="/diagnostico-anuncios/:slug" element={<AdsAuditPage />} />
           <Route path="/negocios"            element={<RedeNegociosPage />} />
           <Route path="/rede/perfil"         element={<RedePerfilPage />} />
           <Route path="/rede/novo"           element={<RedeNovoPostPage />} />
