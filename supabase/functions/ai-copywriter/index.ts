@@ -12,28 +12,23 @@ serve(async (req) => {
   }
 
   try {
-    // --- Auth guard: require a valid Supabase JWT ---
+    // Public-friendly: allow anonymous calls (needed for public tools like
+    // /diagnostico-anuncios). If a user JWT is present we still validate it,
+    // but its absence is NOT an error.
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData?.user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      // Best-effort validation; ignore failures so anon/publishable keys still work.
+      try {
+        const supabase = createClient(
+          Deno.env.get('SUPABASE_URL')!,
+          Deno.env.get('SUPABASE_ANON_KEY')!,
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        await supabase.auth.getUser(token);
+      } catch (_) {
+        // ignore — we don't gate the function on auth anymore
+      }
     }
 
     const { systemPrompt, userMessage, model = "google/gemini-2.5-flash", imageBase64, imageMimeType } = await req.json();
