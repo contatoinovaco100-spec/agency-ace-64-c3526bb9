@@ -296,6 +296,26 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
       }
       if (!result?.resumo) throw new Error('IA não retornou um relatório válido');
 
+      // Save to DB with unique slug
+      const newSlug = generateSlug(clientName);
+      const { error: insertError } = await supabase.from('ads_audits').insert({
+        user_id: user?.id ?? null,
+        slug: newSlug,
+        client_name: clientName.trim(),
+        campaign_name: result?.campanha?.nome || '',
+        platform: result?.campanha?.plataforma || '',
+        score: result?.resumo?.scoreGeral ?? 0,
+        diagnosis: result,
+      });
+      if (insertError) {
+        console.warn('Erro ao salvar relatório:', insertError);
+        toast.warning('Relatório gerado, mas não pôde ser salvo no histórico.');
+      } else {
+        setSavedSlug(newSlug);
+        setSavedClient(clientName.trim());
+        fetchHistory();
+      }
+
       setDiagnosis(result as Diagnosis);
       toast.success('Relatório pronto!', { id: toastId });
       setTimeout(() => {
@@ -306,6 +326,24 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
       toast.error(err.message || 'Erro ao analisar. Tente uma imagem mais nítida.', { id: toastId });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const deleteAudit = async (id: string) => {
+    if (!confirm('Excluir este relatório do histórico?')) return;
+    const { error } = await supabase.from('ads_audits').delete().eq('id', id);
+    if (error) { toast.error('Erro ao excluir.'); return; }
+    toast.success('Relatório excluído.');
+    fetchHistory();
+  };
+
+  const copyShareLink = async (slug: string) => {
+    const url = `${window.location.origin}/diagnostico-anuncios/${slug}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Link copiado!');
+    } catch {
+      toast.error('Não foi possível copiar.');
     }
   };
 
