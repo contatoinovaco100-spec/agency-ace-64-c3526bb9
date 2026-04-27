@@ -154,12 +154,12 @@ function CardContent({ task, clientName }: { task: Task; clientName?: string }) 
             <div className="flex flex-col items-end gap-0.5 min-w-0">
               {task.dueDate && (
                 <span className="text-[10px] tabular-nums text-muted-foreground truncate" title="Data de entrega">
-                  Entrega: {new Date(task.dueDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                  Entrega: {new Date(task.dueDate.replace(/-/g, '/')).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                 </span>
               )}
               {task.postDate && (
                 <span className="text-[10px] tabular-nums text-primary/80 truncate" title="Data de postagem">
-                  Post: {new Date(task.postDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                  Post: {new Date(task.postDate.replace(/-/g, '/')).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                   {task.postTime ? ` ${task.postTime.slice(0, 5)}` : ''}
                 </span>
               )}
