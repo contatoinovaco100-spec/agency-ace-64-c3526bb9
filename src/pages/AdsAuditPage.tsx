@@ -357,16 +357,19 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
   const handlePrint = () => window.print();
 
   const handleShare = async () => {
+    const publicUrl = savedSlug
+      ? `${window.location.origin}/diagnostico-anuncios/${savedSlug}`
+      : window.location.href;
     const shareData = {
-      title: 'Diagnóstico de Anúncios — INOVA Co.',
-      text: 'Veja o relatório completo da minha campanha analisado pela INOVA.',
-      url: window.location.href,
+      title: `Diagnóstico de Anúncios — ${savedClient || 'INOVA Co.'}`,
+      text: 'Veja o relatório completo da campanha analisado pela INOVA.',
+      url: publicUrl,
     };
     try {
       if (navigator.share) await navigator.share(shareData);
       else {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success('Link copiado!');
+        await navigator.clipboard.writeText(publicUrl);
+        toast.success('Link público copiado!');
       }
     } catch {}
   };
