@@ -198,6 +198,13 @@ export default function AdsAuditPage() {
     const rand = Math.random().toString(36).substring(2, 8);
     return `${base}-${rand}`;
   };
+
+  const analyze = async () => {
+    if (!file || !image) return;
+    if (!clientName.trim()) {
+      toast.error('Informe o nome do cliente antes de gerar o relatório.');
+      return;
+    }
     setIsProcessing(true);
     setDiagnosis(null);
     const toastId = toast.loading('Analisando dados e gerando relatório estratégico…');
