@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ClientDiagnosisTab } from '@/components/clients/ClientDiagnosisTab';
 import { Shield, Lock, Mail, Key, Loader2, Link as LinkIcon, Target, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { useUserRole } from '@/hooks/useUserRole';
 
 const serviceOptions: ServiceType[] = ['Tráfego Pago', 'Social Media', 'Design', 'Copy', 'SEO', 'Landing Page', 'Branding', 'Email Marketing'];
 const statusOptions: ClientStatus[] = ['Ativo', 'Pausado', 'Cancelado'];
@@ -31,6 +32,7 @@ const emptyScope: ScopeDetails = { monthlyDeliverables: [], includedServices: []
 
 export default function ClientsPage() {
   const { clients, team, addClient, updateClient, deleteClient } = useAgency();
+  const { isAdmin } = useUserRole();
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
@@ -104,9 +106,11 @@ export default function ClientsPage() {
                 <p className="text-caption text-muted-foreground truncate hidden sm:block">{client.contactName} · {client.scope}</p>
               </div>
               <div className="text-right shrink-0">
-                <p className="tabular-nums text-sm font-medium text-foreground sm:text-body">
-                  R$ {client.monthlyValue.toLocaleString('pt-BR')}
-                </p>
+                {isAdmin && (
+                  <p className="tabular-nums text-sm font-medium text-foreground sm:text-body">
+                    R$ {client.monthlyValue.toLocaleString('pt-BR')}
+                  </p>
+                )}
                 <p className={`inline-block rounded px-1.5 py-0.5 text-[10px] sm:text-caption font-medium ${statusColors[client.status]}`}>
                   {client.status}
                 </p>
@@ -236,7 +240,9 @@ export default function ClientsPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div><Label>Data início contrato</Label><Input type="date" value={form.contractStartDate || ''} onChange={e => setForm({ ...form, contractStartDate: e.target.value })} /></div>
-              <div><Label>Valor mensal (R$)</Label><Input type="number" value={form.monthlyValue || ''} onChange={e => setForm({ ...form, monthlyValue: Number(e.target.value) })} /></div>
+              {isAdmin && (
+                <div><Label>Valor mensal (R$)</Label><Input type="number" value={form.monthlyValue || ''} onChange={e => setForm({ ...form, monthlyValue: Number(e.target.value) })} /></div>
+              )}
             </div>
             <div><Label>Escopo</Label><Input value={form.scope || ''} onChange={e => setForm({ ...form, scope: e.target.value })} /></div>
             <div>
