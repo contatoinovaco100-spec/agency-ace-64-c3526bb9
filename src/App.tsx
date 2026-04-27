@@ -187,6 +187,7 @@ function AppRoutes() {
                     <Route path="/linktree"            element={<LinktreePage />} />
                     <Route path="/linktree/:id"        element={<LinktreeEditorPage />} />
                     <Route path="/nova"                element={<NovaAssistantPage />} />
+                    <Route path="/diagnostico-anuncios" element={<AdsAuditPage />} />
                     <Route path="/funcionarios"        element={<EmployeesPage />} />
                     <Route path="/minhas-tarefas"      element={<MyTasksPage />} />
                     <Route path="/whatsapp"            element={<WhatsAppPage />} />
