@@ -44,9 +44,9 @@ const COLORS_KEY = 'calendar_event_colors';
 
 // Helper to build a colored chip style from a hex color
 const chipStyle = (hex: string): React.CSSProperties => ({
-  backgroundColor: `${hex}33`, // ~20% alpha
+  backgroundColor: `${hex}1A`, // ~10% alpha for a cleaner glass look
   color: hex,
-  borderColor: `${hex}55`,
+  borderColor: `${hex}40`,
   borderWidth: 1,
   borderStyle: 'solid',
 });
@@ -215,43 +215,53 @@ export default function CalendarPage() {
     : `${weekDays[0].getDate()} ${MONTHS[weekDays[0].getMonth()].slice(0,3)} – ${weekDays[6].getDate()} ${MONTHS[weekDays[6].getMonth()].slice(0,3)} ${weekDays[6].getFullYear()}`;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Calendar className="h-6 w-6 text-primary" /> Calendário
+    <div className="space-y-8 pb-10">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl shadow-inner">
+              <Calendar className="h-7 w-7 text-primary" />
+            </div>
+            Calendário
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">Reuniões, gravações e eventos do Google em um só lugar</p>
+          <p className="text-muted-foreground text-sm font-medium ml-1">Gerencie suas reuniões, gravações e eventos integrados</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        
+        <div className="flex items-center gap-3 flex-wrap">
           {/* View toggle */}
-          <div className="flex rounded-md border border-border overflow-hidden">
+          <div className="flex items-center p-1 bg-secondary/40 backdrop-blur-md rounded-xl border border-border/50">
             <button
               onClick={() => setView('month')}
-              className={cn('px-3 py-1.5 text-sm transition-colors', view === 'month' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground')}
+              className={cn('px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300', view === 'month' ? 'bg-background shadow-sm text-foreground scale-[1.02]' : 'text-muted-foreground hover:text-foreground')}
             >Mês</button>
             <button
               onClick={() => setView('week')}
-              className={cn('px-3 py-1.5 text-sm transition-colors', view === 'week' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground')}
+              className={cn('px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300', view === 'week' ? 'bg-background shadow-sm text-foreground scale-[1.02]' : 'text-muted-foreground hover:text-foreground')}
             >Semana</button>
           </div>
 
-          <Button variant="outline" size="sm" onClick={() => setShowColors(true)} className="gap-1">
+          <Button variant="outline" onClick={() => setShowColors(true)} className="gap-2 rounded-xl h-10 border-border/50 bg-background/50 hover:bg-background shadow-sm">
             <Palette className="h-4 w-4" /> Cores
           </Button>
 
           {connected ? (
-            <>
-              <Badge style={chipStyle(colors.google)}>Google conectado</Badge>
-              <Button variant="outline" size="sm" onClick={() => fetchEvents(current.year, current.month)} disabled={loading}>
+            <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 p-1 pl-3 rounded-xl">
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mr-1 flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                Google conectado
+              </span>
+              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" onClick={() => fetchEvents(current.year, current.month)} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               </Button>
-              <Button variant="outline" size="sm" onClick={disconnect}>
-                <LogOut className="h-4 w-4 mr-1" /> Desconectar
+              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/20 text-destructive" onClick={disconnect}>
+                <LogOut className="h-4 w-4" />
               </Button>
-            </>
+            </div>
           ) : (
-            <Button onClick={connect} disabled={loading} className="gap-2">
+            <Button onClick={connect} disabled={loading} className="gap-2 rounded-xl h-10 bg-[#4285F4] hover:bg-[#3367D6] text-white shadow-md transition-all">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
               Conectar Google Agenda
             </Button>
@@ -260,27 +270,28 @@ export default function CalendarPage() {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 items-center bg-card/30 p-2 rounded-xl border border-border/40 w-fit">
+        <span className="text-xs font-semibold text-muted-foreground px-2 uppercase tracking-wider">Legenda:</span>
         {(Object.keys(TYPE_LABELS) as EventType[]).map(t => (
-          <span key={t} className="text-xs px-2 py-0.5 rounded-md" style={chipStyle(colors[t])}>
+          <span key={t} className="text-xs font-semibold px-2.5 py-1 rounded-md shadow-sm" style={chipStyle(colors[t])}>
             {TYPE_LABELS[t]}
           </span>
         ))}
       </div>
 
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-md shadow-sm overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
-          <button onClick={() => navigate(-1)} className="p-2 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"><ChevronLeft className="h-5 w-5" /></button>
-          <h2 className="text-lg font-semibold text-foreground">{headerLabel}</h2>
-          <button onClick={() => navigate(1)} className="p-2 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"><ChevronRight className="h-5 w-5" /></button>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border/60 bg-secondary/20">
+          <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="rounded-xl bg-background/50 hover:bg-background shadow-sm border-border/50"><ChevronLeft className="h-5 w-5" /></Button>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">{headerLabel}</h2>
+          <Button variant="outline" size="icon" onClick={() => navigate(1)} className="rounded-xl bg-background/50 hover:bg-background shadow-sm border-border/50"><ChevronRight className="h-5 w-5" /></Button>
         </div>
 
         {view === 'month' ? (
           <>
             {/* Day headers */}
-            <div className="grid grid-cols-7 border-b border-border">
-              {DAYS.map(d => <div key={d} className="py-2 text-center text-xs font-semibold text-muted-foreground">{d}</div>)}
+            <div className="grid grid-cols-7 border-b border-border/60 bg-secondary/10">
+              {DAYS.map(d => <div key={d} className="py-3 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">{d}</div>)}
             </div>
             {/* Cells */}
             <div className="grid grid-cols-7">
@@ -293,25 +304,27 @@ export default function CalendarPage() {
                     key={idx}
                     onClick={() => day && openAdd(ds)}
                     className={cn(
-                      'min-h-[100px] p-2 border-b border-r border-border cursor-pointer transition-colors',
-                      day ? 'hover:bg-secondary/50' : 'bg-muted/20 cursor-default',
-                      isToday && 'bg-primary/5'
+                      'min-h-[130px] p-2.5 border-b border-r border-border/30 transition-all duration-200 group relative',
+                      day ? 'cursor-pointer hover:bg-secondary/40' : 'bg-muted/10 cursor-default',
+                      isToday && 'bg-primary/[0.03]'
                     )}
                   >
                     {day && (
                       <>
-                        <span className={cn('text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full',
-                          isToday ? 'bg-primary text-primary-foreground' : 'text-foreground'
-                        )}>{day}</span>
-                        <div className="mt-1 space-y-1">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className={cn('text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full transition-all',
+                            isToday ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30 ring-4 ring-primary/10' : 'text-muted-foreground group-hover:text-foreground group-hover:bg-secondary'
+                          )}>{day}</span>
+                        </div>
+                        <div className="space-y-1.5">
                           {dayEvents.map(ev => (
-                            <div key={ev.id} className="text-xs px-1.5 py-0.5 rounded flex items-center justify-between gap-1 group" style={chipStyle(colors[ev.type])}>
-                              <span className="truncate flex items-center gap-1">
-                                {ev.source === 'shooting' && <Video className="h-3 w-3 shrink-0" />}
+                            <div key={ev.id} className="text-[11px] font-semibold px-2 py-1 rounded-md flex items-center justify-between gap-1 group/event shadow-sm border" style={chipStyle(colors[ev.type])}>
+                              <span className="truncate flex items-center gap-1.5">
+                                {ev.source === 'shooting' && <Video className="h-3 w-3 shrink-0 opacity-70" />}
                                 {ev.title}
                               </span>
                               {ev.source !== 'shooting' && (
-                                <button onClick={e => { e.stopPropagation(); removeEvent(ev); }} className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity">
+                                <button onClick={e => { e.stopPropagation(); removeEvent(ev); }} className="opacity-0 group-hover/event:opacity-100 hover:text-destructive transition-opacity bg-background/50 rounded-sm p-0.5">
                                   <Trash2 className="h-3 w-3" />
                                 </button>
                               )}
@@ -333,35 +346,38 @@ export default function CalendarPage() {
               const dayEvents = events.filter(e => e.date === ds).sort((a,b) => (a.time || '').localeCompare(b.time || ''));
               const isToday = ds === todayStr;
               return (
-                <div key={idx} className="border-r border-border last:border-r-0 min-h-[400px]">
+                <div key={idx} className="border-r border-border/30 last:border-r-0 min-h-[500px]">
                   <div
                     onClick={() => openAdd(ds)}
                     className={cn(
-                      'sticky top-0 px-2 py-2 border-b border-border text-center cursor-pointer transition-colors',
-                      isToday ? 'bg-primary/10' : 'bg-card hover:bg-secondary/40'
+                      'sticky top-0 px-2 py-4 border-b border-border/60 text-center cursor-pointer transition-all duration-200',
+                      isToday ? 'bg-primary/10 border-b-primary/30' : 'bg-secondary/10 hover:bg-secondary/40'
                     )}
                   >
-                    <div className="text-[10px] uppercase text-muted-foreground font-semibold">{DAYS[idx]}</div>
-                    <div className={cn('text-lg font-semibold mt-0.5', isToday ? 'text-primary' : 'text-foreground')}>{d.getDate()}</div>
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{DAYS[idx]}</div>
+                    <div className={cn('text-2xl font-bold mt-1 inline-flex w-10 h-10 items-center justify-center rounded-full', isToday ? 'bg-primary text-primary-foreground shadow-md' : 'text-foreground')}>{d.getDate()}</div>
                   </div>
-                  <div className="p-2 space-y-1.5" onClick={() => openAdd(ds)}>
+                  <div className="p-2 space-y-2" onClick={() => openAdd(ds)}>
                     {dayEvents.length === 0 && (
-                      <p className="text-xs text-muted-foreground/50 text-center py-4">+ Adicionar</p>
+                      <div className="group/add flex flex-col items-center justify-center py-6 px-2 border border-dashed border-transparent hover:border-primary/30 hover:bg-primary/5 rounded-xl transition-all cursor-pointer">
+                        <Plus className="h-5 w-5 text-muted-foreground/30 group-hover/add:text-primary/70 mb-1" />
+                        <p className="text-xs font-medium text-muted-foreground/50 group-hover/add:text-primary/70">Adicionar</p>
+                      </div>
                     )}
                     {dayEvents.map(ev => (
-                      <div key={ev.id} className="text-xs px-2 py-1.5 rounded group" style={chipStyle(colors[ev.type])} onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="font-medium truncate flex items-center gap-1">
-                            {ev.source === 'shooting' && <Video className="h-3 w-3 shrink-0" />}
+                      <div key={ev.id} className="text-xs px-2.5 py-2 rounded-lg group/event shadow-sm border" style={chipStyle(colors[ev.type])} onClick={e => e.stopPropagation()}>
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-semibold line-clamp-2 leading-tight flex items-start gap-1.5">
+                            {ev.source === 'shooting' && <Video className="h-3.5 w-3.5 shrink-0 opacity-70 mt-0.5" />}
                             {ev.title}
                           </span>
                           {ev.source !== 'shooting' && (
-                            <button onClick={() => removeEvent(ev)} className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity">
-                              <Trash2 className="h-3 w-3" />
+                            <button onClick={() => removeEvent(ev)} className="opacity-0 group-hover/event:opacity-100 hover:text-destructive transition-opacity bg-background/50 rounded-md p-1 shrink-0">
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           )}
                         </div>
-                        {ev.time && <div className="opacity-70 mt-0.5">{ev.time}</div>}
+                        {ev.time && <div className="opacity-80 mt-1.5 font-medium flex items-center gap-1 bg-background/30 w-fit px-1.5 py-0.5 rounded"><Clock className="h-3 w-3" />{ev.time}</div>}
                       </div>
                     ))}
                   </div>
@@ -373,28 +389,48 @@ export default function CalendarPage() {
       </div>
 
       {/* Upcoming */}
-      <div className="rounded-xl border border-border bg-card p-5">
-        <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Próximos Eventos</h3>
-        {events.filter(e => e.date >= todayStr).sort((a,b) => a.date.localeCompare(b.date)).slice(0,8).map(ev => (
-          <div key={ev.id} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
-            <div className="flex items-center gap-3">
-              <Badge style={chipStyle(colors[ev.type])} className="text-xs">{TYPE_LABELS[ev.type]}</Badge>
-              <div>
-                <p className="text-sm font-medium text-foreground flex items-center gap-1">
-                  {ev.source === 'shooting' && <Video className="h-3 w-3" />}
+      <div className="rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md shadow-sm p-6 xl:p-8">
+        <h3 className="text-xl font-extrabold tracking-tight text-foreground mb-6 flex items-center gap-2">
+          <div className="p-1.5 bg-primary/10 rounded-lg">
+            <Clock className="h-5 w-5 text-primary" />
+          </div>
+          Próximos Eventos
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {events.filter(e => e.date >= todayStr).sort((a,b) => a.date.localeCompare(b.date)).slice(0,8).map(ev => (
+            <div key={ev.id} className="group relative flex flex-col gap-3 p-5 rounded-2xl border border-border/60 bg-background/80 hover:bg-background shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-300">
+              <div className="flex items-start justify-between">
+                <Badge style={chipStyle(colors[ev.type])} className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-md border">{TYPE_LABELS[ev.type]}</Badge>
+                {ev.source !== 'shooting' && (
+                  <button onClick={() => removeEvent(ev)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all bg-secondary rounded-full p-1.5">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <div className="mt-1">
+                <p className="text-base font-bold text-foreground line-clamp-2 leading-tight flex items-start gap-1.5">
+                  {ev.source === 'shooting' && <Video className="h-4 w-4 shrink-0 text-primary mt-0.5" />}
                   {ev.title}
                 </p>
-                <p className="text-xs text-muted-foreground">{ev.date}{ev.time ? ` às ${ev.time}` : ''}</p>
+                <div className="flex items-center gap-2 mt-3 text-xs font-semibold text-muted-foreground bg-secondary/50 w-fit px-2.5 py-1.5 rounded-lg border border-border/50">
+                  <Calendar className="h-3.5 w-3.5" />
+                  {ev.date.split('-').reverse().join('/')}
+                  {ev.time && <span className="flex items-center gap-1.5 ml-1.5 border-l border-border/60 pl-2.5"><Clock className="h-3.5 w-3.5" />{ev.time}</span>}
+                </div>
               </div>
             </div>
-            {ev.source !== 'shooting' && (
-              <button onClick={() => removeEvent(ev)} className="text-muted-foreground hover:text-destructive transition-colors">
-                <Trash2 className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        ))}
-        {events.filter(e => e.date >= todayStr).length === 0 && <p className="text-sm text-muted-foreground">Nenhum evento próximo.</p>}
+          ))}
+          {events.filter(e => e.date >= todayStr).length === 0 && (
+            <div className="col-span-full py-12 text-center bg-secondary/30 rounded-2xl border border-dashed border-border flex flex-col items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+                <Calendar className="h-6 w-6 text-muted-foreground/50" />
+              </div>
+              <p className="text-base font-semibold text-foreground">Agenda livre</p>
+              <p className="text-sm text-muted-foreground">Nenhum evento futuro programado no momento.</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Add event modal */}
