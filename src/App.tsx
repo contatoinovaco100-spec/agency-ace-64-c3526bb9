@@ -141,6 +141,7 @@ function AppRoutes() {
           <Route path="/proposta/editar"     element={<SalesEditorPage />} />
           <Route path="/diagnostico"         element={<DiagnosticLP />} />
           <Route path="/diagnostico/:slug"   element={<DiagnosticLP />} />
+          <Route path="/diagnostico-anuncios" element={<AdsAuditPage />} />
           <Route path="/negocios"            element={<RedeNegociosPage />} />
           <Route path="/rede/perfil"         element={<RedePerfilPage />} />
           <Route path="/rede/novo"           element={<RedeNovoPostPage />} />
@@ -187,7 +188,6 @@ function AppRoutes() {
                     <Route path="/linktree"            element={<LinktreePage />} />
                     <Route path="/linktree/:id"        element={<LinktreeEditorPage />} />
                     <Route path="/nova"                element={<NovaAssistantPage />} />
-                    <Route path="/diagnostico-anuncios" element={<AdsAuditPage />} />
                     <Route path="/funcionarios"        element={<EmployeesPage />} />
                     <Route path="/minhas-tarefas"      element={<MyTasksPage />} />
                     <Route path="/whatsapp"            element={<WhatsAppPage />} />
