@@ -384,8 +384,30 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
         />
       )}
 
-      {/* UPLOAD VIEW */}
-      {!diagnosis && (
+      {/* PUBLIC SLUG LOADING */}
+      {isPublicView && isLoadingSlug && (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground uppercase tracking-widest font-bold">Carregando relatório…</p>
+        </div>
+      )}
+
+      {/* PUBLIC SLUG NOT FOUND */}
+      {isPublicView && !isLoadingSlug && !diagnosis && (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center">
+          <AlertCircle className="w-12 h-12 text-muted-foreground" />
+          <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">Relatório não encontrado</h2>
+          <p className="text-sm text-muted-foreground max-w-md">
+            O link pode estar incorreto ou o relatório foi removido.
+          </p>
+          <Button onClick={() => navigate('/diagnostico-anuncios')} className="mt-2">
+            Criar novo diagnóstico
+          </Button>
+        </div>
+      )}
+
+      {/* UPLOAD VIEW (only when not public view) */}
+      {!isPublicView && !diagnosis && (
         <div className="min-h-screen p-4 sm:p-6 lg:p-10">
           <div className="max-w-5xl mx-auto">
             <motion.div
@@ -400,15 +422,31 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
                 Diagnóstico de Anúncios
               </h1>
               <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
-                Envie um print do seu gerenciador de anúncios e receba um <strong className="text-foreground">relatório visual completo</strong> com diagnóstico estratégico, KPIs e plano de ação — pronto para apresentar.
+                Envie um print do gerenciador de anúncios e gere um <strong className="text-foreground">relatório visual completo</strong> com link próprio para enviar ao cliente.
               </p>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-card/50 border border-border rounded-3xl p-6 sm:p-8 backdrop-blur-sm"
+              className="bg-card/50 border border-border rounded-3xl p-6 sm:p-8 backdrop-blur-sm space-y-5"
             >
+              {/* Client name */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                  Nome do cliente <span className="text-primary">*</span>
+                </label>
+                <Input
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  placeholder="Ex: Restaurante Sabor & Arte"
+                  className="h-12 text-base"
+                />
+                <p className="text-[10px] text-muted-foreground/70 mt-1">
+                  Usado para gerar o link único do relatório.
+                </p>
+              </div>
+
               {!image ? (
                 <label
                   onDragOver={(e) => e.preventDefault()}
@@ -430,16 +468,16 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
               ) : (
                 <div className="relative h-72 sm:h-80 w-full rounded-2xl overflow-hidden border border-border shadow-lg">
                   <img src={image} alt="Print das métricas" className="w-full h-full object-contain bg-black/40" />
-                  <Button variant="destructive" size="icon" onClick={reset} className="absolute top-3 right-3 rounded-full h-9 w-9 shadow-lg">
+                  <Button variant="destructive" size="icon" onClick={() => { setFile(null); setImage(null); }} className="absolute top-3 right-3 rounded-full h-9 w-9 shadow-lg">
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
               )}
 
-              <div className="mt-6 flex justify-center">
+              <div className="flex justify-center pt-2">
                 <Button
                   onClick={analyze}
-                  disabled={!image || isProcessing}
+                  disabled={!image || !clientName.trim() || isProcessing}
                   className="bg-primary text-primary-foreground font-black px-10 h-14 rounded-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100 uppercase tracking-wider"
                 >
                   {isProcessing ? (
@@ -457,8 +495,92 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
               </div>
             </motion.div>
 
+            {/* HISTORY */}
+            {user && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="mt-8"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <History className="w-5 h-5 text-primary" />
+                  <h2 className="text-lg font-black uppercase tracking-tight text-foreground">
+                    Histórico de relatórios
+                  </h2>
+                  <span className="text-xs text-muted-foreground">({history.length})</span>
+                </div>
+
+                {isLoadingHistory ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : history.length === 0 ? (
+                  <div className="text-center py-10 bg-card/40 border border-dashed border-border rounded-2xl">
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum relatório gerado ainda. Crie o primeiro acima!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {history.map((item) => {
+                      const status: Status = item.score >= 70 ? 'good' : item.score >= 40 ? 'warning' : 'bad';
+                      const s = STATUS_STYLES[status];
+                      return (
+                        <div
+                          key={item.id}
+                          className="group bg-card border border-border rounded-2xl p-4 hover:border-primary/40 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div className="min-w-0 flex-1">
+                              <h3 className="font-black text-foreground truncate">{item.client_name || 'Sem nome'}</h3>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {item.platform || 'Plataforma —'} · {item.campaign_name || 'Campanha'}
+                              </p>
+                            </div>
+                            <div className={cn('shrink-0 px-2.5 py-1 rounded-full text-xs font-black tabular-nums', s.bg, s.text)}>
+                              {item.score}/100
+                            </div>
+                          </div>
+                          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/70 mb-3">
+                            {new Date(item.created_at).toLocaleString('pt-BR')}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/diagnostico-anuncios/${item.slug}`)}
+                              className="h-8 text-xs"
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1.5" /> Abrir
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => copyShareLink(item.slug)}
+                              className="h-8 text-xs"
+                            >
+                              <Copy className="w-3.5 h-3.5 mr-1.5" /> Link
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => deleteAudit(item.id)}
+                              className="h-8 text-xs text-destructive hover:text-destructive ml-auto"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
             <p className="text-[10px] text-muted-foreground/60 text-center mt-10 italic">
-              🔒 Sua imagem é processada apenas para a análise e não é armazenada permanentemente.
+              🔒 Sua imagem é processada apenas para a análise. Os relatórios ficam salvos para compartilhamento via link.
             </p>
           </div>
         </div>
