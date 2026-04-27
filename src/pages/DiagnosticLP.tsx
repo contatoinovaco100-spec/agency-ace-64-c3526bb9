@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Loader2 as Spinner, CheckCircle2, AlertCircle, Sparkles, 
-  Target, Zap, TrendingUp, ArrowRight, ArrowLeft 
+  Target, Zap, TrendingUp, ArrowRight, ArrowLeft, Download, Share2 
 } from 'lucide-react';
 import LogoInova from '@/assets/logo-inova.png';
 import { useAuth } from '@/contexts/AuthContext';
@@ -182,12 +182,47 @@ export default function DiagnosticLP() {
   const introTexto = displayConfig?.intro?.texto || 'Análise completa da sua presença digital e recomendações estratégicas para melhorar seu posicionamento online.';
 
   return (
-    <div className="min-h-screen bg-[#F5F3EE] overflow-x-hidden selection:bg-[#bff720] selection:text-black text-left scroll-smooth"
+    <div className="diagnostic-lp-root min-h-screen bg-[#F5F3EE] overflow-x-hidden selection:bg-[#bff720] selection:text-black text-left scroll-smooth"
       style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+
+      {/* FLOATING ACTION BUTTONS (hidden in print) */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 no-print">
+        <motion.button
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1.5 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => {
+            if (navigator.share) {
+              navigator.share({ title: `Diagnóstico - ${clienteNome}`, url: window.location.href });
+            } else {
+              navigator.clipboard.writeText(window.location.href);
+              alert('Link copiado!');
+            }
+          }}
+          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/90 backdrop-blur-md text-black shadow-xl border border-gray-200 flex items-center justify-center hover:bg-white transition-colors"
+          aria-label="Compartilhar"
+        >
+          <Share2 size={18} />
+        </motion.button>
+        <motion.button
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1.8 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => window.print()}
+          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#bff720] text-black shadow-xl shadow-[#bff720]/30 flex items-center justify-center hover:bg-[#d4ff4a] transition-colors"
+          aria-label="Baixar PDF"
+        >
+          <Download size={18} />
+        </motion.button>
+      </div>
 
       {/* PROGRESS BAR */}
       <motion.div 
-        className="fixed top-0 left-0 right-0 h-1 bg-[#bff720] z-50 origin-left"
+        className="fixed top-0 left-0 right-0 h-1 bg-[#bff720] z-50 origin-left no-print"
         style={{ scaleX: scrollProgress / 100 }}
       />
 
@@ -335,8 +370,8 @@ export default function DiagnosticLP() {
             <motion.div initial={{ opacity: 0, scale: 0.85, y: 30 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }} className="relative">
                 <div className="absolute -inset-16 bg-gradient-to-br from-[#0D6E5E]/10 to-transparent blur-3xl rounded-full" />
                 <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50 rounded-[60px] transform rotate-1" />
-                <div className="relative bg-white p-6 sm:p-10 lg:p-14 rounded-[32px] sm:rounded-[50px] shadow-2xl border border-[#e8e4dc] space-y-8 sm:space-y-10 transform -rotate-1 transition-transform hover:rotate-0">
-                    <div className="grid grid-cols-2 gap-5 sm:gap-8 lg:gap-12">
+                <div className="relative bg-white p-6 sm:p-10 lg:p-14 rounded-[32px] sm:rounded-[50px] shadow-2xl border border-[#e8e4dc] space-y-8 sm:space-y-10 sm:transform sm:-rotate-1 sm:transition-transform sm:hover:rotate-0">
+                    <div className="grid grid-cols-2 gap-4 sm:gap-8 lg:gap-12">
                         {[
                             { label: 'Posicionamento', val: displayConfig.scores.posicionamento, icon: Target, color: '#0D6E5E' },
                             { label: 'Autoridade', val: displayConfig.scores.autoridade, icon: Sparkles, color: '#3A0A1E' },
@@ -379,13 +414,13 @@ export default function DiagnosticLP() {
       </section>
 
       {/* PAGE 3 — INSIGHTS (POSITIVOS / NEGATIVOS) */}
-      <section className="min-h-screen flex items-center px-4 sm:px-6 lg:px-24 py-20 sm:py-32 relative overflow-hidden" style={{ background: theme.primary }}>
+      <section className="min-h-[auto] sm:min-h-screen flex items-center px-4 sm:px-6 lg:px-24 py-16 sm:py-32 relative overflow-hidden" style={{ background: theme.primary }}>
         {/* Animated Background Elements */}
         <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
         
-        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24 relative z-10">
+        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-16 lg:gap-24 relative z-10">
             
-            <div className="lg:col-span-12 mb-8 lg:mb-24 text-center relative">
+            <div className="lg:col-span-12 mb-4 sm:mb-8 lg:mb-24 text-center relative">
                  <motion.h2 initial={{ opacity: 0, y: -30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                     className="text-[clamp(3rem,18vw,12rem)] font-black text-white/5 uppercase tracking-tighter leading-none absolute -top-4 sm:-top-8 lg:-top-16 left-1/2 -translate-x-1/2 w-full select-none pointer-events-none">INSIGHTS</motion.h2>
                  <h3 className="text-4xl sm:text-5xl lg:text-9xl font-black text-white uppercase tracking-tighter relative z-10 italic">
@@ -583,7 +618,7 @@ export default function DiagnosticLP() {
       {/* PAGE 5-7 — DETALHAMENTO DO CRONOGRAMA */}
       <div className="bg-[#F5F3EE]">
             {displayConfig.semanas.map((s: any, i: number) => (
-                <section key={i} className="min-h-[90vh] px-4 sm:px-6 lg:px-24 py-20 sm:py-32 border-t border-[#e8e4dc] relative overflow-hidden">
+                <section key={i} className="min-h-[auto] sm:min-h-[90vh] px-4 sm:px-6 lg:px-24 py-16 sm:py-32 border-t border-[#e8e4dc] relative overflow-hidden">
                     {/* Section Background Pattern */}
                     <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #000 1px, transparent 0)', backgroundSize: '20px 20px' }} />
                     
@@ -674,6 +709,108 @@ export default function DiagnosticLP() {
                 </motion.div>
            </div>
       </footer>
+
+      {/* PRINT / PDF STYLES */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          /* Hide non-content elements */
+          .no-print,
+          .fixed,
+          nav, [data-sidebar], [role="navigation"],
+          .sonner-toaster { display: none !important; }
+
+          /* Root reset */
+          html, body {
+            margin: 0 !important; padding: 0 !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          /* Force color printing */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          /* Each section = 1 page */
+          .diagnostic-lp-root section,
+          .diagnostic-lp-root footer {
+            page-break-after: always;
+            break-after: page;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            min-height: 100vh;
+            box-sizing: border-box;
+          }
+
+          .diagnostic-lp-root footer {
+            page-break-after: auto;
+          }
+
+          /* Ensure full width */
+          .diagnostic-lp-root {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow: visible !important;
+          }
+
+          .diagnostic-lp-root section {
+            overflow: visible !important;
+            position: relative !important;
+          }
+
+          /* Fix grid columns for print */
+          .diagnostic-lp-root .grid {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          /* Reduce exaggerated paddings for print */
+          .diagnostic-lp-root section {
+            padding-left: 40px !important;
+            padding-right: 40px !important;
+          }
+
+          /* Week sections don't need full page height */
+          .diagnostic-lp-root .bg-\\[\\#F5F3EE\\] section {
+            min-height: auto;
+            page-break-inside: avoid;
+          }
+
+          /* Cards avoid break */
+          .diagnostic-lp-root [class*="rounded-"] {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+
+          /* Disable all animations for print */
+          .diagnostic-lp-root * {
+            animation: none !important;
+            transition: none !important;
+            transform: none !important;
+          }
+
+          /* Exception: keep scale transforms for progress bars */
+          .diagnostic-lp-root .h-2 > div,
+          .diagnostic-lp-root .h-1\\.5 > div {
+            transform: none !important;
+          }
+
+          /* Hide blur/glow effects that don't print well */
+          .diagnostic-lp-root [class*="blur-"] {
+            filter: none !important;
+            opacity: 0 !important;
+          }
+
+          /* But keep actual content visible */
+          .diagnostic-lp-root section > div,
+          .diagnostic-lp-root section > div > div {
+            opacity: 1 !important;
+            visibility: visible !important;
+          }
+        }
+      `}} />
     </div>
   );
 }
