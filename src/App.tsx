@@ -81,6 +81,7 @@ const RoletaPage                = lazy(() => import("./pages/RoletaPage"));
 const LinktreePage              = lazy(() => import("./pages/LinktreePage"));
 const LinktreeEditorPage        = lazy(() => import("./pages/LinktreeEditorPage"));
 const NovaAssistantPage         = lazy(() => import("./pages/NovaAssistantPage"));
+const AdsAuditPage              = lazy(() => import("./pages/AdsAuditPage"));
 const CollaboratorContractsPage = lazy(() => import("./pages/CollaboratorContractsPage"));
 const EmployeesPage             = lazy(() => import("./pages/EmployeesPage"));
 const MyTasksPage               = lazy(() => import("./pages/MyTasksPage"));
