@@ -1,14 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, X, Loader2, BarChart3, Wand2, AlertTriangle,
   CheckCircle2, AlertCircle, TrendingUp, TrendingDown, Target, Zap, MessageCircle,
   Sparkles, Download, Share2, ArrowRight, Eye, MousePointerClick,
   DollarSign, Users, Activity, Trophy, Rocket, Lightbulb,
+  History, Trash2, ExternalLink, Copy, Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import LogoInova from '@/assets/logo-inova.png';
 
