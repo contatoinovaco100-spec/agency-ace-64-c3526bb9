@@ -51,6 +51,7 @@ export const APP_PAGES: AppPage[] = [
   // Operacional
   { path: '/clientes',            label: 'Clientes',            icon: Users,           category: 'Operacional' },
   { path: '/tarefas',             label: 'Tarefas (Kanban)',    icon: CheckSquare,     category: 'Operacional' },
+  { path: '/escopos',             label: 'Escopo do Cliente',   icon: ListChecks,      category: 'Operacional' },
   { path: '/planejamento',        label: 'Planejamento',        icon: LayoutList,      category: 'Operacional' },
   { path: '/diagnostico/editar',  label: 'Diagnóstico',         icon: Target,          category: 'Operacional' },
   { path: '/metas',               label: 'Metas',               icon: Target,          category: 'Operacional' },

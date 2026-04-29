@@ -72,6 +72,7 @@ const NotificationsPage    = lazy(() => import("./pages/NotificationsPage"));
 // New pages
 const CalendarPage              = lazy(() => import("./pages/CalendarPage"));
 const ChatPage                  = lazy(() => import("./pages/ChatPage"));
+const ClientScopesPage          = lazy(() => import("./pages/ClientScopesPage"));
 const GoalsPage                 = lazy(() => import("./pages/GoalsPage"));
 const WeeklyResultsPage         = lazy(() => import("./pages/WeeklyResultsPage"));
 const GalleryPage               = lazy(() => import("./pages/GalleryPage"));
@@ -180,6 +181,7 @@ function AppRoutes() {
                     {/* New routes */}
                     <Route path="/calendario"          element={<CalendarPage />} />
                     <Route path="/chat"                element={<ChatPage />} />
+                    <Route path="/escopos"             element={<ClientScopesPage />} />
                     <Route path="/metas"               element={<GoalsPage />} />
                     <Route path="/resultados-semanais" element={<WeeklyResultsPage />} />
                     <Route path="/galeria"             element={<GalleryPage />} />
