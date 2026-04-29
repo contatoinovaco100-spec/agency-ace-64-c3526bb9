@@ -294,7 +294,8 @@ export type Database = {
           id: string
           name: string
           scope_id: string
-          status: string | null
+          sort_order: number
+          status: string
           updated_at: string
         }
         Insert: {
@@ -304,7 +305,8 @@ export type Database = {
           id?: string
           name: string
           scope_id: string
-          status?: string | null
+          sort_order?: number
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -314,7 +316,8 @@ export type Database = {
           id?: string
           name?: string
           scope_id?: string
-          status?: string | null
+          sort_order?: number
+          status?: string
           updated_at?: string
         }
         Relationships: [
@@ -333,6 +336,7 @@ export type Database = {
           created_at: string
           id: string
           month: string
+          notes: string
           updated_at: string
         }
         Insert: {
@@ -340,6 +344,7 @@ export type Database = {
           created_at?: string
           id?: string
           month: string
+          notes?: string
           updated_at?: string
         }
         Update: {
@@ -347,6 +352,7 @@ export type Database = {
           created_at?: string
           id?: string
           month?: string
+          notes?: string
           updated_at?: string
         }
         Relationships: [

@@ -238,15 +238,15 @@ export default function ClientScopesPage() {
                   <div className="flex gap-2 justify-center">
                     <Button
                       onClick={() => createScopeMutation.mutate({ clientId: client.id, generateFromPrevious: true })}
-                      disabled={createScopeMutation.isLoading}
+                      disabled={createScopeMutation.isPending}
                     >
-                      {createScopeMutation.isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2" />}
+                      {createScopeMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2" />}
                       Copiar do mês anterior
                     </Button>
                     <Button
                       variant="outline"
                       onClick={() => createScopeMutation.mutate({ clientId: client.id, generateFromPrevious: false })}
-                      disabled={createScopeMutation.isLoading}
+                      disabled={createScopeMutation.isPending}
                     >
                       Gerar vazio
                     </Button>
