@@ -106,8 +106,9 @@ export default function ClientScopesPage() {
       queryClient.invalidateQueries({ queryKey: ["client-scopes-month", formattedMonth] });
       toast.success("Escopo gerado com sucesso!");
     },
-    onError: () => {
-      toast.error("Erro ao gerar escopo.");
+    onError: (error) => {
+      console.error("Error generating scope:", error);
+      toast.error(`Erro ao gerar escopo: ${error.message || "Tente novamente mais tarde."}`);
     },
   });
 
@@ -237,15 +238,15 @@ export default function ClientScopesPage() {
                   <div className="flex gap-2 justify-center">
                     <Button
                       onClick={() => createScopeMutation.mutate({ clientId: client.id, generateFromPrevious: true })}
-                      disabled={createScopeMutation.isPending}
+                      disabled={createScopeMutation.isLoading}
                     >
-                      {createScopeMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2" />}
+                      {createScopeMutation.isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2" />}
                       Copiar do mês anterior
                     </Button>
                     <Button
                       variant="outline"
                       onClick={() => createScopeMutation.mutate({ clientId: client.id, generateFromPrevious: false })}
-                      disabled={createScopeMutation.isPending}
+                      disabled={createScopeMutation.isLoading}
                     >
                       Gerar vazio
                     </Button>
