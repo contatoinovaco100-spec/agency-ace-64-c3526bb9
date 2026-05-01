@@ -169,8 +169,19 @@ export function ExpensesPanel({ mrr }: { mrr: number }) {
   const allMonths = [...monthsSet].sort((a, b) => b.localeCompare(a));
 
   // ----- Full report data (all months) -----
+  // Fill in continuous timeline: all months with data + last 12 months window,
+  // so the report is always visible even right after deletions.
   const reportRows = useMemo(() => {
     const map = new Map<string, { gastos: number; investimentos: number; ganhos: number }>();
+
+    // seed last 12 months with zeros so timeline is continuous
+    const today = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+      map.set(key, { gastos: 0, investimentos: 0, ganhos: 0 });
+    }
+
     expenses.forEach(e => {
       const cur = map.get(e.month_ref) || { gastos: 0, investimentos: 0, ganhos: 0 };
       const v = Number(e.amount);
