@@ -130,10 +130,15 @@ export function ExpensesPanel({ mrr }: { mrr: number }) {
     .sort((a, b) => b[1] - a[1])
     .map(([name, value]) => ({ name, value: Math.round(value) }));
 
-  // Available months
-  const allMonths = [...new Set(expenses.map(e => e.month_ref))];
-  if (!allMonths.includes(getCurrentMonthRef())) allMonths.unshift(getCurrentMonthRef());
-  allMonths.sort((a, b) => b.localeCompare(a));
+  // Available months: always show last 12 months + any month with expenses + selected month
+  const monthsSet = new Set<string>(expenses.map(e => e.month_ref));
+  const today = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    monthsSet.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
+  }
+  monthsSet.add(selectedMonth);
+  const allMonths = [...monthsSet].sort((a, b) => b.localeCompare(a));
 
   const formatMonth = (m: string) => {
     const d = new Date(m + 'T00:00:00');
