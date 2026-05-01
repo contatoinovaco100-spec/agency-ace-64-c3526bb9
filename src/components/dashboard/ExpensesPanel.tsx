@@ -18,6 +18,7 @@ import {
   PieChart as RechartsPie, Pie, Cell, Legend, LineChart, Line,
 } from 'recharts';
 import { toast } from 'sonner';
+import { Client } from '@/types/agency';
 
 interface Expense {
   id: string;
@@ -86,7 +87,7 @@ function formatMonthShort(m: string) {
   return d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
 }
 
-export function ExpensesPanel({ mrr }: { mrr: number }) {
+export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Client[] }) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -172,36 +173,55 @@ export function ExpensesPanel({ mrr }: { mrr: number }) {
   // Fill in continuous timeline: all months with data + last 12 months window,
   // so the report is always visible even right after deletions.
   const reportRows = useMemo(() => {
-    const map = new Map<string, { gastos: number; investimentos: number; ganhos: number }>();
+    const map = new Map<string, { faturamento: number; gastos: number; investimentos: number; ganhos: number }>();
 
     // seed last 12 months with zeros so timeline is continuous
     const today = new Date();
     for (let i = 0; i < 12; i++) {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-      map.set(key, { gastos: 0, investimentos: 0, ganhos: 0 });
+      map.set(key, { faturamento: 0, gastos: 0, investimentos: 0, ganhos: 0 });
     }
 
     expenses.forEach(e => {
-      const cur = map.get(e.month_ref) || { gastos: 0, investimentos: 0, ganhos: 0 };
+      const cur = map.get(e.month_ref) || { faturamento: 0, gastos: 0, investimentos: 0, ganhos: 0 };
       const v = Number(e.amount);
       if (e.type === 'gasto') cur.gastos += v;
       else if (e.type === 'investimento') cur.investimentos += v;
       else if (e.type === 'ganho_extra') cur.ganhos += v;
       map.set(e.month_ref, cur);
     });
+
+    for (const monthStr of map.keys()) {
+      const [year, month] = monthStr.split('-');
+      const endOfMonth = new Date(Number(year), Number(month), 0, 23, 59, 59);
+      const faturamento = clients.reduce((sum, c) => {
+        if (!c.contractStartDate) return sum;
+        if (c.status === 'Cancelado') return sum;
+        const start = new Date(c.contractStartDate);
+        if (isNaN(start.getTime())) return sum;
+        if (start <= endOfMonth) return sum + (c.monthlyValue || 0);
+        return sum;
+      }, 0);
+      
+      const cur = map.get(monthStr)!;
+      cur.faturamento = faturamento;
+      map.set(monthStr, cur);
+    }
+
     return [...map.entries()]
       .sort((a, b) => b[0].localeCompare(a[0]))
       .map(([month, v]) => ({
         month,
         ...v,
         total: v.gastos + v.investimentos,
-        liquido: v.ganhos - (v.gastos + v.investimentos),
+        liquido: v.faturamento + v.ganhos - (v.gastos + v.investimentos),
       }));
-  }, [expenses]);
+  }, [expenses, clients]);
 
   const reportChart = [...reportRows].reverse().map(r => ({
     mes: formatMonthShort(r.month),
+    Faturamento: Math.round(r.faturamento),
     Gastos: Math.round(r.gastos),
     Investimentos: Math.round(r.investimentos),
     'Ganhos Extras': Math.round(r.ganhos),
@@ -210,11 +230,13 @@ export function ExpensesPanel({ mrr }: { mrr: number }) {
 
   const totals = reportRows.reduce(
     (acc, r) => ({
+      faturamento: acc.faturamento + r.faturamento,
       gastos: acc.gastos + r.gastos,
       investimentos: acc.investimentos + r.investimentos,
       ganhos: acc.ganhos + r.ganhos,
+      liquido: acc.liquido + r.liquido,
     }),
-    { gastos: 0, investimentos: 0, ganhos: 0 },
+    { faturamento: 0, gastos: 0, investimentos: 0, ganhos: 0, liquido: 0 },
   );
 
   // Freelas only (all months)
@@ -462,12 +484,13 @@ export function ExpensesPanel({ mrr }: { mrr: number }) {
         {/* ============ ABA RELATÓRIO COMPLETO ============ */}
         <TabsContent value="relatorio" className="space-y-5">
           {/* Totais gerais */}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
             {[
-              { label: 'Total Gastos (geral)', value: formatCurrency(totals.gastos), icon: TrendingDown, accent: 'text-destructive', bg: 'bg-destructive/10' },
+              { label: 'Total Faturamento', value: formatCurrency(totals.faturamento), icon: Wallet, accent: 'text-[hsl(var(--success))]', bg: 'bg-[hsl(var(--success))]/10' },
+              { label: 'Total Gastos', value: formatCurrency(totals.gastos), icon: TrendingDown, accent: 'text-destructive', bg: 'bg-destructive/10' },
               { label: 'Total Investimentos', value: formatCurrency(totals.investimentos), icon: TrendingUp, accent: 'text-[hsl(var(--info))]', bg: 'bg-[hsl(var(--info))]/10' },
               { label: 'Total Ganhos Extras', value: formatCurrency(totals.ganhos), icon: Sparkles, accent: 'text-primary', bg: 'bg-primary/10' },
-              { label: 'Saldo Líquido (Ganhos - Despesas)', value: formatCurrency(totals.ganhos - totals.gastos - totals.investimentos), icon: Wallet, accent: (totals.ganhos - totals.gastos - totals.investimentos) >= 0 ? 'text-[hsl(var(--success))]' : 'text-destructive', bg: 'bg-secondary/30' },
+              { label: 'Saldo Líquido', value: formatCurrency(totals.liquido), icon: Wallet, accent: totals.liquido >= 0 ? 'text-[hsl(var(--success))]' : 'text-destructive', bg: 'bg-secondary/30' },
             ].map((kpi, i) => (
               <Card key={kpi.label} className="border-border/50">
                 <CardContent className="p-4">
@@ -502,6 +525,7 @@ export function ExpensesPanel({ mrr }: { mrr: number }) {
                       formatter={(v: number) => formatCurrency(Number(v))}
                     />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar dataKey="Faturamento" fill="hsl(142, 70%, 45%)" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Gastos" fill="hsl(0, 62%, 50%)" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Investimentos" fill="hsl(217, 91%, 60%)" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Ganhos Extras" fill="hsl(73, 93%, 55%)" radius={[4, 4, 0, 0]} />
@@ -526,6 +550,7 @@ export function ExpensesPanel({ mrr }: { mrr: number }) {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Mês</TableHead>
+                      <TableHead className="text-right">Faturamento</TableHead>
                       <TableHead className="text-right">Gastos</TableHead>
                       <TableHead className="text-right">Investimentos</TableHead>
                       <TableHead className="text-right">Ganhos Extras</TableHead>
@@ -536,6 +561,7 @@ export function ExpensesPanel({ mrr }: { mrr: number }) {
                     {reportRows.map(r => (
                       <TableRow key={r.month}>
                         <TableCell className="font-medium capitalize">{formatMonth(r.month)}</TableCell>
+                        <TableCell className="text-right tabular-nums text-[hsl(var(--success))]">{formatCurrency(r.faturamento)}</TableCell>
                         <TableCell className="text-right tabular-nums text-destructive">{formatCurrency(r.gastos)}</TableCell>
                         <TableCell className="text-right tabular-nums text-[hsl(var(--info))]">{formatCurrency(r.investimentos)}</TableCell>
                         <TableCell className="text-right tabular-nums text-primary">{formatCurrency(r.ganhos)}</TableCell>

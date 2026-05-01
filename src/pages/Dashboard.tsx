@@ -634,7 +634,7 @@ export default function Dashboard() {
             </Card>
           </motion.div>
           {/* Expenses & Investments */}
-          <ExpensesPanel mrr={mrr} />
+          <ExpensesPanel mrr={mrr} clients={clients} />
         </TabsContent>
 
         {/* ==================== DELIVERY TAB ==================== */}
