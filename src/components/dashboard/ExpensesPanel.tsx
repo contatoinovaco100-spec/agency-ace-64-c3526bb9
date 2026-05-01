@@ -332,8 +332,9 @@ export function ExpensesPanel({ mrr }: { mrr: number }) {
         {/* ============ ABA MÊS ATUAL ============ */}
         <TabsContent value="mes" className="space-y-5">
           {/* KPIs */}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
             {[
+              { label: 'Faturamento', value: formatCurrency(mrr), icon: Wallet, accent: 'text-[hsl(var(--success))]', bg: 'bg-[hsl(var(--success))]/10' },
               { label: 'Gastos', value: formatCurrency(totalGastos), icon: TrendingDown, accent: 'text-destructive', bg: 'bg-destructive/10' },
               { label: 'Investimentos', value: formatCurrency(totalInvestimentos), icon: TrendingUp, accent: 'text-[hsl(var(--info))]', bg: 'bg-[hsl(var(--info))]/10' },
               { label: 'Ganhos Extras', value: formatCurrency(totalGanhosExtras), icon: Sparkles, accent: 'text-primary', bg: 'bg-primary/10' },
