@@ -418,6 +418,48 @@ export default function EmployeesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteOpen} onOpenChange={(o) => { if (!o) setDeleteOpen(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Excluir funcionário — {deleteOpen?.full_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              Esta ação <strong className="text-foreground">remove permanentemente</strong> a conta de acesso de{' '}
+              <strong className="text-foreground">{deleteOpen?.full_name}</strong>. Ele não poderá mais fazer login.
+            </p>
+            {deletePendingCount > 0 ? (
+              <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-1">
+                <p className="font-medium text-foreground">
+                  ✅ {deletePendingCount} tarefa(s) pendente(s) serão preservadas
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  As tarefas em aberto continuarão visíveis no painel marcadas como{' '}
+                  <code className="text-primary">[Ex-funcionário: {deleteOpen?.full_name}]</code> para você reatribuir.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                Nenhuma tarefa pendente atribuída a este funcionário.
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Tarefas já concluídas permanecem inalteradas no histórico.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
+              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Excluir definitivamente
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
