@@ -48,24 +48,54 @@ const ScoreBar = ({ label, percentage, color }: any) => (
   </div>
 );
 
+/* ═══════ LOCALSTORAGE KEYS ═══════ */
+const LS_KEYS = {
+  STEP: 'diag_editor_step',
+  WIZARD_STEP: 'diag_editor_wizard_step',
+  ANSWERS: 'diag_editor_answers',
+  CLIENT_INFO: 'diag_editor_client_info',
+  SLUG: 'diag_editor_slug',
+  CONFIG: 'agency_diagnostic_config_v5',
+  IS_EDITING: 'diag_editor_is_editing',
+};
+
+const safeGetLS = <T,>(key: string, fallback: T): T => {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  } catch { return fallback; }
+};
+
 /* ═══════ MAIN EDITOR ═══════ */
 export default function DiagnosticEditorPage() {
   const { user } = useAuth();
   const { editSlug } = useParams();
-  const [step, setStep] = useState<'setup' | 'choice' | 'wizard' | 'ai_upload' | 'preview'>('setup');
-  const [wizardStep, setWizardStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [clientInfo, setClientInfo] = useState<{nome: string; nicho: string; subtitulo: string; tema: string; primaryColor?: string; tipo: BusinessType; instaAgencia?: string; whatsAgencia?: string; foto?: string}>({ 
-    nome: '', nicho: '', subtitulo: 'Diagnóstico de Maturidade Estratégica', tema: 'teal', primaryColor: '#0D6E5E', tipo: 'servico', instaAgencia: '@inovaco.br', whatsAgencia: '(62) 99999-9999', foto: '' 
-  });
-  const [slug, setSlug] = useState('');
-  const [config, setConfig] = useState<any>(null);
+
+  const defaultClientInfo = { 
+    nome: '', nicho: '', subtitulo: 'Diagnóstico de Maturidade Estratégica', tema: 'teal', primaryColor: '#0D6E5E', tipo: 'servico' as BusinessType, instaAgencia: '@inovaco.br', whatsAgencia: '(62) 99999-9999', foto: '' 
+  };
+
+  const [step, setStep] = useState<'setup' | 'choice' | 'wizard' | 'ai_upload' | 'preview'>(() => safeGetLS(LS_KEYS.STEP, 'setup'));
+  const [wizardStep, setWizardStep] = useState(() => safeGetLS(LS_KEYS.WIZARD_STEP, 0));
+  const [answers, setAnswers] = useState<Record<string, string>>(() => safeGetLS(LS_KEYS.ANSWERS, {}));
+  const [clientInfo, setClientInfo] = useState<{nome: string; nicho: string; subtitulo: string; tema: string; primaryColor?: string; tipo: BusinessType; instaAgencia?: string; whatsAgencia?: string; foto?: string}>(() => safeGetLS(LS_KEYS.CLIENT_INFO, defaultClientInfo));
+  const [slug, setSlug] = useState(() => safeGetLS(LS_KEYS.SLUG, ''));
+  const [config, setConfig] = useState<any>(() => safeGetLS(LS_KEYS.CONFIG, null));
   const [isSaving, setIsSaving] = useState(false);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [isRefining, setIsRefining] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(() => safeGetLS(LS_KEYS.IS_EDITING, false));
   const [history, setHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // ═══════ AUTO-SAVE TO LOCALSTORAGE ═══════
+  useEffect(() => { try { localStorage.setItem(LS_KEYS.STEP, JSON.stringify(step)); } catch {} }, [step]);
+  useEffect(() => { try { localStorage.setItem(LS_KEYS.WIZARD_STEP, JSON.stringify(wizardStep)); } catch {} }, [wizardStep]);
+  useEffect(() => { try { localStorage.setItem(LS_KEYS.ANSWERS, JSON.stringify(answers)); } catch {} }, [answers]);
+  useEffect(() => { try { localStorage.setItem(LS_KEYS.CLIENT_INFO, JSON.stringify(clientInfo)); } catch {} }, [clientInfo]);
+  useEffect(() => { try { localStorage.setItem(LS_KEYS.SLUG, JSON.stringify(slug)); } catch {} }, [slug]);
+  useEffect(() => { if (config) { try { localStorage.setItem(LS_KEYS.CONFIG, JSON.stringify(config)); } catch {} } }, [config]);
+  useEffect(() => { try { localStorage.setItem(LS_KEYS.IS_EDITING, JSON.stringify(isEditing)); } catch {} }, [isEditing]);
 
   // Filtra as regras baseado no tipo de negócio
   const filteredRules = useMemo(() => {
@@ -73,28 +103,12 @@ export default function DiagnosticEditorPage() {
   }, [clientInfo.tipo]);
 
   useEffect(() => {
-    const fetchExisting = async () => {
-        const stored = localStorage.getItem('agency_diagnostic_config_v5');
-        if (stored) {
-            try { 
-              const data = JSON.parse(stored);
-              if (data.cliente) {
-                setConfig(data); 
-                setClientInfo({
-                  ...clientInfo,
-                  ...data.cliente,
-                  tipo: data.cliente.tipo || 'servico'
-                });
-                setStep('preview');
-              }
-            } catch (e) { console.error(e); }
-        }
-    };
-    fetchExisting();
-    fetchHistory();
+    // If we have an editSlug param, load that specific diagnostic
     if (editSlug) {
       loadBySlug(editSlug);
     }
+    // Otherwise the state is already restored from localStorage via lazy initializers
+    fetchHistory();
   }, [user, editSlug]);
 
   const loadBySlug = async (s: string) => {
