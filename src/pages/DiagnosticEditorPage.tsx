@@ -85,8 +85,14 @@ const LS_KEYS = {
 const safeGetLS = <T,>(key: string, fallback: T): T => {
   try {
     const v = localStorage.getItem(key);
-    return v ? JSON.parse(v) : fallback;
-  } catch { return fallback; }
+    if (!v) return fallback;
+    return JSON.parse(v) as T;
+  } catch (_e) {
+    // Corrupted data — remove it so it doesn't break again
+    try { localStorage.removeItem(key); } catch (_) {}
+    console.warn(`[DiagnosticEditor] Cleared corrupted localStorage key: ${key}`);
+    return fallback;
+  }
 };
 
 /* ═══════ MAIN EDITOR ═══════ */
