@@ -30,6 +30,8 @@ export default function EmployeesPage() {
   const [resetOpen, setResetOpen] = useState<Employee | null>(null);
   const [editPermissionsOpen, setEditPermissionsOpen] = useState<Employee | null>(null);
   const [employeePermissions, setEmployeePermissions] = useState<Set<string>>(new Set());
+  const [deleteOpen, setDeleteOpen] = useState<Employee | null>(null);
+  const [deletePendingCount, setDeletePendingCount] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
 
   // Create form
