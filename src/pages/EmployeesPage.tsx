@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import { UserCog, Plus, KeyRound, UserX, UserCheck, Loader2, Mail, Shield } from 'lucide-react';
+import { UserCog, Plus, KeyRound, UserX, UserCheck, Loader2, Mail, Shield, Trash2, AlertTriangle } from 'lucide-react';
 import { APP_PAGES, EMPLOYEE_EMAIL_DOMAIN, PAGE_CATEGORIES } from '@/config/app-pages';
 
 interface Employee {
