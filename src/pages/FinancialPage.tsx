@@ -16,11 +16,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import {
   Plus, Eye, CheckCircle2, Wallet, Clock, TrendingUp, Send, Trash2,
-  DollarSign, Receipt, Settings as SettingsIcon, Copy,
+  DollarSign, Receipt, Settings as SettingsIcon, Copy, FileDown, Link2,
 } from 'lucide-react';
 import { generatePixPayload } from '@/lib/pix';
 import { Link } from 'react-router-dom';
 import { useAgency } from '@/contexts/AgencyContext';
+import { generateInvoicePdf } from '@/lib/invoicePdf';
 
 type Invoice = {
   id: string;
