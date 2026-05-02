@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import { UserCog, Plus, KeyRound, UserX, UserCheck, Loader2, Mail, Shield } from 'lucide-react';
+import { UserCog, Plus, KeyRound, UserX, UserCheck, Loader2, Mail, Shield, Trash2, AlertTriangle } from 'lucide-react';
 import { APP_PAGES, EMPLOYEE_EMAIL_DOMAIN, PAGE_CATEGORIES } from '@/config/app-pages';
 
 interface Employee {
@@ -30,6 +30,8 @@ export default function EmployeesPage() {
   const [resetOpen, setResetOpen] = useState<Employee | null>(null);
   const [editPermissionsOpen, setEditPermissionsOpen] = useState<Employee | null>(null);
   const [employeePermissions, setEmployeePermissions] = useState<Set<string>>(new Set());
+  const [deleteOpen, setDeleteOpen] = useState<Employee | null>(null);
+  const [deletePendingCount, setDeletePendingCount] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
 
   // Create form
@@ -169,6 +171,39 @@ export default function EmployeesPage() {
     setEditPermissionsOpen(null);
   };
 
+  const openDelete = async (emp: Employee) => {
+    // Conta tarefas não concluídas atribuídas a este funcionário (pelo nome)
+    const { count } = await supabase
+      .from('tasks')
+      .select('id', { count: 'exact', head: true })
+      .eq('assignee', emp.full_name)
+      .not('status', 'in', '("Concluído","Concluido","Finalizado")');
+    setDeletePendingCount(count ?? 0);
+    setDeleteOpen(emp);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteOpen) return;
+    setSubmitting(true);
+    const { data, error } = await supabase.functions.invoke('delete-employee', {
+      body: { user_id: deleteOpen.id, hard_delete: true },
+    });
+    setSubmitting(false);
+    if (error || (data as any)?.error) {
+      toast({ title: 'Erro ao excluir', description: (data as any)?.error ?? error?.message, variant: 'destructive' });
+      return;
+    }
+    const preserved = (data as any)?.preserved_tasks ?? 0;
+    toast({
+      title: 'Funcionário excluído',
+      description: preserved > 0
+        ? `${preserved} tarefa(s) pendente(s) marcada(s) como [Ex-funcionário] e mantidas no painel.`
+        : 'Conta removida com sucesso.',
+    });
+    setDeleteOpen(null);
+    loadEmployees();
+  };
+
   if (roleLoading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
@@ -227,6 +262,9 @@ export default function EmployeesPage() {
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => handleToggleActive(emp)}>
                       {emp.is_active ? <><UserX className="h-3.5 w-3.5 mr-1" /> Desativar</> : <><UserCheck className="h-3.5 w-3.5 mr-1" /> Ativar</>}
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => openDelete(emp)}>
+                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
                     </Button>
                   </div>
                 )}
@@ -376,6 +414,48 @@ export default function EmployeesPage() {
             <Button variant="outline" onClick={() => setEditPermissionsOpen(null)}>Cancelar</Button>
             <Button onClick={handleSavePermissions} disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteOpen} onOpenChange={(o) => { if (!o) setDeleteOpen(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Excluir funcionário — {deleteOpen?.full_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              Esta ação <strong className="text-foreground">remove permanentemente</strong> a conta de acesso de{' '}
+              <strong className="text-foreground">{deleteOpen?.full_name}</strong>. Ele não poderá mais fazer login.
+            </p>
+            {deletePendingCount > 0 ? (
+              <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-1">
+                <p className="font-medium text-foreground">
+                  ✅ {deletePendingCount} tarefa(s) pendente(s) serão preservadas
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  As tarefas em aberto continuarão visíveis no painel marcadas como{' '}
+                  <code className="text-primary">[Ex-funcionário: {deleteOpen?.full_name}]</code> para você reatribuir.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                Nenhuma tarefa pendente atribuída a este funcionário.
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Tarefas já concluídas permanecem inalteradas no histórico.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
+              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Excluir definitivamente
             </Button>
           </DialogFooter>
         </DialogContent>
