@@ -42,12 +42,65 @@ Deno.serve(async (req) => {
     }
 
     if (hard_delete) {
+      // 1. Buscar nome do funcionário
+      const { data: profile } = await admin
+        .from('profiles').select('full_name').eq('id', user_id).maybeSingle();
+      const employeeName = profile?.full_name || 'Funcionário removido';
+
+      // 2. Preservar tarefas pendentes: marcar assignee com prefixo [Ex-funcionário]
+      // para o admin ver e reatribuir. Considera "pendente" = status diferente de Concluído/Finalizado.
+      const concludedStatuses = ['Concluído', 'Concluido', 'Finalizado'];
+      const exTag = `[Ex-funcionário: ${employeeName}]`;
+
+      const { data: pendingTasks } = await admin
+        .from('tasks')
+        .select('id, assignee, observations')
+        .eq('assignee', employeeName)
+        .not('status', 'in', `(${concludedStatuses.map(s => `"${s}"`).join(',')})`);
+
+      let preservedCount = 0;
+      if (pendingTasks && pendingTasks.length > 0) {
+        for (const t of pendingTasks) {
+          const note = `\n\n⚠️ ${new Date().toLocaleDateString('pt-BR')} — Funcionário ${employeeName} foi removido do sistema. Reatribuir esta tarefa.`;
+          await admin
+            .from('tasks')
+            .update({
+              assignee: exTag,
+              observations: (t.observations || '') + note,
+            })
+            .eq('id', t.id);
+          preservedCount++;
+        }
+      }
+
+      // 3. Reatribuir também campos de pipeline de vídeo (script_writer, editor, copywriter, director, videomaker)
+      const videoFields = ['script_writer', 'editor', 'copywriter', 'director', 'videomaker', 'current_stage_owner'];
+      for (const field of videoFields) {
+        await admin
+          .from('tasks')
+          .update({ [field]: exTag })
+          .eq(field, employeeName)
+          .not('status', 'in', `(${concludedStatuses.map(s => `"${s}"`).join(',')})`);
+      }
+
+      // 4. Remover acessos de página (FK não existe, mas limpa)
+      await admin.from('user_page_access').delete().eq('user_id', user_id);
+      await admin.from('user_roles').delete().eq('user_id', user_id);
+
+      // 5. Por fim, excluir o usuário do auth (cascade remove o profile via trigger ou FK)
       const { error } = await admin.auth.admin.deleteUser(user_id);
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+
+      // 6. Garantir limpeza do profile caso não haja cascade
+      await admin.from('profiles').delete().eq('id', user_id);
+
+      return new Response(JSON.stringify({ success: true, preserved_tasks: preservedCount }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     } else {
       // Soft delete: deactivate
       await admin.from('profiles').update({ is_active: false }).eq('id', user_id);
