@@ -171,6 +171,39 @@ export default function EmployeesPage() {
     setEditPermissionsOpen(null);
   };
 
+  const openDelete = async (emp: Employee) => {
+    // Conta tarefas não concluídas atribuídas a este funcionário (pelo nome)
+    const { count } = await supabase
+      .from('tasks')
+      .select('id', { count: 'exact', head: true })
+      .eq('assignee', emp.full_name)
+      .not('status', 'in', '("Concluído","Concluido","Finalizado")');
+    setDeletePendingCount(count ?? 0);
+    setDeleteOpen(emp);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteOpen) return;
+    setSubmitting(true);
+    const { data, error } = await supabase.functions.invoke('delete-employee', {
+      body: { user_id: deleteOpen.id, hard_delete: true },
+    });
+    setSubmitting(false);
+    if (error || (data as any)?.error) {
+      toast({ title: 'Erro ao excluir', description: (data as any)?.error ?? error?.message, variant: 'destructive' });
+      return;
+    }
+    const preserved = (data as any)?.preserved_tasks ?? 0;
+    toast({
+      title: 'Funcionário excluído',
+      description: preserved > 0
+        ? `${preserved} tarefa(s) pendente(s) marcada(s) como [Ex-funcionário] e mantidas no painel.`
+        : 'Conta removida com sucesso.',
+    });
+    setDeleteOpen(null);
+    loadEmployees();
+  };
+
   if (roleLoading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
