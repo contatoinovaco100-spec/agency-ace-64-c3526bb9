@@ -263,6 +263,9 @@ export default function EmployeesPage() {
                     <Button size="sm" variant="outline" onClick={() => handleToggleActive(emp)}>
                       {emp.is_active ? <><UserX className="h-3.5 w-3.5 mr-1" /> Desativar</> : <><UserCheck className="h-3.5 w-3.5 mr-1" /> Ativar</>}
                     </Button>
+                    <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => openDelete(emp)}>
+                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
+                    </Button>
                   </div>
                 )}
               </CardContent>
