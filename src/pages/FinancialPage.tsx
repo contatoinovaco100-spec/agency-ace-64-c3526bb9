@@ -475,6 +475,22 @@ function InvoiceList({
     toast.success('Código Pix copiado!');
   };
 
+  const copyPublicLink = async (id: string) => {
+    const url = `${window.location.origin}/fatura/${id}`;
+    await navigator.clipboard.writeText(url);
+    toast.success('Link público copiado!');
+  };
+
+  const downloadPdf = async (inv: Invoice) => {
+    try {
+      const url = `${window.location.origin}/fatura/${inv.id}`;
+      await generateInvoicePdf(inv, url);
+      toast.success('PDF gerado!');
+    } catch (e: any) {
+      toast.error('Erro ao gerar PDF: ' + (e?.message || ''));
+    }
+  };
+
   return (
     <div className="grid gap-3">
       {invoices.map(inv => (
@@ -503,10 +519,16 @@ function InvoiceList({
             <div className="text-lg font-bold">{formatBRL(Number(inv.amount))}</div>
           </div>
           <div className="flex gap-1 flex-wrap">
-            <Button asChild size="sm" variant="outline">
-              <Link to={`/fatura/${inv.id}`} target="_blank">
+            <Button asChild size="sm" variant="outline" title="Abrir página pública">
+              <Link to={`/fatura/${inv.id}`} target="_blank" rel="noopener noreferrer">
                 <Eye className="h-4 w-4" />
               </Link>
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => copyPublicLink(inv.id)} title="Copiar link público">
+              <Link2 className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => downloadPdf(inv)} title="Baixar PDF com a logo">
+              <FileDown className="h-4 w-4" />
             </Button>
             <Button size="sm" variant="outline" onClick={() => copyPix(inv.pix_code)} title="Copiar Pix">
               <Copy className="h-4 w-4" />
