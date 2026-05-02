@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Copy, CheckCircle2, Send, Loader2 } from 'lucide-react';
+import { Copy, CheckCircle2, Send, Loader2, Link2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 type Invoice = {
@@ -55,6 +55,11 @@ export default function PublicInvoicePage() {
       `\nAcesse para pagar via Pix:\n${window.location.href}`
     );
     window.open(`https://wa.me/?text=${msg}`, '_blank');
+  };
+
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(window.location.href);
+    toast.success('Link da fatura copiado!');
   };
 
   if (loading) {
@@ -153,6 +158,9 @@ export default function PublicInvoicePage() {
               </Button>
               <Button variant="outline" className="w-full" onClick={shareWa}>
                 <Send className="h-4 w-4 mr-2" /> Compartilhar via WhatsApp
+              </Button>
+              <Button variant="secondary" className="w-full" onClick={copyLink}>
+                <Link2 className="h-4 w-4 mr-2" /> Copiar Link da Fatura
               </Button>
             </CardContent>
           </Card>

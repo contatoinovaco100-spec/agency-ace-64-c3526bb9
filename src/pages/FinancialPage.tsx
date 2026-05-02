@@ -521,11 +521,11 @@ function InvoiceList({
           <div className="flex gap-1 flex-wrap">
             <Button asChild size="sm" variant="outline" title="Abrir página pública">
               <Link to={`/fatura/${inv.id}`} target="_blank" rel="noopener noreferrer">
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4 mr-2" /> Visualizar
               </Link>
             </Button>
             <Button size="sm" variant="outline" onClick={() => copyPublicLink(inv.id)} title="Copiar link público">
-              <Link2 className="h-4 w-4" />
+              <Link2 className="h-4 w-4 mr-2" /> Copiar Link
             </Button>
             <Button size="sm" variant="outline" onClick={() => downloadPdf(inv)} title="Baixar PDF com a logo">
               <FileDown className="h-4 w-4" />
