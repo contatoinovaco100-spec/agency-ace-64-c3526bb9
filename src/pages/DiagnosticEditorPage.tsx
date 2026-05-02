@@ -630,6 +630,12 @@ export default function DiagnosticEditorPage() {
     );
   };
 
+  // Safety: if we're supposed to show preview but config is missing, go back to setup
+  if (step === 'preview' && !config) {
+    setStep('setup');
+    return renderSetup();
+  }
+
   if (step === 'setup') return renderSetup();
   if (step === 'choice') return renderChoice();
   if (step === 'wizard') return renderWizard();
