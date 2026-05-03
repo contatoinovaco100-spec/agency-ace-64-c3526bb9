@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, MessageSquare, Hash, Trash2, Loader2 } from 'lucide-react';
+import { Send, MessageSquare, Hash, Trash2, Loader2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
@@ -173,27 +173,43 @@ export default function ChatPage() {
           Funcionários ({employees.length})
         </div>
         <div className="flex-1 px-2 space-y-1 overflow-y-auto pb-2">
-          {employees.map(emp => (
-            <div
-              key={emp.id}
-              className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-foreground"
-            >
-              <div className="relative h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary uppercase flex-shrink-0">
-                {emp.avatar_url ? (
-                  <img src={emp.avatar_url} alt={emp.full_name} className="h-full w-full rounded-full object-cover" />
-                ) : (
-                  getInitials(emp.full_name)
+          {employees.map(emp => {
+            const dmId = user ? `dm_${[user.id, emp.id].sort().join('_')}` : '';
+            const isSelected = channel === dmId;
+            return (
+              <button
+                key={emp.id}
+                onClick={() => {
+                  if (emp.id !== user?.id) {
+                    setChannel(dmId);
+                  }
+                }}
+                className={cn(
+                  'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left',
+                  isSelected
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-foreground hover:bg-secondary'
                 )}
-                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary border-2 border-sidebar" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-medium">{emp.full_name || emp.username}</p>
-                {emp.job_title && (
-                  <p className="truncate text-[10px] text-muted-foreground">{emp.job_title}</p>
-                )}
-              </div>
-            </div>
-          ))}
+              >
+                <div className="relative h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary uppercase flex-shrink-0">
+                  {emp.avatar_url ? (
+                    <img src={emp.avatar_url} alt={emp.full_name} className="h-full w-full rounded-full object-cover" />
+                  ) : (
+                    getInitials(emp.full_name)
+                  )}
+                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary border-2 border-sidebar" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className={cn('truncate text-xs font-medium', isSelected && 'text-primary')}>
+                    {emp.full_name || emp.username} {emp.id === user?.id ? '(Você)' : ''}
+                  </p>
+                  {emp.job_title && (
+                    <p className="truncate text-[10px] text-muted-foreground">{emp.job_title}</p>
+                  )}
+                </div>
+              </button>
+            );
+          })}
           {employees.length === 0 && (
             <p className="px-3 py-2 text-xs text-muted-foreground">Nenhum funcionário cadastrado.</p>
           )}
@@ -215,9 +231,11 @@ export default function ChatPage() {
       {/* Painel principal */}
       <div className="flex flex-col flex-1 min-w-0">
         <div className="h-12 flex items-center gap-2 px-4 border-b border-border bg-card flex-shrink-0">
-          <Hash className="h-4 w-4 text-muted-foreground" />
+          {channel.startsWith('dm_') ? <User className="h-4 w-4 text-muted-foreground" /> : <Hash className="h-4 w-4 text-muted-foreground" />}
           <span className="font-semibold text-foreground">
-            {CHANNELS.find(c => c.id === channel)?.name}
+            {channel.startsWith('dm_') 
+              ? employees.find(e => `dm_${[user?.id || '', e.id].sort().join('_')}` === channel)?.full_name || 'Chat Privado'
+              : CHANNELS.find(c => c.id === channel)?.name || channel}
           </span>
           <span className="ml-auto text-xs text-muted-foreground">{messages.length} mensagens</span>
         </div>
@@ -289,7 +307,11 @@ export default function ChatPage() {
             value={text}
             onChange={e => setText(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
-            placeholder={`Mensagem em #${CHANNELS.find(c => c.id === channel)?.name}...`}
+            placeholder={
+              channel.startsWith('dm_')
+                ? `Mensagem para ${employees.find(e => `dm_${[user?.id || '', e.id].sort().join('_')}` === channel)?.full_name?.split(' ')[0] || 'Usuário'}...`
+                : `Mensagem em #${CHANNELS.find(c => c.id === channel)?.name}...`
+            }
             className="flex-1"
             disabled={sending}
           />
