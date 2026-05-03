@@ -501,9 +501,6 @@ export default function DiagnosticLP() {
                         className="relative max-w-5xl mx-auto rounded-[28px] sm:rounded-[50px] overflow-hidden shadow-2xl border-4 sm:border-8 border-gray-100 group">
                           <img src={resolvedAnalysisImage || displayConfig.aiAnalise.analysisImageUrl} alt="Print da Análise" className="w-full h-auto grayscale-[0.15] group-hover:grayscale-0 transition-all duration-700" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-                          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ delay: 0.5 }} className="absolute bottom-6 right-6 px-4 py-2 bg-black/80 backdrop-blur-md rounded-full">
-                            <span className="text-[9px] font-black text-white uppercase tracking-widest">Análise IA</span>
-                          </motion.div>
                       </motion.div>
                   </motion.div>
                 )}
