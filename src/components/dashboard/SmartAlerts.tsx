@@ -1,11 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAgency } from '@/contexts/AgencyContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   AlertTriangle, Clock, TrendingDown, UserX, Bell,
-  ChevronRight, CalendarClock, DollarSign,
+  ChevronRight, CalendarClock, DollarSign, X
 } from 'lucide-react';
 
 interface Alert {
@@ -40,6 +41,22 @@ const typeStyles: Record<string, { border: string; bg: string; icon: string; bad
 
 export function SmartAlerts() {
   const { clients, tasks } = useAgency();
+  const [dismissedIds, setDismissedIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('smart_alerts_dismissed');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('smart_alerts_dismissed', JSON.stringify(dismissedIds));
+  }, [dismissedIds]);
+
+  const dismissAlert = (id: string) => {
+    setDismissedIds(prev => [...prev, id]);
+  };
 
   const alerts = useMemo(() => {
     const result: Alert[] = [];
@@ -154,9 +171,12 @@ export function SmartAlerts() {
     }
 
     // Sort: danger first, then warning, then info
-    const order = { danger: 0, warning: 1, info: 2 };
-    return result.sort((a, b) => order[a.type] - order[b.type]);
-  }, [clients, tasks]);
+    const order: Record<string, number> = { danger: 0, warning: 1, info: 2 };
+    const sorted = result.sort((a, b) => order[a.type] - order[b.type]);
+    
+    // Filter out dismissed alerts
+    return sorted.filter(a => !dismissedIds.includes(a.id));
+  }, [clients, tasks, dismissedIds]);
 
   if (alerts.length === 0) return null;
 
@@ -168,7 +188,7 @@ export function SmartAlerts() {
     >
       <Card className="border-border/50 overflow-hidden">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
+          <CardTitle className="flex items-center gap-2 text-base w-full">
             <div className="relative">
               <Bell className="h-4 w-4 text-primary" />
               <span className="absolute -top-1 -right-1 flex h-2 w-2">
@@ -177,7 +197,15 @@ export function SmartAlerts() {
               </span>
             </div>
             Alertas Inteligentes
-            <Badge variant="secondary" className="ml-auto text-xs">{alerts.length}</Badge>
+            <Badge variant="secondary" className="text-xs">{alerts.length}</Badge>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setDismissedIds(prev => [...prev, ...alerts.map(a => a.id)])}
+              className="ml-auto h-7 px-2 text-[10px] font-bold uppercase tracking-wider hover:text-destructive"
+            >
+              Limpar Tudo
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 pt-0">
@@ -197,11 +225,23 @@ export function SmartAlerts() {
                     <p className="text-sm font-medium text-foreground leading-tight">{alert.title}</p>
                     <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{alert.description}</p>
                   </div>
-                  {alert.action && (
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold whitespace-nowrap ${styles.badge}`}>
-                      {alert.action} <ChevronRight className="h-3 w-3" />
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {alert.action && (
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold whitespace-nowrap ${styles.badge}`}>
+                        {alert.action} <ChevronRight className="h-3 w-3" />
+                      </span>
+                    )}
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        dismissAlert(alert.id);
+                      }}
+                      className="p-1 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors"
+                      title="Dispensar alerta"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
                 </motion.div>
               );
             })}
