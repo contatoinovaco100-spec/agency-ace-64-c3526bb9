@@ -15,7 +15,7 @@ export const AIVisionConverter: React.FC<AIVisionConverterProps> = ({ onDataExtr
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [notes, setNotes] = useState("");
-  const [videoCount, setVideoCount] = useState(3);
+  const [videoCount, setVideoCount] = useState(12);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -69,7 +69,7 @@ REGRAS DE OURO:
 1. Se houver nomes de contas (como @arroba), utilize-os.
 2. Identifique Pontos Positivos e Negativos de forma direta.
 3. Se houver uma Bio no print, analise-a especificamente.
-4. Gere um Plano de Ação prático de 4 semanas, com EXATAMENTE ${videoCount} sugestões de vídeos (Reels/Shorts) por semana.
+4. Gere um Plano de Ação prático de 4 semanas, distribuindo um TOTAL de EXATAMENTE ${videoCount} sugestões de vídeos (Reels/Shorts) ao longo das 4 semanas (distribua de forma equilibrada).
 5. Use linguagem de agência premium, focada em conversão e crescimento.
 6. CONSIDERE ESTAS OBSERVAÇÕES DO USUÁRIO: ${notes || 'Nenhuma observação extra.'}
 7. SEJA CONCISO E DIRETO. Evite parágrafos longos. Foco em impacto imediato.
@@ -94,10 +94,10 @@ O SEU RESULTADO DEVE SER UM JSON NO SEGUINTE FORMATO:
   },
   "planoAcao": ["recomendação 1", "recomendação 2", "recomendação 3"],
   "cronograma": {
-    "semana1": ["Sugestão de vídeo 1 (Autoridade): [Título]", "... (retorne ${videoCount} itens)"],
-    "semana2": ["Sugestão de vídeo 1 (Engajamento): [Título]", "... (retorne ${videoCount} itens)"],
-    "semana3": ["Sugestão de vídeo 1 (Conversão): [Título]", "... (retorne ${videoCount} itens)"],
-    "semana4": ["Sugestão de vídeo 1 (Escala/Retenção): [Título]", "... (retorne ${videoCount} itens)"]
+    "semana1": ["Sugestão de vídeo 1 (Autoridade): [Título]", "... (itens desta semana)"],
+    "semana2": ["Sugestão de vídeo 1 (Engajamento): [Título]", "... (itens desta semana)"],
+    "semana3": ["Sugestão de vídeo 1 (Conversão): [Título]", "... (itens desta semana)"],
+    "semana4": ["Sugestão de vídeo 1 (Escala/Retenção): [Título]", "... (itens desta semana)"]
   }
 }
 
@@ -193,9 +193,9 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
               />
            </div>
            <div>
-              <label className="text-[10px] font-black uppercase text-primary tracking-widest mb-2 block ml-1">Vídeos por Semana</label>
+              <label className="text-[10px] font-black uppercase text-primary tracking-widest mb-2 block ml-1">Total de Vídeos (Mês)</label>
               <div className="grid grid-cols-3 gap-2">
-                {[1, 2, 3, 4, 5, 6].map(num => (
+                {[4, 6, 8, 12, 16, 20].map(num => (
                   <button 
                     key={num} 
                     onClick={() => setVideoCount(num)}
@@ -205,7 +205,7 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
                   </button>
                 ))}
               </div>
-              <p className="mt-3 text-[10px] text-zinc-500 font-medium italic">* A IA gerará {videoCount} sugestões para cada uma das 4 semanas.</p>
+              <p className="mt-3 text-[10px] text-zinc-500 font-medium italic">* A IA distribuirá os {videoCount} vídeos ao longo das 4 semanas.</p>
            </div>
         </div>
 
