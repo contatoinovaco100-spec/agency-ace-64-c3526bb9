@@ -21,34 +21,6 @@ const sounds: SoundButtonProps[] = [
     color: "bg-green-500/10 text-green-500 border-green-500/20"
   },
   {
-    title: "Pense no Lula 🚩",
-    description: "Momento político",
-    soundType: "lula",
-    icon: <Smile className="h-6 w-6" />,
-    color: "bg-red-500/10 text-red-500 border-red-500/20"
-  },
-  {
-    title: "Bom dia Magnata! ☕",
-    description: "Acorda que o dia começou!",
-    soundType: "magnata",
-    icon: <Sparkles className="h-6 w-6" />,
-    color: "bg-purple-500/10 text-purple-500 border-purple-500/20"
-  },
-  {
-    title: "Tome! 🐎",
-    description: "Rodrigo Faro clássico",
-    soundType: "tome",
-    icon: <Sparkles className="h-6 w-6" />,
-    color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-  },
-  {
-    title: "Cavalo! 🐴",
-    description: "Ui!",
-    soundType: "rodrigo_faro",
-    icon: <Music className="h-6 w-6" />,
-    color: "bg-blue-500/10 text-blue-500 border-blue-500/20"
-  },
-  {
     title: "Agenda 📅",
     description: "O plim amistoso",
     soundType: "agenda",
