@@ -131,7 +131,8 @@ export default function FinancePage() {
 
   const [form, setForm] = useState({
     clientName: '', clientContact: '', description: '',
-    amount: '', dueDate: '', notes: '', customMessage: ''
+    amount: '', dueDate: '', notes: '', customMessage: '',
+    installments: '1'
   });
 
   const [loading, setLoading] = useState(true);
@@ -241,7 +242,11 @@ export default function FinancePage() {
   // Create / Edit
   const openCreateModal = () => {
     setEditingInvoice(null);
-    setForm({ clientName: '', clientContact: '', description: '', amount: '', dueDate: '', notes: '', customMessage: '' });
+    setForm({ 
+      clientName: '', clientContact: '', description: '', 
+      amount: '', dueDate: '', notes: '', customMessage: '',
+      installments: '1'
+    });
     setShowInvoiceModal(true);
   };
 
@@ -250,7 +255,8 @@ export default function FinancePage() {
     setForm({
       clientName: inv.clientName, clientContact: inv.clientContact,
       description: inv.description, amount: inv.amount.toString(),
-      dueDate: inv.dueDate, notes: inv.notes, customMessage: inv.customMessage
+      dueDate: inv.dueDate, notes: inv.notes, customMessage: inv.customMessage,
+      installments: '1'
     });
     setShowInvoiceModal(true);
   };
@@ -271,19 +277,23 @@ export default function FinancePage() {
     }
 
     try {
-      const invData = {
-        client_name: form.clientName,
-        client_contact: form.clientContact,
-        description: form.description,
-        amount,
-        due_date: form.dueDate,
-        notes: form.notes,
-        custom_message: form.customMessage,
-        pix_code: generatePixPayload(pixConfig, amount),
-        status: editingInvoice ? (editingInvoice.status === 'paid' ? 'pago' : 'pendente') : 'pendente'
-      };
+      const installmentsCount = parseInt(form.installments) || 1;
+      const installmentAmount = amount / installmentsCount;
+      const baseDate = new Date(form.dueDate + 'T12:00:00');
 
       if (editingInvoice) {
+        const invData = {
+          client_name: form.clientName,
+          client_contact: form.clientContact,
+          description: form.description,
+          amount,
+          due_date: form.dueDate,
+          notes: form.notes,
+          custom_message: form.customMessage,
+          pix_code: generatePixPayload(pixConfig, amount),
+          status: editingInvoice.status === 'paid' ? 'pago' : 'pendente'
+        };
+
         await supabase.from('invoices').update(invData).eq('id', editingInvoice.id);
         const updated = invoices.map(i => i.id === editingInvoice.id ? {
           ...i, clientName: form.clientName, clientContact: form.clientContact,
@@ -293,24 +303,36 @@ export default function FinancePage() {
         setInvoices(updated);
         toast.success('Fatura atualizada');
       } else {
-        const id = crypto.randomUUID();
-        const { data, error } = await supabase.from('invoices').insert({
-          id,
-          ...invData,
-          created_at: new Date().toISOString()
-        }).select().single();
+        const inserts = [];
+        for (let i = 0; i < installmentsCount; i++) {
+          const d = new Date(baseDate);
+          d.setMonth(baseDate.getMonth() + i);
+          const formattedDate = d.toISOString().split('T')[0];
+          
+          const desc = installmentsCount > 1 
+            ? `${form.description} (${i + 1}/${installmentsCount})`
+            : form.description;
 
+          inserts.push({
+            id: crypto.randomUUID(),
+            client_name: form.clientName,
+            client_contact: form.clientContact,
+            description: desc,
+            amount: installmentAmount,
+            due_date: formattedDate,
+            notes: form.notes,
+            custom_message: form.customMessage,
+            pix_code: generatePixPayload(pixConfig, installmentAmount),
+            status: 'pendente',
+            created_at: new Date().toISOString()
+          });
+        }
+
+        const { error } = await supabase.from('invoices').insert(inserts);
         if (error) throw error;
 
-        const newInvoice: Invoice = {
-          id: id,
-          clientName: form.clientName, clientContact: form.clientContact,
-          description: form.description, amount, dueDate: form.dueDate,
-          notes: form.notes, customMessage: form.customMessage,
-          status: 'pending', createdAt: new Date().toISOString(), paidAt: null
-        };
-        setInvoices([newInvoice, ...invoices]);
-        toast.success('Fatura criada com sucesso!');
+        fetchData();
+        toast.success(installmentsCount > 1 ? `${installmentsCount} parcelas criadas!` : 'Fatura criada com sucesso!');
       }
       setShowInvoiceModal(false);
     } catch (error) {
@@ -657,9 +679,35 @@ export default function FinancePage() {
                 <Input type="date" value={form.dueDate} onChange={e => setForm({...form, dueDate: e.target.value})} className="h-11" />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-semibold">Observações (internas)</Label>
-              <Textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="Notas internas sobre esta fatura..." rows={2} className="resize-none" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-semibold">Observações (internas)</Label>
+                <Textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="Notas internas sobre esta fatura..." rows={2} className="resize-none" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-semibold">Parcelamento</Label>
+                <Select 
+                  disabled={!!editingInvoice}
+                  value={form.installments} 
+                  onValueChange={v => setForm({...form, installments: v})}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Parcelas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => (
+                      <SelectItem key={n} value={n.toString()}>
+                        {n === 1 ? 'À vista' : `${n} parcelas`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {parseInt(form.installments) > 1 && (
+                  <p className="text-[10px] text-amber-600 font-medium mt-1">
+                    Serão geradas {form.installments} faturas mensais de {fmtCurrency(amount / (parseInt(form.installments) || 1))}
+                  </p>
+                )}
+              </div>
             </div>
             <div className="space-y-1.5 border-t pt-4">
               <Label className="text-sm font-semibold">Mensagem personalizada para o cliente</Label>
