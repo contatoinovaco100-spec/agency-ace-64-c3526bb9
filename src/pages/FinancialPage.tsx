@@ -36,6 +36,9 @@ type Invoice = {
   pix_code: string;
   paid_at: string | null;
   created_at: string;
+  is_recurring?: boolean;
+  recurrence_day?: number | null;
+  month_ref?: string;
 };
 
 type PixSettings = {
@@ -66,6 +69,8 @@ export default function FinancialPage() {
     due_date: '',
     custom_message: '',
     notes: '',
+    is_recurring: false,
+    recurrence_day: '10',
   });
 
   const [settingsForm, setSettingsForm] = useState({
@@ -152,6 +157,10 @@ export default function FinancialPage() {
       txid,
     });
 
+    const recurDay = form.is_recurring
+      ? Math.max(1, Math.min(28, parseInt(form.recurrence_day || '10', 10) || 10))
+      : null;
+
     const { error } = await (supabase as any).from('invoices').insert({
       client_name: form.client_name,
       client_contact: form.client_contact,
@@ -162,14 +171,17 @@ export default function FinancialPage() {
       notes: form.notes,
       pix_code,
       status: 'pendente',
+      is_recurring: form.is_recurring,
+      recurrence_day: recurDay,
     });
 
     if (error) return toast.error(error.message);
-    toast.success('Fatura criada com sucesso!');
+    toast.success(form.is_recurring ? 'Fatura recorrente criada! Será renovada todo mês.' : 'Fatura criada com sucesso!');
     setOpen(false);
     setForm({
       client_id: '', client_name: '', client_contact: '', description: '',
       amount: '', due_date: '', custom_message: '', notes: '',
+      is_recurring: false, recurrence_day: '10',
     });
     load();
   };
@@ -365,6 +377,28 @@ export default function FinancialPage() {
                 onChange={e => setForm({ ...form, notes: e.target.value })}
               />
             </Field>
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.is_recurring}
+                  onChange={e => setForm({ ...form, is_recurring: e.target.checked })}
+                  className="h-4 w-4 accent-primary"
+                />
+                <span className="text-sm font-medium">🔁 Fatura recorrente (renova todo mês automaticamente)</span>
+              </label>
+              {form.is_recurring && (
+                <div className="pl-6">
+                  <Label className="text-xs text-muted-foreground">Dia do vencimento (1-28)</Label>
+                  <Input
+                    type="number" min="1" max="28"
+                    value={form.recurrence_day}
+                    onChange={e => setForm({ ...form, recurrence_day: e.target.value })}
+                    className="mt-1 w-32"
+                  />
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -505,6 +539,9 @@ function InvoiceList({
                 <Badge className="bg-primary/15 text-primary hover:bg-primary/20 border-primary/30">Pago</Badge>
               ) : (
                 <Badge className="bg-amber-500/15 text-amber-500 hover:bg-amber-500/20 border-amber-500/30">Pendente</Badge>
+              )}
+              {inv.is_recurring && (
+                <Badge variant="outline" className="border-primary/40 text-primary">🔁 Recorrente</Badge>
               )}
             </div>
             {inv.description && (

@@ -972,9 +972,13 @@ export type Database = {
           description: string
           due_date: string | null
           id: string
+          is_recurring: boolean
+          month_ref: string
           notes: string
           paid_at: string | null
+          parent_invoice_id: string | null
           pix_code: string
+          recurrence_day: number | null
           status: string
           updated_at: string
         }
@@ -988,9 +992,13 @@ export type Database = {
           description?: string
           due_date?: string | null
           id?: string
+          is_recurring?: boolean
+          month_ref?: string
           notes?: string
           paid_at?: string | null
+          parent_invoice_id?: string | null
           pix_code?: string
+          recurrence_day?: number | null
           status?: string
           updated_at?: string
         }
@@ -1004,9 +1012,13 @@ export type Database = {
           description?: string
           due_date?: string | null
           id?: string
+          is_recurring?: boolean
+          month_ref?: string
           notes?: string
           paid_at?: string | null
+          parent_invoice_id?: string | null
           pix_code?: string
+          recurrence_day?: number | null
           status?: string
           updated_at?: string
         }
@@ -2319,6 +2331,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      renew_recurring_invoices: { Args: never; Returns: number }
     }
     Enums: {
       app_module: "comercial" | "operacional"
