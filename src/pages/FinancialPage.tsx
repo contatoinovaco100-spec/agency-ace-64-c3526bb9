@@ -69,6 +69,8 @@ export default function FinancialPage() {
     due_date: '',
     custom_message: '',
     notes: '',
+    is_recurring: false,
+    recurrence_day: '10',
   });
 
   const [settingsForm, setSettingsForm] = useState({
