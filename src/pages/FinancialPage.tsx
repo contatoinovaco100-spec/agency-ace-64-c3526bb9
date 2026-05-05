@@ -540,6 +540,9 @@ function InvoiceList({
               ) : (
                 <Badge className="bg-amber-500/15 text-amber-500 hover:bg-amber-500/20 border-amber-500/30">Pendente</Badge>
               )}
+              {inv.is_recurring && (
+                <Badge variant="outline" className="border-primary/40 text-primary">🔁 Recorrente</Badge>
+              )}
             </div>
             {inv.description && (
               <p className="text-sm text-muted-foreground truncate">{inv.description}</p>
