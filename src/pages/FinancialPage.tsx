@@ -36,6 +36,9 @@ type Invoice = {
   pix_code: string;
   paid_at: string | null;
   created_at: string;
+  is_recurring?: boolean;
+  recurrence_day?: number | null;
+  month_ref?: string;
 };
 
 type PixSettings = {
