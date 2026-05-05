@@ -377,6 +377,28 @@ export default function FinancialPage() {
                 onChange={e => setForm({ ...form, notes: e.target.value })}
               />
             </Field>
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.is_recurring}
+                  onChange={e => setForm({ ...form, is_recurring: e.target.checked })}
+                  className="h-4 w-4 accent-primary"
+                />
+                <span className="text-sm font-medium">🔁 Fatura recorrente (renova todo mês automaticamente)</span>
+              </label>
+              {form.is_recurring && (
+                <div className="pl-6">
+                  <Label className="text-xs text-muted-foreground">Dia do vencimento (1-28)</Label>
+                  <Input
+                    type="number" min="1" max="28"
+                    value={form.recurrence_day}
+                    onChange={e => setForm({ ...form, recurrence_day: e.target.value })}
+                    className="mt-1 w-32"
+                  />
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
