@@ -157,6 +157,10 @@ export default function FinancialPage() {
       txid,
     });
 
+    const recurDay = form.is_recurring
+      ? Math.max(1, Math.min(28, parseInt(form.recurrence_day || '10', 10) || 10))
+      : null;
+
     const { error } = await (supabase as any).from('invoices').insert({
       client_name: form.client_name,
       client_contact: form.client_contact,
@@ -167,14 +171,17 @@ export default function FinancialPage() {
       notes: form.notes,
       pix_code,
       status: 'pendente',
+      is_recurring: form.is_recurring,
+      recurrence_day: recurDay,
     });
 
     if (error) return toast.error(error.message);
-    toast.success('Fatura criada com sucesso!');
+    toast.success(form.is_recurring ? 'Fatura recorrente criada! Será renovada todo mês.' : 'Fatura criada com sucesso!');
     setOpen(false);
     setForm({
       client_id: '', client_name: '', client_contact: '', description: '',
       amount: '', due_date: '', custom_message: '', notes: '',
+      is_recurring: false, recurrence_day: '10',
     });
     load();
   };
