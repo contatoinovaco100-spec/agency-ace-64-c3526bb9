@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useAgency } from '@/contexts/AgencyContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,11 +12,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DollarSign, Plus, Settings, Eye, CheckCircle2, Clock, FileText,
   Copy, Send, Trash2, Edit2, QrCode, CreditCard, TrendingUp,
-  AlertCircle, Search, Calendar, ArrowUpRight, Banknote, Receipt
+  AlertCircle, Search, Calendar, ArrowUpRight, Banknote, Receipt,
+  Zap, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
+import { supabase } from '@/integrations/supabase/client';
 
 // ─── PIX BR Code Generator (EMV Standard) ────────────────────────────────
 function padValue(id: string, value: string): string {
@@ -114,20 +117,10 @@ const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('pt-
 
 // ─── Component ───────────────────────────────────────────────────────────
 export default function FinancePage() {
+  const { clients } = useAgency();
   // State
-  const [invoices, setInvoices] = useState<Invoice[]>(() => {
-    try {
-      const saved = localStorage.getItem('fin_invoices');
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
-
-  const [pixConfig, setPixConfig] = useState<PixConfig>(() => {
-    try {
-      const saved = localStorage.getItem('fin_pix_config');
-      return saved ? JSON.parse(saved) : DEFAULT_PIX;
-    } catch { return DEFAULT_PIX; }
-  });
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [pixConfig, setPixConfig] = useState<PixConfig>(DEFAULT_PIX);
 
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -141,15 +134,84 @@ export default function FinancePage() {
     amount: '', dueDate: '', notes: '', customMessage: ''
   });
 
-  // Persist
-  const saveInvoices = useCallback((updated: Invoice[]) => {
-    setInvoices(updated);
-    localStorage.setItem('fin_invoices', JSON.stringify(updated));
+  const [loading, setLoading] = useState(true);
+
+  // Fetch from Supabase
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [invRes, pixRes] = await Promise.all([
+        supabase.from('invoices').select('*').order('created_at', { ascending: false }),
+        supabase.from('pix_settings').select('*').limit(1).maybeSingle()
+      ]);
+
+      if (invRes.data) {
+        const mapped: Invoice[] = invRes.data.map((i: any) => ({
+          id: i.id,
+          clientName: i.client_name,
+          clientContact: i.client_contact,
+          description: i.description,
+          amount: Number(i.amount),
+          dueDate: i.due_date || '',
+          notes: i.notes || '',
+          customMessage: i.custom_message || '',
+          status: i.status === 'pago' ? 'paid' : 'pending',
+          createdAt: i.created_at,
+          paidAt: i.paid_at
+        }));
+        setInvoices(mapped);
+      }
+
+      if (pixRes.data) {
+        setPixConfig({
+          keyType: pixRes.data.key_type as PixConfig['keyType'],
+          pixKey: pixRes.data.pix_key,
+          receiverName: pixRes.data.receiver_name,
+          city: pixRes.data.city
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching finance data:', error);
+      toast.error('Erro ao carregar dados financeiros');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const savePixConfig = useCallback((updated: PixConfig) => {
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Persist
+  const saveInvoices = useCallback(async (updated: Invoice[]) => {
+    setInvoices(updated);
+    // Note: We don't save the entire array anymore, we handle per-action
+  }, []);
+
+  const savePixConfig = useCallback(async (updated: PixConfig) => {
     setPixConfig(updated);
-    localStorage.setItem('fin_pix_config', JSON.stringify(updated));
+    try {
+      const { data: existing } = await supabase.from('pix_settings').select('id').limit(1).maybeSingle();
+      if (existing) {
+        await supabase.from('pix_settings').update({
+          key_type: updated.keyType,
+          pix_key: updated.pixKey,
+          receiver_name: updated.receiverName,
+          city: updated.city,
+          updated_at: new Date().toISOString()
+        }).eq('id', existing.id);
+      } else {
+        await supabase.from('pix_settings').insert({
+          key_type: updated.keyType,
+          pix_key: updated.pixKey,
+          receiver_name: updated.receiverName,
+          city: updated.city
+        });
+      }
+      toast.success('Configurações do Pix salvas!');
+    } catch (error) {
+      toast.error('Erro ao salvar configurações do Pix');
+    }
   }, []);
 
   // KPIs
@@ -193,7 +255,7 @@ export default function FinancePage() {
     setShowInvoiceModal(true);
   };
 
-  const handleSaveInvoice = () => {
+  const handleSaveInvoice = async () => {
     if (!form.clientName || !form.amount || !form.dueDate) {
       toast.error('Preencha nome, valor e vencimento');
       return;
@@ -208,45 +270,132 @@ export default function FinancePage() {
       return;
     }
 
-    if (editingInvoice) {
-      const updated = invoices.map(i => i.id === editingInvoice.id ? {
-        ...i, clientName: form.clientName, clientContact: form.clientContact,
-        description: form.description, amount, dueDate: form.dueDate,
-        notes: form.notes, customMessage: form.customMessage
-      } : i);
-      saveInvoices(updated);
-      toast.success('Fatura atualizada');
-    } else {
-      const newInvoice: Invoice = {
-        id: crypto.randomUUID(),
-        clientName: form.clientName, clientContact: form.clientContact,
-        description: form.description, amount, dueDate: form.dueDate,
-        notes: form.notes, customMessage: form.customMessage,
-        status: 'pending', createdAt: new Date().toISOString(), paidAt: null
+    try {
+      const invData = {
+        client_name: form.clientName,
+        client_contact: form.clientContact,
+        description: form.description,
+        amount,
+        due_date: form.dueDate,
+        notes: form.notes,
+        custom_message: form.customMessage,
+        pix_code: generatePixPayload(pixConfig, amount),
+        status: editingInvoice ? (editingInvoice.status === 'paid' ? 'pago' : 'pendente') : 'pendente'
       };
-      saveInvoices([newInvoice, ...invoices]);
-      toast.success('Fatura criada com sucesso!');
+
+      if (editingInvoice) {
+        await supabase.from('invoices').update(invData).eq('id', editingInvoice.id);
+        const updated = invoices.map(i => i.id === editingInvoice.id ? {
+          ...i, clientName: form.clientName, clientContact: form.clientContact,
+          description: form.description, amount, dueDate: form.dueDate,
+          notes: form.notes, customMessage: form.customMessage
+        } : i);
+        setInvoices(updated);
+        toast.success('Fatura atualizada');
+      } else {
+        const id = crypto.randomUUID();
+        const { data, error } = await supabase.from('invoices').insert({
+          id,
+          ...invData,
+          created_at: new Date().toISOString()
+        }).select().single();
+
+        if (error) throw error;
+
+        const newInvoice: Invoice = {
+          id: id,
+          clientName: form.clientName, clientContact: form.clientContact,
+          description: form.description, amount, dueDate: form.dueDate,
+          notes: form.notes, customMessage: form.customMessage,
+          status: 'pending', createdAt: new Date().toISOString(), paidAt: null
+        };
+        setInvoices([newInvoice, ...invoices]);
+        toast.success('Fatura criada com sucesso!');
+      }
+      setShowInvoiceModal(false);
+    } catch (error) {
+      console.error('Error saving invoice:', error);
+      toast.error('Erro ao salvar fatura no banco de dados');
     }
-    setShowInvoiceModal(false);
   };
 
-  const markAsPaid = (id: string) => {
-    saveInvoices(invoices.map(i => i.id === id ? { ...i, status: 'paid' as const, paidAt: new Date().toISOString() } : i));
-    toast.success('Fatura marcada como paga ✅');
-    if (viewingInvoice?.id === id) setViewingInvoice(prev => prev ? { ...prev, status: 'paid', paidAt: new Date().toISOString() } : null);
+  const markAsPaid = async (id: string) => {
+    const now = new Date().toISOString();
+    try {
+      await supabase.from('invoices').update({ status: 'pago', paid_at: now }).eq('id', id);
+      setInvoices(invoices.map(i => i.id === id ? { ...i, status: 'paid' as const, paidAt: now } : i));
+      toast.success('Fatura marcada como paga ✅');
+      if (viewingInvoice?.id === id) setViewingInvoice(prev => prev ? { ...prev, status: 'paid', paidAt: now } : null);
+    } catch (error) {
+      toast.error('Erro ao atualizar status');
+    }
   };
 
-  const markAsPending = (id: string) => {
-    saveInvoices(invoices.map(i => i.id === id ? { ...i, status: 'pending' as const, paidAt: null } : i));
-    toast.success('Fatura marcada como pendente');
-    if (viewingInvoice?.id === id) setViewingInvoice(prev => prev ? { ...prev, status: 'pending', paidAt: null } : null);
+  const markAsPending = async (id: string) => {
+    try {
+      await supabase.from('invoices').update({ status: 'pendente', paid_at: null }).eq('id', id);
+      setInvoices(invoices.map(i => i.id === id ? { ...i, status: 'pending' as const, paidAt: null } : i));
+      toast.success('Fatura marcada como pendente');
+      if (viewingInvoice?.id === id) setViewingInvoice(prev => prev ? { ...prev, status: 'pending', paidAt: null } : null);
+    } catch (error) {
+      toast.error('Erro ao atualizar status');
+    }
   };
 
-  const deleteInvoice = (id: string) => {
+  const deleteInvoice = async (id: string) => {
     if (!confirm('Excluir esta fatura?')) return;
-    saveInvoices(invoices.filter(i => i.id !== id));
-    if (viewingInvoice?.id === id) setViewingInvoice(null);
-    toast.success('Fatura excluída');
+    try {
+      await supabase.from('invoices').delete().eq('id', id);
+      setInvoices(invoices.filter(i => i.id !== id));
+      if (viewingInvoice?.id === id) setViewingInvoice(null);
+      toast.success('Fatura excluída');
+    } catch (error) {
+      toast.error('Erro ao excluir fatura');
+    }
+  };
+
+  const generateAutomaticInvoices = async () => {
+    const activeClients = clients.filter(c => c.status === 'Ativo');
+    if (activeClients.length === 0) {
+      toast.error('Nenhum cliente ativo encontrado.');
+      return;
+    }
+
+    if (!pixConfig.pixKey) {
+      toast.error('Configure sua chave Pix primeiro');
+      return;
+    }
+
+    if (!confirm(`Deseja gerar faturas para os ${activeClients.length} clientes ativos?`)) return;
+
+    const currentMonth = new Date().toLocaleString('pt-BR', { month: 'long' });
+    const today = new Date().toISOString().split('T')[0];
+    
+    try {
+      const inserts = activeClients.map(c => ({
+        id: crypto.randomUUID(),
+        client_name: c.companyName,
+        client_contact: c.phone || '',
+        description: `Mensalidade - ${currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)}`,
+        amount: c.monthlyValue,
+        due_date: today,
+        notes: 'Gerada automaticamente via sistema',
+        custom_message: 'Agradecemos pela parceria!',
+        status: 'pendente',
+        pix_code: generatePixPayload(pixConfig, c.monthlyValue),
+        created_at: new Date().toISOString()
+      }));
+
+      const { error } = await supabase.from('invoices').insert(inserts);
+      if (error) throw error;
+
+      // Refresh list
+      fetchData();
+      toast.success(`${inserts.length} faturas geradas e salvas com sucesso!`);
+    } catch (error) {
+      console.error('Error generating invoices:', error);
+      toast.error('Erro ao gerar faturas no banco de dados');
+    }
   };
 
   // PIX helpers
@@ -301,8 +450,11 @@ export default function FinancePage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => setShowConfigModal(true)}>
+          <Button variant="outline" onClick={() => setShowConfigModal(true)} className="hidden sm:flex">
             <Settings className="mr-2 h-4 w-4" /> Configurar Pix
+          </Button>
+          <Button variant="secondary" onClick={generateAutomaticInvoices} className="gap-2">
+            <Zap className="h-4 w-4 text-amber-500 fill-amber-500" /> Gerar Faturas Automáticas
           </Button>
           <Button onClick={openCreateModal} className="shadow-lg shadow-primary/20 transition-all hover:scale-105">
             <Plus className="mr-2 h-4 w-4" /> Nova Fatura
@@ -383,7 +535,12 @@ export default function FinancePage() {
       </div>
 
       {/* Invoices List */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <RefreshCw className="h-10 w-10 animate-spin text-primary/40 mb-4" />
+          <p className="text-muted-foreground">Sincronizando faturas...</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-20 text-center">
           <div className="h-20 w-20 rounded-2xl bg-muted/50 flex items-center justify-center mb-5">
             <FileText className="h-10 w-10 text-muted-foreground/40" />
