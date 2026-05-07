@@ -207,6 +207,24 @@ export default function ContractsPage() {
     toast.success('Link copiado!');
   };
 
+  const downloadPdf = async (c: Contract) => {
+    try {
+      const sig = getSignature(c.id);
+      const publicUrl = `${window.location.origin}/contrato/${c.id}`;
+      await generateContractPdf(c as any, sig ? {
+        signer_name: sig.signer_name,
+        signer_cpf: sig.signer_cpf,
+        signer_email: sig.signer_email,
+        signed_at: sig.signed_at,
+        ip_address: sig.ip_address,
+        signature_hash: sig.signature_hash,
+      } : null, publicUrl);
+      toast.success('PDF gerado!');
+    } catch (e: any) {
+      toast.error('Erro ao gerar PDF: ' + (e?.message || ''));
+    }
+  };
+
   const openEdit = (c: Contract) => {
     setForm({
       title: c.title,
