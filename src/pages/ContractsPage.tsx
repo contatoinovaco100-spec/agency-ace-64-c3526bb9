@@ -20,9 +20,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   FileText, Plus, Send, CheckCircle2, Edit2, Copy, Loader2, ExternalLink,
-  Trash2, Hash, MessageCircle, RotateCcw,
+  Trash2, Hash, MessageCircle, RotateCcw, Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { generateContractPdf } from '@/lib/contractPdf';
 
 interface Deliverable {
   label: string;
