@@ -157,51 +157,106 @@ export async function generateContractPdf(
     y += 4;
   };
 
-  section('1. OBJETO', `O presente contrato tem por objeto a prestação de serviços de ${c.services || 'marketing e audiovisual'} pelo CONTRATANTE ao CONTRATADO, conforme o ${c.plan_name || 'plano contratado'}.`);
+  // Intro
+  ensureSpace(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(40, 40, 40);
+  const intro = doc.splitTextToSize('Pelo presente instrumento particular de prestação de serviços, as partes acima qualificadas têm entre si justo e contratado o seguinte:', contentW);
+  intro.forEach((l: string) => { ensureSpace(5); doc.text(l, margin, y); y += 4.8; });
+  y += 4;
 
-  if (c.scope_description) section('2. ESCOPO', c.scope_description);
+  const hasDeliv = (c.deliverables?.length || 0) > 0;
+  let n = 1;
+  const next = () => `CLÁUSULA ${n++}ª`;
 
-  // Deliverables table
-  if (c.deliverables?.length) {
+  section(`${next()} - DO OBJETO`, `O presente contrato tem por objeto a prestação dos seguintes serviços: ${c.services || '-'}.${c.scope_description ? `\n\nEscopo detalhado: ${c.scope_description}` : ''}`);
+
+  // Deliverables
+  if (hasDeliv) {
     ensureSpace(20);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
-    doc.text('3. ENTREGÁVEIS MENSAIS', margin, y);
+    doc.text(`${next()} - DAS ENTREGAS`, margin, y);
     y += 6;
+    if (c.plan_name) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(40, 40, 40);
+      const pl = doc.splitTextToSize(`O plano contratado é o ${c.plan_name}, que inclui:`, contentW);
+      pl.forEach((l: string) => { ensureSpace(5); doc.text(l, margin, y); y += 4.8; });
+      y += 2;
+    }
     doc.setFillColor(245, 245, 245);
     doc.rect(margin, y, contentW, 7, 'F');
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.text('Item', margin + 3, y + 5);
-    doc.text('Qtd', pageW - margin - 15, y + 5);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Qtd', margin + 3, y + 5);
+    doc.text('Item', margin + 25, y + 5);
     y += 7;
     doc.setFont('helvetica', 'normal');
     c.deliverables.forEach((d, i) => {
-      ensureSpace(8);
+      const lblLines = doc.splitTextToSize(d.label || '', contentW - 30);
+      const rowH = Math.max(6.5, lblLines.length * 4.5 + 2);
+      ensureSpace(rowH);
       if (i % 2 === 1) {
         doc.setFillColor(250, 250, 250);
-        doc.rect(margin, y, contentW, 6.5, 'F');
+        doc.rect(margin, y, contentW, rowH, 'F');
       }
       doc.setTextColor(40, 40, 40);
-      const lbl = doc.splitTextToSize(d.label || '', contentW - 25);
-      doc.text(lbl[0] || '', margin + 3, y + 4.5);
-      doc.text(String(d.quantity || ''), pageW - margin - 15, y + 4.5);
-      y += 6.5;
+      doc.text(String(d.quantity || ''), margin + 3, y + 4.5);
+      doc.text(lblLines, margin + 25, y + 4.5);
+      y += rowH;
     });
     y += 6;
   }
 
   section(
-    '4. VALOR E PAGAMENTO',
-    `O valor mensal do contrato é de ${formatBRL(c.monthly_value)}, com vencimento todo dia ${c.payment_due_day} de cada mês. O contrato terá vigência de ${c.duration_months} meses a partir da assinatura.`,
+    `${next()} - DO VALOR E PAGAMENTO`,
+    `O CONTRATADO pagará ao CONTRATANTE o valor mensal de ${formatBRL(c.monthly_value)} (reais), com vencimento todo dia ${c.payment_due_day} de cada mês.`,
   );
-
-  if (c.additional_clauses) section('5. CLÁUSULAS ADICIONAIS', c.additional_clauses);
 
   section(
-    '6. FORO',
+    `${next()} - DO PRAZO E CARÊNCIA`,
+    `O presente contrato terá prazo mínimo de permanência de ${c.duration_months} meses, contados a partir da data de assinatura.\n\nApós este período, o contrato poderá ser rescindido por qualquer das partes mediante aviso prévio de 30 (trinta) dias.`,
+  );
+
+  section(
+    `${next()} - DA RESCISÃO ANTECIPADA`,
+    'Caso o CONTRATADO solicite o cancelamento antes do prazo mínimo de permanência, será aplicada multa rescisória correspondente a 30% do valor restante do contrato, a título de compensação pelos serviços contratados e planejamento realizado.',
+  );
+
+  section(
+    `${next()} - RESPONSABILIDADE DO CLIENTE`,
+    'Caso o CONTRATADO não disponibilize agenda para captação de conteúdo ou não envie materiais necessários para produção dentro do mês vigente, as entregas poderão ser reajustadas ou reagendadas conforme disponibilidade da equipe, sem obrigação de compensação de entregas acumuladas.',
+  );
+
+  section(
+    `${next()} - DO SIGILO`,
+    'As partes se comprometem a manter sigilo sobre todas as informações confidenciais compartilhadas durante a vigência deste contrato e por um período de 2 (dois) anos após seu término.',
+  );
+
+  if (c.additional_clauses) section('CLÁUSULAS ADICIONAIS', c.additional_clauses);
+
+  section(
+    'CLÁUSULA FINAL - DA ASSINATURA DIGITAL',
+    'As partes declaram que a assinatura digital realizada nesta plataforma tem plena validade jurídica, conforme o disposto no Código Civil Brasileiro (artigos 104, 107 e 221) e na Medida Provisória nº 2.200-2/2001. A identificação do signatário é feita por meio de nome completo, CPF, email verificado, endereço IP, data/hora da assinatura e hash criptográfico SHA-256 único e intransferível.',
+  );
+
+  section(
+    'FORO',
     'As partes elegem o foro da comarca do CONTRATANTE para dirimir quaisquer dúvidas oriundas deste contrato, com renúncia expressa a qualquer outro, por mais privilegiado que seja.',
   );
+
+  // Date line
+  ensureSpace(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(90, 90, 90);
+  doc.text(new Date(c.created_at || Date.now()).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }), pageW / 2, y, { align: 'center' });
+  y += 8;
 
   // Signature block
   ensureSpace(50);
