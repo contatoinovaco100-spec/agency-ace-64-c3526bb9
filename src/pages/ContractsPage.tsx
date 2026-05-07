@@ -20,9 +20,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   FileText, Plus, Send, CheckCircle2, Edit2, Copy, Loader2, ExternalLink,
-  Trash2, Hash, MessageCircle, RotateCcw,
+  Trash2, Hash, MessageCircle, RotateCcw, Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { generateContractPdf } from '@/lib/contractPdf';
 
 interface Deliverable {
   label: string;
@@ -206,6 +207,24 @@ export default function ContractsPage() {
     toast.success('Link copiado!');
   };
 
+  const downloadPdf = async (c: Contract) => {
+    try {
+      const sig = getSignature(c.id);
+      const publicUrl = `${window.location.origin}/contrato/${c.id}`;
+      await generateContractPdf(c as any, sig ? {
+        signer_name: sig.signer_name,
+        signer_cpf: sig.signer_cpf,
+        signer_email: sig.signer_email,
+        signed_at: sig.signed_at,
+        ip_address: sig.ip_address,
+        signature_hash: sig.signature_hash,
+      } : null, publicUrl);
+      toast.success('PDF gerado!');
+    } catch (e: any) {
+      toast.error('Erro ao gerar PDF: ' + (e?.message || ''));
+    }
+  };
+
   const openEdit = (c: Contract) => {
     setForm({
       title: c.title,
@@ -314,6 +333,9 @@ export default function ContractsPage() {
               
               {!isDeleted && (
                 <div className="grid grid-cols-1 gap-2 sm:flex sm:items-center">
+                  <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => downloadPdf(c)} title="Baixar PDF">
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
                   {c.status === 'rascunho' && (
                     <Button size="sm" className="h-8 w-full sm:w-auto" onClick={() => handleSend(c)}><Send className="h-3.5 w-3.5 mr-1" /> Enviar</Button>
                   )}

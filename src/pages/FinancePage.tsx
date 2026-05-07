@@ -704,7 +704,7 @@ export default function FinancePage() {
                 </Select>
                 {parseInt(form.installments) > 1 && (
                   <p className="text-[10px] text-amber-600 font-medium mt-1">
-                    Serão geradas {form.installments} faturas mensais de {fmtCurrency(amount / (parseInt(form.installments) || 1))}
+                    Serão geradas {form.installments} faturas mensais de {fmtCurrency((parseFloat(form.amount) || 0) / (parseInt(form.installments) || 1))}
                   </p>
                 )}
               </div>
