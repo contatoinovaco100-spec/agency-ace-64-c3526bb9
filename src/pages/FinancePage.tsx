@@ -304,9 +304,15 @@ export default function FinancePage() {
         toast.success('Fatura atualizada');
       } else {
         const inserts = [];
+        // Parcelas dentro do mesmo mês (facilitação de pagamento)
+        const monthEnd = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0).getDate();
+        const startDay = baseDate.getDate();
+        const availableDays = Math.max(1, monthEnd - startDay);
+        const stepDays = installmentsCount > 1 ? Math.floor(availableDays / (installmentsCount - 1)) : 0;
         for (let i = 0; i < installmentsCount; i++) {
           const d = new Date(baseDate);
-          d.setMonth(baseDate.getMonth() + i);
+          const targetDay = Math.min(startDay + stepDays * i, monthEnd);
+          d.setDate(targetDay);
           const formattedDate = d.toISOString().split('T')[0];
           
           const desc = installmentsCount > 1 
@@ -704,7 +710,7 @@ export default function FinancePage() {
                 </Select>
                 {parseInt(form.installments) > 1 && (
                   <p className="text-[10px] text-amber-600 font-medium mt-1">
-                    Serão geradas {form.installments} faturas mensais de {fmtCurrency((parseFloat(form.amount) || 0) / (parseInt(form.installments) || 1))}
+                    Serão geradas {form.installments} faturas dentro do mesmo mês (facilitação) de {fmtCurrency((parseFloat(form.amount) || 0) / (parseInt(form.installments) || 1))} cada
                   </p>
                 )}
               </div>
