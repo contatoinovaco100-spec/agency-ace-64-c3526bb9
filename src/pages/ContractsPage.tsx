@@ -333,6 +333,9 @@ export default function ContractsPage() {
               
               {!isDeleted && (
                 <div className="grid grid-cols-1 gap-2 sm:flex sm:items-center">
+                  <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => downloadPdf(c)} title="Baixar PDF">
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
                   {c.status === 'rascunho' && (
                     <Button size="sm" className="h-8 w-full sm:w-auto" onClick={() => handleSend(c)}><Send className="h-3.5 w-3.5 mr-1" /> Enviar</Button>
                   )}
