@@ -336,12 +336,12 @@ export default function PublicQuizPage() {
               </div>
             )}
 
-            {q.type === "visual" && q.config?.image_url && (
-              <img src={q.config.image_url} alt="" className="w-full" style={{ borderRadius: theme.border_radius }} />
+            {q.type !== "visual" && q.config?.image_url && (
+              <img src={q.config.image_url} alt="" className="w-full mb-6" style={{ borderRadius: theme.border_radius }} />
             )}
 
-            {q.type === "visual" && visualElements.length > 0 && (
-              <div className="space-y-4">
+            {visualElements.length > 0 && (
+              <div className="space-y-4 mb-6">
                 {renderVisualElements(visualElements, theme, () => goNext())}
               </div>
             )}

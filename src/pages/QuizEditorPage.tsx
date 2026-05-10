@@ -687,16 +687,20 @@ function BlockSettings({ question }: { question: QuizQuestionDraft }) {
       )}
 
       {question.type === "visual" && (
-        <>
-          <QuizMediaUploader
-            label="Imagem do banner (topo — opcional)"
-            value={question.config?.image_url ?? ""}
-            onChange={v => updateQuestion(question.id, { config: { ...question.config, image_url: v } })}
-            clientId={cid}
-          />
-          <VisualSectionEditor question={question} />
-        </>
+        <QuizMediaUploader
+          label="Imagem do banner (topo — opcional)"
+          value={question.config?.image_url ?? ""}
+          onChange={v => updateQuestion(question.id, { config: { ...question.config, image_url: v } })}
+          clientId={cid}
+        />
       )}
+
+      <div className="pt-4 border-t border-border mt-4">
+        <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider mb-3">
+          {question.type === "visual" ? "Conteúdo da Seção" : "Elementos Especiais (Acima da Resposta)"}
+        </div>
+        <VisualSectionEditor question={question} />
+      </div>
 
 
       <div>
