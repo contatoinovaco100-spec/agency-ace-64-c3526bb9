@@ -6,15 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { mergeTheme, useGoogleFont, buttonRadius, type QuizTheme } from "@/lib/quizTheme";
 
 interface Quiz {
   id: string; name: string; description: string; status: string;
   result_title: string; result_text: string; result_cta_label: string; result_cta_url: string;
+  result_image_url?: string; redirect_url?: string; redirect_delay_seconds?: number;
+  progress_bar?: boolean; show_question_numbers?: boolean;
+  theme?: any;
 }
 interface Question {
   id: string; type: string; title: string; description: string;
-  required: boolean; order_index: number; config: any;
-  options: { id: string; text: string }[];
+  required: boolean; order_index: number; config: any; image_url?: string;
+  options: { id: string; text: string; image_url?: string }[];
 }
 type AnswerVal = { option_ids: string[]; text_answer: string };
 
@@ -32,6 +36,9 @@ export default function PublicQuizPage() {
   const [responseId, setResponseId] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const theme: QuizTheme = useMemo(() => mergeTheme(quiz?.theme), [quiz?.theme]);
+  useGoogleFont(theme.font_family, [theme.body_weight, theme.heading_weight]);
 
   const utm = useMemo(() => {
     const p = new URLSearchParams(window.location.search);
@@ -69,9 +76,11 @@ export default function PublicQuizPage() {
     setQuestions((qs ?? []).map(x => ({
       id: x.id, type: x.type, title: x.title, description: x.description,
       required: x.required, order_index: x.order_index, config: x.config,
-      options: (optsByQ.get(x.id) ?? []).map(o => ({ id: o.id, text: o.text })),
+      image_url: (x as any).image_url ?? "",
+      options: (optsByQ.get(x.id) ?? []).map(o => ({
+        id: o.id, text: o.text, image_url: (o as any).image_url ?? "",
+      })),
     })));
-    // restore progress
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE(`${clientSlug}_${quizSlug}`)) ?? "null");
       if (saved) {
@@ -80,12 +89,10 @@ export default function PublicQuizPage() {
         setStep(saved.step ?? 0);
       }
     } catch {}
-    // increment views
     await supabase.rpc("increment_quiz_counter", { _quiz_id: q.id, _field: "views_count" });
     setLoading(false);
   };
 
-  // persist progress
   useEffect(() => {
     if (!clientSlug || !quizSlug || done) return;
     localStorage.setItem(STORAGE(`${clientSlug}_${quizSlug}`), JSON.stringify({ answers, lead, step }));
@@ -146,17 +153,52 @@ export default function PublicQuizPage() {
     await supabase.rpc("increment_quiz_counter", { _quiz_id: quiz.id, _field: "completions_count" });
     localStorage.removeItem(STORAGE(`${clientSlug}_${quizSlug}`));
     setDone(true); setSubmitting(false);
+
+    // Redirect after delay
+    if (quiz.redirect_url) {
+      const delay = (quiz.redirect_delay_seconds ?? 0) * 1000;
+      setTimeout(() => { window.location.href = quiz.redirect_url!; }, delay);
+    }
   };
 
+  // Theme-derived styles
+  const pageStyle: React.CSSProperties = {
+    backgroundColor: theme.background_color,
+    color: theme.text_color,
+    fontFamily: `'${theme.font_family}', system-ui, sans-serif`,
+    fontWeight: theme.body_weight,
+    backgroundImage: theme.background_image_url ? `url(${theme.background_image_url})` : undefined,
+    backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed",
+    minHeight: "100vh",
+  };
+  const cardStyle: React.CSSProperties = {
+    backgroundColor: theme.card_background,
+    borderRadius: theme.border_radius,
+    boxShadow: "0 10px 40px rgba(0,0,0,0.25)",
+  };
+  const headingStyle: React.CSSProperties = { fontWeight: theme.heading_weight, color: theme.text_color };
+  const btnRadius = buttonRadius(theme.button_style, theme.border_radius);
+  const primaryBtnStyle: React.CSSProperties = {
+    backgroundColor: theme.primary_color, color: theme.button_text_color,
+    borderRadius: btnRadius, fontWeight: 600,
+  };
+  const optionBaseStyle = (selected: boolean): React.CSSProperties => ({
+    borderRadius: theme.border_radius,
+    border: `2px solid ${selected ? theme.primary_color : "rgba(255,255,255,0.12)"}`,
+    backgroundColor: selected ? theme.primary_color : "transparent",
+    color: selected ? theme.button_text_color : theme.text_color,
+    transition: "all 0.15s",
+  });
+
   if (loading) {
-    return <div className="min-h-screen bg-white grid place-items-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>;
+    return <div style={pageStyle} className="grid place-items-center"><Loader2 className="h-8 w-8 animate-spin opacity-60" /></div>;
   }
   if (error) {
     return (
-      <div className="min-h-screen bg-white grid place-items-center p-6">
+      <div style={pageStyle} className="grid place-items-center p-6">
         <div className="text-center max-w-md">
           <AlertTriangle className="h-12 w-12 mx-auto mb-3 text-amber-500" />
-          <h1 className="text-xl font-bold text-gray-900 mb-2">{error}</h1>
+          <h1 className="text-xl" style={headingStyle}>{error}</h1>
         </div>
       </div>
     );
@@ -165,15 +207,23 @@ export default function PublicQuizPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 grid place-items-center p-6">
-        <div className="max-w-md w-full text-center bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-          <CheckCircle2 className="h-14 w-14 mx-auto mb-3 text-green-500" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">{quiz.result_title}</h1>
-          <p className="text-gray-600 whitespace-pre-line">{quiz.result_text}</p>
+      <div style={pageStyle} className="grid place-items-center p-6">
+        <div style={cardStyle} className="max-w-md w-full text-center p-8">
+          {quiz.result_image_url ? (
+            <img src={quiz.result_image_url} alt="" className="w-full mb-4" style={{ borderRadius: theme.border_radius }} />
+          ) : (
+            <CheckCircle2 className="h-14 w-14 mx-auto mb-3" style={{ color: theme.primary_color }} />
+          )}
+          <h1 className="text-2xl mb-2" style={headingStyle}>{quiz.result_title}</h1>
+          <p className="opacity-80 whitespace-pre-line">{quiz.result_text}</p>
           {quiz.result_cta_label && quiz.result_cta_url && (
-            <a href={quiz.result_cta_url} target="_blank" rel="noreferrer" className="inline-block mt-5 px-5 py-2.5 rounded-lg bg-gray-900 text-white font-medium hover:bg-gray-800">
+            <a href={quiz.result_cta_url} target="_blank" rel="noreferrer"
+              className="inline-block mt-5 px-6 py-3" style={primaryBtnStyle}>
               {quiz.result_cta_label}
             </a>
+          )}
+          {quiz.redirect_url && (
+            <p className="text-xs opacity-60 mt-4">Redirecionando…</p>
           )}
         </div>
       </div>
@@ -183,33 +233,48 @@ export default function PublicQuizPage() {
   const q = questions[step];
   const progress = questions.length ? ((step + 1) / questions.length) * 100 : 0;
   const a = answers[q?.id ?? ""] ?? { option_ids: [], text_answer: "" };
+  const showProgress = quiz.progress_bar !== false;
+  const showNumbers = quiz.show_question_numbers !== false;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-900">
+    <div style={pageStyle}>
       <div className="max-w-xl mx-auto p-6 sm:p-10">
-        <header className="mb-6">
-          <h1 className="text-lg font-bold text-gray-900">{quiz.name}</h1>
-          {quiz.description && <p className="text-sm text-gray-600">{quiz.description}</p>}
+        <header className="mb-6 text-center">
+          {theme.show_logo && theme.logo_url && (
+            <img src={theme.logo_url} alt="" className="h-12 mx-auto mb-3 object-contain" />
+          )}
+          <h1 className="text-lg" style={headingStyle}>{quiz.name}</h1>
+          {quiz.description && <p className="text-sm opacity-70 mt-1">{quiz.description}</p>}
         </header>
-        <div className="h-1.5 w-full bg-gray-200 rounded-full mb-6 overflow-hidden">
-          <div className="h-full bg-gray-900 transition-all" style={{ width: `${progress}%` }} />
-        </div>
+
+        {showProgress && (
+          <div className="h-1.5 w-full rounded-full mb-6 overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>
+            <div className="h-full transition-all" style={{ width: `${progress}%`, backgroundColor: theme.primary_color }} />
+          </div>
+        )}
 
         {!q ? (
-          <div className="text-center text-gray-500">Sem perguntas neste quiz.</div>
+          <div className="text-center opacity-60">Sem perguntas neste quiz.</div>
         ) : (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4 animate-in fade-in">
+          <div style={cardStyle} className="p-6 space-y-4 animate-in fade-in">
+            {q.image_url && (
+              <img src={q.image_url} alt="" className="w-full" style={{ borderRadius: theme.border_radius }} />
+            )}
             <div>
-              <h2 className="text-xl font-semibold">{q.title}{q.required && <span className="text-red-500">*</span>}</h2>
-              {q.description && <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">{q.description}</p>}
+              <h2 className="text-xl" style={headingStyle}>
+                {showNumbers && <span className="opacity-50 mr-2">{step + 1}.</span>}
+                {q.title}
+                {q.required && <span style={{ color: theme.primary_color }}>*</span>}
+              </h2>
+              {q.description && <p className="text-sm opacity-70 mt-1 whitespace-pre-line">{q.description}</p>}
             </div>
 
             {q.type === "visual" && q.config?.image_url && (
-              <img src={q.config.image_url} alt="" className="rounded-lg w-full" />
+              <img src={q.config.image_url} alt="" className="w-full" style={{ borderRadius: theme.border_radius }} />
             )}
 
             {(q.type === "single" || q.type === "multiple") && (
-              <div className="space-y-2">
+              <div className={q.options.some(o => o.image_url) ? "grid grid-cols-2 gap-2" : "space-y-2"}>
                 {q.options.map(o => {
                   const checked = a.option_ids.includes(o.id);
                   return (
@@ -222,11 +287,13 @@ export default function PublicQuizPage() {
                           setAnswer(q.id, { option_ids: ids });
                         }
                       }}
-                      className={`w-full text-left p-3 rounded-lg border transition ${
-                        checked ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 hover:border-gray-400"
-                      }`}
+                      className="text-left p-3 transition w-full"
+                      style={optionBaseStyle(checked)}
                     >
-                      {o.text}
+                      {o.image_url && (
+                        <img src={o.image_url} alt="" className="w-full mb-2" style={{ borderRadius: theme.border_radius / 2 }} />
+                      )}
+                      <span className="block">{o.text}</span>
                     </button>
                   );
                 })}
@@ -234,34 +301,52 @@ export default function PublicQuizPage() {
             )}
 
             {q.type === "text" && (
-              <Textarea rows={4} value={a.text_answer} onChange={e => setAnswer(q.id, { text_answer: e.target.value })} className="bg-white" />
+              <Textarea rows={4} value={a.text_answer}
+                onChange={e => setAnswer(q.id, { text_answer: e.target.value })}
+                style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius }}
+                className="border-white/20" />
             )}
 
             {q.type === "lead" && (
               <div className="space-y-3">
                 {q.config?.fields?.name && (
-                  <div><Label>Nome</Label><Input value={lead.name} onChange={e => setLead({ ...lead, name: e.target.value })} /></div>
+                  <div><Label className="opacity-80">Nome</Label>
+                    <Input value={lead.name} onChange={e => setLead({ ...lead, name: e.target.value })}
+                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius }}
+                      className="border-white/20" /></div>
                 )}
                 {q.config?.fields?.email && (
-                  <div><Label>E-mail</Label><Input type="email" value={lead.email} onChange={e => setLead({ ...lead, email: e.target.value })} /></div>
+                  <div><Label className="opacity-80">E-mail</Label>
+                    <Input type="email" value={lead.email} onChange={e => setLead({ ...lead, email: e.target.value })}
+                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius }}
+                      className="border-white/20" /></div>
                 )}
                 {q.config?.fields?.phone && (
-                  <div><Label>Telefone</Label><Input value={lead.phone} onChange={e => setLead({ ...lead, phone: e.target.value })} placeholder="(11) 99999-9999" /></div>
+                  <div><Label className="opacity-80">Telefone</Label>
+                    <Input value={lead.phone} onChange={e => setLead({ ...lead, phone: e.target.value })}
+                      placeholder="(11) 99999-9999"
+                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius }}
+                      className="border-white/20" /></div>
                 )}
               </div>
             )}
 
             <div className="flex justify-between pt-2">
-              <Button variant="ghost" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>Voltar</Button>
-              <Button onClick={next} disabled={submitting} className="bg-gray-900 text-white hover:bg-gray-800">
+              <Button variant="ghost" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}
+                style={{ color: theme.text_color, opacity: step === 0 ? 0.3 : 0.8 }}>
+                Voltar
+              </Button>
+              <button onClick={next} disabled={submitting}
+                className="inline-flex items-center px-6 py-2.5 disabled:opacity-60"
+                style={primaryBtnStyle}>
                 {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {step === questions.length - 1 ? "Finalizar" : "Continuar"}
-              </Button>
+              </button>
             </div>
           </div>
         )}
 
-        <p className="text-center text-xs text-gray-400 mt-6">Powered by INOVA</p>
+        <p className="text-center text-xs opacity-40 mt-6">Powered by INOVA</p>
       </div>
     </div>
   );
