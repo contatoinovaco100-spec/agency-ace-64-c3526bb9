@@ -88,6 +88,8 @@ export default function QuizEditorPage() {
         webhook_url: (q as any).webhook_url ?? "",
         progress_bar: (q as any).progress_bar ?? true,
         show_question_numbers: (q as any).show_question_numbers ?? true,
+        button_label: (q as any).button_label ?? "Continuar",
+        button_final_label: (q as any).button_final_label ?? "Ver meu resultado",
         theme: (q as any).theme,
       }),
       (questionsData ?? []).map(qq => ({
@@ -133,6 +135,8 @@ export default function QuizEditorPage() {
         webhook_url: meta.webhook_url,
         progress_bar: meta.progress_bar,
         show_question_numbers: meta.show_question_numbers,
+        button_label: meta.button_label,
+        button_final_label: meta.button_final_label,
         theme: meta.theme as any,
       } as any).eq("id", meta.id);
 
@@ -346,6 +350,20 @@ export default function QuizEditorPage() {
                   <Input value={meta.pixel_ga} onChange={e => updateMeta({ pixel_ga: e.target.value })} placeholder="G-XXXXXXXXXX" />
                 </div>
                 <p className="text-[11px] text-muted-foreground">As integrações (webhook, pixel, GA) são acionadas na página pública após o respondente concluir o quiz.</p>
+
+                <div className="border-t border-border pt-4 mt-4">
+                  <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">Texto dos botões</div>
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-xs">Botão de avançar</Label>
+                      <Input value={meta.button_label} onChange={e => updateMeta({ button_label: e.target.value })} placeholder="Continuar" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Botão da última pergunta</Label>
+                      <Input value={meta.button_final_label} onChange={e => updateMeta({ button_final_label: e.target.value })} placeholder="Ver meu resultado" />
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -481,21 +499,37 @@ function BlockSettings({ question }: { question: QuizQuestionDraft }) {
       )}
 
       {question.type === "lead" && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label>Campos exibidos</Label>
           {(["name", "email", "phone"] as const).map(k => {
             const fields = (question.config?.fields ?? {}) as Record<string, boolean>;
+            const labels = (question.config?.labels ?? {}) as Record<string, string>;
+            const defaultLabels: Record<string, string> = { name: "Seu nome", email: "Seu e-mail", phone: "Seu telefone" };
             return (
-              <div key={k} className="flex items-center justify-between">
-                <span className="text-sm capitalize">{k === "name" ? "Nome" : k === "email" ? "E-mail" : "Telefone"}</span>
-                <Switch
-                  checked={!!fields[k]}
-                  onCheckedChange={v =>
-                    updateQuestion(question.id, {
-                      config: { ...question.config, fields: { ...fields, [k]: v } },
-                    })
-                  }
-                />
+              <div key={k} className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm capitalize">{k === "name" ? "Nome" : k === "email" ? "E-mail" : "Telefone"}</span>
+                  <Switch
+                    checked={!!fields[k]}
+                    onCheckedChange={v =>
+                      updateQuestion(question.id, {
+                        config: { ...question.config, fields: { ...fields, [k]: v } },
+                      })
+                    }
+                  />
+                </div>
+                {fields[k] && (
+                  <Input
+                    value={labels[k] ?? defaultLabels[k]}
+                    placeholder={defaultLabels[k]}
+                    className="h-8 text-xs"
+                    onChange={e =>
+                      updateQuestion(question.id, {
+                        config: { ...question.config, labels: { ...labels, [k]: e.target.value } },
+                      })
+                    }
+                  />
+                )}
               </div>
             );
           })}

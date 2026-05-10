@@ -59,6 +59,8 @@ export interface QuizMeta {
   webhook_url: string;
   progress_bar: boolean;
   show_question_numbers: boolean;
+  button_label: string;
+  button_final_label: string;
   theme: QuizTheme;
 }
 
@@ -106,6 +108,8 @@ export const buildDefaultMeta = (overrides: Partial<QuizMeta>): QuizMeta => {
     webhook_url: "",
     progress_bar: true,
     show_question_numbers: false,
+    button_label: "Continuar",
+    button_final_label: "Ver meu resultado",
     ...rest,
     theme: mergeTheme(themeOverride),
   };

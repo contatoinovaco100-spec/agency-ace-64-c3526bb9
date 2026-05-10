@@ -13,6 +13,7 @@ interface Quiz {
   result_title: string; result_text: string; result_cta_label: string; result_cta_url: string;
   result_image_url?: string; redirect_url?: string; redirect_delay_seconds?: number;
   progress_bar?: boolean; show_question_numbers?: boolean;
+  button_label?: string; button_final_label?: string;
   theme?: any;
 }
 interface Question {
@@ -391,7 +392,7 @@ export default function PublicQuizPage() {
                   }}
                 >
                   {submitting && <Loader2 className="h-5 w-5 mr-2 animate-spin inline" />}
-                  {step === questions.length - 1 ? "Ver meu resultado →" : "Continuar →"}
+                  {step === questions.length - 1 ? `${quiz.button_final_label || "Ver meu resultado"} →` : `${quiz.button_label || "Continuar"} →`}
                 </button>
               </div>
             )}
@@ -412,7 +413,7 @@ export default function PublicQuizPage() {
                     boxShadow: a.text_answer?.trim() ? `0 4px 20px ${theme.primary_color}40` : "none",
                   }}
                 >
-                  {step === questions.length - 1 ? "Ver meu resultado →" : "Continuar →"}
+                  {step === questions.length - 1 ? `${quiz.button_final_label || "Ver meu resultado"} →` : `${quiz.button_label || "Continuar"} →`}
                 </button>
               </div>
             )}
@@ -421,16 +422,16 @@ export default function PublicQuizPage() {
               <div className="space-y-4">
                 {q.config?.fields?.name && (
                   <div>
-                    <Label className="opacity-80 text-sm mb-1 block">Seu nome</Label>
+                    <Label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.name || "Seu nome"}</Label>
                     <Input value={lead.name} onChange={e => setLead({ ...lead, name: e.target.value })}
-                      placeholder="Digite seu nome completo"
+                      placeholder={q.config?.labels?.name || "Digite seu nome completo"}
                       style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
                       className="border-white/20" />
                   </div>
                 )}
                 {q.config?.fields?.email && (
                   <div>
-                    <Label className="opacity-80 text-sm mb-1 block">Seu e-mail</Label>
+                    <Label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.email || "Seu e-mail"}</Label>
                     <Input type="email" value={lead.email} onChange={e => setLead({ ...lead, email: e.target.value })}
                       placeholder="seu@email.com"
                       style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
@@ -439,7 +440,7 @@ export default function PublicQuizPage() {
                 )}
                 {q.config?.fields?.phone && (
                   <div>
-                    <Label className="opacity-80 text-sm mb-1 block">Seu telefone</Label>
+                    <Label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.phone || "Seu telefone"}</Label>
                     <Input value={lead.phone} onChange={e => setLead({ ...lead, phone: e.target.value })}
                       placeholder="(11) 99999-9999"
                       style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
@@ -456,7 +457,7 @@ export default function PublicQuizPage() {
                   }}
                 >
                   {submitting && <Loader2 className="h-5 w-5 mr-2 animate-spin inline" />}
-                  {step === questions.length - 1 ? "Ver meu resultado →" : "Continuar →"}
+                  {step === questions.length - 1 ? `${quiz.button_final_label || "Ver meu resultado"} →` : `${quiz.button_label || "Continuar"} →`}
                 </button>
                 <p className="text-center text-xs opacity-40 flex items-center justify-center gap-1">
                   <Lock className="h-3 w-3" /> Seus dados estão protegidos
