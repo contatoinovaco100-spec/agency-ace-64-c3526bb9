@@ -130,6 +130,7 @@ function AppRoutes() {
     location.pathname === '/negocios' ||
     location.pathname === '/rede/perfil' ||
     location.pathname === '/rede/novo' ||
+    location.pathname.startsWith('/quiz/') ||
     (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar'));
 
   return (
