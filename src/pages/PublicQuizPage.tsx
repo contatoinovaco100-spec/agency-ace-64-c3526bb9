@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { mergeTheme, useGoogleFont, buttonRadius, type QuizTheme } from "@/lib/quizTheme";
+import { renderVisualElements, type VisualElement } from "@/components/quiz/VisualSectionEditor";
 
 interface Quiz {
   id: string; name: string; description: string; status: string;
