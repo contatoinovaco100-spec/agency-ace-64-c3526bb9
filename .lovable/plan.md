@@ -1,125 +1,128 @@
-## Quiz Builder — MVP enxuto
 
-Módulo novo, totalmente separado do Diagnóstico/Briefings existentes. Foco em entregar uma base sólida que depois evolui para lógica condicional, score, templates e analytics avançado.
+# Quiz Builder Inlead-like — Pacote completo
 
-### O que entra no MVP
+Você escolheu: **Pacote completo**, **bucket público novo `quiz-media`**, **tema visual global por quiz**.
 
-**Gestão de clientes do Quiz** (separado da tabela `clients` da agência)
-- Listagem com nome, slug, nº de quizzes, nº de respostas, status
-- Cadastro: nome, slug auto-gerado e editável (validação de unicidade em tempo real), email, empresa, notas, status ativo/inativo
+Como é muito conteúdo, vou dividir em **4 fases**. Cada fase termina funcional e testável. Após cada fase, você confirma e seguimos para a próxima.
 
-**Gestão de quizzes por cliente**
-- Cards: nome, slug, status, nº respostas, data
-- Ações: Editar, Duplicar, Ver Respostas, Copiar Link, Ativar/Pausar, Excluir
-- Criação: nome, slug auto-gerado e editável, descrição interna, preview da URL final
+---
 
-**Editor visual com drag-and-drop completo (@dnd-kit)**
-- Painel esquerdo: biblioteca de blocos arrastáveis
-- Canvas central: lista ordenável de blocos, com preview ao vivo
-- Painel direito: configurações do bloco selecionado
-- Topo: nome do quiz, Salvar, Publicar/Pausar, Preview, Copiar Link
+## FASE 1 — Mídia self-hosted + Tema visual global
 
-Blocos do MVP (subset enxuto):
-- Pergunta múltipla escolha (várias respostas)
-- Pergunta escolha única
-- Pergunta aberta (texto livre)
-- Captura de lead (nome, email, telefone — todos com validação)
-- Bloco visual: título/subtítulo + imagem (URL)
-- Página de resultado simples (texto + CTA com link/WhatsApp)
+### Banco de dados
+- Criar bucket público `quiz-media` (com RLS: leitura pública, upload/delete por authenticated).
+- Adicionar colunas em `quizzes`:
+  - `theme jsonb default '{}'` — guarda toda a config visual em um único campo flexível.
+  - `result_image_url text`, `redirect_url text`, `redirect_delay_seconds int`.
+  - `score_enabled boolean default false`, `score_ranges jsonb default '[]'` (faixas: `{min, max, title, text, cta_label, cta_url, image_url}`).
+  - `pixel_meta text`, `pixel_ga text`, `webhook_url text`.
+  - `progress_bar boolean default true`, `show_question_numbers boolean default true`.
+- Adicionar colunas em `quiz_questions`:
+  - `image_url text` — imagem opcional acima do bloco.
+  - `next_question_id uuid` e `branching jsonb default '[]'` (`[{option_id, target_question_id|"end"}]`) — para Fase 2.
+- Adicionar colunas em `quiz_options`:
+  - `points int default 0`, `image_url text` (cards visuais).
 
-Sem MVP: branching, lógica condicional, score, timer, gamificação, NPS, templates, webhook, pixel, senha, expiração, gráficos avançados, vídeo embed, depoimentos. Tudo isso vira fase 2.
-
-**Página pública `/quiz/:clientSlug/:quizSlug`**
-- Rota fora do AppLayout (sem header/sidebar), tema claro independente
-- Mobile-first, responsiva
-- Progresso uma pergunta por vez, barra de progresso simples
-- Captura de UTMs (utm_source, utm_medium, utm_campaign) da URL
-- Progresso parcial salvo em localStorage por slug
-- Tela de "quiz pausado" / "quiz não encontrado" amigável
-- Tela final com texto de resultado + CTA configurado
-
-**Respostas (aba dentro do quiz)**
-- Cards no topo: visualizações (lidas do contador), inícios, conclusões, taxa de conclusão, leads
-- Tabela de respostas: data, nome, email, telefone, UTM source, ação "ver detalhes" (modal com todas respostas)
-- Botão "Exportar CSV"
-
-**Navegação**
-- Novo item no sidebar "Quiz Builder" (ícone Layers), categoria Ferramentas, admin-only
-- Rotas: `/quiz-builder` (clientes), `/quiz-builder/c/:clientId` (quizzes), `/quiz-builder/editor/:quizId`
-- Pública: `/quiz/:clientSlug/:quizSlug` adicionada ao bloco `isPublicPage` em `App.tsx`
-
-### Detalhes técnicos
-
-**Tabelas Supabase novas** (todas com RLS):
-
-```text
-quiz_clients (id, name, slug UNIQUE, email, company, notes, status, created_at, updated_at)
-quizzes (id, client_id FK, name, slug, description, status[draft|active|paused],
-         result_title, result_text, result_cta_label, result_cta_url,
-         views_count, starts_count, completions_count,
-         created_at, updated_at, UNIQUE(client_id, slug))
-quiz_questions (id, quiz_id FK, type, title, description, required, order_index, config jsonb)
-quiz_options (id, question_id FK, text, order_index)
-quiz_responses (id, quiz_id FK, started_at, completed_at, lead_name, lead_email,
-                lead_phone, utm_source, utm_medium, utm_campaign)
-quiz_answers (id, response_id FK, question_id FK, option_ids uuid[], text_answer)
+### Estrutura `theme` (jsonb)
+```json
+{
+  "primary_color": "#bff720",
+  "background_color": "#0a0a0a",
+  "background_image_url": "",
+  "text_color": "#ffffff",
+  "card_background": "#171717",
+  "button_text_color": "#000000",
+  "font_family": "Inter",
+  "heading_weight": 700,
+  "body_weight": 400,
+  "border_radius": 12,
+  "logo_url": "",
+  "cover_image_url": "",
+  "show_logo": true,
+  "button_style": "rounded",
+  "animation": "fade"
+}
 ```
 
-**RLS:**
-- Painel: tudo gerenciável por authenticated (admin verificado em UI via `useUserRole`).
-- Pública: SELECT em `quiz_clients`, `quizzes` (apenas status='active'), `quiz_questions`, `quiz_options` para anon. INSERT em `quiz_responses` e `quiz_answers` para anon. UPDATE de `views_count`/`starts_count`/`completions_count` via RPC `increment_quiz_counter(quiz_id, field)` (security definer) para evitar abuso.
+### Frontend
+- Editor: nova aba lateral **"Tema"** com:
+  - Color pickers (primária, fundo, texto, card, botão).
+  - Upload de logo, capa e imagem de fundo (componente `QuizMediaUploader` reutilizável → bucket `quiz-media/{client_id}/`).
+  - Seletor de fonte (Google Fonts: Inter, Poppins, Roboto, Montserrat, Plus Jakarta, Manrope, Sora, Playfair, DM Sans, Space Grotesk + custom).
+  - Pesos heading/body (300/400/500/600/700/800).
+  - Slider de border radius (0–24px).
+  - Toggle de barra de progresso, números de pergunta, animação (fade/slide/none).
+- Cada bloco no editor: campo de "Imagem do bloco" (upload).
+- Cada opção (single/multiple): campo opcional de imagem (vira card visual).
+- Página pública `PublicQuizPage`: aplica `theme` via CSS-in-JS (style inline + `<link>` Google Fonts dinâmico).
 
-**Slug**
-- Helper `slugify(name)` (lowercase, hifens, sem acento, 3-60 chars).
-- Validação de unicidade: query Supabase no blur do input + feedback visual.
+---
 
-**Editor drag-and-drop**
-- `@dnd-kit/core` + `@dnd-kit/sortable`.
-- Biblioteca lateral com `useDraggable`; canvas com `SortableContext` vertical.
-- Estado local do quiz em edição via Zustand (novo, isolado do resto do app).
-- Save explícito em botão (não autosave nesta fase).
+## FASE 2 — Lógica condicional + Score + Variáveis dinâmicas
 
-**Página pública**
-- Componente `PublicQuizPage` carrega quiz pelo par de slugs, valida status='active'.
-- Se inválido → tela "Quiz indisponível".
-- Renderiza uma pergunta por vez com transição fade. Captura UTMs no mount.
-- Ao iniciar: cria `quiz_responses` (started_at) + RPC starts_count++.
-- Ao finalizar: atualiza completed_at + RPC completions_count++ + insere todas `quiz_answers`.
+- Editor: aba "Lógica" no painel direito de cada pergunta.
+  - Default: "Próxima na ordem" / "Pular para…" / "Finalizar".
+  - Por opção (single choice): destino diferente.
+  - Pontos por opção (input number).
+- Toggle global "Habilitar pontuação" → libera UI de **faixas de resultado** (min–max → título/texto/CTA/imagem).
+- Variáveis dinâmicas: `{{nome}}`, `{{email}}`, `{{score}}`, `{{resposta:slug-da-pergunta}}` substituídas no result/CTA/redirect.
+- Página pública: roteamento condicional baseado em `next_question_id` ou `branching`. Cálculo de score acumulado. Resolução da faixa de resultado e renderização correspondente.
 
-**Export CSV**
-- Geração client-side a partir das respostas carregadas (sem dependências novas).
+---
 
-### O que NÃO entra agora (próximas fases sugeridas)
+## FASE 3 — Blocos avançados + Integrações
 
-1. Score por opção + página de resultado por faixa
-2. Lógica condicional / branching / variáveis dinâmicas
-3. Templates iniciais (4 templates de produtora)
-4. Personalização visual avançada (fontes, animações, cores por quiz, upload logo)
-5. Webhook + pixel Meta/Google + notificação por email
-6. Gamificação (timer, badge, barra animada, NPS)
-7. Analytics avançado (funil de abandono, distribuição por pergunta, gráficos)
-8. QR Code, embed iframe, senha, expiração
-9. Vídeo embed, depoimentos, gráfico comparativo
+### Novos tipos de bloco
+- **video** — embed YouTube/Vimeo/MP4.
+- **testimonial** — citação + avatar + nome.
+- **comparative** — tabela "antes/depois" ou "nós vs. concorrente".
+- **nps** — escala 0–10.
+- **rating** — estrelas 1–5.
+- **cta** — botão intermediário (destino: próxima, url, whatsapp).
+- **divider** — separador estético.
 
-### Arquivos novos/alterados
+### Integrações
+- **Webhook**: POST com payload completo da resposta (campo `webhook_url` no quiz). Edge Function `quiz-webhook-dispatch` chamada após completar.
+- **Pixel Meta**: injeta script no `PublicQuizPage` quando `pixel_meta` definido + dispara `Lead`/`CompleteRegistration`.
+- **Google Analytics**: gtag.js + eventos `quiz_start`, `quiz_complete`, `quiz_lead`.
+- **Notificação por e-mail** ao admin via Edge Function existente (reaproveitar `notify-contract-signed` como base → criar `notify-quiz-lead`).
+- **Redirect** automático após X segundos (campo `redirect_url` + `redirect_delay_seconds`).
 
-Novos:
-- `supabase/migrations/<ts>_quiz_builder.sql` — tabelas, RLS, RPC counter
-- `src/lib/quizSlug.ts` — slugify + validador
-- `src/stores/quizEditorStore.ts` — Zustand do editor
-- `src/pages/QuizBuilderClientsPage.tsx`
-- `src/pages/QuizBuilderQuizzesPage.tsx`
-- `src/pages/QuizEditorPage.tsx`
-- `src/pages/QuizResponsesPage.tsx`
-- `src/pages/PublicQuizPage.tsx`
-- `src/components/quiz/BlockLibrary.tsx`
-- `src/components/quiz/QuizCanvas.tsx`
-- `src/components/quiz/BlockSettings.tsx`
-- `src/components/quiz/blocks/*.tsx` (renderizadores por tipo)
+---
 
-Alterados:
-- `src/App.tsx` — rotas novas + `isPublicPage` inclui `/quiz/`
-- `src/config/app-pages.ts` — entrada Quiz Builder (Ferramentas, adminOnly)
-- `package.json` — adiciona `@dnd-kit/core`, `@dnd-kit/sortable`, `zustand` (se ainda não presente)
+## FASE 4 — Templates + Analytics avançado + Compartilhamento
 
-Após esse MVP rodar bem, te pergunto qual fase atacar a seguir.
+- **4 templates** prontos para produtora audiovisual:
+  1. Diagnóstico de presença digital.
+  2. Qual estilo de vídeo combina com você?
+  3. Briefing rápido para orçamento.
+  4. Quiz de leads para Reels/Shorts.
+  - Botão "Criar a partir de template" na criação de quiz.
+- **Analytics por quiz**:
+  - Funil de abandono (quantos chegaram em cada pergunta).
+  - Distribuição por opção (gráfico de barras).
+  - Tempo médio para completar.
+  - Origem (UTM gráfico de pizza).
+  - Conversão por dia (linha).
+- **Compartilhamento**:
+  - QR Code (com `qrcode.react`).
+  - Embed iframe (snippet copiável).
+  - Senha opcional (`password text` no quiz).
+  - Data de expiração (`expires_at timestamp`).
+
+---
+
+## Detalhes técnicos
+
+- Arquivos novos por fase: componentes `QuizThemeEditor`, `QuizMediaUploader`, `QuizLogicPanel`, `QuizScoringPanel`, `QuizPublicRenderer` (refatorado), `QuizAnalyticsCharts`, `QuizTemplatesGallery`.
+- Bibliotecas adicionais: `recharts` (já presente), `qrcode.react` (Fase 4).
+- Renderização de fontes Google: hook `useGoogleFont(family, weights)` adiciona `<link>` ao `<head>`.
+- Compatibilidade: quizzes existentes recebem theme padrão dark Inova ao migrar (#000/#bff720/Inter).
+
+---
+
+## O que faço agora
+
+Executo a **Fase 1 completa** (migration + bucket + editor de tema + uploads + página pública aplicando tema). Após você validar visualmente, sigo para a Fase 2.
+
+Confirma para começar pela Fase 1?

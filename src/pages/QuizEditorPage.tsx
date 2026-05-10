@@ -9,10 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import {
   Loader2, ArrowLeft, Save, Eye, Copy, Pause, Play, Trash2, GripVertical, Plus, X,
-  ListChecks, CircleDot, Type, Mail, Image as ImageIcon, Layers,
+  ListChecks, CircleDot, Type, Mail, Image as ImageIcon, Layers, Palette, Settings2,
 } from "lucide-react";
 import {
   DndContext, closestCenter, useSensor, useSensors, PointerSensor,
@@ -23,8 +24,10 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  useQuizEditorStore, type QuestionType, type QuizQuestionDraft,
+  useQuizEditorStore, type QuestionType, type QuizQuestionDraft, buildDefaultMeta,
 } from "@/stores/quizEditorStore";
+import { QuizThemeEditor } from "@/components/quiz/QuizThemeEditor";
+import { QuizMediaUploader } from "@/components/quiz/QuizMediaUploader";
 
 const BLOCK_LIBRARY: { type: QuestionType; label: string; icon: any; desc: string }[] = [
   { type: "single",   label: "Escolha única",        icon: CircleDot,  desc: "Uma resposta entre opções" },
@@ -68,18 +71,31 @@ export default function QuizEditorPage() {
       optsByQ.get(o.question_id)!.push(o);
     });
     setQuiz(
-      {
+      buildDefaultMeta({
         id: q.id, client_id: q.client_id, name: q.name, slug: q.slug,
         description: q.description, status: q.status as any,
         result_title: q.result_title, result_text: q.result_text,
         result_cta_label: q.result_cta_label, result_cta_url: q.result_cta_url,
-      },
+        result_image_url: (q as any).result_image_url ?? "",
+        redirect_url: (q as any).redirect_url ?? "",
+        redirect_delay_seconds: (q as any).redirect_delay_seconds ?? 0,
+        score_enabled: (q as any).score_enabled ?? false,
+        score_ranges: ((q as any).score_ranges as any) ?? [],
+        pixel_meta: (q as any).pixel_meta ?? "",
+        pixel_ga: (q as any).pixel_ga ?? "",
+        webhook_url: (q as any).webhook_url ?? "",
+        progress_bar: (q as any).progress_bar ?? true,
+        show_question_numbers: (q as any).show_question_numbers ?? true,
+        theme: (q as any).theme,
+      }),
       (questionsData ?? []).map(qq => ({
         id: qq.id, type: qq.type as QuestionType, title: qq.title,
         description: qq.description, required: qq.required,
         order_index: qq.order_index, config: (qq.config as any) ?? {},
+        image_url: (qq as any).image_url ?? "",
         options: (optsByQ.get(qq.id) ?? []).map(o => ({
           id: o.id, text: o.text, order_index: o.order_index,
+          points: (o as any).points ?? 0, image_url: (o as any).image_url ?? "",
         })),
       })),
     );
@@ -105,7 +121,18 @@ export default function QuizEditorPage() {
         name: meta.name, description: meta.description,
         result_title: meta.result_title, result_text: meta.result_text,
         result_cta_label: meta.result_cta_label, result_cta_url: meta.result_cta_url,
-      }).eq("id", meta.id);
+        result_image_url: meta.result_image_url,
+        redirect_url: meta.redirect_url,
+        redirect_delay_seconds: meta.redirect_delay_seconds,
+        score_enabled: meta.score_enabled,
+        score_ranges: meta.score_ranges as any,
+        pixel_meta: meta.pixel_meta,
+        pixel_ga: meta.pixel_ga,
+        webhook_url: meta.webhook_url,
+        progress_bar: meta.progress_bar,
+        show_question_numbers: meta.show_question_numbers,
+        theme: meta.theme as any,
+      } as any).eq("id", meta.id);
 
       // Delete questions marked deleted (cascade options)
       const toDelete = questions.filter(q => q._deleted && !q._new).map(q => q.id);
@@ -118,35 +145,37 @@ export default function QuizEditorPage() {
           const { data: created, error } = await supabase.from("quiz_questions").insert({
             quiz_id: meta.id, type: q.type, title: q.title, description: q.description,
             required: q.required, order_index: q.order_index, config: q.config,
-          }).select("id").single();
+            image_url: q.image_url ?? "",
+          } as any).select("id").single();
           if (error || !created) throw error;
           idMap.set(q.id, created.id);
-          // insert options
           const newOpts = q.options.filter(o => !o._deleted);
           if (newOpts.length) {
             await supabase.from("quiz_options").insert(newOpts.map(o => ({
               question_id: created.id, text: o.text, order_index: o.order_index,
-            })));
+              points: o.points ?? 0, image_url: o.image_url ?? "",
+            })) as any);
           }
         } else if (q._dirty) {
           await supabase.from("quiz_questions").update({
             type: q.type, title: q.title, description: q.description,
             required: q.required, order_index: q.order_index, config: q.config,
-          }).eq("id", q.id);
-          // options
+            image_url: q.image_url ?? "",
+          } as any).eq("id", q.id);
           const optsToDelete = q.options.filter(o => o._deleted && !o._new).map(o => o.id);
           if (optsToDelete.length) await supabase.from("quiz_options").delete().in("id", optsToDelete);
           const optsToInsert = q.options.filter(o => o._new && !o._deleted);
           if (optsToInsert.length) {
             await supabase.from("quiz_options").insert(optsToInsert.map(o => ({
               question_id: q.id, text: o.text, order_index: o.order_index,
-            })));
+              points: o.points ?? 0, image_url: o.image_url ?? "",
+            })) as any);
           }
-          // update existing options text/order
           for (const o of q.options.filter(o => !o._new && !o._deleted)) {
             await supabase.from("quiz_options").update({
               text: o.text, order_index: o.order_index,
-            }).eq("id", o.id);
+              points: o.points ?? 0, image_url: o.image_url ?? "",
+            } as any).eq("id", o.id);
           }
         }
       }
@@ -240,53 +269,83 @@ export default function QuizEditorPage() {
 
         {/* Canvas */}
         <Card>
-          <CardContent className="p-4 space-y-3 min-h-[400px]">
-            {visible.length === 0 ? (
-              <div className="text-center text-muted-foreground py-12">
-                <Layers className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                Adicione blocos na lateral esquerda.
-              </div>
-            ) : (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                <SortableContext items={visible.map(q => q.id)} strategy={verticalListSortingStrategy}>
-                  {visible.map((q, i) => (
-                    <SortableQuestionCard
-                      key={q.id} q={q} index={i}
-                      selected={selectedId === q.id}
-                      onSelect={() => select(q.id)}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
-            )}
+          <CardContent className="p-4 min-h-[400px]">
+            <Tabs defaultValue="content">
+              <TabsList className="mb-4">
+                <TabsTrigger value="content"><Layers className="h-3.5 w-3.5 mr-1" />Conteúdo</TabsTrigger>
+                <TabsTrigger value="theme"><Palette className="h-3.5 w-3.5 mr-1" />Tema</TabsTrigger>
+                <TabsTrigger value="advanced"><Settings2 className="h-3.5 w-3.5 mr-1" />Avançado</TabsTrigger>
+              </TabsList>
 
-            <div className="mt-6 pt-4 border-t border-border">
-              <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">Tela final (resultado)</div>
-              <div className="space-y-2">
-                <Input
-                  value={meta.result_title}
-                  placeholder="Título do resultado"
-                  onChange={e => updateMeta({ result_title: e.target.value })}
-                />
-                <Textarea
-                  rows={2} value={meta.result_text}
-                  placeholder="Mensagem para o respondente"
-                  onChange={e => updateMeta({ result_text: e.target.value })}
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    value={meta.result_cta_label}
-                    placeholder="Texto do botão (opcional)"
-                    onChange={e => updateMeta({ result_cta_label: e.target.value })}
-                  />
-                  <Input
-                    value={meta.result_cta_url}
-                    placeholder="URL do botão"
-                    onChange={e => updateMeta({ result_cta_url: e.target.value })}
-                  />
+              <TabsContent value="content" className="space-y-3">
+                {visible.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-12">
+                    <Layers className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    Adicione blocos na lateral esquerda.
+                  </div>
+                ) : (
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                    <SortableContext items={visible.map(q => q.id)} strategy={verticalListSortingStrategy}>
+                      {visible.map((q, i) => (
+                        <SortableQuestionCard
+                          key={q.id} q={q} index={i}
+                          selected={selectedId === q.id}
+                          onSelect={() => select(q.id)}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                )}
+
+                <div className="mt-6 pt-4 border-t border-border">
+                  <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">Tela final (resultado)</div>
+                  <div className="space-y-2">
+                    <Input
+                      value={meta.result_title}
+                      placeholder="Título do resultado"
+                      onChange={e => updateMeta({ result_title: e.target.value })}
+                    />
+                    <Textarea
+                      rows={2} value={meta.result_text}
+                      placeholder="Mensagem para o respondente"
+                      onChange={e => updateMeta({ result_text: e.target.value })}
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        value={meta.result_cta_label}
+                        placeholder="Texto do botão (opcional)"
+                        onChange={e => updateMeta({ result_cta_label: e.target.value })}
+                      />
+                      <Input
+                        value={meta.result_cta_url}
+                        placeholder="URL do botão"
+                        onChange={e => updateMeta({ result_cta_url: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </TabsContent>
+
+              <TabsContent value="theme">
+                <QuizThemeEditor />
+              </TabsContent>
+
+              <TabsContent value="advanced" className="space-y-4">
+                <div>
+                  <Label className="text-xs">Webhook URL (POST após completar)</Label>
+                  <Input value={meta.webhook_url} onChange={e => updateMeta({ webhook_url: e.target.value })} placeholder="https://..." />
+                </div>
+                <div>
+                  <Label className="text-xs">Pixel Meta (ID)</Label>
+                  <Input value={meta.pixel_meta} onChange={e => updateMeta({ pixel_meta: e.target.value })} placeholder="1234567890" />
+                </div>
+                <div>
+                  <Label className="text-xs">Google Analytics (Measurement ID)</Label>
+                  <Input value={meta.pixel_ga} onChange={e => updateMeta({ pixel_ga: e.target.value })} placeholder="G-XXXXXXXXXX" />
+                </div>
+                <p className="text-[11px] text-muted-foreground">As integrações (webhook, pixel, GA) são acionadas na página pública após o respondente concluir o quiz.</p>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
@@ -352,8 +411,10 @@ function SortableQuestionCard({
 }
 
 function BlockSettings({ question }: { question: QuizQuestionDraft }) {
-  const { updateQuestion, addOption, updateOption, removeOption } = useQuizEditorStore();
+  const { meta, updateQuestion, addOption, updateOption, removeOption } = useQuizEditorStore();
   const liveOpts = question.options.filter(o => !o._deleted);
+  const cid = meta?.client_id ?? "shared";
+  const scoreEnabled = !!meta?.score_enabled;
 
   return (
     <div className="space-y-3">
@@ -366,6 +427,16 @@ function BlockSettings({ question }: { question: QuizQuestionDraft }) {
         <Label>Descrição (opcional)</Label>
         <Textarea rows={2} value={question.description} onChange={e => updateQuestion(question.id, { description: e.target.value })} />
       </div>
+
+      {question.type !== "visual" && (
+        <QuizMediaUploader
+          label="Imagem do bloco (acima do título)"
+          value={question.image_url ?? ""}
+          onChange={v => updateQuestion(question.id, { image_url: v })}
+          clientId={cid}
+        />
+      )}
+
       {question.type !== "visual" && (
         <div className="flex items-center justify-between">
           <Label>Resposta obrigatória</Label>
@@ -376,13 +447,28 @@ function BlockSettings({ question }: { question: QuizQuestionDraft }) {
       {(question.type === "single" || question.type === "multiple") && (
         <div>
           <Label>Opções</Label>
-          <div className="space-y-2 mt-1">
+          <div className="space-y-3 mt-1">
             {liveOpts.map(o => (
-              <div key={o.id} className="flex gap-1">
-                <Input value={o.text} onChange={e => updateOption(question.id, o.id, { text: e.target.value })} />
-                <Button size="icon" variant="ghost" onClick={() => removeOption(question.id, o.id)}>
-                  <X className="h-4 w-4" />
-                </Button>
+              <div key={o.id} className="border border-border rounded-md p-2 space-y-2">
+                <div className="flex gap-1">
+                  <Input value={o.text} onChange={e => updateOption(question.id, o.id, { text: e.target.value })} placeholder="Texto" />
+                  <Button size="icon" variant="ghost" onClick={() => removeOption(question.id, o.id)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                {scoreEnabled && (
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs">Pontos</Label>
+                    <Input type="number" value={o.points ?? 0} className="h-7 w-20"
+                      onChange={e => updateOption(question.id, o.id, { points: Number(e.target.value) || 0 })} />
+                  </div>
+                )}
+                <QuizMediaUploader
+                  label="Imagem (card visual — opcional)"
+                  value={o.image_url ?? ""}
+                  onChange={v => updateOption(question.id, o.id, { image_url: v })}
+                  clientId={cid}
+                />
               </div>
             ))}
             <Button size="sm" variant="outline" onClick={() => addOption(question.id)}>
@@ -415,13 +501,12 @@ function BlockSettings({ question }: { question: QuizQuestionDraft }) {
       )}
 
       {question.type === "visual" && (
-        <div>
-          <Label>URL da imagem (opcional)</Label>
-          <Input
-            value={question.config?.image_url ?? ""}
-            onChange={e => updateQuestion(question.id, { config: { ...question.config, image_url: e.target.value } })}
-          />
-        </div>
+        <QuizMediaUploader
+          label="Imagem do banner"
+          value={question.config?.image_url ?? ""}
+          onChange={v => updateQuestion(question.id, { config: { ...question.config, image_url: v } })}
+          clientId={cid}
+        />
       )}
     </div>
   );

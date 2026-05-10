@@ -1,11 +1,14 @@
 import { create } from "zustand";
+import { DEFAULT_QUIZ_THEME, mergeTheme, type QuizTheme } from "@/lib/quizTheme";
 
 export type QuestionType = "multiple" | "single" | "text" | "lead" | "visual";
 
 export interface QuizOptionDraft {
-  id: string;          // local id (uuid or temp_*)
+  id: string;
   text: string;
   order_index: number;
+  points?: number;
+  image_url?: string;
   _new?: boolean;
   _deleted?: boolean;
 }
@@ -18,10 +21,21 @@ export interface QuizQuestionDraft {
   required: boolean;
   order_index: number;
   config: Record<string, any>;
+  image_url?: string;
   options: QuizOptionDraft[];
   _new?: boolean;
   _deleted?: boolean;
   _dirty?: boolean;
+}
+
+export interface QuizScoreRange {
+  min: number;
+  max: number;
+  title: string;
+  text: string;
+  cta_label: string;
+  cta_url: string;
+  image_url: string;
 }
 
 export interface QuizMeta {
@@ -35,6 +49,17 @@ export interface QuizMeta {
   result_text: string;
   result_cta_label: string;
   result_cta_url: string;
+  result_image_url: string;
+  redirect_url: string;
+  redirect_delay_seconds: number;
+  score_enabled: boolean;
+  score_ranges: QuizScoreRange[];
+  pixel_meta: string;
+  pixel_ga: string;
+  webhook_url: string;
+  progress_bar: boolean;
+  show_question_numbers: boolean;
+  theme: QuizTheme;
 }
 
 interface QuizEditorState {
@@ -44,6 +69,7 @@ interface QuizEditorState {
   dirty: boolean;
   setQuiz: (meta: QuizMeta, questions: QuizQuestionDraft[]) => void;
   updateMeta: (patch: Partial<QuizMeta>) => void;
+  updateTheme: (patch: Partial<QuizTheme>) => void;
   addQuestion: (type: QuestionType) => void;
   updateQuestion: (id: string, patch: Partial<QuizQuestionDraft>) => void;
   removeQuestion: (id: string) => void;
@@ -57,6 +83,34 @@ interface QuizEditorState {
 
 const tempId = () => "temp_" + Math.random().toString(36).slice(2, 10);
 
+export const buildDefaultMeta = (overrides: Partial<QuizMeta>): QuizMeta => {
+  const { theme: themeOverride, ...rest } = overrides;
+  return {
+    id: "",
+    client_id: "",
+    name: "",
+    slug: "",
+    description: "",
+    status: "draft",
+    result_title: "Obrigado!",
+    result_text: "Recebemos suas respostas.",
+    result_cta_label: "",
+    result_cta_url: "",
+    result_image_url: "",
+    redirect_url: "",
+    redirect_delay_seconds: 0,
+    score_enabled: false,
+    score_ranges: [],
+    pixel_meta: "",
+    pixel_ga: "",
+    webhook_url: "",
+    progress_bar: true,
+    show_question_numbers: true,
+    ...rest,
+    theme: mergeTheme(themeOverride),
+  };
+};
+
 export const useQuizEditorStore = create<QuizEditorState>((set) => ({
   meta: null,
   questions: [],
@@ -69,6 +123,12 @@ export const useQuizEditorStore = create<QuizEditorState>((set) => ({
   updateMeta: (patch) =>
     set((s) => ({ meta: s.meta ? { ...s.meta, ...patch } : s.meta, dirty: true })),
 
+  updateTheme: (patch) =>
+    set((s) => ({
+      meta: s.meta ? { ...s.meta, theme: { ...s.meta.theme, ...patch } } : s.meta,
+      dirty: true,
+    })),
+
   addQuestion: (type) =>
     set((s) => {
       const id = tempId();
@@ -76,25 +136,22 @@ export const useQuizEditorStore = create<QuizEditorState>((set) => ({
         id,
         type,
         title:
-          type === "lead"
-            ? "Seus dados de contato"
-            : type === "visual"
-            ? "Seção"
-            : "Nova pergunta",
+          type === "lead" ? "Seus dados de contato"
+          : type === "visual" ? "Seção"
+          : "Nova pergunta",
         description: "",
         required: type !== "visual",
         order_index: s.questions.length,
+        image_url: "",
         config:
-          type === "lead"
-            ? { fields: { name: true, email: true, phone: true } }
-            : type === "visual"
-            ? { image_url: "" }
-            : {},
+          type === "lead" ? { fields: { name: true, email: true, phone: true } }
+          : type === "visual" ? { image_url: "" }
+          : {},
         options:
           type === "multiple" || type === "single"
             ? [
-                { id: tempId(), text: "Opção 1", order_index: 0, _new: true },
-                { id: tempId(), text: "Opção 2", order_index: 1, _new: true },
+                { id: tempId(), text: "Opção 1", order_index: 0, points: 0, image_url: "", _new: true },
+                { id: tempId(), text: "Opção 2", order_index: 1, points: 0, image_url: "", _new: true },
               ]
             : [],
         _new: true,
@@ -133,7 +190,6 @@ export const useQuizEditorStore = create<QuizEditorState>((set) => ({
         const q = map.get(id);
         if (q) next.push({ ...q, order_index: i, _dirty: true });
       });
-      // keep deleted ones too
       s.questions.forEach((q) => {
         if (q._deleted && !ids.includes(q.id)) next.push(q);
       });
@@ -154,6 +210,8 @@ export const useQuizEditorStore = create<QuizEditorState>((set) => ({
                   id: tempId(),
                   text: `Opção ${q.options.filter((o) => !o._deleted).length + 1}`,
                   order_index: q.options.length,
+                  points: 0,
+                  image_url: "",
                   _new: true,
                 },
               ],
@@ -189,9 +247,7 @@ export const useQuizEditorStore = create<QuizEditorState>((set) => ({
               options: q.options
                 .map((o) =>
                   o.id === optionId
-                    ? o._new
-                      ? null
-                      : { ...o, _deleted: true }
+                    ? o._new ? null : { ...o, _deleted: true }
                     : o,
                 )
                 .filter(Boolean) as QuizOptionDraft[],
