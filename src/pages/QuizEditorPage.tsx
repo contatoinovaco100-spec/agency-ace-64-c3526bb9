@@ -68,18 +68,31 @@ export default function QuizEditorPage() {
       optsByQ.get(o.question_id)!.push(o);
     });
     setQuiz(
-      {
+      buildDefaultMeta({
         id: q.id, client_id: q.client_id, name: q.name, slug: q.slug,
         description: q.description, status: q.status as any,
         result_title: q.result_title, result_text: q.result_text,
         result_cta_label: q.result_cta_label, result_cta_url: q.result_cta_url,
-      },
+        result_image_url: (q as any).result_image_url ?? "",
+        redirect_url: (q as any).redirect_url ?? "",
+        redirect_delay_seconds: (q as any).redirect_delay_seconds ?? 0,
+        score_enabled: (q as any).score_enabled ?? false,
+        score_ranges: ((q as any).score_ranges as any) ?? [],
+        pixel_meta: (q as any).pixel_meta ?? "",
+        pixel_ga: (q as any).pixel_ga ?? "",
+        webhook_url: (q as any).webhook_url ?? "",
+        progress_bar: (q as any).progress_bar ?? true,
+        show_question_numbers: (q as any).show_question_numbers ?? true,
+        theme: (q as any).theme,
+      }),
       (questionsData ?? []).map(qq => ({
         id: qq.id, type: qq.type as QuestionType, title: qq.title,
         description: qq.description, required: qq.required,
         order_index: qq.order_index, config: (qq.config as any) ?? {},
+        image_url: (qq as any).image_url ?? "",
         options: (optsByQ.get(qq.id) ?? []).map(o => ({
           id: o.id, text: o.text, order_index: o.order_index,
+          points: (o as any).points ?? 0, image_url: (o as any).image_url ?? "",
         })),
       })),
     );
