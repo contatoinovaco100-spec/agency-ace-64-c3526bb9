@@ -83,31 +83,33 @@ interface QuizEditorState {
 
 const tempId = () => "temp_" + Math.random().toString(36).slice(2, 10);
 
-export const buildDefaultMeta = (overrides: Partial<QuizMeta>): QuizMeta => ({
-  id: "",
-  client_id: "",
-  name: "",
-  slug: "",
-  description: "",
-  status: "draft",
-  result_title: "Obrigado!",
-  result_text: "Recebemos suas respostas.",
-  result_cta_label: "",
-  result_cta_url: "",
-  result_image_url: "",
-  redirect_url: "",
-  redirect_delay_seconds: 0,
-  score_enabled: false,
-  score_ranges: [],
-  pixel_meta: "",
-  pixel_ga: "",
-  webhook_url: "",
-  progress_bar: true,
-  show_question_numbers: true,
-  theme: { ...DEFAULT_QUIZ_THEME },
-  ...overrides,
-  theme: mergeTheme(overrides.theme),
-});
+export const buildDefaultMeta = (overrides: Partial<QuizMeta>): QuizMeta => {
+  const { theme: themeOverride, ...rest } = overrides;
+  return {
+    id: "",
+    client_id: "",
+    name: "",
+    slug: "",
+    description: "",
+    status: "draft",
+    result_title: "Obrigado!",
+    result_text: "Recebemos suas respostas.",
+    result_cta_label: "",
+    result_cta_url: "",
+    result_image_url: "",
+    redirect_url: "",
+    redirect_delay_seconds: 0,
+    score_enabled: false,
+    score_ranges: [],
+    pixel_meta: "",
+    pixel_ga: "",
+    webhook_url: "",
+    progress_bar: true,
+    show_question_numbers: true,
+    ...rest,
+    theme: mergeTheme(themeOverride),
+  };
+};
 
 export const useQuizEditorStore = create<QuizEditorState>((set) => ({
   meta: null,
