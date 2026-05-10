@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, CheckCircle2, AlertTriangle, Sparkles, Users, Shield, Clock, Lock } from "lucide-react";
+import { Loader2, CheckCircle2, AlertTriangle, Users, Lock } from "lucide-react";
 import { mergeTheme, useGoogleFont, buttonRadius, type QuizTheme } from "@/lib/quizTheme";
 import { renderVisualElements, type VisualElement } from "@/components/quiz/VisualSectionEditor";
 
@@ -30,7 +30,7 @@ export default function PublicQuizPage() {
   const [error, setError] = useState<string | null>(null);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [step, setStep] = useState(-1); // -1 = welcome screen
+  const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, AnswerVal>>({});
   const [lead, setLead] = useState({ name: "", email: "", phone: "" });
   const [responseId, setResponseId] = useState<string | null>(null);
@@ -88,17 +88,21 @@ export default function PublicQuizPage() {
       if (saved) {
         setAnswers(saved.answers ?? {});
         setLead(saved.lead ?? { name: "", email: "", phone: "" });
-        setStep(saved.step ?? -1);
+        setStep(saved.step ?? 0);
       }
     } catch {}
     await supabase.rpc("increment_quiz_counter", { _quiz_id: q.id, _field: "views_count" });
     setLoading(false);
+    // Auto-start response immediately (no welcome screen)
+    ensureStartedRef.current = q.id;
   };
 
   useEffect(() => {
     if (!clientSlug || !quizSlug || done) return;
     localStorage.setItem(STORAGE(`${clientSlug}_${quizSlug}`), JSON.stringify({ answers, lead, step }));
   }, [answers, lead, step, done, clientSlug, quizSlug]);
+
+  const ensureStartedRef = { current: "" };
 
   const ensureStarted = async () => {
     if (responseId || !quiz) return responseId;
@@ -111,6 +115,13 @@ export default function PublicQuizPage() {
     return data.id;
   };
 
+  // Auto-start the response as soon as quiz loads
+  useEffect(() => {
+    if (quiz && !responseId && !done) {
+      ensureStarted();
+    }
+  }, [quiz]);
+
   const setAnswer = (qid: string, patch: Partial<AnswerVal>) => {
     setAnswers(prev => ({
       ...prev,
@@ -119,12 +130,6 @@ export default function PublicQuizPage() {
   };
 
   const goNext = useCallback(async () => {
-    if (step === -1) {
-      await ensureStarted();
-      setAnimDir("in");
-      setStep(0);
-      return;
-    }
     const q = questions[step];
     if (q?.required) {
       const a = answers[q.id];
@@ -264,59 +269,7 @@ export default function PublicQuizPage() {
     );
   }
 
-  // WELCOME SCREEN
-  if (step === -1) {
-    return (
-      <div style={pageStyle} className="grid place-items-center p-6">
-        <div style={cardStyle} className="max-w-lg w-full text-center p-10 space-y-6">
-          {theme.show_logo && theme.logo_url && (
-            <img src={theme.logo_url} alt="" className="h-14 mx-auto object-contain" />
-          )}
-          {theme.cover_image_url && (
-            <img src={theme.cover_image_url} alt="" className="w-full rounded-lg" style={{ borderRadius: theme.border_radius }} />
-          )}
-          <div>
-            <Sparkles className="h-8 w-8 mx-auto mb-3" style={{ color: theme.primary_color }} />
-            <h1 className="text-3xl mb-3" style={headingStyle}>{quiz.name}</h1>
-            {quiz.description && <p className="opacity-70 text-base leading-relaxed">{quiz.description}</p>}
-          </div>
 
-          {/* Social proof */}
-          <div className="flex items-center justify-center gap-2 text-sm" style={{ color: theme.primary_color }}>
-            <Users className="h-4 w-4" />
-            <span className="font-semibold">{socialCount} pessoas</span>
-            <span className="opacity-70" style={{ color: theme.text_color }}>responderam hoje</span>
-          </div>
-
-          <div className="flex items-center justify-center gap-3 text-sm opacity-60">
-            <span>{questions.length} {questions.length === 1 ? "pergunta" : "perguntas"}</span>
-            <span>•</span>
-            <span>~{Math.max(1, Math.ceil(questions.length * 0.4))} min</span>
-          </div>
-
-          <button
-            onClick={() => goNext()}
-            className="w-full py-5 text-lg font-bold transition-all hover:scale-[1.02] active:scale-95 hover:shadow-lg"
-            style={{
-              ...primaryBtnStyle,
-              boxShadow: `0 4px 20px ${theme.primary_color}40`,
-            }}
-          >
-            Começar Quiz →
-          </button>
-
-          {/* Trust badges */}
-          <div className="flex items-center justify-center gap-4 text-xs opacity-50">
-            <div className="flex items-center gap-1"><Shield className="h-3 w-3" /> Seguro</div>
-            <div className="flex items-center gap-1"><Lock className="h-3 w-3" /> Privado</div>
-            <div className="flex items-center gap-1"><Clock className="h-3 w-3" /> Rápido</div>
-          </div>
-
-          <p className="text-center text-xs opacity-40">Powered by INOVA</p>
-        </div>
-      </div>
-    );
-  }
 
   const q = questions[step];
   const progress = questions.length ? ((step + 1) / questions.length) * 100 : 0;
