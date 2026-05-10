@@ -691,6 +691,15 @@ function getSettings(element: any, patch: (p: any) => void, cid: string) {
           </div>
         </div>
       );
+    case "scroll_to_offer":
+      return (
+        <div className="space-y-3">
+          <div><Label className="text-xs">Texto do Botão</Label>
+            <Input value={c.label || ""} onChange={e => patch({ label: e.target.value })} /></div>
+          <div><Label className="text-xs">Texto Auxiliar (Benefícios)</Label>
+            <Input value={c.subtext || ""} onChange={e => patch({ subtext: e.target.value })} /></div>
+        </div>
+      );
     default:
       return null;
   }

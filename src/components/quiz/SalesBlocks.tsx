@@ -1107,3 +1107,42 @@ export function InfiniteMarqueeBlock({ config, theme }: BlockProps) {
     </div>
   );
 }
+
+/* ─── BOTÃO DE ROLAGEM PARA OFERTA ─── */
+export function ScrollToOfferBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
+  const { label = "Quero meu diagnóstico por R$ 97,90 →", subtext = "Acesso imediato · Garantia de 7 dias · 100% legal" } = config;
+  
+  const handleClick = () => {
+    // Tenta encontrar o bloco de preço ou planos
+    const target = document.querySelector('[data-block-type="cta_price"], [data-block-type="pricing_plans"]') 
+                 || document.querySelector('.sales-section-end') 
+                 || document.body;
+    
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  return (
+    <div className="w-full py-6 flex flex-col items-center space-y-3">
+      <button 
+        onClick={handleClick}
+        className="w-full sm:w-auto px-10 py-5 rounded-2xl font-black text-lg transition-all hover:scale-[1.03] active:scale-[0.98] shadow-xl hover:shadow-2xl"
+        style={{ 
+          backgroundColor: t.primary_color, 
+          color: t.button_text_color,
+          boxShadow: `0 10px 30px ${t.primary_color}40`
+        }}
+      >
+        {label}
+      </button>
+      {subtext && (
+        <p className="text-[11px] font-medium opacity-60 flex items-center gap-1.5" style={{ color: t.text_color }}>
+          <CheckCircle2 className="h-3 w-3" style={{ color: t.primary_color }} />
+          {subtext}
+        </p>
+      )}
+    </div>
+  );
+}
