@@ -8,8 +8,40 @@ interface BlockProps {
   onNext?: () => void;
 }
 
+const useBlockTheme = (theme: QuizTheme, config: Record<string, any>) => {
+  const variant = config.theme_variant || 'auto';
+  
+  const isHexLight = (color: string) => {
+    if (!color || !color.startsWith('#') || color.length < 7) return false;
+    const r = parseInt(color.substring(1, 3), 16);
+    const g = parseInt(color.substring(3, 5), 16);
+    const b = parseInt(color.substring(5, 7), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 > 155;
+  };
+
+  let effectiveTheme = { ...theme };
+  if (variant === 'light') {
+    effectiveTheme.card_background = '#ffffff';
+    effectiveTheme.text_color = '#111827';
+  } else if (variant === 'dark') {
+    effectiveTheme.card_background = '#171717';
+    effectiveTheme.text_color = '#ffffff';
+  }
+
+  const isLight = isHexLight(effectiveTheme.card_background);
+  
+  return {
+    ...effectiveTheme,
+    is_light: isLight,
+    // Helper for adaptive opacities
+    alpha: (opacity: number) => isLight ? `rgba(0,0,0,${opacity})` : `rgba(255,255,255,${opacity})`,
+    border: (opacity: number) => `1px solid ${isLight ? `rgba(0,0,0,${opacity})` : `rgba(255,255,255,${opacity})`}`
+  };
+};
+
 /* ─── ESCASSEZ COM CONTADOR ─── */
 export function ScarcityBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
   const { text = "", slots_total = 10, slots_filled = 7, show_timer, timer_minutes = 15 } = config;
   const remaining = Math.max(0, slots_total - slots_filled);
   const pct = (slots_filled / slots_total) * 100;
@@ -29,8 +61,8 @@ export function ScarcityBlock({ config, theme }: BlockProps) {
 
   useEffect(() => {
     if (!show_timer || timeLeft <= 0) return;
-    const t = setInterval(() => setTimeLeft(p => Math.max(0, p - 1)), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setTimeLeft(p => Math.max(0, p - 1)), 1000);
+    return () => clearInterval(timer);
   }, [show_timer, timeLeft]);
 
   const fmt = (s: number) => {
@@ -41,20 +73,21 @@ export function ScarcityBlock({ config, theme }: BlockProps) {
   };
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: "linear-gradient(135deg, #dc2626, #ea580c)", color: "#fff" }}>
+    <div className="rounded-xl overflow-hidden shadow-lg transition-all" 
+         style={{ background: t.is_light ? "linear-gradient(135deg, #fef2f2, #fff1f2)" : "linear-gradient(135deg, #dc2626, #ea580c)", border: t.is_light ? "1px solid #fee2e2" : "none" }}>
       <div className="p-5 space-y-3">
-        <p className="text-base font-bold text-center">
+        <p className="text-base font-bold text-center" style={{ color: t.is_light ? "#dc2626" : "#fff" }}>
           {text.replace("{n}", String(remaining))}
         </p>
-        <div className="relative h-3 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.2)" }}>
-          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: "#fff" }} />
+        <div className="relative h-3 rounded-full overflow-hidden" style={{ backgroundColor: t.is_light ? "rgba(220,38,38,0.1)" : "rgba(255,255,255,0.2)" }}>
+          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: t.is_light ? "#dc2626" : "#fff" }} />
         </div>
-        <p className="text-xs text-center opacity-80">{slots_filled} de {slots_total} vagas preenchidas</p>
+        <p className="text-xs text-center opacity-70" style={{ color: t.is_light ? "#dc2626" : "#fff" }}>{slots_filled} de {slots_total} vagas preenchidas</p>
         {show_timer && timeLeft > 0 && (
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 bg-black/20 rounded-lg px-4 py-2">
-              <Clock className="h-4 w-4 animate-pulse" />
-              <span className="font-mono text-lg font-bold">{fmt(timeLeft)}</span>
+            <div className="inline-flex items-center gap-2 rounded-lg px-4 py-2" style={{ backgroundColor: t.is_light ? "rgba(220,38,38,0.05)" : "rgba(0,0,0,0.2)" }}>
+              <Clock className="h-4 w-4 animate-pulse" style={{ color: t.is_light ? "#dc2626" : "#fff" }} />
+              <span className="font-mono text-lg font-bold" style={{ color: t.is_light ? "#dc2626" : "#fff" }}>{fmt(timeLeft)}</span>
             </div>
           </div>
         )}
@@ -65,6 +98,7 @@ export function ScarcityBlock({ config, theme }: BlockProps) {
 
 /* ─── PROVA SOCIAL ─── */
 export function SocialProofBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
   const { text = "", count = 127, show_animation } = config;
   const [displayed, setDisplayed] = useState(count);
 
@@ -77,15 +111,15 @@ export function SocialProofBlock({ config, theme }: BlockProps) {
   }, [show_animation]);
 
   return (
-    <div className="rounded-xl p-5 text-center" style={{ backgroundColor: `${theme.primary_color}10`, border: `1px solid ${theme.primary_color}30` }}>
+    <div className="rounded-xl p-5 text-center transition-colors" style={{ backgroundColor: `${t.primary_color}10`, border: `1px solid ${t.primary_color}30` }}>
       <div className="flex items-center justify-center gap-2 mb-1">
         <span className="relative flex h-3 w-3">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "#ef4444" }} />
           <span className="relative inline-flex rounded-full h-3 w-3" style={{ backgroundColor: "#ef4444" }} />
         </span>
-        <Users className="h-5 w-5" style={{ color: theme.primary_color }} />
+        <Users className="h-5 w-5" style={{ color: t.primary_color }} />
       </div>
-      <p className="text-lg font-bold" style={{ color: theme.text_color }}>
+      <p className="text-lg font-bold" style={{ color: t.text_color }}>
         {text.replace("{n}", String(displayed))}
       </p>
     </div>
@@ -96,45 +130,46 @@ export function SocialProofBlock({ config, theme }: BlockProps) {
 interface Testimonial { name: string; role: string; text: string; stars: number; photo_url?: string; }
 
 export function TestimonialsBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
   const items: Testimonial[] = config.items ?? [];
   const autoplay = config.autoplay_seconds ?? 0;
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {
     if (!autoplay || items.length <= 1) return;
-    const t = setInterval(() => setIdx(p => (p + 1) % items.length), autoplay * 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setIdx(p => (p + 1) % items.length), autoplay * 1000);
+    return () => clearInterval(timer);
   }, [autoplay, items.length]);
 
   if (!items.length) return null;
   const item = items[idx];
 
   return (
-    <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: `${theme.primary_color}08`, border: `1px solid ${theme.primary_color}20` }}>
+    <div className="rounded-xl p-5 space-y-3 transition-colors" style={{ backgroundColor: t.is_light ? "rgba(0,0,0,0.03)" : `${t.primary_color}08`, border: t.border(t.is_light ? 0.08 : 0.2) }}>
       <div className="flex justify-center gap-0.5">
         {Array.from({ length: 5 }).map((_, i) => (
-          <Star key={i} className="h-4 w-4" style={{ color: i < item.stars ? "#facc15" : "rgba(255,255,255,0.15)", fill: i < item.stars ? "#facc15" : "none" }} />
+          <Star key={i} className="h-4 w-4" style={{ color: i < item.stars ? "#facc15" : t.alpha(0.15), fill: i < item.stars ? "#facc15" : "none" }} />
         ))}
       </div>
-      <p className="text-center italic opacity-90" style={{ color: theme.text_color }}>"{item.text}"</p>
+      <p className="text-center italic opacity-90" style={{ color: t.text_color }}>"{item.text}"</p>
       <div className="flex items-center justify-center gap-3">
         {item.photo_url && <img src={item.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />}
         <div className="text-sm">
-          <div className="font-semibold" style={{ color: theme.text_color }}>{item.name}</div>
-          {item.role && <div className="text-xs opacity-60">{item.role}</div>}
+          <div className="font-semibold" style={{ color: t.text_color }}>{item.name}</div>
+          {item.role && <div className="text-xs opacity-60" style={{ color: t.text_color }}>{item.role}</div>}
         </div>
       </div>
       {items.length > 1 && (
         <div className="flex items-center justify-center gap-3">
-          <button onClick={() => setIdx((idx - 1 + items.length) % items.length)} className="opacity-50 hover:opacity-100 transition">
+          <button onClick={() => setIdx((idx - 1 + items.length) % items.length)} className="opacity-50 hover:opacity-100 transition" style={{ color: t.text_color }}>
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="flex gap-1.5">
             {items.map((_, i) => (
-              <div key={i} className="w-2 h-2 rounded-full transition-all" style={{ backgroundColor: i === idx ? theme.primary_color : "rgba(255,255,255,0.2)" }} />
+              <div key={i} className="w-2 h-2 rounded-full transition-all" style={{ backgroundColor: i === idx ? t.primary_color : t.alpha(0.2) }} />
             ))}
           </div>
-          <button onClick={() => setIdx((idx + 1) % items.length)} className="opacity-50 hover:opacity-100 transition">
+          <button onClick={() => setIdx((idx + 1) % items.length)} className="opacity-50 hover:opacity-100 transition" style={{ color: t.text_color }}>
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
@@ -234,16 +269,17 @@ export function AuthorityBlock({ config, theme }: BlockProps) {
 
 /* ─── ANTES E DEPOIS ─── */
 export function BeforeAfterBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
   const { before_title, before_items = [], after_title, after_items = [] } = config;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 transition-all">
       {/* Before */}
-      <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+      <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: t.is_light ? "rgba(239,68,68,0.05)" : "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
         <h4 className="text-sm font-bold text-center" style={{ color: "#ef4444" }}>❌ {before_title}</h4>
         <ul className="space-y-2">
           {before_items.map((item: string, i: number) => (
-            <li key={i} className="flex items-start gap-2 text-sm opacity-80">
+            <li key={i} className="flex items-start gap-2 text-sm opacity-80" style={{ color: t.text_color }}>
               <XCircle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "#ef4444" }} />
               <span>{item}</span>
             </li>
@@ -251,12 +287,12 @@ export function BeforeAfterBlock({ config, theme }: BlockProps) {
         </ul>
       </div>
       {/* After */}
-      <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: `${theme.primary_color}08`, border: `1px solid ${theme.primary_color}30` }}>
-        <h4 className="text-sm font-bold text-center" style={{ color: theme.primary_color }}>✅ {after_title}</h4>
+      <div className="rounded-xl p-5 space-y-3 transition-all" style={{ backgroundColor: t.is_light ? "rgba(0,0,0,0.03)" : `${t.primary_color}08`, border: t.border(0.2) }}>
+        <h4 className="text-sm font-bold text-center" style={{ color: t.primary_color }}>✅ {after_title}</h4>
         <ul className="space-y-2">
           {after_items.map((item: string, i: number) => (
-            <li key={i} className="flex items-start gap-2 text-sm opacity-90">
-              <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" style={{ color: theme.primary_color }} />
+            <li key={i} className="flex items-start gap-2 text-sm opacity-90" style={{ color: t.text_color }}>
+              <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" style={{ color: t.primary_color }} />
               <span>{item}</span>
             </li>
           ))}
@@ -270,19 +306,20 @@ export function BeforeAfterBlock({ config, theme }: BlockProps) {
 interface CompRow { feature: string; col1: boolean; col2: boolean; }
 
 export function ComparisonTableBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
   const { col1_title, col2_title, col2_badge, rows = [] } = config;
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${theme.primary_color}30` }}>
-      <table className="w-full text-sm" style={{ color: theme.text_color }}>
+    <div className="rounded-xl overflow-hidden transition-all" style={{ border: `1px solid ${t.primary_color}30`, backgroundColor: t.is_light ? "#fff" : "transparent" }}>
+      <table className="w-full text-sm" style={{ color: t.text_color }}>
         <thead>
-          <tr style={{ backgroundColor: `${theme.primary_color}10` }}>
+          <tr style={{ backgroundColor: `${t.primary_color}10` }}>
             <th className="text-left p-3 font-medium opacity-70">Recurso</th>
             <th className="p-3 text-center font-medium opacity-70">{col1_title}</th>
-            <th className="p-3 text-center font-bold" style={{ color: theme.primary_color }}>
+            <th className="p-3 text-center font-bold" style={{ color: t.primary_color }}>
               {col2_title}
               {col2_badge && (
-                <span className="block text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 mx-auto w-fit" style={{ backgroundColor: theme.primary_color, color: theme.button_text_color }}>
+                <span className="block text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 mx-auto w-fit" style={{ backgroundColor: t.primary_color, color: t.button_text_color }}>
                   {col2_badge}
                 </span>
               )}
@@ -290,14 +327,14 @@ export function ComparisonTableBlock({ config, theme }: BlockProps) {
           </tr>
         </thead>
         <tbody>
-          {(rows as CompRow[]).map((row, i) => (
-            <tr key={i} style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          {(rows as any[]).map((row, i) => (
+            <tr key={i} style={{ borderTop: `1px solid ${t.alpha(0.06)}` }}>
               <td className="p-3">{row.feature}</td>
               <td className="p-3 text-center">
                 {row.col1 ? <CheckCircle2 className="h-5 w-5 mx-auto text-green-400" /> : <XCircle className="h-5 w-5 mx-auto text-red-400 opacity-40" />}
               </td>
-              <td className="p-3 text-center" style={{ backgroundColor: `${theme.primary_color}05` }}>
-                {row.col2 ? <CheckCircle2 className="h-5 w-5 mx-auto" style={{ color: theme.primary_color }} /> : <XCircle className="h-5 w-5 mx-auto text-red-400 opacity-40" />}
+              <td className="p-3 text-center" style={{ backgroundColor: `${t.primary_color}05` }}>
+                {row.col2 ? <CheckCircle2 className="h-5 w-5 mx-auto" style={{ color: t.primary_color }} /> : <XCircle className="h-5 w-5 mx-auto text-red-400 opacity-40" />}
               </td>
             </tr>
           ))}
@@ -309,9 +346,10 @@ export function ComparisonTableBlock({ config, theme }: BlockProps) {
 
 /* ─── GAUGE CHART (VELOCÍMETRO) ─── */
 export function GaugeChartBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
   const { score = 67, max_score = 100, label = "Sua pontuação", zones = [] } = config;
-  const pct = Math.min(100, (score / max_score) * 100);
-  const [animated, setAnimated] = useState(0);
+  const pctValue = Math.min(100, (score / max_score) * 100);
+  const [animatedPct, setAnimatedPct] = useState(0);
 
   useEffect(() => {
     let frame: number;
@@ -320,16 +358,14 @@ export function GaugeChartBlock({ config, theme }: BlockProps) {
     const animate = (ts: number) => {
       if (!start) start = ts;
       const progress = Math.min(1, (ts - start) / duration);
-      // spring/exponential easing
       const eased = 1 - Math.pow(1 - progress, 4);
-      setAnimated(Math.round(eased * score));
+      setAnimatedPct(eased * pctValue);
       if (progress < 1) frame = requestAnimationFrame(animate);
     };
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
-  }, [score]);
+  }, [pctValue]);
 
-  // Handle default zones if empty
   const defaultZones = [
     { name: "Baixo", color: "#ef4444", max: 33 },
     { name: "Médio", color: "#eab308", max: 66 },
@@ -339,48 +375,42 @@ export function GaugeChartBlock({ config, theme }: BlockProps) {
 
   const currentZone = safeZones.find((z: any, i: number, arr: any[]) => {
     const prev = i > 0 ? arr[i - 1].max : 0;
-    return pct > prev && pct <= z.max;
+    return animatedPct > prev && animatedPct <= z.max;
   }) ?? safeZones[safeZones.length - 1];
 
-  const angle = -180 + (pct / 100) * 180;
+  const angle = -180 + (animatedPct / 100) * 180;
   const r = 85;
   const cx = 100, cy = 100;
 
   return (
-    <div className="rounded-2xl p-8 text-center space-y-6 relative overflow-hidden" 
+    <div className="rounded-2xl p-8 text-center space-y-6 relative overflow-hidden transition-all duration-500" 
          style={{ 
-           backgroundColor: "rgba(0,0,0,0.2)", 
-           border: "1px solid rgba(255,255,255,0.05)", 
-           boxShadow: "inset 0 0 20px rgba(0,0,0,0.5)" 
+           backgroundColor: t.is_light ? "rgba(0,0,0,0.02)" : "rgba(0,0,0,0.2)", 
+           border: t.border(t.is_light ? 0.08 : 0.05),
+           boxShadow: t.is_light ? "none" : "inset 0 0 20px rgba(0,0,0,0.5)" 
          }}>
       
-      {/* Background ambient glow based on current zone */}
       <div 
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 blur-[80px] rounded-full pointer-events-none" 
-        style={{ backgroundColor: currentZone?.color || theme.primary_color, opacity: 0.15 }} 
+        style={{ backgroundColor: currentZone?.color || t.primary_color, opacity: t.is_light ? 0.1 : 0.15 }} 
       />
 
-      {label && <h4 className="text-xs font-bold uppercase tracking-[0.2em] opacity-70 relative z-10">{label}</h4>}
+      {label && <h4 className="text-xs font-bold uppercase tracking-[0.2em] opacity-70 relative z-10" style={{ color: t.text_color }}>{label}</h4>}
       
       <div className="relative mx-auto w-full max-w-[280px] z-10">
         <svg viewBox="0 0 200 110" className="w-full drop-shadow-2xl overflow-visible">
-          {/* Track segments */}
           {safeZones.map((zone: any, i: number) => {
             const prevMax = i > 0 ? safeZones[i - 1].max : 0;
-            const startAngle = -180 + (prevMax / 100) * 180;
-            const endAngle = -180 + (zone.max / 100) * 180;
-            
-            // Add a tiny gap between segments
+            const sAngle = -180 + (prevMax / 100) * 180;
+            const eAngle = -180 + (zone.max / 100) * 180;
             const gap = 2; 
-            const sRad = ((startAngle + gap) * Math.PI) / 180;
-            const eRad = ((endAngle - gap) * Math.PI) / 180;
-            
+            const sRad = ((sAngle + gap) * Math.PI) / 180;
+            const eRad = ((eAngle - gap) * Math.PI) / 180;
             const x1 = cx + r * Math.cos(sRad);
             const y1 = cy + r * Math.sin(sRad);
             const x2 = cx + r * Math.cos(eRad);
             const y2 = cy + r * Math.sin(eRad);
-            
-            const large = endAngle - startAngle > 180 ? 1 : 0;
+            const large = eAngle - sAngle > 180 ? 1 : 0;
             return (
               <path 
                 key={i} 
@@ -394,31 +424,27 @@ export function GaugeChartBlock({ config, theme }: BlockProps) {
             );
           })}
           
-          {/* Active progress arc */}
           <path
             d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r * Math.cos((angle * Math.PI) / 180)} ${cy + r * Math.sin((angle * Math.PI) / 180)}`}
             fill="none" 
-            stroke={currentZone?.color || theme.primary_color} 
+            stroke={currentZone?.color || t.primary_color} 
             strokeWidth="14" 
             strokeLinecap="round"
-            style={{ transition: "stroke-dasharray 2s cubic-bezier(0.22, 1, 0.36, 1)" }}
             filter="drop-shadow(0px 0px 8px currentColor)"
           />
 
-          {/* Needle / Indicator knob */}
           <circle 
             cx={cx + r * Math.cos((angle * Math.PI) / 180)} 
             cy={cy + r * Math.sin((angle * Math.PI) / 180)} 
             r="5" 
-            fill="white" 
-            style={{ transition: "all 2s cubic-bezier(0.22, 1, 0.36, 1)" }}
-            filter="drop-shadow(0 2px 4px rgba(0,0,0,0.5))"
+            fill={t.is_light ? "#111" : "white"} 
+            filter={t.is_light ? "none" : "drop-shadow(0 2px 4px rgba(0,0,0,0.5))"}
           />
         </svg>
 
         <div className="absolute inset-0 flex flex-col items-center justify-end pb-0">
-          <span className="text-6xl font-black tracking-tighter tabular-nums drop-shadow-md" style={{ color: currentZone?.color || theme.primary_color }}>
-            {animated}
+          <span className="text-6xl font-black tracking-tighter tabular-nums drop-shadow-md" style={{ color: currentZone?.color || t.primary_color }}>
+            {Math.round((animatedPct / 100) * max_score)}
           </span>
           {currentZone?.name && (
              <span 
@@ -435,8 +461,7 @@ export function GaugeChartBlock({ config, theme }: BlockProps) {
         </div>
       </div>
       
-      {/* Legend */}
-      <div className="flex justify-between w-full max-w-[280px] mx-auto text-[10px] font-bold text-muted-foreground uppercase tracking-widest relative z-10 px-2">
+      <div className="flex justify-between w-full max-w-[280px] mx-auto text-[10px] font-bold uppercase tracking-widest relative z-10 px-2" style={{ color: t.text_color }}>
         <span className="opacity-50">0</span>
         <span className="opacity-50">{max_score} MAX</span>
       </div>
@@ -623,6 +648,7 @@ export function RoiCalculatorBlock({ config, theme }: BlockProps) {
 
 /* ─── TERMÔMETRO DE MATURIDADE ─── */
 export function MaturityThermometerBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
   const { score = 50, max_score = 100, levels = [] } = config;
   const pct = Math.min(100, Math.max(0, (score / max_score) * 100));
 
@@ -632,31 +658,31 @@ export function MaturityThermometerBlock({ config, theme }: BlockProps) {
   }) ?? levels[levels.length - 1];
 
   return (
-    <div className="rounded-xl p-5 space-y-6" style={{ backgroundColor: `${theme.primary_color}05`, border: `1px solid ${theme.primary_color}20` }}>
+    <div className="rounded-xl p-5 space-y-6 transition-all" style={{ backgroundColor: t.is_light ? "rgba(0,0,0,0.02)" : `${t.primary_color}05`, border: t.border(0.15) }}>
       {/* Thermometer Bar */}
-      <div className="relative h-4 rounded-full w-full" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>
+      <div className="relative h-4 rounded-full w-full" style={{ backgroundColor: t.alpha(0.1) }}>
         {/* Markers */}
         {(levels as any[]).map((l: any, i: number) => (
-          <div key={i} className="absolute top-0 bottom-0 w-px bg-white/20" style={{ left: `${l.max}%` }} />
+          <div key={i} className="absolute top-0 bottom-0 w-px" style={{ left: `${l.max}%`, backgroundColor: t.alpha(0.2) }} />
         ))}
         {/* Fill */}
         <div className="absolute top-0 bottom-0 left-0 rounded-full transition-all duration-1000 ease-out"
-          style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${theme.primary_color}80, ${currentLevel?.color || theme.primary_color})` }} />
+          style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${t.primary_color}80, ${currentLevel?.color || t.primary_color})` }} />
         {/* Needle */}
-        <div className="absolute top-1/2 -translate-y-1/2 w-4 h-6 bg-white rounded shadow-lg transition-all duration-1000 ease-out z-10 flex items-center justify-center"
-          style={{ left: `calc(${pct}% - 8px)`, border: `2px solid ${currentLevel?.color || theme.primary_color}` }}>
-          <div className="w-1 h-2 rounded-full" style={{ backgroundColor: currentLevel?.color || theme.primary_color }} />
+        <div className="absolute top-1/2 -translate-y-1/2 w-4 h-6 rounded shadow-lg transition-all duration-1000 ease-out z-10 flex items-center justify-center"
+          style={{ left: `calc(${pct}% - 8px)`, border: `2px solid ${currentLevel?.color || t.primary_color}`, backgroundColor: t.is_light ? "#fff" : "#333" }}>
+          <div className="w-1 h-2 rounded-full" style={{ backgroundColor: currentLevel?.color || t.primary_color }} />
         </div>
       </div>
 
       {/* Result Card */}
       <div className="rounded-lg p-4 text-center space-y-2 animate-[revealFade_0.5s_ease-out_0.5s_both]"
-        style={{ backgroundColor: `${currentLevel?.color || theme.primary_color}15`, border: `1px solid ${currentLevel?.color || theme.primary_color}40` }}>
-        <p className="text-xs opacity-70">Você está no nível:</p>
-        <p className="text-xl font-bold" style={{ color: currentLevel?.color || theme.primary_color }}>
+        style={{ backgroundColor: `${currentLevel?.color || t.primary_color}15`, border: `1px solid ${currentLevel?.color || t.primary_color}40` }}>
+        <p className="text-xs opacity-70" style={{ color: t.text_color }}>Você está no nível:</p>
+        <p className="text-xl font-bold" style={{ color: currentLevel?.color || t.primary_color }}>
           {currentLevel?.name || "..."}
         </p>
-        {currentLevel?.desc && <p className="text-sm opacity-90">{currentLevel.desc}</p>}
+        {currentLevel?.desc && <p className="text-sm opacity-90" style={{ color: t.text_color }}>{currentLevel.desc}</p>}
       </div>
     </div>
   );
@@ -664,30 +690,32 @@ export function MaturityThermometerBlock({ config, theme }: BlockProps) {
 
 /* ─── PLANOS (PRICING) ─── */
 export function PricingPlansBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
   const plans = (config.plans ?? []) as any[];
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {plans.map((p, i) => (
-        <div key={i} className="rounded-xl p-5 flex flex-col space-y-4 relative overflow-hidden transition-transform hover:-translate-y-1"
+        <div key={i} className="rounded-xl p-5 flex flex-col space-y-4 relative overflow-hidden transition-all hover:-translate-y-1"
           style={{
-            backgroundColor: p.is_popular ? `${theme.primary_color}10` : theme.card_background,
-            border: `2px solid ${p.is_popular ? theme.primary_color : `${theme.primary_color}30`}`
+            backgroundColor: p.is_popular ? `${t.primary_color}10` : (t.is_light ? "rgba(255,255,255,0.8)" : t.card_background),
+            border: `2px solid ${p.is_popular ? t.primary_color : t.alpha(0.1)}`,
+            boxShadow: t.is_light ? "0 4px 15px rgba(0,0,0,0.05)" : "none"
           }}>
           {p.is_popular && (
             <div className="absolute top-0 right-0 left-0 bg-primary text-center text-[10px] font-bold py-1 uppercase tracking-wider"
-              style={{ backgroundColor: theme.primary_color, color: theme.button_text_color }}>
+              style={{ backgroundColor: t.primary_color, color: t.button_text_color }}>
               Mais popular
             </div>
           )}
           <div className={p.is_popular ? "pt-4" : ""}>
-            <h3 className="text-lg font-bold">{p.name}</h3>
-            <div className="text-3xl font-extrabold mt-2" style={{ color: theme.primary_color }}>R$ {p.price}</div>
+            <h3 className="text-lg font-bold" style={{ color: t.text_color }}>{p.name}</h3>
+            <div className="text-3xl font-extrabold mt-2" style={{ color: t.primary_color }}>R$ {p.price}</div>
           </div>
           <ul className="space-y-2 flex-1">
             {(p.features ?? []).map((f: string, j: number) => (
-              <li key={j} className="flex items-start gap-2 text-sm opacity-80">
-                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" style={{ color: theme.primary_color }} />
+              <li key={j} className="flex items-start gap-2 text-sm opacity-80" style={{ color: t.text_color }}>
+                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" style={{ color: t.primary_color }} />
                 <span>{f}</span>
               </li>
             ))}
@@ -695,9 +723,9 @@ export function PricingPlansBlock({ config, theme }: BlockProps) {
           {p.button_url && (
             <a href={p.button_url} target="_blank" rel="noreferrer" className="w-full py-3 rounded-lg text-center font-bold transition-all text-sm block"
               style={{
-                backgroundColor: p.is_popular ? theme.primary_color : "transparent",
-                color: p.is_popular ? theme.button_text_color : theme.text_color,
-                border: `1px solid ${theme.primary_color}`
+                backgroundColor: p.is_popular ? t.primary_color : "transparent",
+                color: p.is_popular ? t.button_text_color : t.text_color,
+                border: `1px solid ${t.primary_color}`
               }}>
               {p.button_text || "Escolher"}
             </a>
@@ -770,22 +798,27 @@ export function AlertBlock({ config, theme }: BlockProps) {
 
 /* ─── ARGUMENTOS ─── */
 export function ArgumentsBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
   return (
     <div className="space-y-4 my-2">
       {config.title && (
-        <h3 className="text-center font-bold text-lg" style={{ color: theme.text_color }}>
+        <h3 className="text-center font-bold text-lg" style={{ color: t.text_color }}>
           {config.title}
         </h3>
       )}
       <div className="space-y-3">
         {(config.items || []).map((it: any, i: number) => (
-          <div key={i} className="flex items-start gap-3 p-3.5 rounded-lg border bg-card/80 shadow-sm">
-            <div className="flex items-center justify-center h-8 w-8 rounded-full shrink-0" style={{ backgroundColor: `${theme.primary_color}15`, color: theme.primary_color }}>
+          <div key={i} className="flex items-start gap-3 p-3.5 rounded-lg border transition-all" 
+               style={{ 
+                 backgroundColor: t.is_light ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.03)",
+                 borderColor: t.alpha(0.1)
+               }}>
+            <div className="flex items-center justify-center h-8 w-8 rounded-full shrink-0" style={{ backgroundColor: `${t.primary_color}15`, color: t.primary_color }}>
               <Check className="h-4.5 w-4.5" />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-sm" style={{ color: theme.text_color }}>{it.title}</h4>
-              {it.desc && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{it.desc}</p>}
+              <h4 className="font-semibold text-sm" style={{ color: t.text_color }}>{it.title}</h4>
+              {it.desc && <p className="text-xs opacity-60 mt-1 leading-relaxed" style={{ color: t.text_color }}>{it.desc}</p>}
             </div>
           </div>
         ))}
@@ -837,6 +870,7 @@ export function HtmlBlock({ config, theme }: BlockProps) {
 
 /* ─── FAKE LOADING (AUTO-AVANÇA) ─── */
 export function FakeLoadingBlock({ config, theme, onNext }: BlockProps) {
+  const t = useBlockTheme(theme, config);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -859,34 +893,34 @@ export function FakeLoadingBlock({ config, theme, onNext }: BlockProps) {
 
   useEffect(() => {
     if (progress >= 100 && onNext) {
-      const t = setTimeout(() => {
+      const timer = setTimeout(() => {
         onNext();
       }, 400); // slight delay after 100%
-      return () => clearTimeout(t);
+      return () => clearTimeout(timer);
     }
   }, [progress, onNext]);
 
   return (
     <div className="flex flex-col items-center justify-center space-y-5 py-10 w-full animate-in fade-in zoom-in duration-500">
       <div className="relative flex items-center justify-center">
-        <div className="absolute w-20 h-20 rounded-full border-4 border-white/5" />
+        <div className="absolute w-20 h-20 rounded-full border-4" style={{ borderColor: t.alpha(0.05) }} />
         <div 
           className="w-20 h-20 rounded-full border-4 border-transparent animate-spin" 
-          style={{ borderTopColor: theme.primary_color, borderRightColor: theme.primary_color }} 
+          style={{ borderTopColor: t.primary_color, borderRightColor: t.primary_color }} 
         />
-        <div className="absolute font-bold text-sm" style={{ color: theme.primary_color }}>
+        <div className="absolute font-bold text-sm" style={{ color: t.primary_color }}>
           {Math.floor(progress)}%
         </div>
       </div>
       
-      <h3 className="text-xl font-bold opacity-90 text-center animate-pulse" style={{ color: theme.text_color }}>
+      <h3 className="text-xl font-bold opacity-90 text-center animate-pulse" style={{ color: t.text_color }}>
         {config.text || "Analisando suas respostas..."}
       </h3>
       
-      <div className="w-full max-w-xs h-2 bg-black/20 rounded-full overflow-hidden shadow-inner">
+      <div className="w-full max-w-xs h-2 rounded-full overflow-hidden shadow-inner" style={{ backgroundColor: t.alpha(0.1) }}>
         <div 
-          className="h-full rounded-full transition-all duration-75 ease-linear shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-          style={{ width: `${progress}%`, backgroundColor: theme.primary_color }}
+          className="h-full rounded-full transition-all duration-75 ease-linear"
+          style={{ width: `${progress}%`, backgroundColor: t.primary_color, boxShadow: t.is_light ? "none" : "0 0 10px rgba(255,255,255,0.2)" }}
         />
       </div>
     </div>
@@ -895,14 +929,15 @@ export function FakeLoadingBlock({ config, theme, onNext }: BlockProps) {
 
 /* ─── PROGRESSO CIRCULAR ─── */
 export function CircularProgressBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
   const [val, setVal] = useState(0);
   const target = Math.min(100, Math.max(0, config.percentage || 85));
 
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       setVal(target);
     }, 100);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [target]);
 
   const size = 160;
@@ -923,24 +958,24 @@ export function CircularProgressBlock({ config, theme }: BlockProps) {
             strokeWidth={strokeWidth}
             fill="transparent"
             className="opacity-10"
-            style={{ color: theme.text_color }}
+            style={{ color: t.text_color }}
           />
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={theme.primary_color}
+            stroke={t.primary_color}
             strokeWidth={strokeWidth}
             fill="transparent"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
             strokeLinecap="round"
             className="transition-all duration-1000 ease-out"
-            style={{ filter: `drop-shadow(0 0 8px ${theme.primary_color}60)` }}
+            style={{ filter: `drop-shadow(0 0 8px ${t.primary_color}60)` }}
           />
         </svg>
         <div className="absolute flex flex-col items-center justify-center">
-          <span className="text-5xl font-black tracking-tighter" style={{ color: theme.primary_color }}>
+          <span className="text-5xl font-black tracking-tighter" style={{ color: t.primary_color }}>
             {Math.round(val)}<span className="text-2xl">%</span>
           </span>
         </div>
@@ -948,12 +983,12 @@ export function CircularProgressBlock({ config, theme }: BlockProps) {
       {(config.title || config.subtitle) && (
         <div className="text-center max-w-xs">
           {config.title && (
-            <div className="text-xl font-extrabold opacity-90 leading-tight" style={{ color: theme.text_color }}>
+            <div className="text-xl font-extrabold opacity-90 leading-tight" style={{ color: t.text_color }}>
               {config.title}
             </div>
           )}
           {config.subtitle && (
-            <div className="text-sm opacity-60 mt-1 uppercase tracking-wider font-semibold" style={{ color: theme.text_color }}>
+            <div className="text-sm opacity-60 mt-1 uppercase tracking-wider font-semibold" style={{ color: t.text_color }}>
               {config.subtitle}
             </div>
           )}
@@ -965,6 +1000,7 @@ export function CircularProgressBlock({ config, theme }: BlockProps) {
 
 /* ─── TEXTO COM DESTAQUE ─── */
 export function HighlightTextBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
   const { full_text = "", highlight_part = "", font_size = 24, highlight_color = "#bff720", is_bold = true, align = "center" } = config;
   
   if (!full_text) return null;
@@ -973,7 +1009,7 @@ export function HighlightTextBlock({ config, theme }: BlockProps) {
   const alignment = align === "left" ? "text-left" : align === "right" ? "text-right" : "text-center";
 
   return (
-    <div className={`w-full py-4 ${alignment}`} style={{ fontSize: `${font_size}px`, lineHeight: 1.3, color: theme.text_color }}>
+    <div className={`w-full py-4 ${alignment}`} style={{ fontSize: `${font_size}px`, lineHeight: 1.3, color: t.text_color }}>
       {index !== -1 ? (
         <>
           {full_text.substring(0, index)}

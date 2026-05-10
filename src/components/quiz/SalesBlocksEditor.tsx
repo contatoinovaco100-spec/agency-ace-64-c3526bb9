@@ -12,6 +12,26 @@ export function SalesElementSettings({ element, patch, clientId }: { element: an
   const c = element;
   const cid = clientId;
 
+  return (
+    <div className="space-y-4">
+      {getSettings(element, patch, clientId)}
+      <div className="pt-2 border-t border-border mt-2">
+        <Label className="text-[10px] uppercase tracking-wider opacity-50 mb-2 block">Estilo do Bloco</Label>
+        <Select value={c.theme_variant ?? "auto"} onValueChange={v => patch({ theme_variant: v })}>
+          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="auto">Automático (Tema do Quiz)</SelectItem>
+            <SelectItem value="light">Versão Clara</SelectItem>
+            <SelectItem value="dark">Versão Escura</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
+
+function getSettings(element: any, patch: (p: any) => void, cid: string) {
+  const c = element;
   switch (element.type) {
     case "scarcity":
       return (
