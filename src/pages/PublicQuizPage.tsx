@@ -495,8 +495,8 @@ export default function PublicQuizPage() {
               <ProgressMotivationalBlock config={q.config} theme={theme} progress={progress} />
             )}
 
-            {/* Continue button for visual and sales blocks */}
-            {["visual","scarcity","social_proof","testimonials","authority","before_after","comparison_table","gauge_chart","progress_motivational","progressive_reveal","roi_calculator","maturity_thermometer"].includes(q.type) && (
+            {/* Continue button for legacy sales blocks */}
+            {["scarcity","social_proof","testimonials","authority","before_after","comparison_table","gauge_chart","progress_motivational","progressive_reveal","roi_calculator","maturity_thermometer"].includes(q.type) && (
               <button
                 onClick={() => goNext()}
                 className="w-full py-4 text-base font-bold transition-all hover:scale-[1.02] active:scale-95"
