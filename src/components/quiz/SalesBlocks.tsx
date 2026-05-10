@@ -1063,7 +1063,7 @@ export function ImpactSummaryBlock({ config, theme }: BlockProps) {
 /* ─── MARQUEE INFINITO (TEXT BOXES) ─── */
 export function InfiniteMarqueeBlock({ config, theme }: BlockProps) {
   const t = useBlockTheme(theme, config);
-  const { items = ["Economia Garantida", "Segurança Jurídica", "Agilidade no Processo", "Recuperação de Créditos"], speed = 25, rows = 1 } = config;
+  const { items = ["Economia Garantida", "Segurança Jurídica", "Agilidade no Processo", "Recuperação de Créditos"], speed = 25, rows = 1, box_bg_color, box_text_color } = config;
   
   const mid = Math.ceil(items.length / 2);
   const row1 = rows > 1 ? items.slice(0, mid) : items;
@@ -1084,10 +1084,10 @@ export function InfiniteMarqueeBlock({ config, theme }: BlockProps) {
         {[...list, ...list, ...list].map((it, i) => (
           <div key={i} className="px-6 py-3 rounded-xl border whitespace-nowrap font-bold text-sm transition-all"
                style={{ 
-                 backgroundColor: t.is_light ? "#fff" : t.alpha(0.05),
+                 backgroundColor: box_bg_color || (t.is_light ? "#fff" : t.alpha(0.05)),
                  borderColor: t.alpha(0.1),
-                 color: t.text_color,
-                 boxShadow: t.is_light ? "0 4px 10px rgba(0,0,0,0.03)" : "none"
+                 color: box_text_color || t.text_color,
+                 boxShadow: t.is_light && !box_bg_color ? "0 4px 10px rgba(0,0,0,0.03)" : "none"
                }}>
             {it}
           </div>

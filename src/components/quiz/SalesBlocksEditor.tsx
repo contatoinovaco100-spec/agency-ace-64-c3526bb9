@@ -673,6 +673,22 @@ function getSettings(element: any, patch: (p: any) => void, cid: string) {
               </Select>
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px]">Cor Fundo Box</Label>
+              <div className="flex gap-2">
+                <input type="color" value={c.box_bg_color || "#ffffff"} onChange={e => patch({ box_bg_color: e.target.value })} className="h-8 w-full rounded border p-0" />
+                {c.box_bg_color && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => patch({ box_bg_color: undefined })}><Trash2 className="h-3 w-3" /></Button>}
+              </div>
+            </div>
+            <div>
+              <Label className="text-[10px]">Cor Texto Box</Label>
+              <div className="flex gap-2">
+                <input type="color" value={c.box_text_color || "#000000"} onChange={e => patch({ box_text_color: e.target.value })} className="h-8 w-full rounded border p-0" />
+                {c.box_text_color && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => patch({ box_text_color: undefined })}><Trash2 className="h-3 w-3" /></Button>}
+              </div>
+            </div>
+          </div>
         </div>
       );
     default:
