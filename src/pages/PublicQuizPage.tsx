@@ -235,7 +235,10 @@ export default function PublicQuizPage() {
   const progress = questions.length ? ((step + 1) / questions.length) * 100 : 0;
   const a = answers[q?.id ?? ""] ?? { option_ids: [], text_answer: "" };
   const showProgress = quiz.progress_bar !== false;
-  const showNumbers = quiz.show_question_numbers !== false;
+  const showNumbers = quiz.show_question_numbers === true;
+  const textAlign = (q?.config?.text_align ?? "center") as "left" | "center" | "right";
+  const alignClass = textAlign === "left" ? "text-left" : textAlign === "right" ? "text-right" : "text-center";
+  const visualElements: VisualElement[] = Array.isArray(q?.config?.elements) ? q.config.elements : [];
 
   return (
     <div style={pageStyle}>
@@ -261,17 +264,27 @@ export default function PublicQuizPage() {
             {q.image_url && (
               <img src={q.image_url} alt="" className="w-full" style={{ borderRadius: theme.border_radius }} />
             )}
-            <div>
-              <h2 className="text-xl" style={headingStyle}>
-                {showNumbers && <span className="opacity-50 mr-2">{step + 1}.</span>}
-                {q.title}
-                {q.required && <span style={{ color: theme.primary_color }}>*</span>}
-              </h2>
-              {q.description && <p className="text-sm opacity-70 mt-1 whitespace-pre-line">{q.description}</p>}
-            </div>
+            {(q.title || q.description) && (
+              <div className={alignClass}>
+                {q.title && (
+                  <h2 className="text-xl" style={headingStyle}>
+                    {showNumbers && <span className="opacity-50 mr-2">{step + 1}.</span>}
+                    {q.title}
+                    {q.required && <span style={{ color: theme.primary_color }}>*</span>}
+                  </h2>
+                )}
+                {q.description && <p className="text-sm opacity-70 mt-1 whitespace-pre-line">{q.description}</p>}
+              </div>
+            )}
 
             {q.type === "visual" && q.config?.image_url && (
               <img src={q.config.image_url} alt="" className="w-full" style={{ borderRadius: theme.border_radius }} />
+            )}
+
+            {q.type === "visual" && visualElements.length > 0 && (
+              <div className="space-y-4">
+                {renderVisualElements(visualElements, theme, () => next())}
+              </div>
             )}
 
             {(q.type === "single" || q.type === "multiple") && (
