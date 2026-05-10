@@ -105,7 +105,7 @@ export const buildDefaultMeta = (overrides: Partial<QuizMeta>): QuizMeta => {
     pixel_ga: "",
     webhook_url: "",
     progress_bar: true,
-    show_question_numbers: true,
+    show_question_numbers: false,
     ...rest,
     theme: mergeTheme(themeOverride),
   };
