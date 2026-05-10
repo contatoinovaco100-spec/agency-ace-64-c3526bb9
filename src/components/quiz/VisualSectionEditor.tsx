@@ -193,6 +193,7 @@ export function VisualSectionEditor({ question }: { question: QuizQuestionDraft 
           const mockTheme = {
             primary_color: "#eab308", // amber-500
             button_text_color: "#000000",
+            text_color: "#ffffff",
             border_radius: 8,
             heading_weight: 800,
           };

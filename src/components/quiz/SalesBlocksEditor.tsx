@@ -3,6 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Star } from "lucide-react";
 import { QuizMediaUploader } from "./QuizMediaUploader";
 import { useQuizEditorStore, type QuizQuestionDraft } from "@/stores/quizEditorStore";
