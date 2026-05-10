@@ -3,25 +3,51 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ArrowUp, ArrowDown, Type, AlignLeft, Image as ImageIcon, List, MousePointerClick } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, Type, AlignLeft, Image as ImageIcon, List, MousePointerClick, Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send } from "lucide-react";
 import { QuizMediaUploader } from "./QuizMediaUploader";
 import { useQuizEditorStore, type QuizQuestionDraft } from "@/stores/quizEditorStore";
+import { SalesElementSettings } from "./SalesBlocksEditor";
+import {
+  ScarcityBlock, SocialProofBlock, TestimonialsBlock, CtaWhatsAppBlock,
+  CtaPriceBlock, AuthorityBlock, BeforeAfterBlock, ComparisonTableBlock,
+  GaugeChartBlock, ProgressMotivationalBlock, ToastSocialOverlay,
+  ExitIntentPopup, ProgressiveRevealBlock, RoiCalculatorBlock,
+  MaturityThermometerBlock, PricingPlansBlock, PostResultFormBlock
+} from "./SalesBlocks";
 
 export type VisualElement =
   | { id: string; type: "heading"; text: string; align?: "left" | "center" | "right"; size?: "sm" | "md" | "lg" | "xl" }
   | { id: string; type: "paragraph"; text: string; align?: "left" | "center" | "right" }
   | { id: string; type: "image"; url: string; align?: "left" | "center" | "right" }
   | { id: string; type: "bullets"; items: string[]; align?: "left" | "center" | "right" }
-  | { id: string; type: "button"; label: string; url: string; align?: "left" | "center" | "right"; action?: "link" | "next" };
+  | { id: string; type: "button"; label: string; url: string; align?: "left" | "center" | "right"; action?: "link" | "next" }
+  | { id: string; type: string; [key: string]: any };
 
 const newId = () => "el_" + Math.random().toString(36).slice(2, 9);
 
-const TYPE_LABELS: Record<VisualElement["type"], { label: string; icon: any }> = {
+export const TYPE_LABELS: Record<string, { label: string; icon: any; default?: any }> = {
   heading: { label: "Título", icon: Type },
   paragraph: { label: "Parágrafo", icon: AlignLeft },
   image: { label: "Imagem", icon: ImageIcon },
   bullets: { label: "Lista", icon: List },
   button: { label: "Botão", icon: MousePointerClick },
+  scarcity: { label: "Escassez", icon: Timer, default: { text: "Restam apenas {n} vagas", slots_total: 10, slots_filled: 7, show_timer: true, timer_minutes: 15 } },
+  social_proof: { label: "Prova Social", icon: Users, default: { text: "Mais de {n} pessoas completaram", count: 127, show_animation: true } },
+  testimonials: { label: "Depoimentos", icon: MessageSquare, default: { items: [{ name: "Cliente", role: "Empresa", text: "Muito bom!", stars: 5, photo_url: "" }], autoplay_seconds: 5 } },
+  cta_whatsapp: { label: "CTA WhatsApp", icon: MessageCircle, default: { phone: "5511999999999", message: "Olá!", button_text: "Falar no WhatsApp", above_text: "Dúvidas?" } },
+  cta_price: { label: "Preço", icon: DollarSign, default: { original_price: "R$ 997", current_price: "R$ 497", discount_badge: "-50%", button_text: "Comprar", button_url: "", urgency_text: "Oferta limitada", guarantee_text: "7 dias de garantia" } },
+  authority: { label: "Autoridade", icon: Building2, default: { title: "Quem confia", logos: [] } },
+  before_after: { label: "Antes / Depois", icon: ArrowLeftRight, default: { before_title: "Antes", before_items: ["Problema"], after_title: "Depois", after_items: ["Solução"] } },
+  comparison_table: { label: "Comparação", icon: Table2, default: { col1_title: "Concorrência", col2_title: "Nós", col2_badge: "Recomendado", rows: [{ feature: "Suporte", col1: false, col2: true }] } },
+  gauge_chart: { label: "Score (Gauge)", icon: Gauge, default: { score: 67, max_score: 100, label: "Sua pontuação", zones: [{ name: "Ruim", color: "#ef4444", max: 33 }, { name: "Médio", color: "#eab308", max: 66 }, { name: "Bom", color: "#22c55e", max: 100 }] } },
+  progress_motivational: { label: "Motivacional", icon: TrendingUp, default: { ranges: [{ min: 0, max: 50, text: "Começando..." }, { min: 51, max: 100, text: "Quase lá!" }] } },
+  toast_social: { label: "Toast Social", icon: Bell, default: { items: [{ name: "Maria", city: "SP" }], interval_seconds: 8, action_text: "acabou de se inscrever" } },
+  exit_intent: { label: "Exit Intent", icon: LogOut, default: { title: "Espera!", text: "Ainda não terminou...", button_text: "Continuar", show_on_mobile: true, mobile_idle_seconds: 30 } },
+  progressive_reveal: { label: "Revelação", icon: Sparkles, default: { loading_text: "Calculando...", loading_seconds: 3, reveal_steps: [{ type: "score", label: "Score" }] } },
+  roi_calculator: { label: "ROI", icon: Calculator, default: { prefix: "R$ ", value: "15.000", suffix: " / mês", label: "Seu potencial de resultado", disclaimer: "" } },
+  maturity_thermometer: { label: "Termômetro", icon: Thermometer, default: { score: 50, max_score: 100, levels: [{ name: "Iniciante", desc: "", color: "#ef4444", max: 50 }, { name: "Avançado", desc: "", color: "#22c55e", max: 100 }] } },
+  pricing_plans: { label: "Planos", icon: LayoutTemplate, default: { plans: [{ name: "Básico", price: "99", features: ["1"], is_popular: false, button_text: "Comprar", button_url: "" }] } },
+  post_result_form: { label: "Form Extra", icon: Send, default: { title: "Receba seu diagnóstico:", button_text: "Enviar", fields: { name: true, email: true } } },
 };
 
 export function VisualSectionEditor({ question }: { question: QuizQuestionDraft }) {
@@ -32,13 +58,15 @@ export function VisualSectionEditor({ question }: { question: QuizQuestionDraft 
   const update = (next: VisualElement[]) =>
     updateQuestion(question.id, { config: { ...question.config, elements: next } });
 
-  const add = (type: VisualElement["type"]) => {
-    const base: any = { id: newId(), type, align: "center" };
-    if (type === "heading") Object.assign(base, { text: "Título", size: "lg" });
-    if (type === "paragraph") Object.assign(base, { text: "Texto descritivo" });
-    if (type === "image") Object.assign(base, { url: "" });
-    if (type === "bullets") Object.assign(base, { items: ["Item 1", "Item 2"] });
-    if (type === "button") Object.assign(base, { label: "Continuar", url: "", action: "next" });
+  const add = (type: string) => {
+    const base: any = { id: newId(), type };
+    if (type === "heading") Object.assign(base, { text: "Título", size: "lg", align: "center" });
+    else if (type === "paragraph") Object.assign(base, { text: "Texto descritivo", align: "center" });
+    else if (type === "image") Object.assign(base, { url: "", align: "center" });
+    else if (type === "bullets") Object.assign(base, { items: ["Item 1", "Item 2"], align: "center" });
+    else if (type === "button") Object.assign(base, { label: "Continuar", url: "", action: "next", align: "center" });
+    else if (TYPE_LABELS[type]?.default) Object.assign(base, TYPE_LABELS[type].default);
+    
     update([...elements, base]);
   };
 
@@ -128,16 +156,21 @@ export function VisualSectionEditor({ question }: { question: QuizQuestionDraft 
                   <AlignSelect value={el.align ?? "center"} onChange={v => patch(i, { align: v } as any)} />
                 </>
               )}
+
+              {!["heading", "paragraph", "image", "bullets", "button"].includes(el.type) && (
+                <SalesElementSettings element={el} patch={(p) => patch(i, p)} clientId={cid} />
+              )}
             </div>
           );
         })}
       </div>
-      <div className="grid grid-cols-2 gap-1 pt-1">
-        {(Object.keys(TYPE_LABELS) as VisualElement["type"][]).map(t => {
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-1 pt-1">
+        {Object.keys(TYPE_LABELS).map(t => {
           const Icon = TYPE_LABELS[t].icon;
           return (
-            <Button key={t} size="sm" variant="outline" onClick={() => add(t)}>
-              <Plus className="h-3 w-3 mr-1" /><Icon className="h-3 w-3 mr-1" />{TYPE_LABELS[t].label}
+            <Button key={t} size="sm" variant="outline" className="justify-start text-xs h-8 px-2" onClick={() => add(t)}>
+              <Icon className="h-3.5 w-3.5 mr-2 shrink-0" />
+              <span className="truncate">{TYPE_LABELS[t].label}</span>
             </Button>
           );
         })}
@@ -161,8 +194,9 @@ function AlignSelect({ value, onChange }: { value: string; onChange: (v: string)
 
 export function renderVisualElements(
   elements: VisualElement[],
-  theme: { primary_color: string; button_text_color: string; border_radius: number; heading_weight: number },
+  theme: { primary_color: string; button_text_color: string; border_radius: number; heading_weight: number, card_background?: string, text_color?: string },
   onButtonNext?: () => void,
+  progress?: number
 ) {
   const sizeMap = { sm: "text-base", md: "text-lg", lg: "text-2xl", xl: "text-4xl" };
   return elements.map((el) => {
@@ -215,6 +249,24 @@ export function renderVisualElements(
         </div>
       );
     }
+    
+    // Sales blocks rendering mapping
+    if (el.type === "scarcity") return <ScarcityBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "social_proof") return <SocialProofBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "testimonials") return <TestimonialsBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "cta_whatsapp") return <CtaWhatsAppBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "cta_price") return <CtaPriceBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "authority") return <AuthorityBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "before_after") return <BeforeAfterBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "comparison_table") return <ComparisonTableBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "gauge_chart") return <GaugeChartBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "progress_motivational") return <ProgressMotivationalBlock key={el.id} config={el} theme={theme as any} progress={progress ?? 0} />;
+    if (el.type === "progressive_reveal") return <ProgressiveRevealBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "roi_calculator") return <RoiCalculatorBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "maturity_thermometer") return <MaturityThermometerBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "pricing_plans") return <PricingPlansBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "post_result_form") return <PostResultFormBlock key={el.id} config={el} theme={theme as any} />;
+
     return null;
   });
 }

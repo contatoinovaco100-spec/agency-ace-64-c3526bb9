@@ -7,13 +7,11 @@ import { Plus, Trash2, Star } from "lucide-react";
 import { QuizMediaUploader } from "./QuizMediaUploader";
 import { useQuizEditorStore, type QuizQuestionDraft } from "@/stores/quizEditorStore";
 
-export function SalesBlockSettings({ question }: { question: QuizQuestionDraft }) {
-  const { updateQuestion, meta } = useQuizEditorStore();
-  const cid = meta?.client_id ?? "shared";
-  const c = question.config ?? {};
-  const patch = (p: Record<string, any>) => updateQuestion(question.id, { config: { ...c, ...p } });
+export function SalesElementSettings({ element, patch, clientId }: { element: any; patch: (p: any) => void; clientId: string }) {
+  const c = element;
+  const cid = clientId;
 
-  switch (question.type) {
+  switch (element.type) {
     case "scarcity":
       return (
         <div className="space-y-3">
