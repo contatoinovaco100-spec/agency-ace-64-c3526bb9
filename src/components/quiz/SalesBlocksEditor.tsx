@@ -528,6 +528,17 @@ export function SalesElementSettings({ element, patch, clientId }: { element: an
         </div>
       );
 
+    case "html":
+      return (
+        <div className="space-y-3">
+          <div><Label className="text-xs">Código HTML / Embed</Label>
+            <Textarea rows={4} value={c.code ?? ""} onChange={e => patch({ code: e.target.value })} className="text-xs font-mono" placeholder='<iframe src="..." />' /></div>
+          <div className="text-[10px] text-muted-foreground leading-relaxed">
+            Use este campo para adicionar vídeos via iframe (Vimeo com opções customizadas, Wistia, PandaVideo) ou qualquer outro script/embed fornecido por terceiros.
+          </div>
+        </div>
+      );
+
     default:
       return null;
   }

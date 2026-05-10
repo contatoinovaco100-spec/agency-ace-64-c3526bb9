@@ -3,7 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ArrowUp, ArrowDown, Type, AlignLeft, Image as ImageIcon, List, MousePointerClick, Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send, AlertTriangle, CheckSquare, PlayCircle, Video, ArrowDownUp } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Trash2, ArrowUp, ArrowDown, Type, AlignLeft, Image as ImageIcon, List, MousePointerClick, Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send, AlertTriangle, CheckSquare, PlayCircle, Video, ArrowDownUp, Code } from "lucide-react";
 import { QuizMediaUploader } from "./QuizMediaUploader";
 import { useQuizEditorStore, type QuizQuestionDraft } from "@/stores/quizEditorStore";
 import { SalesElementSettings } from "./SalesBlocksEditor";
@@ -13,7 +14,7 @@ import {
   GaugeChartBlock, ProgressMotivationalBlock, ToastSocialOverlay,
   ExitIntentPopup, ProgressiveRevealBlock, RoiCalculatorBlock,
   MaturityThermometerBlock, PricingPlansBlock, PostResultFormBlock,
-  AlertBlock, ArgumentsBlock, AudioBlock, VideoBlock, SpacerBlock
+  AlertBlock, ArgumentsBlock, AudioBlock, VideoBlock, SpacerBlock, HtmlBlock
 } from "./SalesBlocks";
 
 export type VisualElement =
@@ -53,6 +54,7 @@ export const TYPE_LABELS: Record<string, { label: string; icon: any; default?: a
   arguments: { label: "Argumentos", icon: CheckSquare, default: { title: "Por que escolher nossa solução?", items: [{ title: "Diferencial 1", desc: "Descrição do diferencial" }] } },
   audio: { label: "Áudio", icon: PlayCircle, default: { title: "Ouça a mensagem especial", url: "" } },
   video: { label: "Vídeo", icon: Video, default: { url: "https://www.youtube.com/embed/dQw4w9WgXcQ" } },
+  html: { label: "HTML / Embed", icon: Code, default: { code: "<iframe src=\"...\" />" } },
   spacer: { label: "Espaço", icon: ArrowDownUp, default: { height: 32, show_line: false } },
 };
 
@@ -276,6 +278,7 @@ export function renderVisualElements(
     if (el.type === "arguments") return <ArgumentsBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "audio") return <AudioBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "video") return <VideoBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "html") return <HtmlBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "spacer") return <SpacerBlock key={el.id} config={el} theme={theme as any} />;
 
     return null;

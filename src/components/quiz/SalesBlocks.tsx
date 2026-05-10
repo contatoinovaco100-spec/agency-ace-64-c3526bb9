@@ -755,3 +755,14 @@ export function SpacerBlock({ config, theme }: BlockProps) {
     </div>
   );
 }
+
+/* ─── HTML EMBED ─── */
+export function HtmlBlock({ config, theme }: BlockProps) {
+  if (!config.code) return null;
+  return (
+    <div 
+      className="w-full relative [&_iframe]:w-full [&_iframe]:max-w-full" 
+      dangerouslySetInnerHTML={{ __html: config.code }} 
+    />
+  );
+}
