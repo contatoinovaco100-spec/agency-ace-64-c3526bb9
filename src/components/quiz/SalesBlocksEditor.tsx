@@ -458,6 +458,76 @@ export function SalesElementSettings({ element, patch, clientId }: { element: an
       );
     }
 
+    case "alert":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Variante do Alerta</Label>
+            <div className="flex gap-2 mt-1">
+              <Button size="sm" variant={c.variant === "info" ? "default" : "outline"} onClick={() => patch({ variant: "info" })} className="flex-1 text-xs">Info</Button>
+              <Button size="sm" variant={c.variant === "warning" ? "default" : "outline"} onClick={() => patch({ variant: "warning" })} className="flex-1 text-xs">Aviso</Button>
+              <Button size="sm" variant={c.variant === "success" ? "default" : "outline"} onClick={() => patch({ variant: "success" })} className="flex-1 text-xs">Sucesso</Button>
+              <Button size="sm" variant={c.variant === "error" ? "default" : "outline"} onClick={() => patch({ variant: "error" })} className="flex-1 text-xs">Erro</Button>
+            </div>
+          </div>
+          <div><Label className="text-xs">Texto do Alerta</Label>
+            <Textarea rows={3} value={c.text ?? ""} onChange={e => patch({ text: e.target.value })} className="text-xs" /></div>
+        </div>
+      );
+
+    case "arguments": {
+      const items = (c.items ?? []) as any[];
+      return (
+        <div className="space-y-4">
+          <div><Label className="text-xs">Título Principal</Label>
+            <Input value={c.title ?? ""} onChange={e => patch({ title: e.target.value })} /></div>
+          <Label className="mt-4 block">Argumentos</Label>
+          {items.map((it, i) => (
+            <div key={i} className="border border-border rounded-md p-3 space-y-2 relative">
+              <Button size="icon" variant="ghost" className="absolute top-1 right-1 h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => patch({ items: items.filter((_, j) => j !== i) })}><Trash2 className="h-3.5 w-3.5" /></Button>
+              <div><Label className="text-xs">Título Curto</Label>
+                <Input value={it.title ?? ""} onChange={e => { const n = [...items]; n[i].title = e.target.value; patch({ items: n }); }} className="text-xs" /></div>
+              <div><Label className="text-xs">Descrição (opcional)</Label>
+                <Textarea rows={2} value={it.desc ?? ""} onChange={e => { const n = [...items]; n[i].desc = e.target.value; patch({ items: n }); }} className="text-xs" /></div>
+            </div>
+          ))}
+          <Button size="sm" variant="outline" className="w-full" onClick={() => patch({ items: [...items, { title: "Novo Argumento", desc: "" }] })}>
+            <Plus className="h-3.5 w-3.5 mr-1" />Adicionar Argumento
+          </Button>
+        </div>
+      );
+    }
+
+    case "audio":
+    case "video":
+      return (
+        <div className="space-y-3">
+          {c.type === "audio" && (
+            <div><Label className="text-xs">Título (opcional)</Label>
+              <Input value={c.title ?? ""} onChange={e => patch({ title: e.target.value })} /></div>
+          )}
+          <div>
+            <Label className="text-xs">URL do {c.type === "audio" ? "Áudio (MP3/WAV)" : "Vídeo (YouTube/Vimeo/MP4)"}</Label>
+            <Input value={c.url ?? ""} onChange={e => patch({ url: e.target.value })} placeholder="https://..." />
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Dica: {c.type === "audio" ? "Cole um link direto para um arquivo de áudio." : "Para YouTube, use o link de 'Embed'."}
+          </div>
+        </div>
+      );
+
+    case "spacer":
+      return (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs cursor-pointer" htmlFor="f_line">Mostrar linha divisória</Label>
+            <Switch id="f_line" checked={!!c.show_line} onCheckedChange={v => patch({ show_line: v })} />
+          </div>
+          <div><Label className="text-xs">Altura do espaço (pixels)</Label>
+            <Input type="number" min={8} max={200} value={c.height ?? 32} onChange={e => patch({ height: Number(e.target.value) })} /></div>
+        </div>
+      );
+
     default:
       return null;
   }

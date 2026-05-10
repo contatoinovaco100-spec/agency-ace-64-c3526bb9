@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ArrowUp, ArrowDown, Type, AlignLeft, Image as ImageIcon, List, MousePointerClick, Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, Type, AlignLeft, Image as ImageIcon, List, MousePointerClick, Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send, AlertTriangle, CheckSquare, PlayCircle, Video, ArrowDownUp } from "lucide-react";
 import { QuizMediaUploader } from "./QuizMediaUploader";
 import { useQuizEditorStore, type QuizQuestionDraft } from "@/stores/quizEditorStore";
 import { SalesElementSettings } from "./SalesBlocksEditor";
@@ -12,7 +12,8 @@ import {
   CtaPriceBlock, AuthorityBlock, BeforeAfterBlock, ComparisonTableBlock,
   GaugeChartBlock, ProgressMotivationalBlock, ToastSocialOverlay,
   ExitIntentPopup, ProgressiveRevealBlock, RoiCalculatorBlock,
-  MaturityThermometerBlock, PricingPlansBlock, PostResultFormBlock
+  MaturityThermometerBlock, PricingPlansBlock, PostResultFormBlock,
+  AlertBlock, ArgumentsBlock, AudioBlock, VideoBlock, SpacerBlock
 } from "./SalesBlocks";
 
 export type VisualElement =
@@ -48,6 +49,11 @@ export const TYPE_LABELS: Record<string, { label: string; icon: any; default?: a
   maturity_thermometer: { label: "Termômetro", icon: Thermometer, default: { score: 50, max_score: 100, levels: [{ name: "Iniciante", desc: "", color: "#ef4444", max: 50 }, { name: "Avançado", desc: "", color: "#22c55e", max: 100 }] } },
   pricing_plans: { label: "Planos", icon: LayoutTemplate, default: { plans: [{ name: "Básico", price: "99", features: ["1"], is_popular: false, button_text: "Comprar", button_url: "" }] } },
   post_result_form: { label: "Form Extra", icon: Send, default: { title: "Receba seu diagnóstico:", button_text: "Enviar", fields: { name: true, email: true } } },
+  alert: { label: "Alerta", icon: AlertTriangle, default: { variant: "warning", text: "Atenção: Oferta por tempo limitado." } },
+  arguments: { label: "Argumentos", icon: CheckSquare, default: { title: "Por que escolher nossa solução?", items: [{ title: "Diferencial 1", desc: "Descrição do diferencial" }] } },
+  audio: { label: "Áudio", icon: PlayCircle, default: { title: "Ouça a mensagem especial", url: "" } },
+  video: { label: "Vídeo", icon: Video, default: { url: "https://www.youtube.com/embed/dQw4w9WgXcQ" } },
+  spacer: { label: "Espaço", icon: ArrowDownUp, default: { height: 32, show_line: false } },
 };
 
 export function VisualSectionEditor({ question }: { question: QuizQuestionDraft }) {
@@ -266,6 +272,11 @@ export function renderVisualElements(
     if (el.type === "maturity_thermometer") return <MaturityThermometerBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "pricing_plans") return <PricingPlansBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "post_result_form") return <PostResultFormBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "alert") return <AlertBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "arguments") return <ArgumentsBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "audio") return <AudioBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "video") return <VideoBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "spacer") return <SpacerBlock key={el.id} config={el} theme={theme as any} />;
 
     return null;
   });

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { CheckCircle2, XCircle, Clock, Users, Shield, MessageCircle, ArrowRight, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Users, Shield, MessageCircle, ArrowRight, Star, ChevronLeft, ChevronRight, AlertTriangle, Info, CheckCircle, AlertCircle, Check } from "lucide-react";
 import type { QuizTheme } from "@/lib/quizTheme";
 
 interface BlockProps {
@@ -682,6 +682,76 @@ export function PostResultFormBlock({ config, theme }: BlockProps) {
           {submitting ? "Enviando..." : button_text}
         </button>
       </form>
+    </div>
+    </div>
+  );
+}
+
+/* ─── ALERTA ─── */
+export function AlertBlock({ config, theme }: BlockProps) {
+  const bgMap = { info: "bg-blue-500/10 border-blue-500/20 text-blue-700", warning: "bg-yellow-500/10 border-yellow-500/20 text-yellow-700", success: "bg-green-500/10 border-green-500/20 text-green-700", error: "bg-red-500/10 border-red-500/20 text-red-700" };
+  const iconMap = { info: Info, warning: AlertTriangle, success: CheckCircle, error: AlertCircle };
+  const Icon = iconMap[(config.variant as keyof typeof iconMap) || "warning"] || AlertTriangle;
+  return (
+    <div className={`p-4 rounded-md border flex items-start gap-3 ${bgMap[(config.variant as keyof typeof bgMap) || "warning"]}`}>
+      <Icon className="h-5 w-5 shrink-0 mt-0.5" />
+      <div className="text-sm font-medium whitespace-pre-line leading-relaxed">{config.text}</div>
+    </div>
+  );
+}
+
+/* ─── ARGUMENTOS ─── */
+export function ArgumentsBlock({ config, theme }: BlockProps) {
+  return (
+    <div className="space-y-4 my-2">
+      {config.title && (
+        <h3 className="text-center font-bold text-lg" style={{ color: theme.text_color }}>
+          {config.title}
+        </h3>
+      )}
+      <div className="space-y-3">
+        {(config.items || []).map((it: any, i: number) => (
+          <div key={i} className="flex items-start gap-3 p-3.5 rounded-lg border bg-card/80 shadow-sm">
+            <div className="flex items-center justify-center h-8 w-8 rounded-full shrink-0" style={{ backgroundColor: `${theme.primary_color}15`, color: theme.primary_color }}>
+              <Check className="h-4.5 w-4.5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-semibold text-sm" style={{ color: theme.text_color }}>{it.title}</h4>
+              {it.desc && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{it.desc}</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── ÁUDIO ─── */
+export function AudioBlock({ config, theme }: BlockProps) {
+  if (!config.url) return null;
+  return (
+    <div className="p-4 rounded-xl border bg-card/60 flex flex-col gap-3">
+      {config.title && <div className="text-sm font-semibold text-center" style={{ color: theme.text_color }}>{config.title}</div>}
+      <audio controls src={config.url} className="w-full h-11" />
+    </div>
+  );
+}
+
+/* ─── VÍDEO ─── */
+export function VideoBlock({ config, theme }: BlockProps) {
+  if (!config.url) return null;
+  return (
+    <div className="w-full aspect-video rounded-lg overflow-hidden border bg-black">
+      <iframe src={config.url} className="w-full h-full" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+    </div>
+  );
+}
+
+/* ─── ESPAÇO ─── */
+export function SpacerBlock({ config, theme }: BlockProps) {
+  return (
+    <div style={{ height: config.height || 32 }} className="w-full flex items-center justify-center">
+      {config.show_line && <div className="w-full border-t border-border opacity-60" />}
     </div>
   );
 }
