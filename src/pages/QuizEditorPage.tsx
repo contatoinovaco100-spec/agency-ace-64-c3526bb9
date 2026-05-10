@@ -118,7 +118,18 @@ export default function QuizEditorPage() {
         name: meta.name, description: meta.description,
         result_title: meta.result_title, result_text: meta.result_text,
         result_cta_label: meta.result_cta_label, result_cta_url: meta.result_cta_url,
-      }).eq("id", meta.id);
+        result_image_url: meta.result_image_url,
+        redirect_url: meta.redirect_url,
+        redirect_delay_seconds: meta.redirect_delay_seconds,
+        score_enabled: meta.score_enabled,
+        score_ranges: meta.score_ranges as any,
+        pixel_meta: meta.pixel_meta,
+        pixel_ga: meta.pixel_ga,
+        webhook_url: meta.webhook_url,
+        progress_bar: meta.progress_bar,
+        show_question_numbers: meta.show_question_numbers,
+        theme: meta.theme as any,
+      } as any).eq("id", meta.id);
 
       // Delete questions marked deleted (cascade options)
       const toDelete = questions.filter(q => q._deleted && !q._new).map(q => q.id);
@@ -131,35 +142,37 @@ export default function QuizEditorPage() {
           const { data: created, error } = await supabase.from("quiz_questions").insert({
             quiz_id: meta.id, type: q.type, title: q.title, description: q.description,
             required: q.required, order_index: q.order_index, config: q.config,
-          }).select("id").single();
+            image_url: q.image_url ?? "",
+          } as any).select("id").single();
           if (error || !created) throw error;
           idMap.set(q.id, created.id);
-          // insert options
           const newOpts = q.options.filter(o => !o._deleted);
           if (newOpts.length) {
             await supabase.from("quiz_options").insert(newOpts.map(o => ({
               question_id: created.id, text: o.text, order_index: o.order_index,
-            })));
+              points: o.points ?? 0, image_url: o.image_url ?? "",
+            })) as any);
           }
         } else if (q._dirty) {
           await supabase.from("quiz_questions").update({
             type: q.type, title: q.title, description: q.description,
             required: q.required, order_index: q.order_index, config: q.config,
-          }).eq("id", q.id);
-          // options
+            image_url: q.image_url ?? "",
+          } as any).eq("id", q.id);
           const optsToDelete = q.options.filter(o => o._deleted && !o._new).map(o => o.id);
           if (optsToDelete.length) await supabase.from("quiz_options").delete().in("id", optsToDelete);
           const optsToInsert = q.options.filter(o => o._new && !o._deleted);
           if (optsToInsert.length) {
             await supabase.from("quiz_options").insert(optsToInsert.map(o => ({
               question_id: q.id, text: o.text, order_index: o.order_index,
-            })));
+              points: o.points ?? 0, image_url: o.image_url ?? "",
+            })) as any);
           }
-          // update existing options text/order
           for (const o of q.options.filter(o => !o._new && !o._deleted)) {
             await supabase.from("quiz_options").update({
               text: o.text, order_index: o.order_index,
-            }).eq("id", o.id);
+              points: o.points ?? 0, image_url: o.image_url ?? "",
+            } as any).eq("id", o.id);
           }
         }
       }
