@@ -411,8 +411,10 @@ function SortableQuestionCard({
 }
 
 function BlockSettings({ question }: { question: QuizQuestionDraft }) {
-  const { updateQuestion, addOption, updateOption, removeOption } = useQuizEditorStore();
+  const { meta, updateQuestion, addOption, updateOption, removeOption } = useQuizEditorStore();
   const liveOpts = question.options.filter(o => !o._deleted);
+  const cid = meta?.client_id ?? "shared";
+  const scoreEnabled = !!meta?.score_enabled;
 
   return (
     <div className="space-y-3">
@@ -425,6 +427,16 @@ function BlockSettings({ question }: { question: QuizQuestionDraft }) {
         <Label>Descrição (opcional)</Label>
         <Textarea rows={2} value={question.description} onChange={e => updateQuestion(question.id, { description: e.target.value })} />
       </div>
+
+      {question.type !== "visual" && (
+        <QuizMediaUploader
+          label="Imagem do bloco (acima do título)"
+          value={question.image_url ?? ""}
+          onChange={v => updateQuestion(question.id, { image_url: v })}
+          clientId={cid}
+        />
+      )}
+
       {question.type !== "visual" && (
         <div className="flex items-center justify-between">
           <Label>Resposta obrigatória</Label>
@@ -435,13 +447,28 @@ function BlockSettings({ question }: { question: QuizQuestionDraft }) {
       {(question.type === "single" || question.type === "multiple") && (
         <div>
           <Label>Opções</Label>
-          <div className="space-y-2 mt-1">
+          <div className="space-y-3 mt-1">
             {liveOpts.map(o => (
-              <div key={o.id} className="flex gap-1">
-                <Input value={o.text} onChange={e => updateOption(question.id, o.id, { text: e.target.value })} />
-                <Button size="icon" variant="ghost" onClick={() => removeOption(question.id, o.id)}>
-                  <X className="h-4 w-4" />
-                </Button>
+              <div key={o.id} className="border border-border rounded-md p-2 space-y-2">
+                <div className="flex gap-1">
+                  <Input value={o.text} onChange={e => updateOption(question.id, o.id, { text: e.target.value })} placeholder="Texto" />
+                  <Button size="icon" variant="ghost" onClick={() => removeOption(question.id, o.id)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                {scoreEnabled && (
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs">Pontos</Label>
+                    <Input type="number" value={o.points ?? 0} className="h-7 w-20"
+                      onChange={e => updateOption(question.id, o.id, { points: Number(e.target.value) || 0 })} />
+                  </div>
+                )}
+                <QuizMediaUploader
+                  label="Imagem (card visual — opcional)"
+                  value={o.image_url ?? ""}
+                  onChange={v => updateOption(question.id, o.id, { image_url: v })}
+                  clientId={cid}
+                />
               </div>
             ))}
             <Button size="sm" variant="outline" onClick={() => addOption(question.id)}>
@@ -474,13 +501,12 @@ function BlockSettings({ question }: { question: QuizQuestionDraft }) {
       )}
 
       {question.type === "visual" && (
-        <div>
-          <Label>URL da imagem (opcional)</Label>
-          <Input
-            value={question.config?.image_url ?? ""}
-            onChange={e => updateQuestion(question.id, { config: { ...question.config, image_url: e.target.value } })}
-          />
-        </div>
+        <QuizMediaUploader
+          label="Imagem do banner"
+          value={question.config?.image_url ?? ""}
+          onChange={v => updateQuestion(question.id, { config: { ...question.config, image_url: v } })}
+          clientId={cid}
+        />
       )}
     </div>
   );
