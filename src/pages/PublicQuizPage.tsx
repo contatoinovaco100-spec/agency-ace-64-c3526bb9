@@ -41,6 +41,7 @@ export default function PublicQuizPage() {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, AnswerVal>>({});
   const [lead, setLead] = useState({ name: "", email: "", phone: "", cnpj: "", company_name: "" });
+  const [leadError, setLeadError] = useState<string | null>(null);
   const [responseId, setResponseId] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -149,13 +150,14 @@ export default function PublicQuizPage() {
         if (!a?.text_answer?.trim()) return;
       } else if (q.type === "lead") {
         const f = (q.config?.fields ?? {}) as Record<string, boolean>;
-        if (f.name && !lead.name.trim()) return;
-        if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead.email)) return;
-        if (f.phone && lead.phone.replace(/\D/g, "").length < 10) return;
-        if (f.cnpj && lead.cnpj.replace(/\D/g, "").length < 14) return;
-        if (f.company_name && !lead.company_name.trim()) return;
+        if (f.name && !lead.name.trim()) { setLeadError("Preencha seu nome."); return; }
+        if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead.email)) { setLeadError("E-mail inválido."); return; }
+        if (f.phone && lead.phone.replace(/\D/g, "").length < 10) { setLeadError("Telefone inválido."); return; }
+        if (f.cnpj && lead.cnpj.replace(/\D/g, "").length < 14) { setLeadError("CNPJ inválido."); return; }
+        if (f.company_name && !lead.company_name.trim()) { setLeadError("Preencha a Razão Social."); return; }
       }
     }
+    setLeadError(null);
     if (step < questions.length - 1) {
       setAnimDir("in");
       setStep(step + 1);
@@ -501,6 +503,11 @@ export default function PublicQuizPage() {
                   {submitting && <Loader2 className="h-5 w-5 mr-2 animate-spin inline" />}
                   {step === questions.length - 1 ? `${quiz.button_final_label || "Ver meu resultado"} →` : `${quiz.button_label || "Continuar"} →`}
                 </button>
+                {leadError && (
+                  <div className="text-center text-sm font-semibold text-red-500 bg-red-500/10 py-2 px-3 rounded-md animate-in slide-in-from-bottom-2">
+                    {leadError}
+                  </div>
+                )}
                 <p className="text-center text-xs opacity-40 flex items-center justify-center gap-1">
                   <Lock className="h-3 w-3" /> Seus dados estão protegidos
                 </p>
