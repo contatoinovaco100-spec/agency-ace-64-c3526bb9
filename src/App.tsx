@@ -208,6 +208,10 @@ function AppRoutes() {
                     <Route path="/financeiro-base"     element={<FinancialPage />} />
                     <Route path="/rede/admin"          element={<RedeAdminPage />} />
                     <Route path="/indicacoes-admin"    element={<ReferralsAdminPage />} />
+                    <Route path="/quiz-builder"        element={<QuizBuilderClientsPage />} />
+                    <Route path="/quiz-builder/c/:clientId" element={<QuizBuilderQuizzesPage />} />
+                    <Route path="/quiz-builder/editor/:quizId" element={<QuizEditorPage />} />
+                    <Route path="/quiz-builder/respostas/:quizId" element={<QuizResponsesPage />} />
                     <Route path="*"                    element={<NotFound />} />
                   </Routes>
                 </AppLayout>
