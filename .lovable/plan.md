@@ -1,57 +1,125 @@
+## Quiz Builder — MVP enxuto
 
+Módulo novo, totalmente separado do Diagnóstico/Briefings existentes. Foco em entregar uma base sólida que depois evolui para lógica condicional, score, templates e analytics avançado.
 
-# Restringir acesso da Rede de Negócios
+### O que entra no MVP
 
-Empresas parceiras logadas só devem ver o feed `/negocios` e seu perfil `/rede/perfil`. Não devem acessar Dashboard, Tarefas, Clientes, etc. — nada da plataforma interna da Inova.
+**Gestão de clientes do Quiz** (separado da tabela `clients` da agência)
+- Listagem com nome, slug, nº de quizzes, nº de respostas, status
+- Cadastro: nome, slug auto-gerado e editável (validação de unicidade em tempo real), email, empresa, notas, status ativo/inativo
 
-## Como funciona hoje (problema)
+**Gestão de quizzes por cliente**
+- Cards: nome, slug, status, nº respostas, data
+- Ações: Editar, Duplicar, Ver Respostas, Copiar Link, Ativar/Pausar, Excluir
+- Criação: nome, slug auto-gerado e editável, descrição interna, preview da URL final
 
-- Qualquer usuário autenticado (incluindo empresas da Rede) tem acesso a páginas marcadas como `alwaysAllowed` (Dashboard, Minhas Tarefas, Calendário, Chat, Notificações, Roleta).
-- Após login, empresas caem em `/minhas-tarefas` e veem o sidebar inteiro da Inova.
-- Não existe diferenciação de "tipo de usuário" — só admin vs não-admin.
+**Editor visual com drag-and-drop completo (@dnd-kit)**
+- Painel esquerdo: biblioteca de blocos arrastáveis
+- Canvas central: lista ordenável de blocos, com preview ao vivo
+- Painel direito: configurações do bloco selecionado
+- Topo: nome do quiz, Salvar, Publicar/Pausar, Preview, Copiar Link
 
-## Solução
+Blocos do MVP (subset enxuto):
+- Pergunta múltipla escolha (várias respostas)
+- Pergunta escolha única
+- Pergunta aberta (texto livre)
+- Captura de lead (nome, email, telefone — todos com validação)
+- Bloco visual: título/subtítulo + imagem (URL)
+- Página de resultado simples (texto + CTA com link/WhatsApp)
 
-Criar um conceito de **"usuário de empresa parceira"**: identificado por ter um registro em `rede_companies.owner_user_id = user.id`. Esses usuários ficam confinados à Rede.
+Sem MVP: branching, lógica condicional, score, timer, gamificação, NPS, templates, webhook, pixel, senha, expiração, gráficos avançados, vídeo embed, depoimentos. Tudo isso vira fase 2.
 
-### 1. Hook novo `useIsRedeCompanyUser`
-Em `src/hooks/useUserRole.ts`, adicionar hook que consulta `rede_companies` pelo `owner_user_id` do usuário logado. Retorna `{ isRedeCompanyUser, companyId, loading }`.
+**Página pública `/quiz/:clientSlug/:quizSlug`**
+- Rota fora do AppLayout (sem header/sidebar), tema claro independente
+- Mobile-first, responsiva
+- Progresso uma pergunta por vez, barra de progresso simples
+- Captura de UTMs (utm_source, utm_medium, utm_campaign) da URL
+- Progresso parcial salvo em localStorage por slug
+- Tela de "quiz pausado" / "quiz não encontrado" amigável
+- Tela final com texto de resultado + CTA configurado
 
-### 2. Atualizar `usePageAccess` (`src/hooks/useUserRole.ts`)
-- Se `isRedeCompanyUser` (e não é admin), liberar **somente** `/negocios`, `/rede/perfil`, `/rede/novo` e `/login`.
-- Ignorar todas as flags `alwaysAllowed` para esse tipo de usuário.
-- Bloquear qualquer outra rota.
+**Respostas (aba dentro do quiz)**
+- Cards no topo: visualizações (lidas do contador), inícios, conclusões, taxa de conclusão, leads
+- Tabela de respostas: data, nome, email, telefone, UTM source, ação "ver detalhes" (modal com todas respostas)
+- Botão "Exportar CSV"
 
-### 3. Atualizar `ProtectedRoute` (`src/components/ProtectedRoute.tsx`)
-- Se usuário é da Rede e tenta acessar qualquer rota fora da whitelist → redireciona para `/negocios`.
-- Admin continua com acesso total; funcionários Inova continuam com regras atuais.
+**Navegação**
+- Novo item no sidebar "Quiz Builder" (ícone Layers), categoria Ferramentas, admin-only
+- Rotas: `/quiz-builder` (clientes), `/quiz-builder/c/:clientId` (quizzes), `/quiz-builder/editor/:quizId`
+- Pública: `/quiz/:clientSlug/:quizSlug` adicionada ao bloco `isPublicPage` em `App.tsx`
 
-### 4. Redirecionamento pós-login (`src/pages/LoginPage.tsx`)
-Após login bem-sucedido, checar nesta ordem:
-1. Admin → `/`
-2. Empresa da Rede (`rede_companies.owner_user_id = user.id`) → `/negocios`
-3. Demais → `/minhas-tarefas`
+### Detalhes técnicos
 
-### 5. Esconder sidebar/AppLayout para empresas da Rede
-Como `/negocios` já é rota pública (fora do `AppLayout`), empresas da Rede nunca verão o sidebar da Inova ao navegar pelo feed. Mas precisamos garantir que `/rede/perfil` e `/rede/novo` (que estão dentro do `AppLayout`) também NÃO mostrem o sidebar interno para usuários da Rede.
+**Tabelas Supabase novas** (todas com RLS):
 
-Solução: mover essas duas rotas para fora do `AppLayout` em `src/App.tsx` — elas terão seu próprio header simples (botões "Voltar ao feed" e "Sair") já presentes no código. Adicionar `/rede/perfil` e `/rede/novo` ao bloco `isPublicPage` (com guard interno: redirecionam para `/login` se não autenticado, igual já fazem hoje).
+```text
+quiz_clients (id, name, slug UNIQUE, email, company, notes, status, created_at, updated_at)
+quizzes (id, client_id FK, name, slug, description, status[draft|active|paused],
+         result_title, result_text, result_cta_label, result_cta_url,
+         views_count, starts_count, completions_count,
+         created_at, updated_at, UNIQUE(client_id, slug))
+quiz_questions (id, quiz_id FK, type, title, description, required, order_index, config jsonb)
+quiz_options (id, question_id FK, text, order_index)
+quiz_responses (id, quiz_id FK, started_at, completed_at, lead_name, lead_email,
+                lead_phone, utm_source, utm_medium, utm_campaign)
+quiz_answers (id, response_id FK, question_id FK, option_ids uuid[], text_answer)
+```
 
-### 6. Header no feed `/negocios` para empresas logadas
-No `RedeNegociosPage.tsx`, quando o usuário é uma empresa da Rede, mostrar botões: "Meu perfil" (`/rede/perfil`), "Nova publicação" (`/rede/novo`) e "Sair". Sem nenhum link para áreas internas da Inova.
+**RLS:**
+- Painel: tudo gerenciável por authenticated (admin verificado em UI via `useUserRole`).
+- Pública: SELECT em `quiz_clients`, `quizzes` (apenas status='active'), `quiz_questions`, `quiz_options` para anon. INSERT em `quiz_responses` e `quiz_answers` para anon. UPDATE de `views_count`/`starts_count`/`completions_count` via RPC `increment_quiz_counter(quiz_id, field)` (security definer) para evitar abuso.
 
-## Detalhes técnicos
+**Slug**
+- Helper `slugify(name)` (lowercase, hifens, sem acento, 3-60 chars).
+- Validação de unicidade: query Supabase no blur do input + feedback visual.
 
-**Arquivos editados:**
-- `src/hooks/useUserRole.ts` — novo hook `useIsRedeCompanyUser` + ajuste em `usePageAccess`
-- `src/components/ProtectedRoute.tsx` — guard de redirecionamento para empresas da Rede
-- `src/pages/LoginPage.tsx` — lógica de redirecionamento por tipo de usuário
-- `src/App.tsx` — mover `/rede/perfil` e `/rede/novo` para fora do `AppLayout`
-- `src/pages/RedeNegociosPage.tsx` — botão "Sair" e CTAs contextuais para empresas logadas
+**Editor drag-and-drop**
+- `@dnd-kit/core` + `@dnd-kit/sortable`.
+- Biblioteca lateral com `useDraggable`; canvas com `SortableContext` vertical.
+- Estado local do quiz em edição via Zustand (novo, isolado do resto do app).
+- Save explícito em botão (não autosave nesta fase).
 
-**Sem mudanças no banco** — a relação `rede_companies.owner_user_id` já é o suficiente para identificar o tipo de usuário. RLS continua igual.
+**Página pública**
+- Componente `PublicQuizPage` carrega quiz pelo par de slugs, valida status='active'.
+- Se inválido → tela "Quiz indisponível".
+- Renderiza uma pergunta por vez com transição fade. Captura UTMs no mount.
+- Ao iniciar: cria `quiz_responses` (started_at) + RPC starts_count++.
+- Ao finalizar: atualiza completed_at + RPC completions_count++ + insere todas `quiz_answers`.
 
-**Comportamento final:**
-- Login de empresa da Rede → cai em `/negocios` → só vê o feed, seu perfil e botão de nova publicação. Tentar acessar `/`, `/clientes`, `/tarefas` etc. → redireciona para `/negocios`.
-- Admin e funcionários Inova → comportamento atual preservado.
+**Export CSV**
+- Geração client-side a partir das respostas carregadas (sem dependências novas).
 
+### O que NÃO entra agora (próximas fases sugeridas)
+
+1. Score por opção + página de resultado por faixa
+2. Lógica condicional / branching / variáveis dinâmicas
+3. Templates iniciais (4 templates de produtora)
+4. Personalização visual avançada (fontes, animações, cores por quiz, upload logo)
+5. Webhook + pixel Meta/Google + notificação por email
+6. Gamificação (timer, badge, barra animada, NPS)
+7. Analytics avançado (funil de abandono, distribuição por pergunta, gráficos)
+8. QR Code, embed iframe, senha, expiração
+9. Vídeo embed, depoimentos, gráfico comparativo
+
+### Arquivos novos/alterados
+
+Novos:
+- `supabase/migrations/<ts>_quiz_builder.sql` — tabelas, RLS, RPC counter
+- `src/lib/quizSlug.ts` — slugify + validador
+- `src/stores/quizEditorStore.ts` — Zustand do editor
+- `src/pages/QuizBuilderClientsPage.tsx`
+- `src/pages/QuizBuilderQuizzesPage.tsx`
+- `src/pages/QuizEditorPage.tsx`
+- `src/pages/QuizResponsesPage.tsx`
+- `src/pages/PublicQuizPage.tsx`
+- `src/components/quiz/BlockLibrary.tsx`
+- `src/components/quiz/QuizCanvas.tsx`
+- `src/components/quiz/BlockSettings.tsx`
+- `src/components/quiz/blocks/*.tsx` (renderizadores por tipo)
+
+Alterados:
+- `src/App.tsx` — rotas novas + `isPublicPage` inclui `/quiz/`
+- `src/config/app-pages.ts` — entrada Quiz Builder (Ferramentas, adminOnly)
+- `package.json` — adiciona `@dnd-kit/core`, `@dnd-kit/sortable`, `zustand` (se ainda não presente)
+
+Após esse MVP rodar bem, te pergunto qual fase atacar a seguir.
