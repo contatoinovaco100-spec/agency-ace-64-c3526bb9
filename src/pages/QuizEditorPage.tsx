@@ -23,7 +23,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  useQuizEditorStore, type QuestionType, type QuizQuestionDraft,
+  useQuizEditorStore, type QuestionType, type QuizQuestionDraft, buildDefaultMeta,
 } from "@/stores/quizEditorStore";
 
 const BLOCK_LIBRARY: { type: QuestionType; label: string; icon: any; desc: string }[] = [
