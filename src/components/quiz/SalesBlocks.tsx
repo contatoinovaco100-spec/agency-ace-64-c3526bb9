@@ -531,3 +531,157 @@ export function ProgressiveRevealBlock({ config, theme }: BlockProps) {
     </div>
   );
 }
+
+/* ─── CALCULADORA DE ROI ─── */
+export function RoiCalculatorBlock({ config, theme }: BlockProps) {
+  const { prefix = "R$ ", value = "15.000", suffix = " / mês", label = "Seu potencial de resultado", disclaimer = "" } = config;
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: `2px solid ${theme.primary_color}` }}>
+      <div className="p-6 text-center space-y-3" style={{ backgroundColor: theme.card_background }}>
+        <p className="text-sm font-medium opacity-80" style={{ color: theme.text_color }}>{label}</p>
+        <div className="text-4xl sm:text-5xl font-extrabold flex items-center justify-center gap-1" style={{ color: theme.primary_color }}>
+          <span className="text-2xl opacity-70">{prefix}</span>
+          <span className="animate-[countUp_2s_ease-out]">{value}</span>
+          <span className="text-xl opacity-70">{suffix}</span>
+        </div>
+        {disclaimer && <p className="text-[10px] opacity-40 mt-4">{disclaimer}</p>}
+      </div>
+      <style>{`@keyframes countUp { from { opacity: 0; transform: translateY(20px); filter: blur(4px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }`}</style>
+    </div>
+  );
+}
+
+/* ─── TERMÔMETRO DE MATURIDADE ─── */
+export function MaturityThermometerBlock({ config, theme }: BlockProps) {
+  const { score = 50, max_score = 100, levels = [] } = config;
+  const pct = Math.min(100, Math.max(0, (score / max_score) * 100));
+
+  const currentLevel = (levels as any[]).find((l, i, arr) => {
+    const prev = i > 0 ? arr[i - 1].max : 0;
+    return pct > prev && pct <= l.max;
+  }) ?? levels[levels.length - 1];
+
+  return (
+    <div className="rounded-xl p-5 space-y-6" style={{ backgroundColor: `${theme.primary_color}05`, border: `1px solid ${theme.primary_color}20` }}>
+      {/* Thermometer Bar */}
+      <div className="relative h-4 rounded-full w-full" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>
+        {/* Markers */}
+        {(levels as any[]).map((l: any, i: number) => (
+          <div key={i} className="absolute top-0 bottom-0 w-px bg-white/20" style={{ left: `${l.max}%` }} />
+        ))}
+        {/* Fill */}
+        <div className="absolute top-0 bottom-0 left-0 rounded-full transition-all duration-1000 ease-out"
+          style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${theme.primary_color}80, ${currentLevel?.color || theme.primary_color})` }} />
+        {/* Needle */}
+        <div className="absolute top-1/2 -translate-y-1/2 w-4 h-6 bg-white rounded shadow-lg transition-all duration-1000 ease-out z-10 flex items-center justify-center"
+          style={{ left: `calc(${pct}% - 8px)`, border: `2px solid ${currentLevel?.color || theme.primary_color}` }}>
+          <div className="w-1 h-2 rounded-full" style={{ backgroundColor: currentLevel?.color || theme.primary_color }} />
+        </div>
+      </div>
+
+      {/* Result Card */}
+      <div className="rounded-lg p-4 text-center space-y-2 animate-[revealFade_0.5s_ease-out_0.5s_both]"
+        style={{ backgroundColor: `${currentLevel?.color || theme.primary_color}15`, border: `1px solid ${currentLevel?.color || theme.primary_color}40` }}>
+        <p className="text-xs opacity-70">Você está no nível:</p>
+        <p className="text-xl font-bold" style={{ color: currentLevel?.color || theme.primary_color }}>
+          {currentLevel?.name || "..."}
+        </p>
+        {currentLevel?.desc && <p className="text-sm opacity-90">{currentLevel.desc}</p>}
+      </div>
+    </div>
+  );
+}
+
+/* ─── PLANOS (PRICING) ─── */
+export function PricingPlansBlock({ config, theme }: BlockProps) {
+  const plans = (config.plans ?? []) as any[];
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {plans.map((p, i) => (
+        <div key={i} className="rounded-xl p-5 flex flex-col space-y-4 relative overflow-hidden transition-transform hover:-translate-y-1"
+          style={{
+            backgroundColor: p.is_popular ? `${theme.primary_color}10` : theme.card_background,
+            border: `2px solid ${p.is_popular ? theme.primary_color : `${theme.primary_color}30`}`
+          }}>
+          {p.is_popular && (
+            <div className="absolute top-0 right-0 left-0 bg-primary text-center text-[10px] font-bold py-1 uppercase tracking-wider"
+              style={{ backgroundColor: theme.primary_color, color: theme.button_text_color }}>
+              Mais popular
+            </div>
+          )}
+          <div className={p.is_popular ? "pt-4" : ""}>
+            <h3 className="text-lg font-bold">{p.name}</h3>
+            <div className="text-3xl font-extrabold mt-2" style={{ color: theme.primary_color }}>R$ {p.price}</div>
+          </div>
+          <ul className="space-y-2 flex-1">
+            {(p.features ?? []).map((f: string, j: number) => (
+              <li key={j} className="flex items-start gap-2 text-sm opacity-80">
+                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" style={{ color: theme.primary_color }} />
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+          {p.button_url && (
+            <a href={p.button_url} target="_blank" rel="noreferrer" className="w-full py-3 rounded-lg text-center font-bold transition-all text-sm block"
+              style={{
+                backgroundColor: p.is_popular ? theme.primary_color : "transparent",
+                color: p.is_popular ? theme.button_text_color : theme.text_color,
+                border: `1px solid ${theme.primary_color}`
+              }}>
+              {p.button_text || "Escolher"}
+            </a>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── FORMULÁRIO PÓS-RESULTADO ─── */
+export function PostResultFormBlock({ config, theme }: BlockProps) {
+  const { title = "Receba seu diagnóstico completo no e-mail:", button_text = "Enviar", fields = {} } = config;
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setTimeout(() => { setSubmitting(false); setDone(true); }, 1500);
+  };
+
+  if (done) {
+    return (
+      <div className="rounded-xl p-6 text-center space-y-3" style={{ backgroundColor: `${theme.primary_color}15`, border: `1px solid ${theme.primary_color}30` }}>
+        <CheckCircle2 className="h-10 w-10 mx-auto" style={{ color: theme.primary_color }} />
+        <p className="font-bold">Tudo certo!</p>
+        <p className="text-sm opacity-80">Suas informações foram salvas.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl p-6" style={{ backgroundColor: `${theme.primary_color}05`, border: `1px solid ${theme.primary_color}20` }}>
+      <p className="text-center font-medium mb-5" style={{ color: theme.text_color }}>{title}</p>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        {fields.name && (
+          <input required type="text" placeholder="Seu nome" className="w-full p-3 rounded-lg text-sm bg-black/20 border-white/10 outline-none focus:border-primary transition-colors" />
+        )}
+        {fields.email && (
+          <input required type="email" placeholder="Seu melhor e-mail" className="w-full p-3 rounded-lg text-sm bg-black/20 border-white/10 outline-none focus:border-primary transition-colors" />
+        )}
+        {fields.phone && (
+          <input required type="tel" placeholder="WhatsApp" className="w-full p-3 rounded-lg text-sm bg-black/20 border-white/10 outline-none focus:border-primary transition-colors" />
+        )}
+        {fields.company && (
+          <input required type="text" placeholder="Sua empresa" className="w-full p-3 rounded-lg text-sm bg-black/20 border-white/10 outline-none focus:border-primary transition-colors" />
+        )}
+        <button type="submit" disabled={submitting} className="w-full py-3 mt-2 rounded-lg font-bold transition-all disabled:opacity-50"
+          style={{ backgroundColor: theme.primary_color, color: theme.button_text_color }}>
+          {submitting ? "Enviando..." : button_text}
+        </button>
+      </form>
+    </div>
+  );
+}

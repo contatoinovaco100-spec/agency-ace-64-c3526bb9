@@ -5,7 +5,8 @@ export type QuestionType =
   | "multiple" | "single" | "text" | "lead" | "visual"
   | "scarcity" | "social_proof" | "testimonials" | "cta_whatsapp"
   | "cta_price" | "authority" | "before_after" | "comparison_table"
-  | "gauge_chart" | "progress_motivational" | "toast_social" | "exit_intent" | "progressive_reveal";
+  | "gauge_chart" | "progress_motivational" | "toast_social" | "exit_intent" | "progressive_reveal"
+  | "roi_calculator" | "maturity_thermometer" | "pricing_plans" | "post_result_form";
 
 export interface QuizOptionDraft {
   id: string;
@@ -140,7 +141,7 @@ export const useQuizEditorStore = create<QuizEditorState>((set) => ({
   addQuestion: (type) =>
     set((s) => {
       const id = tempId();
-      const salesTypes: QuestionType[] = ["scarcity","social_proof","testimonials","cta_whatsapp","cta_price","authority","before_after","comparison_table","gauge_chart","progress_motivational","toast_social","exit_intent","progressive_reveal"];
+      const salesTypes: QuestionType[] = ["scarcity","social_proof","testimonials","cta_whatsapp","cta_price","authority","before_after","comparison_table","gauge_chart","progress_motivational","toast_social","exit_intent","progressive_reveal","roi_calculator","maturity_thermometer","pricing_plans","post_result_form"];
       const isSales = salesTypes.includes(type);
       const titleMap: Partial<Record<QuestionType, string>> = {
         lead: "Seus dados de contato",
@@ -158,6 +159,10 @@ export const useQuizEditorStore = create<QuizEditorState>((set) => ({
         toast_social: "Toast Prova Social",
         exit_intent: "Pop-up de Saída",
         progressive_reveal: "Revelação Progressiva",
+        roi_calculator: "Calculadora de ROI",
+        maturity_thermometer: "Termômetro",
+        pricing_plans: "Planos / Pricing",
+        post_result_form: "Formulário Final",
       };
       const configMap: Partial<Record<QuestionType, Record<string, any>>> = {
         lead: { fields: { name: true, email: true, phone: true } },
@@ -175,6 +180,10 @@ export const useQuizEditorStore = create<QuizEditorState>((set) => ({
         toast_social: { items: [{ name: "Maria", city: "São Paulo" }, { name: "João", city: "Rio de Janeiro" }, { name: "Ana", city: "Belo Horizonte" }], interval_seconds: 8, action_text: "acabou de se inscrever" },
         exit_intent: { title: "Espera!", text: "Seu resultado ainda não foi salvo...", button_text: "Continuar o quiz", show_on_mobile: true, mobile_idle_seconds: 30 },
         progressive_reveal: { loading_text: "Calculando seu perfil...", loading_seconds: 3, reveal_steps: [{ type: "score", label: "Sua pontuação" }, { type: "classification", label: "Seu nível" }, { type: "recommendation", text: "Recomendação personalizada aqui..." }] },
+        roi_calculator: { prefix: "R$ ", value: "15.000", suffix: " / mês", label: "Seu potencial de resultado", disclaimer: "*Estimativa baseada em clientes similares" },
+        maturity_thermometer: { score: 50, max_score: 100, levels: [{ name: "Iniciante", desc: "Ainda dando os primeiros passos", color: "#ef4444", max: 25 }, { name: "Básico", desc: "Tem uma base, mas precisa melhorar", color: "#f97316", max: 50 }, { name: "Intermediário", desc: "Bons resultados, buscando escalar", color: "#eab308", max: 75 }, { name: "Avançado", desc: "Alta performance", color: "#22c55e", max: 100 }] },
+        pricing_plans: { plans: [{ name: "Básico", price: "99", features: ["Acesso padrão", "Suporte email"], is_popular: false, button_text: "Começar", button_url: "" }, { name: "Pro", price: "299", features: ["Tudo do básico", "Suporte prioritário", "Acesso VIP"], is_popular: true, button_text: "Assinar Pro", button_url: "" }] },
+        post_result_form: { title: "Receba seu diagnóstico completo no e-mail:", button_text: "Enviar", fields: { name: true, email: true, phone: false, company: false } },
       };
       const base: QuizQuestionDraft = {
         id,

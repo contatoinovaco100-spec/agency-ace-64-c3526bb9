@@ -11,7 +11,8 @@ import {
   ScarcityBlock, SocialProofBlock, TestimonialsBlock, CtaWhatsAppBlock,
   CtaPriceBlock, AuthorityBlock, BeforeAfterBlock, ComparisonTableBlock,
   GaugeChartBlock, ProgressMotivationalBlock, ToastSocialOverlay,
-  ExitIntentPopup, ProgressiveRevealBlock,
+  ExitIntentPopup, ProgressiveRevealBlock, RoiCalculatorBlock,
+  MaturityThermometerBlock, PricingPlansBlock, PostResultFormBlock,
 } from "@/components/quiz/SalesBlocks";
 
 interface Quiz {
@@ -484,6 +485,10 @@ export default function PublicQuizPage() {
             {q.type === "comparison_table" && <ComparisonTableBlock config={q.config} theme={theme} />}
             {q.type === "gauge_chart" && <GaugeChartBlock config={q.config} theme={theme} />}
             {q.type === "progressive_reveal" && <ProgressiveRevealBlock config={q.config} theme={theme} />}
+            {q.type === "roi_calculator" && <RoiCalculatorBlock config={q.config} theme={theme} />}
+            {q.type === "maturity_thermometer" && <MaturityThermometerBlock config={q.config} theme={theme} />}
+            {q.type === "pricing_plans" && <PricingPlansBlock config={q.config} theme={theme} />}
+            {q.type === "post_result_form" && <PostResultFormBlock config={q.config} theme={theme} />}
 
             {/* Motivational progress bar block */}
             {q.type === "progress_motivational" && (
@@ -491,7 +496,7 @@ export default function PublicQuizPage() {
             )}
 
             {/* Continue button for visual and sales blocks */}
-            {["visual","scarcity","social_proof","testimonials","authority","before_after","comparison_table","gauge_chart","progress_motivational","progressive_reveal"].includes(q.type) && (
+            {["visual","scarcity","social_proof","testimonials","authority","before_after","comparison_table","gauge_chart","progress_motivational","progressive_reveal","roi_calculator","maturity_thermometer"].includes(q.type) && (
               <button
                 onClick={() => goNext()}
                 className="w-full py-4 text-base font-bold transition-all hover:scale-[1.02] active:scale-95"

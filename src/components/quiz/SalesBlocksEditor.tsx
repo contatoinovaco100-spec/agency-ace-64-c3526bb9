@@ -350,6 +350,116 @@ export function SalesBlockSettings({ question }: { question: QuizQuestionDraft }
       );
     }
 
+    case "roi_calculator":
+      return (
+        <div className="space-y-3">
+          <div><Label className="text-xs">Prefixo</Label>
+            <Input value={c.prefix ?? ""} placeholder="R$ " onChange={e => patch({ prefix: e.target.value })} /></div>
+          <div><Label className="text-xs">Valor estimado</Label>
+            <Input value={c.value ?? ""} placeholder="15.000" onChange={e => patch({ value: e.target.value })} /></div>
+          <div><Label className="text-xs">Sufixo</Label>
+            <Input value={c.suffix ?? ""} placeholder=" / mês" onChange={e => patch({ suffix: e.target.value })} /></div>
+          <div><Label className="text-xs">Label</Label>
+            <Input value={c.label ?? ""} onChange={e => patch({ label: e.target.value })} /></div>
+          <div><Label className="text-xs">Disclaimer (texto menor em baixo)</Label>
+            <Input value={c.disclaimer ?? ""} onChange={e => patch({ disclaimer: e.target.value })} /></div>
+        </div>
+      );
+
+    case "maturity_thermometer": {
+      const levels = (c.levels ?? []) as any[];
+      const updateLevel = (i: number, p: Record<string, any>) => {
+        const n = [...levels]; n[i] = { ...n[i], ...p }; patch({ levels: n });
+      };
+      return (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div><Label className="text-xs">Score atual</Label>
+              <Input type="number" value={c.score ?? 50} onChange={e => patch({ score: +e.target.value })} /></div>
+            <div><Label className="text-xs">Score máximo</Label>
+              <Input type="number" value={c.max_score ?? 100} onChange={e => patch({ max_score: +e.target.value })} /></div>
+          </div>
+          <Label>Níveis de Maturidade</Label>
+          {levels.map((l, i) => (
+            <div key={i} className="border border-border rounded-md p-2 space-y-2">
+              <div className="flex gap-1">
+                <Input value={l.name} placeholder="Nome do nível" onChange={e => updateLevel(i, { name: e.target.value })} className="font-bold text-xs" />
+                <Input type="number" value={l.max} placeholder="Até %" className="w-20 text-xs" onChange={e => updateLevel(i, { max: +e.target.value })} />
+                <Input type="color" value={l.color} className="w-10 p-0 h-9" onChange={e => updateLevel(i, { color: e.target.value })} />
+                <Button size="icon" variant="ghost" onClick={() => patch({ levels: levels.filter((_, j) => j !== i) })}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <Textarea rows={2} value={l.desc} placeholder="Descrição do nível" className="text-xs" onChange={e => updateLevel(i, { desc: e.target.value })} />
+            </div>
+          ))}
+          <Button size="sm" variant="outline" onClick={() => patch({ levels: [...levels, { name: "Novo Nível", desc: "", color: "#3b82f6", max: 100 }] })}>
+            <Plus className="h-3.5 w-3.5 mr-1" />Adicionar nível
+          </Button>
+        </div>
+      );
+    }
+
+    case "pricing_plans": {
+      const plans = (c.plans ?? []) as any[];
+      const updatePlan = (i: number, p: Record<string, any>) => {
+        const n = [...plans]; n[i] = { ...n[i], ...p }; patch({ plans: n });
+      };
+      return (
+        <div className="space-y-4">
+          <Label>Planos</Label>
+          {plans.map((p, i) => (
+            <div key={i} className="border border-border rounded-md p-3 space-y-3 relative">
+              <Button size="icon" variant="ghost" className="absolute top-1 right-1 h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => patch({ plans: plans.filter((_, j) => j !== i) })}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+              <div className="flex items-center gap-2 pt-2">
+                <Switch checked={p.is_popular} onCheckedChange={v => updatePlan(i, { is_popular: v })} />
+                <Label className="text-xs text-primary">Plano Destacado / Mais Popular</Label>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label className="text-xs">Nome</Label>
+                  <Input value={p.name} onChange={e => updatePlan(i, { name: e.target.value })} className="text-xs font-bold" /></div>
+                <div><Label className="text-xs">Preço</Label>
+                  <Input value={p.price} onChange={e => updatePlan(i, { price: e.target.value })} className="text-xs" /></div>
+              </div>
+              <div><Label className="text-xs">Benefícios (um por linha)</Label>
+                <Textarea rows={3} value={(p.features ?? []).join("\n")} className="text-xs" onChange={e => updatePlan(i, { features: e.target.value.split("\n").filter(Boolean) })} /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label className="text-xs">Texto Botão</Label>
+                  <Input value={p.button_text} onChange={e => updatePlan(i, { button_text: e.target.value })} className="text-xs" /></div>
+                <div><Label className="text-xs">URL Botão</Label>
+                  <Input value={p.button_url} onChange={e => updatePlan(i, { button_url: e.target.value })} className="text-xs" /></div>
+              </div>
+            </div>
+          ))}
+          <Button size="sm" variant="outline" className="w-full" onClick={() => patch({ plans: [...plans, { name: "Novo Plano", price: "0", features: ["Benefício 1"], is_popular: false, button_text: "Assinar", button_url: "" }] })}>
+            <Plus className="h-3.5 w-3.5 mr-1" />Adicionar plano
+          </Button>
+        </div>
+      );
+    }
+
+    case "post_result_form": {
+      const fields = c.fields ?? {};
+      const updateField = (k: string, v: boolean) => patch({ fields: { ...fields, [k]: v } });
+      return (
+        <div className="space-y-3">
+          <div><Label className="text-xs">Título (Call to Action)</Label>
+            <Input value={c.title ?? ""} onChange={e => patch({ title: e.target.value })} /></div>
+          <div><Label className="text-xs">Texto do botão de envio</Label>
+            <Input value={c.button_text ?? ""} onChange={e => patch({ button_text: e.target.value })} /></div>
+          <Label className="mt-4 block">Campos do Formulário</Label>
+          <div className="space-y-2 border border-border rounded-md p-3">
+            <div className="flex items-center justify-between"><Label className="text-xs cursor-pointer" htmlFor="f_name">Nome</Label><Switch id="f_name" checked={!!fields.name} onCheckedChange={v => updateField("name", v)} /></div>
+            <div className="flex items-center justify-between"><Label className="text-xs cursor-pointer" htmlFor="f_email">E-mail</Label><Switch id="f_email" checked={!!fields.email} onCheckedChange={v => updateField("email", v)} /></div>
+            <div className="flex items-center justify-between"><Label className="text-xs cursor-pointer" htmlFor="f_phone">Telefone (WhatsApp)</Label><Switch id="f_phone" checked={!!fields.phone} onCheckedChange={v => updateField("phone", v)} /></div>
+            <div className="flex items-center justify-between"><Label className="text-xs cursor-pointer" htmlFor="f_company">Empresa</Label><Switch id="f_company" checked={!!fields.company} onCheckedChange={v => updateField("company", v)} /></div>
+          </div>
+        </div>
+      );
+    }
+
     default:
       return null;
   }

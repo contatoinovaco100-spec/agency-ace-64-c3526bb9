@@ -15,7 +15,7 @@ import {
   Loader2, ArrowLeft, Save, Eye, Copy, Pause, Play, Trash2, GripVertical, Plus, X,
   ListChecks, CircleDot, Type, Mail, Image as ImageIcon, Layers, Palette, Settings2,
   Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Zap,
-  Gauge, TrendingUp, Bell, LogOut, Sparkles,
+  Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send,
 } from "lucide-react";
 import {
   DndContext, closestCenter, useSensor, useSensors, PointerSensor,
@@ -56,6 +56,10 @@ const SALES_BLOCK_LIBRARY: { type: QuestionType; label: string; icon: any; desc:
   { type: "toast_social",     label: "🔔 Toast Social",       icon: Bell,            desc: "Notificação flutuante" },
   { type: "exit_intent",      label: "🚪 Pop-up de Saída",     icon: LogOut,           desc: "Retenção ao sair" },
   { type: "progressive_reveal", label: "✨ Revelação",         icon: Sparkles,        desc: "Revelação progressiva" },
+  { type: "roi_calculator",   label: "🧮 Calculadora de ROI", icon: Calculator,      desc: "Retorno financeiro" },
+  { type: "maturity_thermometer", label: "🌡️ Termômetro",     icon: Thermometer,     desc: "Nível de maturidade" },
+  { type: "pricing_plans",    label: "💳 Planos",             icon: LayoutTemplate,  desc: "Pricing de opções" },
+  { type: "post_result_form", label: "📝 Formulário Final",   icon: Send,            desc: "Captura extra" },
 ];
 
 export default function QuizEditorPage() {
@@ -589,7 +593,7 @@ function BlockSettings({ question }: { question: QuizQuestionDraft }) {
         </>
       )}
 
-      {["scarcity","social_proof","testimonials","cta_whatsapp","cta_price","authority","before_after","comparison_table","gauge_chart","progress_motivational","toast_social","exit_intent","progressive_reveal"].includes(question.type) && (
+      {["scarcity","social_proof","testimonials","cta_whatsapp","cta_price","authority","before_after","comparison_table","gauge_chart","progress_motivational","toast_social","exit_intent","progressive_reveal","roi_calculator","maturity_thermometer","pricing_plans","post_result_form"].includes(question.type) && (
         <SalesBlockSettings question={question} />
       )}
 
