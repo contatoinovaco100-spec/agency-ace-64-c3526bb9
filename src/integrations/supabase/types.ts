@@ -1469,21 +1469,27 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          image_url: string
           order_index: number
+          points: number
           question_id: string
           text: string
         }
         Insert: {
           created_at?: string
           id?: string
+          image_url?: string
           order_index?: number
+          points?: number
           question_id: string
           text?: string
         }
         Update: {
           created_at?: string
           id?: string
+          image_url?: string
           order_index?: number
+          points?: number
           question_id?: string
           text?: string
         }
@@ -1499,10 +1505,13 @@ export type Database = {
       }
       quiz_questions: {
         Row: {
+          branching: Json
           config: Json
           created_at: string
           description: string
           id: string
+          image_url: string
+          next_question_id: string | null
           order_index: number
           quiz_id: string
           required: boolean
@@ -1510,10 +1519,13 @@ export type Database = {
           type: string
         }
         Insert: {
+          branching?: Json
           config?: Json
           created_at?: string
           description?: string
           id?: string
+          image_url?: string
+          next_question_id?: string | null
           order_index?: number
           quiz_id: string
           required?: boolean
@@ -1521,10 +1533,13 @@ export type Database = {
           type: string
         }
         Update: {
+          branching?: Json
           config?: Json
           created_at?: string
           description?: string
           id?: string
+          image_url?: string
+          next_question_id?: string | null
           order_index?: number
           quiz_id?: string
           required?: boolean
@@ -1597,15 +1612,26 @@ export type Database = {
           description: string
           id: string
           name: string
+          pixel_ga: string
+          pixel_meta: string
+          progress_bar: boolean
+          redirect_delay_seconds: number
+          redirect_url: string
           result_cta_label: string
           result_cta_url: string
+          result_image_url: string
           result_text: string
           result_title: string
+          score_enabled: boolean
+          score_ranges: Json
+          show_question_numbers: boolean
           slug: string
           starts_count: number
           status: string
+          theme: Json
           updated_at: string
           views_count: number
+          webhook_url: string
         }
         Insert: {
           client_id: string
@@ -1615,15 +1641,26 @@ export type Database = {
           description?: string
           id?: string
           name: string
+          pixel_ga?: string
+          pixel_meta?: string
+          progress_bar?: boolean
+          redirect_delay_seconds?: number
+          redirect_url?: string
           result_cta_label?: string
           result_cta_url?: string
+          result_image_url?: string
           result_text?: string
           result_title?: string
+          score_enabled?: boolean
+          score_ranges?: Json
+          show_question_numbers?: boolean
           slug: string
           starts_count?: number
           status?: string
+          theme?: Json
           updated_at?: string
           views_count?: number
+          webhook_url?: string
         }
         Update: {
           client_id?: string
@@ -1633,15 +1670,26 @@ export type Database = {
           description?: string
           id?: string
           name?: string
+          pixel_ga?: string
+          pixel_meta?: string
+          progress_bar?: boolean
+          redirect_delay_seconds?: number
+          redirect_url?: string
           result_cta_label?: string
           result_cta_url?: string
+          result_image_url?: string
           result_text?: string
           result_title?: string
+          score_enabled?: boolean
+          score_ranges?: Json
+          show_question_numbers?: boolean
           slug?: string
           starts_count?: number
           status?: string
+          theme?: Json
           updated_at?: string
           views_count?: number
+          webhook_url?: string
         }
         Relationships: [
           {
