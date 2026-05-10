@@ -15,7 +15,7 @@ import {
   Loader2, ArrowLeft, Save, Eye, Copy, Pause, Play, Trash2, GripVertical, Plus, X,
   ListChecks, CircleDot, Type, Mail, Image as ImageIcon, Layers, Palette, Settings2,
   Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Zap,
-  Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send, Wand2,
+  Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send, Wand2, Code,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
@@ -55,11 +55,37 @@ export default function QuizEditorPage() {
   const [saving, setSaving] = useState(false);
   const [clientSlug, setClientSlug] = useState("");
 
+  const [jsonInput, setJsonInput] = useState("");
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const handleLoadJSON = () => {
+    try {
+      const parsed = JSON.parse(jsonInput);
+      if (!Array.isArray(parsed)) throw new Error("O JSON precisa ser um array de blocos/perguntas.");
+      addQuestionsBatch(parsed);
+      toast({ title: "Quiz importado com sucesso via JSON!" });
+      setJsonInput("");
+    } catch (e: any) {
+      toast({ title: "JSON Inválido", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleExportJSON = () => {
+    const dataToExport = questions.filter(q => !q._deleted).map(q => ({
+      type: q.type,
+      title: q.title,
+      description: q.description,
+      required: q.required,
+      options: q.options.filter(o => !o._deleted).map(o => o.text),
+      config: q.config
+    }));
+    setJsonInput(JSON.stringify(dataToExport, null, 2));
+    toast({ title: "JSON gerado com sucesso!" });
+  };
 
   const handleGenerateAI = async () => {
     if (!aiPrompt.trim()) return toast({ title: "Digite um prompt", variant: "destructive" });
@@ -338,6 +364,7 @@ Use "single" para escolha única, "multiple" para múltipla, "text" para texto a
                 <TabsTrigger value="content"><Layers className="h-3.5 w-3.5 mr-1" />Conteúdo</TabsTrigger>
                 <TabsTrigger value="theme"><Palette className="h-3.5 w-3.5 mr-1" />Tema</TabsTrigger>
                 <TabsTrigger value="advanced"><Settings2 className="h-3.5 w-3.5 mr-1" />Avançado</TabsTrigger>
+                <TabsTrigger value="json"><Code className="h-3.5 w-3.5 mr-1" />Importar</TabsTrigger>
               </TabsList>
 
               <TabsContent value="content" className="space-y-3">
@@ -420,6 +447,31 @@ Use "single" para escolha única, "multiple" para múltipla, "text" para texto a
                       <Input value={meta.button_final_label} onChange={e => updateMeta({ button_final_label: e.target.value })} placeholder="Ver meu resultado" />
                     </div>
                   </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="json" className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Código JSON do Quiz</Label>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={handleExportJSON}>
+                        Exportar Atual
+                      </Button>
+                      <Button size="sm" className="bg-primary text-black" onClick={handleLoadJSON}>
+                        Carregar
+                      </Button>
+                    </div>
+                  </div>
+                  <Textarea
+                    className="font-mono text-xs min-h-[300px] bg-black/40 border-white/10"
+                    placeholder='[\n  {\n    "type": "single",\n    "title": "Exemplo",\n    "options": ["A", "B"]\n  }\n]'
+                    value={jsonInput}
+                    onChange={e => setJsonInput(e.target.value)}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Cole o array JSON aqui e clique em "Carregar" para gerar os blocos automaticamente. Cuidado: isso adicionará os blocos ao final do quiz atual.
+                  </p>
                 </div>
               </TabsContent>
             </Tabs>
