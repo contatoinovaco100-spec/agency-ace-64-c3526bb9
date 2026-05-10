@@ -696,8 +696,22 @@ function BlockSettings({ question }: { question: QuizQuestionDraft }) {
       )}
 
       <div className="pt-4 border-t border-border mt-4">
-        <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider mb-3">
-          {question.type === "visual" ? "Conteúdo da Seção" : "Elementos Especiais (Acima da Resposta)"}
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider">
+            {question.type === "visual" ? "Conteúdo da Seção" : "Elementos Especiais (Blocos)"}
+          </div>
+          {question.type !== "visual" && (
+            <Select
+              value={question.config?.visual_position ?? "top"}
+              onValueChange={v => updateQuestion(question.id, { config: { ...question.config, visual_position: v } })}
+            >
+              <SelectTrigger className="h-6 w-[125px] text-[10px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="top" className="text-xs">Exibir em cima</SelectItem>
+                <SelectItem value="bottom" className="text-xs">Exibir embaixo</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <VisualSectionEditor question={question} />
       </div>

@@ -288,6 +288,7 @@ export default function PublicQuizPage() {
   const textAlign = (q?.config?.text_align ?? "center") as "left" | "center" | "right";
   const alignClass = textAlign === "left" ? "text-left" : textAlign === "right" ? "text-right" : "text-center";
   const visualElements: VisualElement[] = Array.isArray(q?.config?.elements) ? q.config.elements : [];
+  const visualPosition = q?.config?.visual_position ?? "top";
 
   return (
     <div style={pageStyle}>
@@ -340,7 +341,7 @@ export default function PublicQuizPage() {
               <img src={q.config.image_url} alt="" className="w-full mb-6" style={{ borderRadius: theme.border_radius }} />
             )}
 
-            {visualElements.length > 0 && (
+            {visualElements.length > 0 && visualPosition === "top" && (
               <div className="space-y-4 mb-6">
                 {renderVisualElements(visualElements, theme, () => goNext())}
               </div>
@@ -471,6 +472,12 @@ export default function PublicQuizPage() {
                 <p className="text-center text-xs opacity-40 flex items-center justify-center gap-1">
                   <Lock className="h-3 w-3" /> Seus dados estão protegidos
                 </p>
+              </div>
+            )}
+
+            {visualElements.length > 0 && visualPosition === "bottom" && (
+              <div className="space-y-4 mt-6 pt-6 border-t border-white/10">
+                {renderVisualElements(visualElements, theme, () => goNext())}
               </div>
             )}
 
