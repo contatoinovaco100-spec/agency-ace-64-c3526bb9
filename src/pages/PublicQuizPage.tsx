@@ -374,8 +374,8 @@ export default function PublicQuizPage() {
                       className="w-full text-left transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
                       style={{
                         borderRadius: theme.border_radius,
-                        border: `2px solid ${checked ? theme.primary_color : "rgba(255,255,255,0.12)"}`,
-                        backgroundColor: checked ? `${theme.primary_color}15` : "rgba(255,255,255,0.03)",
+                        border: `2px solid ${checked ? theme.primary_color : "rgba(128,128,128,0.25)"}`,
+                        backgroundColor: checked ? `${theme.primary_color}15` : "rgba(128,128,128,0.05)",
                         color: theme.text_color,
                         padding: o.image_url ? "0" : undefined,
                         overflow: "hidden",
@@ -388,9 +388,9 @@ export default function PublicQuizPage() {
                         <div
                           className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all"
                           style={{
-                            backgroundColor: checked ? theme.primary_color : "rgba(255,255,255,0.08)",
+                            backgroundColor: checked ? theme.primary_color : "rgba(128,128,128,0.1)",
                             color: checked ? theme.button_text_color : theme.text_color,
-                            border: `2px solid ${checked ? theme.primary_color : "rgba(255,255,255,0.15)"}`,
+                            border: `2px solid ${checked ? theme.primary_color : "rgba(128,128,128,0.3)"}`,
                           }}
                         >
                           {checked ? "✓" : String.fromCharCode(65 + idx)}
