@@ -69,6 +69,13 @@ const BriefingFormPage     = lazy(() => import("./pages/BriefingFormPage"));
 const BriefingsPage        = lazy(() => import("./pages/BriefingsPage"));
 const NotificationsPage    = lazy(() => import("./pages/NotificationsPage"));
 
+// Quiz Builder
+const QuizBuilderClientsPage  = lazy(() => import("./pages/QuizBuilderClientsPage"));
+const QuizBuilderQuizzesPage  = lazy(() => import("./pages/QuizBuilderQuizzesPage"));
+const QuizEditorPage          = lazy(() => import("./pages/QuizEditorPage"));
+const QuizResponsesPage       = lazy(() => import("./pages/QuizResponsesPage"));
+const PublicQuizPage          = lazy(() => import("./pages/PublicQuizPage"));
+
 // New pages
 const CalendarPage              = lazy(() => import("./pages/CalendarPage"));
 const ChatPage                  = lazy(() => import("./pages/ChatPage"));
