@@ -15,8 +15,9 @@ import {
   Loader2, ArrowLeft, Save, Eye, Copy, Pause, Play, Trash2, GripVertical, Plus, X,
   ListChecks, CircleDot, Type, Mail, Image as ImageIcon, Layers, Palette, Settings2,
   Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Zap,
-  Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send,
+  Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send, Wand2,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   DndContext, closestCenter, useSensor, useSensors, PointerSensor,
   type DragEndEvent,
@@ -48,13 +49,61 @@ export default function QuizEditorPage() {
   const navigate = useNavigate();
   const {
     meta, questions, selectedId, dirty,
-    setQuiz, updateMeta, addQuestion, reorderQuestions, select,
+    setQuiz, updateMeta, addQuestion, addQuestionsBatch, reorderQuestions, select,
   } = useQuizEditorStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [clientSlug, setClientSlug] = useState("");
 
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiGenerating, setAiGenerating] = useState(false);
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const handleGenerateAI = async () => {
+    if (!aiPrompt.trim()) return toast({ title: "Digite um prompt", variant: "destructive" });
+    setAiGenerating(true);
+    try {
+      const systemPrompt = `Você é um especialista em marketing e criação de funis. O usuário enviará um tema ou link, e você deve gerar as perguntas para um quiz de diagnóstico. 
+Responda EXATAMENTE com um JSON válido, num formato de array de objetos.
+Formato esperado:
+[
+  { "type": "single", "title": "Qual a sua maior dificuldade hoje?", "options": ["Falta de leads", "Vendas baixas", "Custo alto"] },
+  { "type": "lead", "title": "Onde enviamos seu resultado?" }
+]
+Use "single" para escolha única, "multiple" para múltipla, "text" para texto aberto, "lead" para captura, "visual" para seção informacional. Para "visual", use "description" invés de options.`;
+      
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-copywriter', {
+        body: {
+          systemPrompt,
+          userMessage: aiPrompt,
+          model: 'google/gemini-2.5-flash',
+        },
+      });
+
+      if (fnError) throw new Error(fnError.message);
+      if (fnData?.error) throw new Error(fnData.error);
+
+      let result = fnData?.result;
+      if (typeof result === 'string') {
+        const cleanContent = result.replace(/```json/g, '').replace(/```/g, '').trim();
+        result = JSON.parse(cleanContent);
+      }
+
+      if (Array.isArray(result)) {
+        addQuestionsBatch(result);
+      }
+      
+      toast({ title: "Quiz gerado com sucesso!" });
+      setAiDialogOpen(false);
+      setAiPrompt("");
+    } catch (e: any) {
+      toast({ title: "Erro na IA", description: e.message, variant: "destructive" });
+    } finally {
+      setAiGenerating(false);
+    }
+  };
 
   useEffect(() => { if (isAdmin && quizId) load(); }, [isAdmin, quizId]);
 
@@ -256,7 +305,12 @@ export default function QuizEditorPage() {
         {/* Library */}
         <Card>
           <CardContent className="p-3 space-y-2">
-            <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Blocos</div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Blocos</div>
+              <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-amber-500 hover:text-amber-600 hover:bg-amber-500/10" onClick={() => setAiDialogOpen(true)}>
+                <Wand2 className="h-3.5 w-3.5 mr-1" /> IA
+              </Button>
+            </div>
             {BLOCK_LIBRARY.map(b => {
               const Icon = b.icon;
               return (
@@ -383,6 +437,39 @@ export default function QuizEditorPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-500">
+              <Sparkles className="h-5 w-5" />
+              Gerador de Quiz com Inteligência Artificial
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>Do que se trata o seu Quiz?</Label>
+              <Textarea
+                rows={4}
+                placeholder="Ex: Crie um quiz sobre maturidade financeira para dentistas, com 4 perguntas e um formulário de captação no final..."
+                value={aiPrompt}
+                onChange={e => setAiPrompt(e.target.value)}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Dica: Você também pode colar o texto inteiro das perguntas do quiz de um concorrente aqui, e nós transformaremos em blocos.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAiDialogOpen(false)} disabled={aiGenerating}>Cancelar</Button>
+            <Button onClick={handleGenerateAI} disabled={!aiPrompt.trim() || aiGenerating} className="bg-amber-500 hover:bg-amber-600 text-white">
+              {aiGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
+              Gerar Blocos Automáticos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -390,7 +477,7 @@ export default function QuizEditorPage() {
 function SortableQuestionCard({
   q, index, selected, onSelect,
 }: { q: QuizQuestionDraft; index: number; selected: boolean; onSelect: () => void }) {
-  const { removeQuestion } = useQuizEditorStore();
+  const { removeQuestion, duplicateQuestion } = useQuizEditorStore();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: q.id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -416,8 +503,16 @@ function SortableQuestionCard({
         <span className="font-medium text-sm flex-1 truncate">{q.title || "(sem título)"}</span>
         {q.required && <Badge variant="outline" className="text-[10px]">obrigatório</Badge>}
         <button
+          onClick={e => { e.stopPropagation(); duplicateQuestion(q.id); }}
+          className="text-muted-foreground hover:text-foreground"
+          title="Duplicar"
+        >
+          <Copy className="h-3.5 w-3.5" />
+        </button>
+        <button
           onClick={e => { e.stopPropagation(); removeQuestion(q.id); }}
           className="text-muted-foreground hover:text-destructive"
+          title="Excluir"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>

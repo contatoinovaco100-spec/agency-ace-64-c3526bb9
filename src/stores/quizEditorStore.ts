@@ -74,8 +74,10 @@ interface QuizEditorState {
   updateMeta: (patch: Partial<QuizMeta>) => void;
   updateTheme: (patch: Partial<QuizTheme>) => void;
   addQuestion: (type: QuestionType) => void;
+  addQuestionsBatch: (items: any[]) => void;
   updateQuestion: (id: string, patch: Partial<QuizQuestionDraft>) => void;
   removeQuestion: (id: string) => void;
+  duplicateQuestion: (id: string) => void;
   reorderQuestions: (ids: string[]) => void;
   select: (id: string | null) => void;
   addOption: (questionId: string) => void;
@@ -168,6 +170,35 @@ export const useQuizEditorStore = create<QuizEditorState>((set) => ({
       return { questions: [...s.questions, base], selectedId: id, dirty: true };
     }),
 
+  addQuestionsBatch: (items) =>
+    set((s) => {
+      const newQuestions: QuizQuestionDraft[] = items.map((item, i) => {
+        const type = item.type || "single";
+        const isVisual = type === "visual";
+        return {
+          id: tempId(),
+          type,
+          title: item.title || "Nova pergunta",
+          description: isVisual ? (item.description || "") : "",
+          required: !isVisual,
+          order_index: s.questions.length + i,
+          image_url: "",
+          config: isVisual ? { elements: [] } : {},
+          options: Array.isArray(item.options) ? item.options.map((optText: string, j: number) => ({
+            id: tempId(),
+            text: optText,
+            order_index: j,
+            points: 0,
+            image_url: "",
+            _new: true,
+          })) : [],
+          _new: true,
+          _dirty: true,
+        };
+      });
+      return { questions: [...s.questions, ...newQuestions], dirty: true };
+    }),
+
   updateQuestion: (id, patch) =>
     set((s) => ({
       questions: s.questions.map((q) =>
@@ -202,6 +233,39 @@ export const useQuizEditorStore = create<QuizEditorState>((set) => ({
         if (q._deleted && !ids.includes(q.id)) next.push(q);
       });
       return { questions: next, dirty: true };
+    }),
+
+  duplicateQuestion: (id) =>
+    set((s) => {
+      const qIndex = s.questions.findIndex((q) => q.id === id);
+      if (qIndex === -1) return s;
+      const original = s.questions[qIndex];
+      const newId = tempId();
+      
+      const duplicated: QuizQuestionDraft = {
+        ...original,
+        id: newId,
+        _new: true,
+        _dirty: true,
+        options: original.options.map((opt) => ({
+          ...opt,
+          id: tempId(),
+          _new: true,
+          _dirty: true,
+        })),
+        config: original.config ? JSON.parse(JSON.stringify(original.config)) : undefined,
+      };
+
+      const next = [...s.questions];
+      next.splice(qIndex + 1, 0, duplicated);
+
+      // Re-order index
+      next.forEach((q, idx) => {
+        q.order_index = idx;
+        if (!q._new) q._dirty = true;
+      });
+
+      return { questions: next, dirty: true, selectedId: newId };
     }),
 
   select: (id) => set({ selectedId: id }),
