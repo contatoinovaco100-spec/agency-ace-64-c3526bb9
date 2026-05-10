@@ -539,6 +539,18 @@ export function SalesElementSettings({ element, patch, clientId }: { element: an
         </div>
       );
 
+    case "circular_progress":
+      return (
+        <div className="space-y-3">
+          <div><Label className="text-xs">Porcentagem (0-100)</Label>
+            <Input type="number" min={0} max={100} value={c.percentage ?? 85} onChange={e => patch({ percentage: Number(e.target.value) })} /></div>
+          <div><Label className="text-xs">Título Principal</Label>
+            <Input value={c.title ?? ""} onChange={e => patch({ title: e.target.value })} /></div>
+          <div><Label className="text-xs">Subtítulo (Opcional)</Label>
+            <Input value={c.subtitle ?? ""} onChange={e => patch({ subtitle: e.target.value })} /></div>
+        </div>
+      );
+
     case "fake_loading":
       return (
         <div className="space-y-3">

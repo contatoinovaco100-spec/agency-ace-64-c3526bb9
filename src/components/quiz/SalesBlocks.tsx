@@ -892,3 +892,73 @@ export function FakeLoadingBlock({ config, theme, onNext }: BlockProps) {
     </div>
   );
 }
+
+/* ─── PROGRESSO CIRCULAR ─── */
+export function CircularProgressBlock({ config, theme }: BlockProps) {
+  const [val, setVal] = useState(0);
+  const target = Math.min(100, Math.max(0, config.percentage || 85));
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setVal(target);
+    }, 100);
+    return () => clearTimeout(t);
+  }, [target]);
+
+  const size = 160;
+  const strokeWidth = 12;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (val / 100) * circumference;
+
+  return (
+    <div className="flex flex-col items-center justify-center py-6 w-full animate-in fade-in zoom-in duration-500">
+      <div className="relative flex items-center justify-center mb-4" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="transform -rotate-90 drop-shadow-lg">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            className="opacity-10"
+            style={{ color: theme.text_color }}
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={theme.primary_color}
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            className="transition-all duration-1000 ease-out"
+            style={{ filter: `drop-shadow(0 0 8px ${theme.primary_color}60)` }}
+          />
+        </svg>
+        <div className="absolute flex flex-col items-center justify-center">
+          <span className="text-5xl font-black tracking-tighter" style={{ color: theme.primary_color }}>
+            {Math.round(val)}<span className="text-2xl">%</span>
+          </span>
+        </div>
+      </div>
+      {(config.title || config.subtitle) && (
+        <div className="text-center max-w-xs">
+          {config.title && (
+            <div className="text-xl font-extrabold opacity-90 leading-tight" style={{ color: theme.text_color }}>
+              {config.title}
+            </div>
+          )}
+          {config.subtitle && (
+            <div className="text-sm opacity-60 mt-1 uppercase tracking-wider font-semibold" style={{ color: theme.text_color }}>
+              {config.subtitle}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
