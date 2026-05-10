@@ -9,10 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import {
   Loader2, ArrowLeft, Save, Eye, Copy, Pause, Play, Trash2, GripVertical, Plus, X,
-  ListChecks, CircleDot, Type, Mail, Image as ImageIcon, Layers,
+  ListChecks, CircleDot, Type, Mail, Image as ImageIcon, Layers, Palette, Settings2,
 } from "lucide-react";
 import {
   DndContext, closestCenter, useSensor, useSensors, PointerSensor,
@@ -25,6 +26,8 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   useQuizEditorStore, type QuestionType, type QuizQuestionDraft, buildDefaultMeta,
 } from "@/stores/quizEditorStore";
+import { QuizThemeEditor } from "@/components/quiz/QuizThemeEditor";
+import { QuizMediaUploader } from "@/components/quiz/QuizMediaUploader";
 
 const BLOCK_LIBRARY: { type: QuestionType; label: string; icon: any; desc: string }[] = [
   { type: "single",   label: "Escolha única",        icon: CircleDot,  desc: "Uma resposta entre opções" },
