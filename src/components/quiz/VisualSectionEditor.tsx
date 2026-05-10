@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, ArrowUp, ArrowDown, Type, AlignLeft, Image as ImageIcon, List, MousePointerClick, Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send, AlertTriangle, CheckSquare, PlayCircle, Video, ArrowDownUp, Code } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { QuizMediaUploader } from "./QuizMediaUploader";
 import { useQuizEditorStore, type QuizQuestionDraft } from "@/stores/quizEditorStore";
 import { SalesElementSettings } from "./SalesBlocksEditor";
@@ -175,11 +176,43 @@ export function VisualSectionEditor({ question }: { question: QuizQuestionDraft 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-1 pt-1">
         {Object.keys(TYPE_LABELS).map(t => {
           const Icon = TYPE_LABELS[t].icon;
+          
+          const previewBase: any = { id: "preview", type: t };
+          if (t === "heading") Object.assign(previewBase, { text: "Exemplo de Título", size: "lg", align: "center" });
+          else if (t === "paragraph") Object.assign(previewBase, { text: "Um parágrafo de exemplo para você visualizar.", align: "center" });
+          else if (t === "image") Object.assign(previewBase, { url: "https://placehold.co/400x200/222/FFF?text=Exemplo+de+Imagem", align: "center" });
+          else if (t === "bullets") Object.assign(previewBase, { items: ["Vantagem 1", "Benefício 2"], align: "center" });
+          else if (t === "button") Object.assign(previewBase, { label: "Botão de Exemplo", action: "next", align: "center" });
+          else Object.assign(previewBase, TYPE_LABELS[t].default || {});
+
+          // Default mock theme for previewing components
+          const mockTheme = {
+            primary_color: "#eab308", // amber-500
+            button_text_color: "#000000",
+            border_radius: 8,
+            heading_weight: 800,
+          };
+
           return (
-            <Button key={t} size="sm" variant="outline" className="justify-start text-xs h-8 px-2" onClick={() => add(t)}>
-              <Icon className="h-3.5 w-3.5 mr-2 shrink-0" />
-              <span className="truncate">{TYPE_LABELS[t].label}</span>
-            </Button>
+            <HoverCard key={t} openDelay={200} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <Button size="sm" variant="outline" className="justify-start text-xs h-8 px-2" onClick={() => add(t)}>
+                  <Icon className="h-3.5 w-3.5 mr-2 shrink-0" />
+                  <span className="truncate">{TYPE_LABELS[t].label}</span>
+                </Button>
+              </HoverCardTrigger>
+              <HoverCardContent side="top" sideOffset={10} className="w-[320px] p-0 overflow-hidden bg-black/95 border border-white/10 z-[100] shadow-2xl backdrop-blur-md">
+                <div className="bg-white/5 p-2 border-b border-white/10 flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500 flex items-center gap-1">
+                    <Icon className="h-3 w-3" /> {TYPE_LABELS[t].label}
+                  </span>
+                  <span className="text-[9px] text-muted-foreground">Preview</span>
+                </div>
+                <div className="p-4 flex flex-col gap-4 pointer-events-none text-white overflow-hidden max-h-[300px]">
+                   {renderVisualElements([previewBase], mockTheme)}
+                </div>
+              </HoverCardContent>
+            </HoverCard>
           );
         })}
       </div>
