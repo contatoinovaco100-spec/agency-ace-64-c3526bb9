@@ -651,6 +651,30 @@ function getSettings(element: any, patch: (p: any) => void, cid: string) {
           </div>
         </div>
       );
+    case "infinite_marquee":
+      return (
+        <div className="space-y-4">
+          <div><Label className="text-xs">Itens (um por linha)</Label>
+            <Textarea 
+              className="text-xs" 
+              value={(c.items || []).join("\n")} 
+              onChange={e => patch({ items: e.target.value.split("\n").filter(Boolean) })} 
+            /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label className="text-xs">Velocidade (seg)</Label>
+              <Input type="number" value={c.speed ?? 25} onChange={e => patch({ speed: Number(e.target.value) })} /></div>
+            <div><Label className="text-xs">Linhas (1 ou 2)</Label>
+              <Select value={String(c.rows ?? 1)} onValueChange={v => patch({ rows: Number(v) })}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 Linha</SelectItem>
+                  <SelectItem value="2">2 Linhas (Direções Opostas)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      );
     default:
       return null;
   }

@@ -1059,3 +1059,51 @@ export function ImpactSummaryBlock({ config, theme }: BlockProps) {
     </div>
   );
 }
+
+/* ─── MARQUEE INFINITO (TEXT BOXES) ─── */
+export function InfiniteMarqueeBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
+  const { items = ["Economia Garantida", "Segurança Jurídica", "Agilidade no Processo", "Recuperação de Créditos"], speed = 25, rows = 1 } = config;
+  
+  const mid = Math.ceil(items.length / 2);
+  const row1 = rows > 1 ? items.slice(0, mid) : items;
+  const row2 = rows > 1 ? items.slice(mid) : [];
+
+  const Marquee = ({ list, dir, spd }: { list: string[], dir: "left" | "right", spd: number }) => (
+    <div className="relative flex overflow-hidden py-2 select-none group">
+      <style>{`
+        @keyframes marquee-${dir} {
+          0% { transform: translateX(${dir === "left" ? "0%" : "-50%"}); }
+          100% { transform: translateX(${dir === "left" ? "-50%" : "0%"}); }
+        }
+        .animate-marquee-${dir} {
+          animation: marquee-${dir} ${spd}s linear infinite;
+        }
+      `}</style>
+      <div className={`flex gap-4 min-w-full shrink-0 animate-marquee-${dir} group-hover:[animation-play-state:paused]`}>
+        {[...list, ...list, ...list].map((it, i) => (
+          <div key={i} className="px-6 py-3 rounded-xl border whitespace-nowrap font-bold text-sm transition-all"
+               style={{ 
+                 backgroundColor: t.is_light ? "#fff" : t.alpha(0.05),
+                 borderColor: t.alpha(0.1),
+                 color: t.text_color,
+                 boxShadow: t.is_light ? "0 4px 10px rgba(0,0,0,0.03)" : "none"
+               }}>
+            {it}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="w-full py-4 overflow-hidden">
+      <Marquee list={row1} dir="left" spd={speed} />
+      {rows > 1 && (
+        <div className="mt-2">
+          <Marquee list={row2} dir="right" spd={speed * 1.1} />
+        </div>
+      )}
+    </div>
+  );
+}

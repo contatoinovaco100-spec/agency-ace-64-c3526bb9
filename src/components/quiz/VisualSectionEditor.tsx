@@ -16,7 +16,8 @@ import {
   ExitIntentPopup, ProgressiveRevealBlock, RoiCalculatorBlock,
   MaturityThermometerBlock, PricingPlansBlock, PostResultFormBlock,
   AlertBlock, ArgumentsBlock, AudioBlock, VideoBlock, SpacerBlock, HtmlBlock,
-  FakeLoadingBlock, CircularProgressBlock, HighlightTextBlock, ImpactSummaryBlock
+  FakeLoadingBlock, CircularProgressBlock, HighlightTextBlock, ImpactSummaryBlock,
+  InfiniteMarqueeBlock
 } from "./SalesBlocks";
 
 export type VisualElement =
@@ -62,6 +63,7 @@ export const TYPE_LABELS: Record<string, { label: string; icon: any; default?: a
   circular_progress: { label: "Progresso Circular", icon: PieChart, default: { percentage: 85, title: "Taxa de Sucesso", subtitle: "comprovado" } },
   fake_loading: { label: "Loading (Auto-Avança)", icon: Loader2, default: { text: "Analisando suas respostas...", duration_seconds: 3 } },
   impact_summary: { label: "Impacto (3 Cards)", icon: LayoutTemplate, default: { padding_percentage: 0, items: [{ label: "Excesso estimado/mês", value: "R$ 8.850", color: "#ef4444" }, { label: "Potencial de redução", value: "até 34%", color: "#eab308" }, { label: "Perda anual estimada", value: "R$ 106.200", color: "#ef4444" }] } },
+  infinite_marquee: { label: "Marquee Infinito", icon: ArrowDownUp, default: { items: ["Economia", "Segurança", "Agilidade", "Resultados", "Compliance", "Tecnologia"], speed: 25, rows: 2 } },
 };
 
 export function VisualSectionEditor({ question }: { question: QuizQuestionDraft }) {
@@ -323,6 +325,7 @@ export function renderVisualElements(
     if (el.type === "highlight_text") return <HighlightTextBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "fake_loading") return <FakeLoadingBlock key={el.id} config={el} theme={theme as any} onNext={onButtonNext} />;
     if (el.type === "impact_summary") return <ImpactSummaryBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "infinite_marquee") return <InfiniteMarqueeBlock key={el.id} config={el} theme={theme as any} />;
 
     return null;
   });
