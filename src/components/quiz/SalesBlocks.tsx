@@ -306,3 +306,228 @@ export function ComparisonTableBlock({ config, theme }: BlockProps) {
     </div>
   );
 }
+
+/* ─── GAUGE CHART (VELOCÍMETRO) ─── */
+export function GaugeChartBlock({ config, theme }: BlockProps) {
+  const { score = 67, max_score = 100, label = "Sua pontuação", zones = [] } = config;
+  const pct = Math.min(100, (score / max_score) * 100);
+  const [animated, setAnimated] = useState(0);
+
+  useEffect(() => {
+    let frame: number;
+    let start: number;
+    const duration = 1500;
+    const animate = (ts: number) => {
+      if (!start) start = ts;
+      const progress = Math.min(1, (ts - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setAnimated(Math.round(eased * score));
+      if (progress < 1) frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [score]);
+
+  const currentZone = (zones as any[]).find((z, i, arr) => {
+    const prev = i > 0 ? arr[i - 1].max : 0;
+    return pct > prev && pct <= z.max;
+  }) ?? zones[zones.length - 1];
+
+  const angle = -90 + (pct / 100) * 180;
+  const r = 80;
+  const cx = 100, cy = 95;
+
+  return (
+    <div className="rounded-xl p-6 text-center space-y-4" style={{ backgroundColor: `${theme.primary_color}08`, border: `1px solid ${theme.primary_color}20` }}>
+      <svg viewBox="0 0 200 120" className="w-full max-w-[280px] mx-auto">
+        {/* Background arc */}
+        {(zones as any[]).map((zone: any, i: number) => {
+          const prevMax = i > 0 ? (zones as any[])[i - 1].max : 0;
+          const startAngle = -90 + (prevMax / 100) * 180;
+          const endAngle = -90 + (zone.max / 100) * 180;
+          const startRad = (startAngle * Math.PI) / 180;
+          const endRad = (endAngle * Math.PI) / 180;
+          const x1 = cx + r * Math.cos(startRad);
+          const y1 = cy + r * Math.sin(startRad);
+          const x2 = cx + r * Math.cos(endRad);
+          const y2 = cy + r * Math.sin(endRad);
+          const large = endAngle - startAngle > 180 ? 1 : 0;
+          return (
+            <path key={i} d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`}
+              fill="none" stroke={zone.color} strokeWidth="12" strokeLinecap="round" opacity={0.25} />
+          );
+        })}
+        {/* Active arc */}
+        <path
+          d={`M ${cx + r * Math.cos(-Math.PI / 2)} ${cy + r * Math.sin(-Math.PI / 2)} A ${r} ${r} 0 ${pct > 50 ? 1 : 0} 1 ${cx + r * Math.cos((angle * Math.PI) / 180)} ${cy + r * Math.sin((angle * Math.PI) / 180)}`}
+          fill="none" stroke={currentZone?.color || theme.primary_color} strokeWidth="12" strokeLinecap="round"
+          style={{ transition: "all 1.5s ease-out" }}
+        />
+        <text x={cx} y={cy - 10} textAnchor="middle" fontSize="28" fontWeight="bold" fill={currentZone?.color || theme.primary_color}>
+          {animated}
+        </text>
+        <text x={cx} y={cy + 12} textAnchor="middle" fontSize="11" fill={theme.text_color} opacity={0.6}>
+          {currentZone?.name || ""}
+        </text>
+      </svg>
+      <p className="text-sm font-medium opacity-70">{label}</p>
+    </div>
+  );
+}
+
+/* ─── BARRA DE PROGRESSO MOTIVACIONAL ─── */
+interface ProgressMotivationalProps {
+  config: Record<string, any>;
+  theme: QuizTheme;
+  progress: number; // 0-100
+}
+
+export function ProgressMotivationalBlock({ config, theme, progress }: ProgressMotivationalProps) {
+  const ranges = (config.ranges ?? []) as { min: number; max: number; text: string }[];
+  const current = ranges.find(r => progress >= r.min && progress <= r.max) ?? ranges[ranges.length - 1];
+
+  return (
+    <div className="rounded-xl p-4 space-y-2" style={{ backgroundColor: `${theme.primary_color}08`, border: `1px solid ${theme.primary_color}20` }}>
+      <div className="relative h-3 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>
+        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${progress}%`, background: `linear-gradient(90deg, ${theme.primary_color}, ${theme.primary_color}cc)` }} />
+      </div>
+      <p className="text-sm text-center font-medium" style={{ color: theme.primary_color }}>
+        {current?.text || `${Math.round(progress)}% concluído`}
+      </p>
+    </div>
+  );
+}
+
+/* ─── TOAST DE PROVA SOCIAL ─── */
+interface ToastSocialProps {
+  config: Record<string, any>;
+  theme: QuizTheme;
+  active: boolean;
+}
+
+export function ToastSocialOverlay({ config, theme, active }: ToastSocialProps) {
+  const items = (config.items ?? []) as { name: string; city: string }[];
+  const interval = (config.interval_seconds ?? 8) * 1000;
+  const actionText = config.action_text ?? "acabou de se inscrever";
+  const [visible, setVisible] = useState(false);
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    if (!active || !items.length) return;
+    const show = () => {
+      setCurrent(Math.floor(Math.random() * items.length));
+      setVisible(true);
+      setTimeout(() => setVisible(false), 4000);
+    };
+    const t = setInterval(show, interval);
+    const initial = setTimeout(show, 3000);
+    return () => { clearInterval(t); clearTimeout(initial); };
+  }, [active, items.length, interval]);
+
+  if (!visible || !items.length) return null;
+  const item = items[current];
+
+  return (
+    <div className="fixed bottom-4 left-4 z-50 animate-[toastSlideIn_0.4s_ease-out]" style={{ maxWidth: 300 }}>
+      <div className="rounded-xl p-3 shadow-lg flex items-center gap-3" style={{ backgroundColor: theme.card_background, border: `1px solid ${theme.primary_color}30`, color: theme.text_color }}>
+        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: `${theme.primary_color}20`, color: theme.primary_color }}>
+          {item.name.charAt(0)}
+        </div>
+        <div className="text-xs">
+          <span className="font-semibold">{item.name}</span> de {item.city}
+          <br />
+          <span className="opacity-60">{actionText} • agora</span>
+        </div>
+      </div>
+      <style>{`@keyframes toastSlideIn { from { transform: translateX(-120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`}</style>
+    </div>
+  );
+}
+
+/* ─── EXIT INTENT POPUP ─── */
+interface ExitIntentProps {
+  config: Record<string, any>;
+  theme: QuizTheme;
+  onClose: () => void;
+}
+
+export function ExitIntentPopup({ config, theme, onClose }: ExitIntentProps) {
+  const { title = "Espera!", text = "", button_text = "Continuar" } = config;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.7)" }}>
+      <div className="rounded-2xl p-8 max-w-sm w-full text-center space-y-4 animate-[exitBounce_0.4s_ease-out]"
+        style={{ backgroundColor: theme.card_background, color: theme.text_color, border: `2px solid ${theme.primary_color}` }}>
+        <div className="text-4xl">⚠️</div>
+        <h3 className="text-2xl font-bold">{title}</h3>
+        <p className="opacity-70">{text}</p>
+        <button
+          onClick={onClose}
+          className="w-full py-4 rounded-xl font-bold text-base transition-all hover:scale-[1.02] active:scale-95"
+          style={{ backgroundColor: theme.primary_color, color: theme.button_text_color, boxShadow: `0 4px 20px ${theme.primary_color}40` }}
+        >
+          {button_text}
+        </button>
+        <button onClick={onClose} className="text-xs opacity-40 hover:opacity-70 transition">
+          Fechar
+        </button>
+      </div>
+      <style>{`@keyframes exitBounce { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
+    </div>
+  );
+}
+
+/* ─── REVELAÇÃO PROGRESSIVA ─── */
+export function ProgressiveRevealBlock({ config, theme }: BlockProps) {
+  const { loading_text = "Calculando...", loading_seconds = 3, reveal_steps = [] } = config;
+  const [phase, setPhase] = useState(0); // 0=loading, 1+=reveal steps
+
+  useEffect(() => {
+    if (phase === 0) {
+      const t = setTimeout(() => setPhase(1), loading_seconds * 1000);
+      return () => clearTimeout(t);
+    }
+    if (phase > 0 && phase <= (reveal_steps as any[]).length) {
+      const t = setTimeout(() => setPhase(p => p + 1), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [phase, loading_seconds, reveal_steps]);
+
+  if (phase === 0) {
+    return (
+      <div className="rounded-xl p-8 text-center space-y-4" style={{ backgroundColor: `${theme.primary_color}08`, border: `1px solid ${theme.primary_color}20` }}>
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full animate-spin" style={{ border: `3px solid ${theme.primary_color}30`, borderTopColor: theme.primary_color }} />
+        <p className="text-base font-medium animate-pulse" style={{ color: theme.primary_color }}>{loading_text}</p>
+      </div>
+    );
+  }
+
+  const visibleSteps = (reveal_steps as any[]).slice(0, phase);
+
+  return (
+    <div className="rounded-xl p-6 space-y-4" style={{ backgroundColor: `${theme.primary_color}08`, border: `1px solid ${theme.primary_color}20` }}>
+      {visibleSteps.map((step: any, i: number) => (
+        <div key={i} className="animate-[revealFade_0.6s_ease-out]" style={{ animationDelay: `${i * 0.1}s` }}>
+          {step.type === "score" && (
+            <div className="text-center">
+              <p className="text-xs opacity-60 mb-1">{step.label}</p>
+              <p className="text-4xl font-bold" style={{ color: theme.primary_color }}>{step.value ?? "—"}</p>
+            </div>
+          )}
+          {step.type === "classification" && (
+            <div className="text-center p-3 rounded-lg" style={{ backgroundColor: `${theme.primary_color}15` }}>
+              <p className="text-xs opacity-60 mb-1">{step.label}</p>
+              <p className="text-xl font-bold" style={{ color: theme.primary_color }}>{step.value ?? "—"}</p>
+            </div>
+          )}
+          {step.type === "recommendation" && (
+            <div className="p-4 rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.05)", borderLeft: `3px solid ${theme.primary_color}` }}>
+              <p className="text-sm opacity-90">{step.text}</p>
+            </div>
+          )}
+        </div>
+      ))}
+      <style>{`@keyframes revealFade { from { opacity: 0; transform: translateY(10px); filter: blur(4px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }`}</style>
+    </div>
+  );
+}

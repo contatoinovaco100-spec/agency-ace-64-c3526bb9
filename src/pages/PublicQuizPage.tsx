@@ -10,6 +10,8 @@ import { renderVisualElements, type VisualElement } from "@/components/quiz/Visu
 import {
   ScarcityBlock, SocialProofBlock, TestimonialsBlock, CtaWhatsAppBlock,
   CtaPriceBlock, AuthorityBlock, BeforeAfterBlock, ComparisonTableBlock,
+  GaugeChartBlock, ProgressMotivationalBlock, ToastSocialOverlay,
+  ExitIntentPopup, ProgressiveRevealBlock,
 } from "@/components/quiz/SalesBlocks";
 
 interface Quiz {
@@ -43,6 +45,8 @@ export default function PublicQuizPage() {
   const [submitting, setSubmitting] = useState(false);
   const [animDir, setAnimDir] = useState<"in" | "out">("in");
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showExitPopup, setShowExitPopup] = useState(false);
+  const [exitShown, setExitShown] = useState(false);
 
   const theme: QuizTheme = useMemo(() => mergeTheme(quiz?.theme), [quiz?.theme]);
   useGoogleFont(theme.font_family, [theme.body_weight, theme.heading_weight]);
@@ -478,9 +482,16 @@ export default function PublicQuizPage() {
             {q.type === "authority" && <AuthorityBlock config={q.config} theme={theme} />}
             {q.type === "before_after" && <BeforeAfterBlock config={q.config} theme={theme} />}
             {q.type === "comparison_table" && <ComparisonTableBlock config={q.config} theme={theme} />}
+            {q.type === "gauge_chart" && <GaugeChartBlock config={q.config} theme={theme} />}
+            {q.type === "progressive_reveal" && <ProgressiveRevealBlock config={q.config} theme={theme} />}
+
+            {/* Motivational progress bar block */}
+            {q.type === "progress_motivational" && (
+              <ProgressMotivationalBlock config={q.config} theme={theme} progress={progress} />
+            )}
 
             {/* Continue button for visual and sales blocks */}
-            {["visual","scarcity","social_proof","testimonials","authority","before_after","comparison_table"].includes(q.type) && (
+            {["visual","scarcity","social_proof","testimonials","authority","before_after","comparison_table","gauge_chart","progress_motivational","progressive_reveal"].includes(q.type) && (
               <button
                 onClick={() => goNext()}
                 className="w-full py-4 text-base font-bold transition-all hover:scale-[1.02] active:scale-95"
@@ -494,6 +505,30 @@ export default function PublicQuizPage() {
             )}
           </div>
         )}
+
+        {/* Toast social overlay */}
+        {(() => {
+          const toastQ = questions.find(qq => qq.type === "toast_social");
+          return toastQ ? <ToastSocialOverlay config={toastQ.config} theme={theme} active={!done} /> : null;
+        })()}
+
+        {/* Exit intent popup */}
+        {(() => {
+          const exitQ = questions.find(qq => qq.type === "exit_intent");
+          if (!exitQ || exitShown) return null;
+          const handleExit = () => {
+            setShowExitPopup(true);
+            setExitShown(true);
+          };
+          // Desktop: mouseleave at top
+          if (typeof window !== "undefined" && !showExitPopup && !exitShown) {
+            const onLeave = (e: MouseEvent) => { if (e.clientY < 5) handleExit(); };
+            document.addEventListener("mouseout", onLeave, { once: true });
+          }
+          return showExitPopup ? (
+            <ExitIntentPopup config={exitQ.config} theme={theme} onClose={() => setShowExitPopup(false)} />
+          ) : null;
+        })()}
 
         {/* Social proof footer on question screens */}
         {step >= 0 && (

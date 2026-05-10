@@ -4,7 +4,8 @@ import { DEFAULT_QUIZ_THEME, mergeTheme, type QuizTheme } from "@/lib/quizTheme"
 export type QuestionType =
   | "multiple" | "single" | "text" | "lead" | "visual"
   | "scarcity" | "social_proof" | "testimonials" | "cta_whatsapp"
-  | "cta_price" | "authority" | "before_after" | "comparison_table";
+  | "cta_price" | "authority" | "before_after" | "comparison_table"
+  | "gauge_chart" | "progress_motivational" | "toast_social" | "exit_intent" | "progressive_reveal";
 
 export interface QuizOptionDraft {
   id: string;
@@ -139,7 +140,7 @@ export const useQuizEditorStore = create<QuizEditorState>((set) => ({
   addQuestion: (type) =>
     set((s) => {
       const id = tempId();
-      const salesTypes: QuestionType[] = ["scarcity","social_proof","testimonials","cta_whatsapp","cta_price","authority","before_after","comparison_table"];
+      const salesTypes: QuestionType[] = ["scarcity","social_proof","testimonials","cta_whatsapp","cta_price","authority","before_after","comparison_table","gauge_chart","progress_motivational","toast_social","exit_intent","progressive_reveal"];
       const isSales = salesTypes.includes(type);
       const titleMap: Partial<Record<QuestionType, string>> = {
         lead: "Seus dados de contato",
@@ -152,6 +153,11 @@ export const useQuizEditorStore = create<QuizEditorState>((set) => ({
         authority: "Autoridade",
         before_after: "Antes e Depois",
         comparison_table: "Comparação",
+        gauge_chart: "Medidor de Score",
+        progress_motivational: "Barra Motivacional",
+        toast_social: "Toast Prova Social",
+        exit_intent: "Pop-up de Saída",
+        progressive_reveal: "Revelação Progressiva",
       };
       const configMap: Partial<Record<QuestionType, Record<string, any>>> = {
         lead: { fields: { name: true, email: true, phone: true } },
@@ -164,6 +170,11 @@ export const useQuizEditorStore = create<QuizEditorState>((set) => ({
         authority: { title: "Empresas que já confiaram no nosso trabalho", logos: [] },
         before_after: { before_title: "Situação Atual", before_items: ["Problema 1", "Problema 2"], after_title: "Com nossa solução", after_items: ["Resultado 1", "Resultado 2"] },
         comparison_table: { col1_title: "Fazendo sozinho", col2_title: "Com nossa solução", col2_badge: "Recomendado", rows: [{ feature: "Característica 1", col1: false, col2: true }] },
+        gauge_chart: { score: 67, max_score: 100, label: "Sua pontuação", zones: [{ name: "Iniciante", color: "#ef4444", max: 33 }, { name: "Intermediário", color: "#eab308", max: 66 }, { name: "Expert", color: "#22c55e", max: 100 }] },
+        progress_motivational: { ranges: [{ min: 0, max: 25, text: "Você está começando bem! 💪" }, { min: 26, max: 50, text: "Ótimo ritmo! Continue assim 🔥" }, { min: 51, max: 75, text: "Você está quase lá! ⚡" }, { min: 76, max: 100, text: "Só mais um passo para seu resultado! 🎯" }] },
+        toast_social: { items: [{ name: "Maria", city: "São Paulo" }, { name: "João", city: "Rio de Janeiro" }, { name: "Ana", city: "Belo Horizonte" }], interval_seconds: 8, action_text: "acabou de se inscrever" },
+        exit_intent: { title: "Espera!", text: "Seu resultado ainda não foi salvo...", button_text: "Continuar o quiz", show_on_mobile: true, mobile_idle_seconds: 30 },
+        progressive_reveal: { loading_text: "Calculando seu perfil...", loading_seconds: 3, reveal_steps: [{ type: "score", label: "Sua pontuação" }, { type: "classification", label: "Seu nível" }, { type: "recommendation", text: "Recomendação personalizada aqui..." }] },
       };
       const base: QuizQuestionDraft = {
         id,

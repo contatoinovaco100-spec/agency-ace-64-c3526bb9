@@ -204,6 +204,152 @@ export function SalesBlockSettings({ question }: { question: QuizQuestionDraft }
       );
     }
 
+    case "gauge_chart": {
+      const zones = (c.zones ?? []) as any[];
+      const updateZone = (i: number, p: Record<string, any>) => {
+        const n = [...zones]; n[i] = { ...n[i], ...p }; patch({ zones: n });
+      };
+      return (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div><Label className="text-xs">Score</Label>
+              <Input type="number" value={c.score ?? 67} onChange={e => patch({ score: +e.target.value })} /></div>
+            <div><Label className="text-xs">Score máximo</Label>
+              <Input type="number" value={c.max_score ?? 100} onChange={e => patch({ max_score: +e.target.value })} /></div>
+          </div>
+          <div><Label className="text-xs">Label</Label>
+            <Input value={c.label ?? ""} onChange={e => patch({ label: e.target.value })} /></div>
+          <Label>Zonas (faixas de cor)</Label>
+          {zones.map((z, i) => (
+            <div key={i} className="border border-border rounded-md p-2 space-y-1">
+              <div className="flex gap-1">
+                <Input value={z.name} placeholder="Nome" onChange={e => updateZone(i, { name: e.target.value })} />
+                <Input type="number" value={z.max} placeholder="Até %" className="w-20" onChange={e => updateZone(i, { max: +e.target.value })} />
+                <Input type="color" value={z.color} className="w-10 p-0 h-9" onChange={e => updateZone(i, { color: e.target.value })} />
+                <Button size="icon" variant="ghost" onClick={() => patch({ zones: zones.filter((_, j) => j !== i) })}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+          <Button size="sm" variant="outline" onClick={() => patch({ zones: [...zones, { name: "Zona", color: "#22c55e", max: 100 }] })}>
+            <Plus className="h-3.5 w-3.5 mr-1" />Adicionar zona
+          </Button>
+        </div>
+      );
+    }
+
+    case "progress_motivational": {
+      const ranges = (c.ranges ?? []) as any[];
+      const updateRange = (i: number, p: Record<string, any>) => {
+        const n = [...ranges]; n[i] = { ...n[i], ...p }; patch({ ranges: n });
+      };
+      return (
+        <div className="space-y-3">
+          <Label>Faixas de progresso</Label>
+          {ranges.map((r, i) => (
+            <div key={i} className="border border-border rounded-md p-2 space-y-1">
+              <div className="grid grid-cols-[1fr_50px_50px_auto] gap-1 items-center">
+                <Input value={r.text} placeholder="Mensagem" onChange={e => updateRange(i, { text: e.target.value })} className="text-xs" />
+                <Input type="number" value={r.min} className="text-xs" onChange={e => updateRange(i, { min: +e.target.value })} />
+                <Input type="number" value={r.max} className="text-xs" onChange={e => updateRange(i, { max: +e.target.value })} />
+                <Button size="icon" variant="ghost" onClick={() => patch({ ranges: ranges.filter((_, j) => j !== i) })}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+          <Button size="sm" variant="outline" onClick={() => patch({ ranges: [...ranges, { min: 0, max: 100, text: "Mensagem aqui" }] })}>
+            <Plus className="h-3.5 w-3.5 mr-1" />Adicionar faixa
+          </Button>
+        </div>
+      );
+    }
+
+    case "toast_social": {
+      const items = (c.items ?? []) as any[];
+      const updateItem = (i: number, p: Record<string, any>) => {
+        const n = [...items]; n[i] = { ...n[i], ...p }; patch({ items: n });
+      };
+      return (
+        <div className="space-y-3">
+          <div><Label className="text-xs">Texto de ação</Label>
+            <Input value={c.action_text ?? ""} placeholder="acabou de se inscrever" onChange={e => patch({ action_text: e.target.value })} /></div>
+          <div><Label className="text-xs">Intervalo (segundos)</Label>
+            <Input type="number" value={c.interval_seconds ?? 8} onChange={e => patch({ interval_seconds: +e.target.value })} /></div>
+          <Label>Pessoas</Label>
+          {items.map((item, i) => (
+            <div key={i} className="flex gap-1">
+              <Input value={item.name} placeholder="Nome" onChange={e => updateItem(i, { name: e.target.value })} />
+              <Input value={item.city} placeholder="Cidade" onChange={e => updateItem(i, { city: e.target.value })} />
+              <Button size="icon" variant="ghost" onClick={() => patch({ items: items.filter((_, j) => j !== i) })}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          <Button size="sm" variant="outline" onClick={() => patch({ items: [...items, { name: "", city: "" }] })}>
+            <Plus className="h-3.5 w-3.5 mr-1" />Adicionar pessoa
+          </Button>
+        </div>
+      );
+    }
+
+    case "exit_intent":
+      return (
+        <div className="space-y-3">
+          <div><Label className="text-xs">Título</Label>
+            <Input value={c.title ?? ""} onChange={e => patch({ title: e.target.value })} /></div>
+          <div><Label className="text-xs">Texto</Label>
+            <Textarea rows={2} value={c.text ?? ""} onChange={e => patch({ text: e.target.value })} /></div>
+          <div><Label className="text-xs">Texto do botão</Label>
+            <Input value={c.button_text ?? ""} onChange={e => patch({ button_text: e.target.value })} /></div>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">Ativar no mobile</Label>
+            <Switch checked={!!c.show_on_mobile} onCheckedChange={v => patch({ show_on_mobile: v })} />
+          </div>
+          {c.show_on_mobile && (
+            <div><Label className="text-xs">Segundos de inatividade (mobile)</Label>
+              <Input type="number" value={c.mobile_idle_seconds ?? 30} onChange={e => patch({ mobile_idle_seconds: +e.target.value })} /></div>
+          )}
+        </div>
+      );
+
+    case "progressive_reveal": {
+      const steps = (c.reveal_steps ?? []) as any[];
+      const updateStep = (i: number, p: Record<string, any>) => {
+        const n = [...steps]; n[i] = { ...n[i], ...p }; patch({ reveal_steps: n });
+      };
+      return (
+        <div className="space-y-3">
+          <div><Label className="text-xs">Texto de loading</Label>
+            <Input value={c.loading_text ?? ""} onChange={e => patch({ loading_text: e.target.value })} /></div>
+          <div><Label className="text-xs">Duração do loading (segundos)</Label>
+            <Input type="number" value={c.loading_seconds ?? 3} onChange={e => patch({ loading_seconds: +e.target.value })} /></div>
+          <Label>Etapas de revelação</Label>
+          {steps.map((s, i) => (
+            <div key={i} className="border border-border rounded-md p-2 space-y-1">
+              <div className="flex gap-1">
+                <select value={s.type} onChange={e => updateStep(i, { type: e.target.value })}
+                  className="h-9 rounded-md border border-border bg-background px-2 text-xs">
+                  <option value="score">Score</option>
+                  <option value="classification">Classificação</option>
+                  <option value="recommendation">Recomendação</option>
+                </select>
+                <Input value={s.label || s.text || ""} placeholder={s.type === "recommendation" ? "Texto" : "Label"}
+                  onChange={e => updateStep(i, s.type === "recommendation" ? { text: e.target.value } : { label: e.target.value })} className="text-xs" />
+                <Button size="icon" variant="ghost" onClick={() => patch({ reveal_steps: steps.filter((_, j) => j !== i) })}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+          <Button size="sm" variant="outline" onClick={() => patch({ reveal_steps: [...steps, { type: "score", label: "Score" }] })}>
+            <Plus className="h-3.5 w-3.5 mr-1" />Adicionar etapa
+          </Button>
+        </div>
+      );
+    }
+
     default:
       return null;
   }

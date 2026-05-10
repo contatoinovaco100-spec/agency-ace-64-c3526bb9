@@ -15,6 +15,7 @@ import {
   Loader2, ArrowLeft, Save, Eye, Copy, Pause, Play, Trash2, GripVertical, Plus, X,
   ListChecks, CircleDot, Type, Mail, Image as ImageIcon, Layers, Palette, Settings2,
   Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Zap,
+  Gauge, TrendingUp, Bell, LogOut, Sparkles,
 } from "lucide-react";
 import {
   DndContext, closestCenter, useSensor, useSensors, PointerSensor,
@@ -50,6 +51,11 @@ const SALES_BLOCK_LIBRARY: { type: QuestionType; label: string; icon: any; desc:
   { type: "authority",        label: "🏢 Autoridade",        icon: Building2,       desc: "Grid de logos" },
   { type: "before_after",     label: "⚡ Antes e Depois",    icon: ArrowLeftRight,  desc: "Comparação visual" },
   { type: "comparison_table", label: "📊 Tabela Comparativa", icon: Table2,          desc: "Você vs. Concorrência" },
+  { type: "gauge_chart",      label: "🎯 Medidor de Score",   icon: Gauge,           desc: "Velocímetro de pontuação" },
+  { type: "progress_motivational", label: "📊 Barra Motivacional", icon: TrendingUp,   desc: "Progresso com frases" },
+  { type: "toast_social",     label: "🔔 Toast Social",       icon: Bell,            desc: "Notificação flutuante" },
+  { type: "exit_intent",      label: "🚪 Pop-up de Saída",     icon: LogOut,           desc: "Retenção ao sair" },
+  { type: "progressive_reveal", label: "✨ Revelação",         icon: Sparkles,        desc: "Revelação progressiva" },
 ];
 
 export default function QuizEditorPage() {
@@ -583,7 +589,7 @@ function BlockSettings({ question }: { question: QuizQuestionDraft }) {
         </>
       )}
 
-      {["scarcity","social_proof","testimonials","cta_whatsapp","cta_price","authority","before_after","comparison_table"].includes(question.type) && (
+      {["scarcity","social_proof","testimonials","cta_whatsapp","cta_price","authority","before_after","comparison_table","gauge_chart","progress_motivational","toast_social","exit_intent","progressive_reveal"].includes(question.type) && (
         <SalesBlockSettings question={question} />
       )}
 
