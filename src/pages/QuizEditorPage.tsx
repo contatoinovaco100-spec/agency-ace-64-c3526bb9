@@ -28,6 +28,8 @@ import {
 } from "@/stores/quizEditorStore";
 import { QuizThemeEditor } from "@/components/quiz/QuizThemeEditor";
 import { QuizMediaUploader } from "@/components/quiz/QuizMediaUploader";
+import { VisualSectionEditor } from "@/components/quiz/VisualSectionEditor";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const BLOCK_LIBRARY: { type: QuestionType; label: string; icon: any; desc: string }[] = [
   { type: "single",   label: "Escolha única",        icon: CircleDot,  desc: "Uma resposta entre opções" },
