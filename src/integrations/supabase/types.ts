@@ -1384,6 +1384,275 @@ export type Database = {
           },
         ]
       }
+      quiz_answers: {
+        Row: {
+          created_at: string
+          id: string
+          option_ids: string[]
+          question_id: string
+          response_id: string
+          text_answer: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_ids?: string[]
+          question_id: string
+          response_id: string
+          text_answer?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_ids?: string[]
+          question_id?: string
+          response_id?: string
+          text_answer?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_answers_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_clients: {
+        Row: {
+          company: string
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          name: string
+          notes: string
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          name: string
+          notes?: string
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          name?: string
+          notes?: string
+          slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      quiz_options: {
+        Row: {
+          created_at: string
+          id: string
+          order_index: number
+          question_id: string
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          question_id: string
+          text?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          question_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_questions: {
+        Row: {
+          config: Json
+          created_at: string
+          description: string
+          id: string
+          order_index: number
+          quiz_id: string
+          required: boolean
+          title: string
+          type: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          description?: string
+          id?: string
+          order_index?: number
+          quiz_id: string
+          required?: boolean
+          title?: string
+          type: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          description?: string
+          id?: string
+          order_index?: number
+          quiz_id?: string
+          required?: boolean
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_questions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_responses: {
+        Row: {
+          completed_at: string | null
+          id: string
+          lead_email: string
+          lead_name: string
+          lead_phone: string
+          quiz_id: string
+          started_at: string
+          utm_campaign: string
+          utm_medium: string
+          utm_source: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          lead_email?: string
+          lead_name?: string
+          lead_phone?: string
+          quiz_id: string
+          started_at?: string
+          utm_campaign?: string
+          utm_medium?: string
+          utm_source?: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          lead_email?: string
+          lead_name?: string
+          lead_phone?: string
+          quiz_id?: string
+          started_at?: string
+          utm_campaign?: string
+          utm_medium?: string
+          utm_source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_responses_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quizzes: {
+        Row: {
+          client_id: string
+          completions_count: number
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          name: string
+          result_cta_label: string
+          result_cta_url: string
+          result_text: string
+          result_title: string
+          slug: string
+          starts_count: number
+          status: string
+          updated_at: string
+          views_count: number
+        }
+        Insert: {
+          client_id: string
+          completions_count?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          name: string
+          result_cta_label?: string
+          result_cta_url?: string
+          result_text?: string
+          result_title?: string
+          slug: string
+          starts_count?: number
+          status?: string
+          updated_at?: string
+          views_count?: number
+        }
+        Update: {
+          client_id?: string
+          completions_count?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          name?: string
+          result_cta_label?: string
+          result_cta_url?: string
+          result_text?: string
+          result_title?: string
+          slug?: string
+          starts_count?: number
+          status?: string
+          updated_at?: string
+          views_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quizzes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rede_companies: {
         Row: {
           city: string
@@ -2330,6 +2599,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_quiz_counter: {
+        Args: { _field: string; _quiz_id: string }
+        Returns: undefined
       }
       renew_recurring_invoices: { Args: never; Returns: number }
     }

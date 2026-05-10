@@ -3,7 +3,7 @@ import {
   Shield, FileText, BarChart3, Film, Clapperboard, Palette,
   LayoutList, Bot, Sparkles, Settings, Bell, Calendar,
   MessageSquare, TrendingUp, Images, BookOpen, CalculatorIcon,
-  Gift, Link2, ListChecks, Wallet, Network,
+  Gift, Link2, ListChecks, Wallet, Network, Layers,
 } from 'lucide-react';
 
 export type PageCategory =
@@ -70,6 +70,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/calculadora',         label: 'Calculadora',         icon: CalculatorIcon,  category: 'Ferramentas' },
   { path: '/nova',                label: 'Nova Assistente',     icon: Bot,             category: 'Ferramentas' },
   { path: '/diagnostico-anuncios', label: 'Diagnóstico de Anúncios', icon: BarChart3,    category: 'Ferramentas' },
+  { path: '/quiz-builder',        label: 'Quiz Builder',        icon: Layers,          category: 'Ferramentas', adminOnly: true },
 
   // Administração (só admin)
   { path: '/funcionarios',        label: 'Funcionários',        icon: UserCog,         category: 'Administração', adminOnly: true },

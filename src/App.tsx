@@ -69,6 +69,13 @@ const BriefingFormPage     = lazy(() => import("./pages/BriefingFormPage"));
 const BriefingsPage        = lazy(() => import("./pages/BriefingsPage"));
 const NotificationsPage    = lazy(() => import("./pages/NotificationsPage"));
 
+// Quiz Builder
+const QuizBuilderClientsPage  = lazy(() => import("./pages/QuizBuilderClientsPage"));
+const QuizBuilderQuizzesPage  = lazy(() => import("./pages/QuizBuilderQuizzesPage"));
+const QuizEditorPage          = lazy(() => import("./pages/QuizEditorPage"));
+const QuizResponsesPage       = lazy(() => import("./pages/QuizResponsesPage"));
+const PublicQuizPage          = lazy(() => import("./pages/PublicQuizPage"));
+
 // New pages
 const CalendarPage              = lazy(() => import("./pages/CalendarPage"));
 const ChatPage                  = lazy(() => import("./pages/ChatPage"));
@@ -123,6 +130,7 @@ function AppRoutes() {
     location.pathname === '/negocios' ||
     location.pathname === '/rede/perfil' ||
     location.pathname === '/rede/novo' ||
+    location.pathname.startsWith('/quiz/') ||
     (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar'));
 
   return (
@@ -148,6 +156,7 @@ function AppRoutes() {
           <Route path="/rede/perfil"         element={<RedePerfilPage />} />
           <Route path="/rede/novo"           element={<RedeNovoPostPage />} />
           <Route path="/indicacoes/:token"   element={<PublicReferralsPage />} />
+          <Route path="/quiz/:clientSlug/:quizSlug" element={<PublicQuizPage />} />
         </Routes>
       ) : (
         <Routes>
@@ -199,6 +208,10 @@ function AppRoutes() {
                     <Route path="/financeiro-base"     element={<FinancialPage />} />
                     <Route path="/rede/admin"          element={<RedeAdminPage />} />
                     <Route path="/indicacoes-admin"    element={<ReferralsAdminPage />} />
+                    <Route path="/quiz-builder"        element={<QuizBuilderClientsPage />} />
+                    <Route path="/quiz-builder/c/:clientId" element={<QuizBuilderQuizzesPage />} />
+                    <Route path="/quiz-builder/editor/:quizId" element={<QuizEditorPage />} />
+                    <Route path="/quiz-builder/respostas/:quizId" element={<QuizResponsesPage />} />
                     <Route path="*"                    element={<NotFound />} />
                   </Routes>
                 </AppLayout>
