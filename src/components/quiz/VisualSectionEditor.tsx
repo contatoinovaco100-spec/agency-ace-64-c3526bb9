@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, ArrowUp, ArrowDown, Type, AlignLeft, Image as ImageIcon, List, MousePointerClick, Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send, AlertTriangle, CheckSquare, PlayCircle, Video, ArrowDownUp, Code } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, Type, AlignLeft, Image as ImageIcon, List, MousePointerClick, Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send, AlertTriangle, CheckSquare, PlayCircle, Video, ArrowDownUp, Code, Loader2 } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { QuizMediaUploader } from "./QuizMediaUploader";
 import { useQuizEditorStore, type QuizQuestionDraft } from "@/stores/quizEditorStore";
@@ -15,7 +15,8 @@ import {
   GaugeChartBlock, ProgressMotivationalBlock, ToastSocialOverlay,
   ExitIntentPopup, ProgressiveRevealBlock, RoiCalculatorBlock,
   MaturityThermometerBlock, PricingPlansBlock, PostResultFormBlock,
-  AlertBlock, ArgumentsBlock, AudioBlock, VideoBlock, SpacerBlock, HtmlBlock
+  AlertBlock, ArgumentsBlock, AudioBlock, VideoBlock, SpacerBlock, HtmlBlock,
+  FakeLoadingBlock
 } from "./SalesBlocks";
 
 export type VisualElement =
@@ -57,6 +58,7 @@ export const TYPE_LABELS: Record<string, { label: string; icon: any; default?: a
   video: { label: "Vídeo", icon: Video, default: { url: "https://www.youtube.com/embed/dQw4w9WgXcQ" } },
   html: { label: "HTML / Embed", icon: Code, default: { code: "<iframe src=\"...\" />" } },
   spacer: { label: "Espaço", icon: ArrowDownUp, default: { height: 32, show_line: false } },
+  fake_loading: { label: "Loading (Auto-Avança)", icon: Loader2, default: { text: "Analisando suas respostas...", duration_seconds: 3 } },
 };
 
 export function VisualSectionEditor({ question }: { question: QuizQuestionDraft }) {
@@ -313,6 +315,7 @@ export function renderVisualElements(
     if (el.type === "video") return <VideoBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "html") return <HtmlBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "spacer") return <SpacerBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "fake_loading") return <FakeLoadingBlock key={el.id} config={el} theme={theme as any} onNext={onButtonNext} />;
 
     return null;
   });

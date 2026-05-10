@@ -834,3 +834,61 @@ export function HtmlBlock({ config, theme }: BlockProps) {
     />
   );
 }
+
+/* ─── FAKE LOADING (AUTO-AVANÇA) ─── */
+export function FakeLoadingBlock({ config, theme, onNext }: BlockProps) {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const duration = (config.duration_seconds || 3) * 1000;
+    const interval = 50;
+    const step = (interval / duration) * 100;
+    
+    const timer = setInterval(() => {
+      setProgress(p => {
+        if (p >= 100) {
+          clearInterval(timer);
+          return 100;
+        }
+        return Math.min(100, p + step);
+      });
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, [config.duration_seconds]);
+
+  useEffect(() => {
+    if (progress >= 100 && onNext) {
+      const t = setTimeout(() => {
+        onNext();
+      }, 400); // slight delay after 100%
+      return () => clearTimeout(t);
+    }
+  }, [progress, onNext]);
+
+  return (
+    <div className="flex flex-col items-center justify-center space-y-5 py-10 w-full animate-in fade-in zoom-in duration-500">
+      <div className="relative flex items-center justify-center">
+        <div className="absolute w-20 h-20 rounded-full border-4 border-white/5" />
+        <div 
+          className="w-20 h-20 rounded-full border-4 border-transparent animate-spin" 
+          style={{ borderTopColor: theme.primary_color, borderRightColor: theme.primary_color }} 
+        />
+        <div className="absolute font-bold text-sm" style={{ color: theme.primary_color }}>
+          {Math.floor(progress)}%
+        </div>
+      </div>
+      
+      <h3 className="text-xl font-bold opacity-90 text-center animate-pulse" style={{ color: theme.text_color }}>
+        {config.text || "Analisando suas respostas..."}
+      </h3>
+      
+      <div className="w-full max-w-xs h-2 bg-black/20 rounded-full overflow-hidden shadow-inner">
+        <div 
+          className="h-full rounded-full transition-all duration-75 ease-linear shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+          style={{ width: `${progress}%`, backgroundColor: theme.primary_color }}
+        />
+      </div>
+    </div>
+  );
+}

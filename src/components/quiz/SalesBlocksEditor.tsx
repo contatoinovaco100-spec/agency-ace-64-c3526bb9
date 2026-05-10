@@ -539,6 +539,16 @@ export function SalesElementSettings({ element, patch, clientId }: { element: an
         </div>
       );
 
+    case "fake_loading":
+      return (
+        <div className="space-y-3">
+          <div><Label className="text-xs">Texto do Loading</Label>
+            <Input value={c.text ?? ""} onChange={e => patch({ text: e.target.value })} /></div>
+          <div><Label className="text-xs">Duração (segundos)</Label>
+            <Input type="number" min={1} max={30} value={c.duration_seconds ?? 3} onChange={e => patch({ duration_seconds: Number(e.target.value) })} /></div>
+        </div>
+      );
+
     default:
       return null;
   }
