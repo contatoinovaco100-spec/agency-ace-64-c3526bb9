@@ -199,7 +199,8 @@ Use "single" para escolha única, "multiple" para múltipla, "text" para texto a
     if (!meta) return;
     setSaving(true);
     try {
-      await supabase.from("quizzes").update({
+      // Core update — only columns guaranteed to exist in the quizzes table
+      const { error: coreErr } = await supabase.from("quizzes").update({
         name: meta.name, description: meta.description,
         result_title: meta.result_title, result_text: meta.result_text,
         result_cta_label: meta.result_cta_label, result_cta_url: meta.result_cta_url,
@@ -213,10 +214,18 @@ Use "single" para escolha única, "multiple" para múltipla, "text" para texto a
         webhook_url: meta.webhook_url,
         progress_bar: meta.progress_bar,
         show_question_numbers: meta.show_question_numbers,
-        button_label: meta.button_label,
-        button_final_label: meta.button_final_label,
         theme: meta.theme as any,
       } as any).eq("id", meta.id);
+
+      if (coreErr) throw coreErr;
+
+      // Try saving optional columns (may not exist before migration)
+      try {
+        await supabase.from("quizzes").update({
+          button_label: meta.button_label,
+          button_final_label: meta.button_final_label,
+        } as any).eq("id", meta.id);
+      } catch { /* columns may not exist yet — ignore */ }
 
       // Delete questions marked deleted (cascade options)
       const toDelete = questions.filter(q => q._deleted && !q._new).map(q => q.id);
