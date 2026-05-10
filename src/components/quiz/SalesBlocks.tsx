@@ -316,11 +316,12 @@ export function GaugeChartBlock({ config, theme }: BlockProps) {
   useEffect(() => {
     let frame: number;
     let start: number;
-    const duration = 1500;
+    const duration = 2000;
     const animate = (ts: number) => {
       if (!start) start = ts;
       const progress = Math.min(1, (ts - start) / duration);
-      const eased = 1 - Math.pow(1 - progress, 3);
+      // spring/exponential easing
+      const eased = 1 - Math.pow(1 - progress, 4);
       setAnimated(Math.round(eased * score));
       if (progress < 1) frame = requestAnimationFrame(animate);
     };
@@ -328,49 +329,117 @@ export function GaugeChartBlock({ config, theme }: BlockProps) {
     return () => cancelAnimationFrame(frame);
   }, [score]);
 
-  const currentZone = (zones as any[]).find((z, i, arr) => {
+  // Handle default zones if empty
+  const defaultZones = [
+    { name: "Baixo", color: "#ef4444", max: 33 },
+    { name: "Médio", color: "#eab308", max: 66 },
+    { name: "Alto", color: "#22c55e", max: 100 }
+  ];
+  const safeZones = zones && zones.length > 0 ? zones : defaultZones;
+
+  const currentZone = safeZones.find((z: any, i: number, arr: any[]) => {
     const prev = i > 0 ? arr[i - 1].max : 0;
     return pct > prev && pct <= z.max;
-  }) ?? zones[zones.length - 1];
+  }) ?? safeZones[safeZones.length - 1];
 
-  const angle = -90 + (pct / 100) * 180;
-  const r = 80;
-  const cx = 100, cy = 95;
+  const angle = -180 + (pct / 100) * 180;
+  const r = 85;
+  const cx = 100, cy = 100;
 
   return (
-    <div className="rounded-xl p-6 text-center space-y-4" style={{ backgroundColor: `${theme.primary_color}08`, border: `1px solid ${theme.primary_color}20` }}>
-      <svg viewBox="0 0 200 120" className="w-full max-w-[280px] mx-auto">
-        {/* Background arc */}
-        {(zones as any[]).map((zone: any, i: number) => {
-          const prevMax = i > 0 ? (zones as any[])[i - 1].max : 0;
-          const startAngle = -90 + (prevMax / 100) * 180;
-          const endAngle = -90 + (zone.max / 100) * 180;
-          const startRad = (startAngle * Math.PI) / 180;
-          const endRad = (endAngle * Math.PI) / 180;
-          const x1 = cx + r * Math.cos(startRad);
-          const y1 = cy + r * Math.sin(startRad);
-          const x2 = cx + r * Math.cos(endRad);
-          const y2 = cy + r * Math.sin(endRad);
-          const large = endAngle - startAngle > 180 ? 1 : 0;
-          return (
-            <path key={i} d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`}
-              fill="none" stroke={zone.color} strokeWidth="12" strokeLinecap="round" opacity={0.25} />
-          );
-        })}
-        {/* Active arc */}
-        <path
-          d={`M ${cx + r * Math.cos(-Math.PI / 2)} ${cy + r * Math.sin(-Math.PI / 2)} A ${r} ${r} 0 ${pct > 50 ? 1 : 0} 1 ${cx + r * Math.cos((angle * Math.PI) / 180)} ${cy + r * Math.sin((angle * Math.PI) / 180)}`}
-          fill="none" stroke={currentZone?.color || theme.primary_color} strokeWidth="12" strokeLinecap="round"
-          style={{ transition: "all 1.5s ease-out" }}
-        />
-        <text x={cx} y={cy - 10} textAnchor="middle" fontSize="28" fontWeight="bold" fill={currentZone?.color || theme.primary_color}>
-          {animated}
-        </text>
-        <text x={cx} y={cy + 12} textAnchor="middle" fontSize="11" fill={theme.text_color} opacity={0.6}>
-          {currentZone?.name || ""}
-        </text>
-      </svg>
-      <p className="text-sm font-medium opacity-70">{label}</p>
+    <div className="rounded-2xl p-8 text-center space-y-6 relative overflow-hidden" 
+         style={{ 
+           backgroundColor: "rgba(0,0,0,0.2)", 
+           border: "1px solid rgba(255,255,255,0.05)", 
+           boxShadow: "inset 0 0 20px rgba(0,0,0,0.5)" 
+         }}>
+      
+      {/* Background ambient glow based on current zone */}
+      <div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 blur-[80px] rounded-full pointer-events-none" 
+        style={{ backgroundColor: currentZone?.color || theme.primary_color, opacity: 0.15 }} 
+      />
+
+      {label && <h4 className="text-xs font-bold uppercase tracking-[0.2em] opacity-70 relative z-10">{label}</h4>}
+      
+      <div className="relative mx-auto w-full max-w-[280px] z-10">
+        <svg viewBox="0 0 200 110" className="w-full drop-shadow-2xl overflow-visible">
+          {/* Track segments */}
+          {safeZones.map((zone: any, i: number) => {
+            const prevMax = i > 0 ? safeZones[i - 1].max : 0;
+            const startAngle = -180 + (prevMax / 100) * 180;
+            const endAngle = -180 + (zone.max / 100) * 180;
+            
+            // Add a tiny gap between segments
+            const gap = 2; 
+            const sRad = ((startAngle + gap) * Math.PI) / 180;
+            const eRad = ((endAngle - gap) * Math.PI) / 180;
+            
+            const x1 = cx + r * Math.cos(sRad);
+            const y1 = cy + r * Math.sin(sRad);
+            const x2 = cx + r * Math.cos(eRad);
+            const y2 = cy + r * Math.sin(eRad);
+            
+            const large = endAngle - startAngle > 180 ? 1 : 0;
+            return (
+              <path 
+                key={i} 
+                d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`}
+                fill="none" 
+                stroke={zone.color} 
+                strokeWidth="14" 
+                strokeLinecap="round" 
+                opacity={0.15} 
+              />
+            );
+          })}
+          
+          {/* Active progress arc */}
+          <path
+            d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r * Math.cos((angle * Math.PI) / 180)} ${cy + r * Math.sin((angle * Math.PI) / 180)}`}
+            fill="none" 
+            stroke={currentZone?.color || theme.primary_color} 
+            strokeWidth="14" 
+            strokeLinecap="round"
+            style={{ transition: "stroke-dasharray 2s cubic-bezier(0.22, 1, 0.36, 1)" }}
+            filter="drop-shadow(0px 0px 8px currentColor)"
+          />
+
+          {/* Needle / Indicator knob */}
+          <circle 
+            cx={cx + r * Math.cos((angle * Math.PI) / 180)} 
+            cy={cy + r * Math.sin((angle * Math.PI) / 180)} 
+            r="5" 
+            fill="white" 
+            style={{ transition: "all 2s cubic-bezier(0.22, 1, 0.36, 1)" }}
+            filter="drop-shadow(0 2px 4px rgba(0,0,0,0.5))"
+          />
+        </svg>
+
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-0">
+          <span className="text-6xl font-black tracking-tighter tabular-nums drop-shadow-md" style={{ color: currentZone?.color || theme.primary_color }}>
+            {animated}
+          </span>
+          {currentZone?.name && (
+             <span 
+               className="text-[10px] font-bold uppercase tracking-widest mt-2 px-4 py-1 rounded-full border shadow-sm backdrop-blur-md" 
+               style={{ 
+                 color: currentZone.color, 
+                 borderColor: `${currentZone.color}30`, 
+                 backgroundColor: `${currentZone.color}10` 
+               }}
+             >
+               {currentZone.name}
+             </span>
+          )}
+        </div>
+      </div>
+      
+      {/* Legend */}
+      <div className="flex justify-between w-full max-w-[280px] mx-auto text-[10px] font-bold text-muted-foreground uppercase tracking-widest relative z-10 px-2">
+        <span className="opacity-50">0</span>
+        <span className="opacity-50">{max_score} MAX</span>
+      </div>
     </div>
   );
 }
