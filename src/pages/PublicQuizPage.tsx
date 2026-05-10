@@ -7,6 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle2, AlertTriangle, Users, Lock } from "lucide-react";
 import { mergeTheme, useGoogleFont, buttonRadius, type QuizTheme } from "@/lib/quizTheme";
 import { renderVisualElements, type VisualElement } from "@/components/quiz/VisualSectionEditor";
+import {
+  ScarcityBlock, SocialProofBlock, TestimonialsBlock, CtaWhatsAppBlock,
+  CtaPriceBlock, AuthorityBlock, BeforeAfterBlock, ComparisonTableBlock,
+} from "@/components/quiz/SalesBlocks";
 
 interface Quiz {
   id: string; name: string; description: string; status: string;
@@ -465,8 +469,18 @@ export default function PublicQuizPage() {
               </div>
             )}
 
-            {/* Auto-advance for visual sections */}
-            {q.type === "visual" && visualElements.length === 0 && (
+            {/* Sales blocks rendering */}
+            {q.type === "scarcity" && <ScarcityBlock config={q.config} theme={theme} />}
+            {q.type === "social_proof" && <SocialProofBlock config={q.config} theme={theme} />}
+            {q.type === "testimonials" && <TestimonialsBlock config={q.config} theme={theme} />}
+            {q.type === "cta_whatsapp" && <CtaWhatsAppBlock config={q.config} theme={theme} />}
+            {q.type === "cta_price" && <CtaPriceBlock config={q.config} theme={theme} />}
+            {q.type === "authority" && <AuthorityBlock config={q.config} theme={theme} />}
+            {q.type === "before_after" && <BeforeAfterBlock config={q.config} theme={theme} />}
+            {q.type === "comparison_table" && <ComparisonTableBlock config={q.config} theme={theme} />}
+
+            {/* Continue button for visual and sales blocks */}
+            {["visual","scarcity","social_proof","testimonials","authority","before_after","comparison_table"].includes(q.type) && (
               <button
                 onClick={() => goNext()}
                 className="w-full py-4 text-base font-bold transition-all hover:scale-[1.02] active:scale-95"
@@ -475,7 +489,7 @@ export default function PublicQuizPage() {
                   boxShadow: `0 4px 20px ${theme.primary_color}40`,
                 }}
               >
-                Continuar →
+                {step === questions.length - 1 ? `${quiz.button_final_label || "Ver meu resultado"} →` : `${quiz.button_label || "Continuar"} →`}
               </button>
             )}
           </div>

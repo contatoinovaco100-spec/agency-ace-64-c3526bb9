@@ -1,7 +1,10 @@
 import { create } from "zustand";
 import { DEFAULT_QUIZ_THEME, mergeTheme, type QuizTheme } from "@/lib/quizTheme";
 
-export type QuestionType = "multiple" | "single" | "text" | "lead" | "visual";
+export type QuestionType =
+  | "multiple" | "single" | "text" | "lead" | "visual"
+  | "scarcity" | "social_proof" | "testimonials" | "cta_whatsapp"
+  | "cta_price" | "authority" | "before_after" | "comparison_table";
 
 export interface QuizOptionDraft {
   id: string;
@@ -136,21 +139,41 @@ export const useQuizEditorStore = create<QuizEditorState>((set) => ({
   addQuestion: (type) =>
     set((s) => {
       const id = tempId();
+      const salesTypes: QuestionType[] = ["scarcity","social_proof","testimonials","cta_whatsapp","cta_price","authority","before_after","comparison_table"];
+      const isSales = salesTypes.includes(type);
+      const titleMap: Partial<Record<QuestionType, string>> = {
+        lead: "Seus dados de contato",
+        visual: "Seção",
+        scarcity: "Escassez",
+        social_proof: "Prova Social",
+        testimonials: "Depoimentos",
+        cta_whatsapp: "CTA WhatsApp",
+        cta_price: "Oferta Especial",
+        authority: "Autoridade",
+        before_after: "Antes e Depois",
+        comparison_table: "Comparação",
+      };
+      const configMap: Partial<Record<QuestionType, Record<string, any>>> = {
+        lead: { fields: { name: true, email: true, phone: true } },
+        visual: { image_url: "" },
+        scarcity: { text: "Restam apenas {n} vagas para este mês", slots_total: 10, slots_filled: 7, show_timer: true, timer_minutes: 15 },
+        social_proof: { text: "{n} pessoas responderam esse quiz hoje", count: 127, variant: "responded", show_animation: true },
+        testimonials: { items: [{ name: "Cliente", role: "Empresa", text: "Depoimento aqui...", stars: 5, photo_url: "" }], autoplay_seconds: 5 },
+        cta_whatsapp: { phone: "", message: "Olá! Acabei de fazer o quiz e gostaria de saber mais.", button_text: "Falar com especialista", above_text: "Fale agora com um especialista" },
+        cta_price: { original_price: "5.000", current_price: "2.997", discount_badge: "-40%", button_text: "Quero aproveitar", button_url: "", urgency_text: "Somente para quem concluir o quiz hoje", guarantee_text: "7 dias de garantia" },
+        authority: { title: "Empresas que já confiaram no nosso trabalho", logos: [] },
+        before_after: { before_title: "Situação Atual", before_items: ["Problema 1", "Problema 2"], after_title: "Com nossa solução", after_items: ["Resultado 1", "Resultado 2"] },
+        comparison_table: { col1_title: "Fazendo sozinho", col2_title: "Com nossa solução", col2_badge: "Recomendado", rows: [{ feature: "Característica 1", col1: false, col2: true }] },
+      };
       const base: QuizQuestionDraft = {
         id,
         type,
-        title:
-          type === "lead" ? "Seus dados de contato"
-          : type === "visual" ? "Seção"
-          : "Nova pergunta",
+        title: titleMap[type] ?? "Nova pergunta",
         description: "",
-        required: type !== "visual",
+        required: type !== "visual" && !isSales,
         order_index: s.questions.length,
         image_url: "",
-        config:
-          type === "lead" ? { fields: { name: true, email: true, phone: true } }
-          : type === "visual" ? { image_url: "" }
-          : {},
+        config: configMap[type] ?? {},
         options:
           type === "multiple" || type === "single"
             ? [

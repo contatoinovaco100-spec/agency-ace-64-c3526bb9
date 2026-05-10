@@ -14,6 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   Loader2, ArrowLeft, Save, Eye, Copy, Pause, Play, Trash2, GripVertical, Plus, X,
   ListChecks, CircleDot, Type, Mail, Image as ImageIcon, Layers, Palette, Settings2,
+  Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Zap,
 } from "lucide-react";
 import {
   DndContext, closestCenter, useSensor, useSensors, PointerSensor,
@@ -29,6 +30,7 @@ import {
 import { QuizThemeEditor } from "@/components/quiz/QuizThemeEditor";
 import { QuizMediaUploader } from "@/components/quiz/QuizMediaUploader";
 import { VisualSectionEditor } from "@/components/quiz/VisualSectionEditor";
+import { SalesBlockSettings } from "@/components/quiz/SalesBlocksEditor";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const BLOCK_LIBRARY: { type: QuestionType; label: string; icon: any; desc: string }[] = [
@@ -37,6 +39,17 @@ const BLOCK_LIBRARY: { type: QuestionType; label: string; icon: any; desc: strin
   { type: "text",     label: "Pergunta aberta",      icon: Type,       desc: "Campo de texto livre" },
   { type: "lead",     label: "Captura de lead",      icon: Mail,       desc: "Nome, e-mail, telefone" },
   { type: "visual",   label: "Seção / banner",       icon: ImageIcon,  desc: "Título e imagem" },
+];
+
+const SALES_BLOCK_LIBRARY: { type: QuestionType; label: string; icon: any; desc: string }[] = [
+  { type: "scarcity",         label: "⏰ Escassez",          icon: Timer,           desc: "Contador + vagas limitadas" },
+  { type: "social_proof",     label: "👥 Prova Social",      icon: Users,           desc: "Contador de pessoas" },
+  { type: "testimonials",     label: "💬 Depoimentos",       icon: MessageSquare,   desc: "Carrossel com estrelas" },
+  { type: "cta_whatsapp",     label: "📱 CTA WhatsApp",      icon: MessageCircle,   desc: "Botão verde com mensagem" },
+  { type: "cta_price",        label: "💰 Oferta / Preço",    icon: DollarSign,      desc: "Ancoragem de preço" },
+  { type: "authority",        label: "🏢 Autoridade",        icon: Building2,       desc: "Grid de logos" },
+  { type: "before_after",     label: "⚡ Antes e Depois",    icon: ArrowLeftRight,  desc: "Comparação visual" },
+  { type: "comparison_table", label: "📊 Tabela Comparativa", icon: Table2,          desc: "Você vs. Concorrência" },
 ];
 
 export default function QuizEditorPage() {
@@ -263,6 +276,28 @@ export default function QuizEditorPage() {
                   className="w-full text-left p-2 rounded-md border border-border hover:border-primary hover:bg-primary/5 transition flex items-start gap-2"
                 >
                   <Icon className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <div className="text-xs font-medium">{b.label}</div>
+                    <div className="text-[10px] text-muted-foreground line-clamp-2">{b.desc}</div>
+                  </div>
+                </button>
+              );
+            })}
+
+            <div className="pt-3 border-t border-border mt-3">
+              <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider flex items-center gap-1">
+                <Zap className="h-3 w-3 text-amber-500" />Vendas & Persuasão
+              </div>
+            </div>
+            {SALES_BLOCK_LIBRARY.map(b => {
+              const Icon = b.icon;
+              return (
+                <button
+                  key={b.type}
+                  onClick={() => addQuestion(b.type)}
+                  className="w-full text-left p-2 rounded-md border border-amber-500/20 hover:border-amber-500 hover:bg-amber-500/5 transition flex items-start gap-2"
+                >
+                  <Icon className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                   <div className="min-w-0">
                     <div className="text-xs font-medium">{b.label}</div>
                     <div className="text-[10px] text-muted-foreground line-clamp-2">{b.desc}</div>
@@ -546,6 +581,10 @@ function BlockSettings({ question }: { question: QuizQuestionDraft }) {
           />
           <VisualSectionEditor question={question} />
         </>
+      )}
+
+      {["scarcity","social_proof","testimonials","cta_whatsapp","cta_price","authority","before_after","comparison_table"].includes(question.type) && (
+        <SalesBlockSettings question={question} />
       )}
 
       <div>
