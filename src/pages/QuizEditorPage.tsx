@@ -28,6 +28,8 @@ import {
 } from "@/stores/quizEditorStore";
 import { QuizThemeEditor } from "@/components/quiz/QuizThemeEditor";
 import { QuizMediaUploader } from "@/components/quiz/QuizMediaUploader";
+import { VisualSectionEditor } from "@/components/quiz/VisualSectionEditor";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const BLOCK_LIBRARY: { type: QuestionType; label: string; icon: any; desc: string }[] = [
   { type: "single",   label: "Escolha única",        icon: CircleDot,  desc: "Uma resposta entre opções" },
@@ -501,13 +503,31 @@ function BlockSettings({ question }: { question: QuizQuestionDraft }) {
       )}
 
       {question.type === "visual" && (
-        <QuizMediaUploader
-          label="Imagem do banner"
-          value={question.config?.image_url ?? ""}
-          onChange={v => updateQuestion(question.id, { config: { ...question.config, image_url: v } })}
-          clientId={cid}
-        />
+        <>
+          <QuizMediaUploader
+            label="Imagem do banner (topo — opcional)"
+            value={question.config?.image_url ?? ""}
+            onChange={v => updateQuestion(question.id, { config: { ...question.config, image_url: v } })}
+            clientId={cid}
+          />
+          <VisualSectionEditor question={question} />
+        </>
       )}
+
+      <div>
+        <Label className="text-xs">Alinhamento do título / descrição</Label>
+        <Select
+          value={question.config?.text_align ?? "center"}
+          onValueChange={v => updateQuestion(question.id, { config: { ...question.config, text_align: v } })}
+        >
+          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="left">Esquerda</SelectItem>
+            <SelectItem value="center">Centro</SelectItem>
+            <SelectItem value="right">Direita</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 }
