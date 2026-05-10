@@ -619,6 +619,38 @@ function getSettings(element: any, patch: (p: any) => void, cid: string) {
         </div>
       );
 
+    case "impact_summary":
+      return (
+        <div className="space-y-4">
+          <div><Label className="text-xs">Padding Lateral (%)</Label>
+            <Input type="number" value={c.padding_percentage ?? 0} onChange={e => patch({ padding_percentage: Number(e.target.value) })} /></div>
+          <div className="space-y-3">
+            <Label className="text-xs font-bold">Itens (Cards)</Label>
+            {(c.items || [{}, {}, {}]).map((it: any, i: number) => (
+              <div key={i} className="p-3 border rounded-lg space-y-2 bg-muted/30">
+                <Input placeholder="Label (Ex: Excesso...)" value={it.label || ""} onChange={e => {
+                  const items = [...(c.items || [{}, {}, {}])];
+                  items[i] = { ...items[i], label: e.target.value };
+                  patch({ items });
+                }} />
+                <Input placeholder="Valor (Ex: R$ 8.850)" value={it.value || ""} onChange={e => {
+                  const items = [...(c.items || [{}, {}, {}])];
+                  items[i] = { ...items[i], value: e.target.value };
+                  patch({ items });
+                }} />
+                <div className="flex items-center gap-2">
+                  <Label className="text-[10px]">Cor:</Label>
+                  <input type="color" value={it.color || "#ffffff"} onChange={e => {
+                    const items = [...(c.items || [{}, {}, {}])];
+                    items[i] = { ...items[i], color: e.target.value };
+                    patch({ items });
+                  }} className="h-6 w-12 rounded border p-0" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
     default:
       return null;
   }

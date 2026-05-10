@@ -1024,3 +1024,38 @@ export function HighlightTextBlock({ config, theme }: BlockProps) {
     </div>
   );
 }
+
+/* ─── IMPACT SUMMARY (3 CARDS) ─── */
+export function ImpactSummaryBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
+  const items = config.items || [
+    { label: "Excesso estimado/mês", value: "R$ 8.850", color: "#ef4444" },
+    { label: "Potencial de redução", value: "até 34%", color: t.primary_color },
+    { label: "Perda anual estimada", value: "R$ 106.200", color: "#ef4444" }
+  ];
+
+  return (
+    <div className="w-full py-8" style={{ padding: config.padding_percentage ? `0 ${config.padding_percentage}%` : undefined }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {items.map((it: any, i: number) => (
+          <div key={i} className="rounded-2xl p-6 flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.02]"
+               style={{ 
+                 backgroundColor: t.is_light ? "rgba(255,255,255,1)" : t.alpha(0.05),
+                 border: t.border(0.1),
+                 boxShadow: t.is_light ? "0 10px 25px rgba(0,0,0,0.05)" : "none"
+               }}>
+            <p className="text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2" style={{ color: t.text_color }}>
+              {it.label}
+            </p>
+            <div className="text-2xl font-black tabular-nums" style={{ color: it.color || t.primary_color }}>
+              {it.value}
+            </div>
+            {it.subtext && (
+              <p className="text-[10px] mt-2 opacity-50" style={{ color: t.text_color }}>{it.subtext}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

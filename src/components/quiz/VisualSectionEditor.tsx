@@ -16,7 +16,7 @@ import {
   ExitIntentPopup, ProgressiveRevealBlock, RoiCalculatorBlock,
   MaturityThermometerBlock, PricingPlansBlock, PostResultFormBlock,
   AlertBlock, ArgumentsBlock, AudioBlock, VideoBlock, SpacerBlock, HtmlBlock,
-  FakeLoadingBlock, CircularProgressBlock, HighlightTextBlock
+  FakeLoadingBlock, CircularProgressBlock, HighlightTextBlock, ImpactSummaryBlock
 } from "./SalesBlocks";
 
 export type VisualElement =
@@ -61,6 +61,7 @@ export const TYPE_LABELS: Record<string, { label: string; icon: any; default?: a
   spacer: { label: "Espaço", icon: ArrowDownUp, default: { height: 32, show_line: false } },
   circular_progress: { label: "Progresso Circular", icon: PieChart, default: { percentage: 85, title: "Taxa de Sucesso", subtitle: "comprovado" } },
   fake_loading: { label: "Loading (Auto-Avança)", icon: Loader2, default: { text: "Analisando suas respostas...", duration_seconds: 3 } },
+  impact_summary: { label: "Impacto (3 Cards)", icon: LayoutTemplate, default: { padding_percentage: 0, items: [{ label: "Excesso estimado/mês", value: "R$ 8.850", color: "#ef4444" }, { label: "Potencial de redução", value: "até 34%", color: "#eab308" }, { label: "Perda anual estimada", value: "R$ 106.200", color: "#ef4444" }] } },
 };
 
 export function VisualSectionEditor({ question }: { question: QuizQuestionDraft }) {
@@ -321,6 +322,7 @@ export function renderVisualElements(
     if (el.type === "circular_progress") return <CircularProgressBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "highlight_text") return <HighlightTextBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "fake_loading") return <FakeLoadingBlock key={el.id} config={el} theme={theme as any} onNext={onButtonNext} />;
+    if (el.type === "impact_summary") return <ImpactSummaryBlock key={el.id} config={el} theme={theme as any} />;
 
     return null;
   });
