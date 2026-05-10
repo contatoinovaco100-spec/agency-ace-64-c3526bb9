@@ -651,14 +651,20 @@ function BlockSettings({ question }: { question: QuizQuestionDraft }) {
       {question.type === "lead" && (
         <div className="space-y-3">
           <Label>Campos exibidos</Label>
-          {(["name", "email", "phone"] as const).map(k => {
+          {(["name", "email", "phone", "cnpj", "company_name"] as const).map(k => {
             const fields = (question.config?.fields ?? {}) as Record<string, boolean>;
             const labels = (question.config?.labels ?? {}) as Record<string, string>;
-            const defaultLabels: Record<string, string> = { name: "Seu nome", email: "Seu e-mail", phone: "Seu telefone" };
+            const defaultLabels: Record<string, string> = { 
+              name: "Seu nome", email: "Seu e-mail", phone: "Seu telefone",
+              cnpj: "CNPJ", company_name: "Razão Social"
+            };
+            const fieldNames: Record<string, string> = {
+              name: "Nome", email: "E-mail", phone: "Telefone", cnpj: "CNPJ", company_name: "Razão Social"
+            };
             return (
               <div key={k} className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm capitalize">{k === "name" ? "Nome" : k === "email" ? "E-mail" : "Telefone"}</span>
+                  <span className="text-sm">{fieldNames[k]}</span>
                   <Switch
                     checked={!!fields[k]}
                     onCheckedChange={v =>

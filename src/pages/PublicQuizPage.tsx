@@ -40,7 +40,7 @@ export default function PublicQuizPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, AnswerVal>>({});
-  const [lead, setLead] = useState({ name: "", email: "", phone: "" });
+  const [lead, setLead] = useState({ name: "", email: "", phone: "", cnpj: "", company_name: "" });
   const [responseId, setResponseId] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -97,7 +97,7 @@ export default function PublicQuizPage() {
       const saved = JSON.parse(localStorage.getItem(STORAGE(`${clientSlug}_${quizSlug}`)) ?? "null");
       if (saved) {
         setAnswers(saved.answers ?? {});
-        setLead(saved.lead ?? { name: "", email: "", phone: "" });
+        setLead({ name: "", email: "", phone: "", cnpj: "", company_name: "", ...(saved.lead ?? {}) });
         setStep(saved.step ?? 0);
       }
     } catch {}
@@ -152,6 +152,8 @@ export default function PublicQuizPage() {
         if (f.name && !lead.name.trim()) return;
         if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead.email)) return;
         if (f.phone && lead.phone.replace(/\D/g, "").length < 10) return;
+        if (f.cnpj && lead.cnpj.replace(/\D/g, "").length < 14) return;
+        if (f.company_name && !lead.company_name.trim()) return;
       }
     }
     if (step < questions.length - 1) {
@@ -171,10 +173,22 @@ export default function PublicQuizPage() {
       completed_at: new Date().toISOString(),
       lead_name: lead.name, lead_email: lead.email, lead_phone: lead.phone,
     }).eq("id", rid);
+    
     const rows = Object.entries(answers).map(([qid, a]) => ({
       response_id: rid, question_id: qid,
       option_ids: a.option_ids ?? [], text_answer: a.text_answer ?? "",
     }));
+    
+    // Save CNPJ and Company Name inside quiz_answers if they exist
+    const leadQuestion = questions.find(q => q.type === "lead");
+    if (leadQuestion && (lead.cnpj || lead.company_name)) {
+      rows.push({
+        response_id: rid, question_id: leadQuestion.id,
+        option_ids: [],
+        text_answer: `CNPJ: ${lead.cnpj || "Não informado"} | Empresa: ${lead.company_name || "Não informada"}`
+      });
+    }
+
     if (rows.length) await supabase.from("quiz_answers").insert(rows);
     await supabase.rpc("increment_quiz_counter", { _quiz_id: quiz.id, _field: "completions_count" });
     localStorage.removeItem(STORAGE(`${clientSlug}_${quizSlug}`));
@@ -453,6 +467,24 @@ export default function PublicQuizPage() {
                     <Label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.phone || "Seu telefone"}</Label>
                     <Input value={lead.phone} onChange={e => setLead({ ...lead, phone: e.target.value })}
                       placeholder="(11) 99999-9999"
+                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
+                      className="border-white/20" />
+                  </div>
+                )}
+                {q.config?.fields?.cnpj && (
+                  <div>
+                    <Label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.cnpj || "Seu CNPJ"}</Label>
+                    <Input value={lead.cnpj} onChange={e => setLead({ ...lead, cnpj: e.target.value })}
+                      placeholder="00.000.000/0000-00"
+                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
+                      className="border-white/20" />
+                  </div>
+                )}
+                {q.config?.fields?.company_name && (
+                  <div>
+                    <Label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.company_name || "Razão Social"}</Label>
+                    <Input value={lead.company_name} onChange={e => setLead({ ...lead, company_name: e.target.value })}
+                      placeholder="Nome da sua empresa"
                       style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
                       className="border-white/20" />
                   </div>
