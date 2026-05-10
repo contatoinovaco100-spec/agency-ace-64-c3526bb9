@@ -683,7 +683,6 @@ export function PostResultFormBlock({ config, theme }: BlockProps) {
         </button>
       </form>
     </div>
-    </div>
   );
 }
 
