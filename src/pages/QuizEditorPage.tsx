@@ -269,53 +269,83 @@ export default function QuizEditorPage() {
 
         {/* Canvas */}
         <Card>
-          <CardContent className="p-4 space-y-3 min-h-[400px]">
-            {visible.length === 0 ? (
-              <div className="text-center text-muted-foreground py-12">
-                <Layers className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                Adicione blocos na lateral esquerda.
-              </div>
-            ) : (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                <SortableContext items={visible.map(q => q.id)} strategy={verticalListSortingStrategy}>
-                  {visible.map((q, i) => (
-                    <SortableQuestionCard
-                      key={q.id} q={q} index={i}
-                      selected={selectedId === q.id}
-                      onSelect={() => select(q.id)}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
-            )}
+          <CardContent className="p-4 min-h-[400px]">
+            <Tabs defaultValue="content">
+              <TabsList className="mb-4">
+                <TabsTrigger value="content"><Layers className="h-3.5 w-3.5 mr-1" />Conteúdo</TabsTrigger>
+                <TabsTrigger value="theme"><Palette className="h-3.5 w-3.5 mr-1" />Tema</TabsTrigger>
+                <TabsTrigger value="advanced"><Settings2 className="h-3.5 w-3.5 mr-1" />Avançado</TabsTrigger>
+              </TabsList>
 
-            <div className="mt-6 pt-4 border-t border-border">
-              <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">Tela final (resultado)</div>
-              <div className="space-y-2">
-                <Input
-                  value={meta.result_title}
-                  placeholder="Título do resultado"
-                  onChange={e => updateMeta({ result_title: e.target.value })}
-                />
-                <Textarea
-                  rows={2} value={meta.result_text}
-                  placeholder="Mensagem para o respondente"
-                  onChange={e => updateMeta({ result_text: e.target.value })}
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    value={meta.result_cta_label}
-                    placeholder="Texto do botão (opcional)"
-                    onChange={e => updateMeta({ result_cta_label: e.target.value })}
-                  />
-                  <Input
-                    value={meta.result_cta_url}
-                    placeholder="URL do botão"
-                    onChange={e => updateMeta({ result_cta_url: e.target.value })}
-                  />
+              <TabsContent value="content" className="space-y-3">
+                {visible.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-12">
+                    <Layers className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    Adicione blocos na lateral esquerda.
+                  </div>
+                ) : (
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                    <SortableContext items={visible.map(q => q.id)} strategy={verticalListSortingStrategy}>
+                      {visible.map((q, i) => (
+                        <SortableQuestionCard
+                          key={q.id} q={q} index={i}
+                          selected={selectedId === q.id}
+                          onSelect={() => select(q.id)}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                )}
+
+                <div className="mt-6 pt-4 border-t border-border">
+                  <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">Tela final (resultado)</div>
+                  <div className="space-y-2">
+                    <Input
+                      value={meta.result_title}
+                      placeholder="Título do resultado"
+                      onChange={e => updateMeta({ result_title: e.target.value })}
+                    />
+                    <Textarea
+                      rows={2} value={meta.result_text}
+                      placeholder="Mensagem para o respondente"
+                      onChange={e => updateMeta({ result_text: e.target.value })}
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        value={meta.result_cta_label}
+                        placeholder="Texto do botão (opcional)"
+                        onChange={e => updateMeta({ result_cta_label: e.target.value })}
+                      />
+                      <Input
+                        value={meta.result_cta_url}
+                        placeholder="URL do botão"
+                        onChange={e => updateMeta({ result_cta_url: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </TabsContent>
+
+              <TabsContent value="theme">
+                <QuizThemeEditor />
+              </TabsContent>
+
+              <TabsContent value="advanced" className="space-y-4">
+                <div>
+                  <Label className="text-xs">Webhook URL (POST após completar)</Label>
+                  <Input value={meta.webhook_url} onChange={e => updateMeta({ webhook_url: e.target.value })} placeholder="https://..." />
+                </div>
+                <div>
+                  <Label className="text-xs">Pixel Meta (ID)</Label>
+                  <Input value={meta.pixel_meta} onChange={e => updateMeta({ pixel_meta: e.target.value })} placeholder="1234567890" />
+                </div>
+                <div>
+                  <Label className="text-xs">Google Analytics (Measurement ID)</Label>
+                  <Input value={meta.pixel_ga} onChange={e => updateMeta({ pixel_ga: e.target.value })} placeholder="G-XXXXXXXXXX" />
+                </div>
+                <p className="text-[11px] text-muted-foreground">As integrações (webhook, pixel, GA) são acionadas na página pública após o respondente concluir o quiz.</p>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
