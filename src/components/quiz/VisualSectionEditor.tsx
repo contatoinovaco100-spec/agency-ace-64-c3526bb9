@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, ArrowUp, ArrowDown, Type, AlignLeft, Image as ImageIcon, List, MousePointerClick, Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send, AlertTriangle, CheckSquare, PlayCircle, Video, ArrowDownUp, Code, Loader2, PieChart } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, Type, AlignLeft, Image as ImageIcon, List, MousePointerClick, Timer, Users, MessageSquare, MessageCircle, DollarSign, Building2, ArrowLeftRight, Table2, Gauge, TrendingUp, Bell, LogOut, Sparkles, Calculator, Thermometer, LayoutTemplate, Send, AlertTriangle, CheckSquare, PlayCircle, Video, ArrowDownUp, Code, Loader2, PieChart, Highlighter } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { QuizMediaUploader } from "./QuizMediaUploader";
 import { useQuizEditorStore, type QuizQuestionDraft } from "@/stores/quizEditorStore";
@@ -16,7 +16,7 @@ import {
   ExitIntentPopup, ProgressiveRevealBlock, RoiCalculatorBlock,
   MaturityThermometerBlock, PricingPlansBlock, PostResultFormBlock,
   AlertBlock, ArgumentsBlock, AudioBlock, VideoBlock, SpacerBlock, HtmlBlock,
-  FakeLoadingBlock, CircularProgressBlock
+  FakeLoadingBlock, CircularProgressBlock, HighlightTextBlock
 } from "./SalesBlocks";
 
 export type VisualElement =
@@ -35,6 +35,7 @@ export const TYPE_LABELS: Record<string, { label: string; icon: any; default?: a
   image: { label: "Imagem", icon: ImageIcon },
   bullets: { label: "Lista", icon: List },
   button: { label: "Botão", icon: MousePointerClick },
+  highlight_text: { label: "Texto em Destaque", icon: Highlighter, default: { full_text: "Sua empresa pode economizar R$ 50.000", highlight_part: "R$ 50.000", font_size: 24, highlight_color: "#bff720", is_bold: true, align: "center" } },
   scarcity: { label: "Escassez", icon: Timer, default: { text: "Restam apenas {n} vagas", slots_total: 10, slots_filled: 7, show_timer: true, timer_minutes: 15 } },
   social_proof: { label: "Prova Social", icon: Users, default: { text: "Mais de {n} pessoas completaram", count: 127, show_animation: true } },
   testimonials: { label: "Depoimentos", icon: MessageSquare, default: { items: [{ name: "Cliente", role: "Empresa", text: "Muito bom!", stars: 5, photo_url: "" }], autoplay_seconds: 5 } },
@@ -317,6 +318,7 @@ export function renderVisualElements(
     if (el.type === "html") return <HtmlBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "spacer") return <SpacerBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "circular_progress") return <CircularProgressBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "highlight_text") return <HighlightTextBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "fake_loading") return <FakeLoadingBlock key={el.id} config={el} theme={theme as any} onNext={onButtonNext} />;
 
     return null;

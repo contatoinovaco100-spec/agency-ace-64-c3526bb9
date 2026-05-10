@@ -48,6 +48,43 @@ export function SalesElementSettings({ element, patch, clientId }: { element: an
         </div>
       );
 
+    case "highlight_text":
+      return (
+        <div className="space-y-3">
+          <div><Label className="text-xs">Texto Completo</Label>
+            <Textarea rows={2} value={c.full_text ?? ""} onChange={e => patch({ full_text: e.target.value })} /></div>
+          <div><Label className="text-xs">Palavra ou Frase para destacar (deve ser idêntica a uma parte do texto acima)</Label>
+            <Input value={c.highlight_part ?? ""} onChange={e => patch({ highlight_part: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-2">
+            <div><Label className="text-xs">Tamanho da Fonte (px)</Label>
+              <Input type="number" value={c.font_size ?? 24} onChange={e => patch({ font_size: +e.target.value })} /></div>
+            <div><Label className="text-xs">Alinhamento</Label>
+              <Select value={c.align ?? "center"} onValueChange={v => patch({ align: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="left">Esquerda</SelectItem>
+                  <SelectItem value="center">Centro</SelectItem>
+                  <SelectItem value="right">Direita</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <Label className="text-xs">Cor do Destaque</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <input type="color" value={c.highlight_color ?? "#bff720"} onChange={e => patch({ highlight_color: e.target.value })} className="w-8 h-8 rounded border" />
+                <Input value={c.highlight_color ?? "#bff720"} onChange={e => patch({ highlight_color: e.target.value })} className="text-xs font-mono" />
+              </div>
+            </div>
+            <div className="flex flex-col items-center">
+              <Label className="text-xs mb-2">Negrito</Label>
+              <Switch checked={!!c.is_bold} onCheckedChange={v => patch({ is_bold: v })} />
+            </div>
+          </div>
+        </div>
+      );
+
     case "testimonials": {
       const items = (c.items ?? []) as any[];
       const updateItem = (i: number, p: Record<string, any>) => {

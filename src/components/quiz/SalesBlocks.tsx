@@ -962,3 +962,29 @@ export function CircularProgressBlock({ config, theme }: BlockProps) {
     </div>
   );
 }
+
+/* ─── TEXTO COM DESTAQUE ─── */
+export function HighlightTextBlock({ config, theme }: BlockProps) {
+  const { full_text = "", highlight_part = "", font_size = 24, highlight_color = "#bff720", is_bold = true, align = "center" } = config;
+  
+  if (!full_text) return null;
+
+  const index = highlight_part ? full_text.indexOf(highlight_part) : -1;
+  const alignment = align === "left" ? "text-left" : align === "right" ? "text-right" : "text-center";
+
+  return (
+    <div className={`w-full py-4 ${alignment}`} style={{ fontSize: `${font_size}px`, lineHeight: 1.3, color: theme.text_color }}>
+      {index !== -1 ? (
+        <>
+          {full_text.substring(0, index)}
+          <span style={{ color: highlight_color, fontWeight: is_bold ? 900 : 400 }}>
+            {highlight_part}
+          </span>
+          {full_text.substring(index + highlight_part.length)}
+        </>
+      ) : (
+        full_text
+      )}
+    </div>
+  );
+}
