@@ -19,14 +19,7 @@ import {
   FakeLoadingBlock, CircularProgressBlock, HighlightTextBlock, ImpactSummaryBlock,
   InfiniteMarqueeBlock, ScrollToOfferBlock, IconInfoBlock, FaqBlock
 } from "./SalesBlocks";
-
-export type VisualElement =
-  | { id: string; type: "heading"; text: string; align?: "left" | "center" | "right"; size?: "sm" | "md" | "lg" | "xl" }
-  | { id: string; type: "paragraph"; text: string; align?: "left" | "center" | "right" }
-  | { id: string; type: "image"; url: string; align?: "left" | "center" | "right" }
-  | { id: string; type: "bullets"; items: string[]; align?: "left" | "center" | "right" }
-  | { id: string; type: "button"; label: string; url: string; align?: "left" | "center" | "right"; action?: "link" | "next" }
-  | { id: string; type: string; [key: string]: any };
+import { renderVisualElements, type VisualElement } from "./VisualElementRenderer";
 
 const newId = () => "el_" + Math.random().toString(36).slice(2, 9);
 
@@ -242,103 +235,4 @@ function AlignSelect({ value, onChange }: { value: string; onChange: (v: string)
       </SelectContent>
     </Select>
   );
-}
-
-function DelayedElement({ children, delay }: { children: React.ReactNode; delay?: number }) {
-  const [visible, setVisible] = useState(!delay || delay <= 0);
-
-  useEffect(() => {
-    if (delay && delay > 0) {
-      const t = setTimeout(() => setVisible(true), delay * 1000);
-      return () => clearTimeout(t);
-    }
-  }, [delay]);
-
-  if (!visible) return null;
-  return <div className="animate-in fade-in duration-700">{children}</div>;
-}
-
-export function renderVisualElements(
-  elements: VisualElement[],
-  theme: { primary_color: string; button_text_color: string; border_radius: number; heading_weight: number, card_background?: string, text_color?: string },
-  onButtonNext?: () => void,
-  progress?: number
-) {
-  const sizeMap = { sm: "text-base", md: "text-lg", lg: "text-2xl", xl: "text-4xl" };
-  return elements.map((el) => {
-    const align = el.align ?? "center";
-    const alignClass = align === "left" ? "text-left" : align === "right" ? "text-right" : "text-center";
-    
-    let content: React.ReactNode = null;
-
-    if (el.type === "heading") {
-      content = <h3 className={`${sizeMap[el.size ?? "lg"]} ${alignClass}`} style={{ fontWeight: theme.heading_weight }}>{el.text}</h3>;
-    } else if (el.type === "paragraph") {
-      content = <p className={`${alignClass} whitespace-pre-line opacity-90`}>{el.text}</p>;
-    } else if (el.type === "image" && el.url) {
-      content = <div className={alignClass}><img src={el.url} alt="" className="inline-block max-w-full" style={{ borderRadius: theme.border_radius }} /></div>;
-    } else if (el.type === "bullets") {
-      content = (
-        <ul className={`${alignClass} space-y-1.5 list-none`}>
-          {el.items?.filter(Boolean).map((it: string, idx: number) => (
-            <li key={idx} className="flex items-start gap-2 justify-start" style={{ justifyContent: align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start" }}>
-              <span style={{ color: theme.primary_color }}>✓</span>
-              <span>{it}</span>
-            </li>
-          ))}
-        </ul>
-      );
-    } else if (el.type === "button") {
-      const style: React.CSSProperties = {
-        backgroundColor: el.custom_button_bg_color || theme.primary_color,
-        color: el.custom_button_bg_color ? "#ffffff" : theme.button_text_color,
-        borderRadius: theme.border_radius,
-        fontWeight: 600,
-      };
-      const cls = "inline-block px-6 py-3 transition-transform active:scale-95";
-      content = (
-        <div className={alignClass}>
-          {el.action === "link" && el.url ? (
-            <a href={el.url} target="_blank" rel="noreferrer" className={cls} style={style}>{el.label}</a>
-          ) : (
-            <button onClick={onButtonNext} className={cls} style={style}>{el.label}</button>
-          )}
-        </div>
-      );
-    } else {
-      // Sales blocks
-      if (el.type === "scarcity") content = <ScarcityBlock config={el} theme={theme as any} />;
-      else if (el.type === "social_proof") content = <SocialProofBlock config={el} theme={theme as any} />;
-      else if (el.type === "testimonials") content = <TestimonialsBlock config={el} theme={theme as any} />;
-      else if (el.type === "cta_whatsapp") content = <CtaWhatsAppBlock config={el} theme={theme as any} />;
-      else if (el.type === "cta_price") content = <CtaPriceBlock config={el} theme={theme as any} />;
-      else if (el.type === "authority") content = <AuthorityBlock config={el} theme={theme as any} />;
-      else if (el.type === "before_after") content = <BeforeAfterBlock config={el} theme={theme as any} />;
-      else if (el.type === "comparison_table") content = <ComparisonTableBlock config={el} theme={theme as any} />;
-      else if (el.type === "gauge_chart") content = <GaugeChartBlock config={el} theme={theme as any} />;
-      else if (el.type === "progress_motivational") content = <ProgressMotivationalBlock config={el} theme={theme as any} progress={progress ?? 0} />;
-      else if (el.type === "progressive_reveal") content = <ProgressiveRevealBlock config={el} theme={theme as any} />;
-      else if (el.type === "roi_calculator") content = <RoiCalculatorBlock config={el} theme={theme as any} />;
-      else if (el.type === "maturity_thermometer") content = <MaturityThermometerBlock config={el} theme={theme as any} />;
-      else if (el.type === "pricing_plans") content = <PricingPlansBlock config={el} theme={theme as any} />;
-      else if (el.type === "post_result_form") content = <PostResultFormBlock config={el} theme={theme as any} />;
-      else if (el.type === "alert") content = <AlertBlock config={el} theme={theme as any} />;
-      else if (el.type === "arguments") content = <ArgumentsBlock config={el} theme={theme as any} />;
-      else if (el.type === "audio") content = <AudioBlock config={el} theme={theme as any} />;
-      else if (el.type === "video") content = <VideoBlock config={el} theme={theme as any} />;
-      else if (el.type === "html") content = <HtmlBlock config={el} theme={theme as any} />;
-      else if (el.type === "spacer") content = <SpacerBlock config={el} theme={theme as any} />;
-      else if (el.type === "circular_progress") content = <CircularProgressBlock config={el} theme={theme as any} />;
-      else if (el.type === "highlight_text") content = <HighlightTextBlock config={el} theme={theme as any} />;
-      else if (el.type === "fake_loading") content = <FakeLoadingBlock config={el} theme={theme as any} onNext={onButtonNext} />;
-      else if (el.type === "impact_summary") content = <ImpactSummaryBlock config={el} theme={theme as any} />;
-      else if (el.type === "infinite_marquee") content = <InfiniteMarqueeBlock config={el} theme={theme as any} />;
-      else if (el.type === "scroll_to_offer") content = <ScrollToOfferBlock config={el} theme={theme as any} />;
-      else if (el.type === "faq") content = <FaqBlock config={el} theme={theme as any} />;
-      else if (el.type === "icon_info") content = <IconInfoBlock config={el} theme={theme as any} />;
-    }
-
-    if (!content) return null;
-    return <DelayedElement key={el.id} delay={el.delay_seconds}>{content}</DelayedElement>;
-  });
 }

@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle2, AlertTriangle, Users, Lock } from "lucide-react";
 import { mergeTheme, useGoogleFont, buttonRadius, type QuizTheme } from "@/lib/quizTheme";
-import { renderVisualElements, type VisualElement } from "@/components/quiz/VisualSectionEditor";
+import { renderVisualElements, type VisualElement } from "@/components/quiz/VisualElementRenderer";
 
 // Lazy load heavy sales blocks
 const ScarcityBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.ScarcityBlock })));
