@@ -15,16 +15,34 @@ export function SalesElementSettings({ element, patch, clientId }: { element: an
   return (
     <div className="space-y-4">
       {getSettings(element, patch, clientId)}
-      <div className="pt-2 border-t border-border mt-2">
-        <Label className="text-[10px] uppercase tracking-wider opacity-50 mb-2 block">Estilo do Bloco</Label>
-        <Select value={c.theme_variant ?? "auto"} onValueChange={v => patch({ theme_variant: v })}>
-          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="auto">Automático (Tema do Quiz)</SelectItem>
-            <SelectItem value="light">Versão Clara</SelectItem>
-            <SelectItem value="dark">Versão Escura</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="pt-2 border-t border-border mt-2 space-y-3">
+        <div>
+          <Label className="text-[10px] uppercase tracking-wider opacity-50 mb-2 block">Estilo do Bloco</Label>
+          <Select value={c.theme_variant ?? "auto"} onValueChange={v => patch({ theme_variant: v })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="auto">Automático (Tema do Quiz)</SelectItem>
+              <SelectItem value="light">Versão Clara</SelectItem>
+              <SelectItem value="dark">Versão Escura</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label className="text-[10px] uppercase tracking-wider opacity-50 block mb-1">Atraso (segundos)</Label>
+            <Input type="number" className="h-8 text-xs" value={c.delay_seconds ?? 0} onChange={e => patch({ delay_seconds: Number(e.target.value) })} />
+          </div>
+          {["cta_whatsapp", "cta_price", "pricing_plans", "scroll_to_offer", "button"].includes(c.type) && (
+            <div>
+              <Label className="text-[10px] uppercase tracking-wider opacity-50 block mb-1">Cor do Botão</Label>
+              <div className="flex gap-1">
+                <input type="color" value={c.custom_button_bg_color || "#ffffff"} onChange={e => patch({ custom_button_bg_color: e.target.value })} className="h-8 w-full rounded border p-0" />
+                {c.custom_button_bg_color && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => patch({ custom_button_bg_color: undefined })}><Trash2 className="h-3 w-3" /></Button>}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

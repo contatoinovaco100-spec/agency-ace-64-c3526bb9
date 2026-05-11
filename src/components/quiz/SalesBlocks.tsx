@@ -202,12 +202,12 @@ export function CtaWhatsAppBlock({ config, theme }: BlockProps) {
         target="_blank"
         rel="noreferrer"
         className="w-full inline-flex items-center justify-center gap-3 py-4 px-6 rounded-xl text-white font-bold text-base transition-all hover:scale-[1.02] active:scale-95"
-        style={{ backgroundColor: "#25D366", animation: "whatsappPulse 2s infinite" }}
+        style={{ backgroundColor: config.custom_button_bg_color || "#25D366", animation: "whatsappPulse 2s infinite" }}
       >
         <MessageCircle className="h-6 w-6" />
         {button_text}
       </a>
-      <style>{`@keyframes whatsappPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(37,211,102,0.4); } 50% { box-shadow: 0 0 0 12px rgba(37,211,102,0); } }`}</style>
+      <style>{`@keyframes whatsappPulse { 0%,100% { box-shadow: 0 0 0 0 ${config.custom_button_bg_color || "#25D366"}66; } 50% { box-shadow: 0 0 0 12px rgba(37,211,102,0); } }`}</style>
     </div>
   );
 }
@@ -238,7 +238,7 @@ export function CtaPriceBlock({ config, theme }: BlockProps) {
             target="_blank"
             rel="noreferrer"
             className="w-full inline-block py-4 rounded-xl font-bold text-lg transition-all hover:scale-[1.02] active:scale-95"
-            style={{ backgroundColor: theme.primary_color, color: theme.button_text_color, boxShadow: `0 4px 20px ${theme.primary_color}40` }}
+            style={{ backgroundColor: config.custom_button_bg_color || theme.primary_color, color: config.custom_button_bg_color ? "#ffffff" : theme.button_text_color, boxShadow: `0 4px 20px ${(config.custom_button_bg_color || theme.primary_color)}40` }}
           >
             {button_text || "Quero aproveitar"} →
           </a>
@@ -734,9 +734,9 @@ export function PricingPlansBlock({ config, theme }: BlockProps) {
           {p.button_url && (
             <a href={p.button_url} target="_blank" rel="noreferrer" className="w-full py-3 rounded-lg text-center font-bold transition-all text-sm block"
               style={{
-                backgroundColor: p.is_popular ? t.primary_color : "transparent",
-                color: p.is_popular ? t.button_text_color : t.text_color,
-                border: `1px solid ${t.primary_color}`
+                backgroundColor: p.is_popular ? (config.custom_button_bg_color || t.primary_color) : "transparent",
+                color: p.is_popular ? (config.custom_button_bg_color ? "#ffffff" : t.button_text_color) : t.text_color,
+                border: `1px solid ${config.custom_button_bg_color || t.primary_color}`
               }}>
               {p.button_text || "Escolher"}
             </a>
@@ -786,7 +786,7 @@ export function PostResultFormBlock({ config, theme }: BlockProps) {
           <input required type="text" placeholder="Sua empresa" className="w-full p-3 rounded-lg text-sm bg-black/20 border-white/10 outline-none focus:border-primary transition-colors" />
         )}
         <button type="submit" disabled={submitting} className="w-full py-3 mt-2 rounded-lg font-bold transition-all disabled:opacity-50"
-          style={{ backgroundColor: theme.primary_color, color: theme.button_text_color }}>
+          style={{ backgroundColor: config.custom_button_bg_color || theme.primary_color, color: config.custom_button_bg_color ? "#ffffff" : theme.button_text_color }}>
           {submitting ? "Enviando..." : button_text}
         </button>
       </form>
@@ -1141,9 +1141,9 @@ export function ScrollToOfferBlock({ config, theme }: BlockProps) {
         onClick={handleClick}
         className="w-full sm:w-auto px-10 py-5 rounded-2xl font-black text-lg transition-all hover:scale-[1.03] active:scale-[0.98] shadow-xl hover:shadow-2xl"
         style={{ 
-          backgroundColor: t.primary_color, 
-          color: t.button_text_color,
-          boxShadow: `0 10px 30px ${t.primary_color}40`
+          backgroundColor: config.custom_button_bg_color || t.primary_color, 
+          color: config.custom_button_bg_color ? "#ffffff" : t.button_text_color,
+          boxShadow: `0 10px 30px ${(config.custom_button_bg_color || t.primary_color)}40`
         }}
       >
         {label}
