@@ -232,6 +232,17 @@ export function CtaPriceBlock({ config, theme }: BlockProps) {
             R$ {current_price}
           </p>
         </div>
+
+        {config.items && config.items.length > 0 && (
+          <ul className="text-left space-y-2 py-2">
+            {config.items.map((it: string, i: number) => (
+              <li key={i} className="flex items-start gap-2 text-sm opacity-90">
+                <Check className="h-4 w-4 mt-0.5 shrink-0" style={{ color: theme.primary_color }} />
+                <span>{it}</span>
+              </li>
+            ))}
+          </ul>
+        )}
         {button_url && (
           <a
             href={button_url}

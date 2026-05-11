@@ -200,6 +200,27 @@ function getSettings(element: any, patch: (p: any) => void, cid: string) {
             <Input value={c.urgency_text ?? ""} onChange={e => patch({ urgency_text: e.target.value })} /></div>
           <div><Label className="text-xs">Texto de garantia</Label>
             <Input value={c.guarantee_text ?? ""} onChange={e => patch({ guarantee_text: e.target.value })} /></div>
+          
+          <div className="pt-2 border-t mt-2">
+            <Label className="text-xs font-bold mb-2 block">Lista de Benefícios (Bullets)</Label>
+            <div className="space-y-2">
+              {(c.items || []).map((it: string, i: number) => (
+                <div key={i} className="flex gap-1">
+                  <Input value={it} onChange={e => {
+                    const items = [...(c.items || [])];
+                    items[i] = e.target.value;
+                    patch({ items });
+                  }} />
+                  <Button size="icon" variant="ghost" onClick={() => patch({ items: (c.items || []).filter((_: any, j: number) => j !== i) })}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button size="sm" variant="outline" className="w-full" onClick={() => patch({ items: [...(c.items || []), ""] })}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar Bullet
+              </Button>
+            </div>
+          </div>
         </div>
       );
 
