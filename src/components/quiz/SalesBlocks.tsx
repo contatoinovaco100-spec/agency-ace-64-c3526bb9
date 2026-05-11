@@ -1146,3 +1146,19 @@ export function ScrollToOfferBlock({ config, theme }: BlockProps) {
     </div>
   );
 }
+
+/* ─── ÍCONE + TÍTULO + DESCRIÇÃO ─── */
+export function IconInfoBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
+  const { title = "Título do Bloco", description = "Uma breve descrição sobre este ponto importante.", emoji = "🚀", align = "center" } = config;
+  
+  const alignClass = align === "left" ? "text-left items-start" : align === "right" ? "text-right items-end" : "text-center items-center";
+
+  return (
+    <div className={`w-full py-6 flex flex-col ${alignClass} space-y-3`}>
+      <div className="text-4xl mb-2">{emoji}</div>
+      <h3 className="text-2xl font-black tracking-tight" style={{ color: t.text_color }}>{title}</h3>
+      <p className="text-base opacity-70 leading-relaxed max-w-2xl" style={{ color: t.text_color }}>{description}</p>
+    </div>
+  );
+}

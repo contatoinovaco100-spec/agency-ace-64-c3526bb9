@@ -700,6 +700,20 @@ function getSettings(element: any, patch: (p: any) => void, cid: string) {
             <Input value={c.subtext || ""} onChange={e => patch({ subtext: e.target.value })} /></div>
         </div>
       );
+    case "icon_info":
+      return (
+        <div className="space-y-3">
+          <div className="grid grid-cols-4 gap-2">
+            <div className="col-span-1"><Label className="text-xs">Emoji</Label>
+              <Input value={c.emoji || ""} onChange={e => patch({ emoji: e.target.value })} /></div>
+            <div className="col-span-3"><Label className="text-xs">Título</Label>
+              <Input value={c.title || ""} onChange={e => patch({ title: e.target.value })} /></div>
+          </div>
+          <div><Label className="text-xs">Descrição</Label>
+            <Textarea className="text-xs" value={c.description || ""} onChange={e => patch({ description: e.target.value })} /></div>
+          <AlignSelect value={c.align ?? "center"} onChange={v => patch({ align: v })} />
+        </div>
+      );
     default:
       return null;
   }
