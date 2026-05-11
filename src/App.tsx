@@ -224,7 +224,40 @@ function AppRoutes() {
   );
 }
 
+// Lightweight wrapper for quiz-only routes — no Auth, no Agency, no Toasters
+function QuizOnlyRoutes() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen grid place-items-center bg-[#0a0a0a]">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    }>
+      <Routes>
+        <Route path="/quiz/:clientSlug/:quizSlug" element={<PublicQuizPage />} />
+      </Routes>
+    </Suspense>
+  );
+}
+
 const App = () => {
+  return (
+    <BrowserRouter>
+      <QuizRouter />
+    </BrowserRouter>
+  );
+};
+
+// Top-level router that splits quiz pages from the rest of the app
+function QuizRouter() {
+  const location = useLocation();
+  const isQuizPage = location.pathname.startsWith('/quiz/');
+
+  // Quiz pages get a minimal shell — no providers, no overhead
+  if (isQuizPage) {
+    return <QuizOnlyRoutes />;
+  }
+
+  // Everything else gets the full provider stack
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -233,15 +266,13 @@ const App = () => {
         <AuthProvider>
           <RealtimeNotifications />
           <AgencyProvider>
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
+            <AppRoutes />
           </AgencyProvider>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
-};
+}
 
 
 export default App;

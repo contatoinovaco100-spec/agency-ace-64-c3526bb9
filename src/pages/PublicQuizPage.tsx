@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Loader2, CheckCircle2, AlertTriangle, Users, Lock } from "lucide-react";
 import { mergeTheme, useGoogleFont, buttonRadius, type QuizTheme } from "@/lib/quizTheme";
 import { renderVisualElements, type VisualElement } from "@/components/quiz/VisualElementRenderer";
+
+// Inline SVG icons to avoid importing lucide-react bundle eagerly
+const SpinnerIcon = () => <svg className="h-10 w-10 animate-spin mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56" strokeLinecap="round"/></svg>;
+const CheckIcon = ({ className, style }: { className?: string; style?: React.CSSProperties }) => <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+const WarnIcon = () => <svg className="h-12 w-12 mx-auto mb-3 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+const UsersIcon = () => <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>;
+const LockIcon = () => <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>;
 
 // Lazy load heavy sales blocks
 const ScarcityBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.ScarcityBlock })));
@@ -272,7 +275,7 @@ export default function PublicQuizPage() {
     return (
       <div className="min-h-screen grid place-items-center bg-[#0a0a0a]">
         <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary" />
+          <SpinnerIcon />
         </div>
       </div>
     );
@@ -282,7 +285,7 @@ export default function PublicQuizPage() {
     return (
       <div style={pageStyle} className="grid place-items-center p-6">
         <div className="text-center max-w-md">
-          <AlertTriangle className="h-12 w-12 mx-auto mb-3 text-amber-500" />
+          <WarnIcon />
           <h1 className="text-xl" style={headingStyle}>{error}</h1>
         </div>
       </div>
@@ -303,7 +306,7 @@ export default function PublicQuizPage() {
             <div className="mb-4">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-2"
                 style={{ backgroundColor: `${theme.primary_color}20` }}>
-                <CheckCircle2 className="h-10 w-10" style={{ color: theme.primary_color }} />
+                <CheckIcon className="h-10 w-10" style={{ color: theme.primary_color }} />
               </div>
             </div>
           )}
@@ -435,7 +438,7 @@ export default function PublicQuizPage() {
                         {checked && (
                           <div className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
                             style={{ backgroundColor: theme.primary_color }}>
-                            <CheckCircle2 className="h-4 w-4" style={{ color: theme.button_text_color }} />
+                            <CheckIcon className="h-4 w-4" style={{ color: theme.button_text_color }} />
                           </div>
                         )}
                       </div>
@@ -453,7 +456,7 @@ export default function PublicQuizPage() {
                     boxShadow: a.option_ids.length ? `0 4px 20px ${theme.primary_color}40` : "none",
                   }}
                 >
-                  {submitting && <Loader2 className="h-5 w-5 mr-2 animate-spin inline" />}
+                  {submitting && <svg className="h-5 w-5 mr-2 animate-spin inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56" strokeLinecap="round"/></svg>}
                   {step === questions.length - 1 ? `${quiz.button_final_label || "Ver meu resultado"} →` : `${quiz.button_label || "Continuar"} →`}
                 </button>
               </div>
@@ -461,11 +464,11 @@ export default function PublicQuizPage() {
 
             {q.type === "text" && (
               <div className="space-y-4">
-                <Textarea rows={4} value={a.text_answer}
+                <textarea rows={4} value={a.text_answer}
                   onChange={e => setAnswer(q.id, { text_answer: e.target.value })}
                   placeholder="Digite sua resposta aqui..."
-                  style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, fontSize: "1rem", padding: "1rem" }}
-                  className="border-white/20 focus:border-primary" />
+                  style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, fontSize: "1rem", padding: "1rem", width: "100%", border: "1px solid rgba(255,255,255,0.2)", outline: "none" }}
+                  className="quiz-input" />
                 <button
                   onClick={() => goNext()}
                   disabled={q.required && !a.text_answer?.trim()}
@@ -484,47 +487,47 @@ export default function PublicQuizPage() {
               <div className="space-y-4">
                 {q.config?.fields?.name && (
                   <div>
-                    <Label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.name || "Seu nome"}</Label>
-                    <Input value={lead.name} onChange={e => setLead({ ...lead, name: e.target.value })}
+                    <label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.name || "Seu nome"}</label>
+                    <input value={lead.name} onChange={e => setLead({ ...lead, name: e.target.value })}
                       placeholder={q.config?.labels?.name || "Digite seu nome completo"}
-                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
-                      className="border-white/20 quiz-input transition-all" />
+                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem", width: "100%", border: "1px solid rgba(255,255,255,0.2)", outline: "none" }}
+                      className="quiz-input transition-all" />
                   </div>
                 )}
                 {q.config?.fields?.email && (
                   <div>
-                    <Label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.email || "Seu e-mail"}</Label>
-                    <Input type="email" value={lead.email} onChange={e => setLead({ ...lead, email: e.target.value })}
+                    <label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.email || "Seu e-mail"}</label>
+                    <input type="email" value={lead.email} onChange={e => setLead({ ...lead, email: e.target.value })}
                       placeholder="seu@email.com"
-                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
-                      className="border-white/20 quiz-input transition-all" />
+                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem", width: "100%", border: "1px solid rgba(255,255,255,0.2)", outline: "none" }}
+                      className="quiz-input transition-all" />
                   </div>
                 )}
                 {q.config?.fields?.phone && (
                   <div>
-                    <Label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.phone || "Seu telefone"}</Label>
-                    <Input value={lead.phone} onChange={e => setLead({ ...lead, phone: e.target.value })}
+                    <label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.phone || "Seu telefone"}</label>
+                    <input value={lead.phone} onChange={e => setLead({ ...lead, phone: e.target.value })}
                       placeholder="(11) 99999-9999"
-                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
-                      className="border-white/20 quiz-input transition-all" />
+                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem", width: "100%", border: "1px solid rgba(255,255,255,0.2)", outline: "none" }}
+                      className="quiz-input transition-all" />
                   </div>
                 )}
                 {q.config?.fields?.cnpj && (
                   <div>
-                    <Label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.cnpj || "Seu CNPJ"}</Label>
-                    <Input value={lead.cnpj} onChange={e => setLead({ ...lead, cnpj: e.target.value })}
+                    <label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.cnpj || "Seu CNPJ"}</label>
+                    <input value={lead.cnpj} onChange={e => setLead({ ...lead, cnpj: e.target.value })}
                       placeholder="00.000.000/0000-00"
-                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
-                      className="border-white/20 quiz-input transition-all" />
+                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem", width: "100%", border: "1px solid rgba(255,255,255,0.2)", outline: "none" }}
+                      className="quiz-input transition-all" />
                   </div>
                 )}
                 {q.config?.fields?.company_name && (
                   <div>
-                    <Label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.company_name || "Razão Social"}</Label>
-                    <Input value={lead.company_name} onChange={e => setLead({ ...lead, company_name: e.target.value })}
+                    <label className="opacity-80 text-sm mb-1 block">{q.config?.labels?.company_name || "Razão Social"}</label>
+                    <input value={lead.company_name} onChange={e => setLead({ ...lead, company_name: e.target.value })}
                       placeholder="Nome da sua empresa"
-                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
-                      className="border-white/20 quiz-input transition-all" />
+                      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem", width: "100%", border: "1px solid rgba(255,255,255,0.2)", outline: "none" }}
+                      className="quiz-input transition-all" />
                   </div>
                 )}
                 <button
@@ -536,7 +539,7 @@ export default function PublicQuizPage() {
                     boxShadow: `0 4px 20px ${theme.primary_color}40`,
                   }}
                 >
-                  {submitting && <Loader2 className="h-5 w-5 mr-2 animate-spin inline" />}
+                  {submitting && <svg className="h-5 w-5 mr-2 animate-spin inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56" strokeLinecap="round"/></svg>}
                   {step === questions.length - 1 ? `${quiz.button_final_label || "Ver meu resultado"} →` : `${quiz.button_label || "Continuar"} →`}
                 </button>
                 {leadError && (
@@ -545,7 +548,7 @@ export default function PublicQuizPage() {
                   </div>
                 )}
                 <p className="text-center text-xs opacity-40 flex items-center justify-center gap-1">
-                  <Lock className="h-3 w-3" /> Seus dados estão protegidos
+                  <LockIcon /> Seus dados estão protegidos
                 </p>
               </div>
             )}
@@ -557,7 +560,7 @@ export default function PublicQuizPage() {
             )}
 
             {/* Sales blocks rendering */}
-            <Suspense fallback={<div className="h-20 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin opacity-20" /></div>}>
+            <Suspense fallback={<div className="h-20 flex items-center justify-center"><svg className="h-6 w-6 animate-spin opacity-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56" strokeLinecap="round"/></svg></div>}>
               {q.type === "scarcity" && <ScarcityBlock config={q.config} theme={theme} />}
               {q.type === "social_proof" && <SocialProofBlock config={q.config} theme={theme} />}
               {q.type === "testimonials" && <TestimonialsBlock config={q.config} theme={theme} />}
@@ -622,7 +625,7 @@ export default function PublicQuizPage() {
         {/* Social proof footer on question screens */}
         {step >= 0 && (
           <div className="mt-6 flex items-center justify-center gap-2 text-xs opacity-50">
-            <Users className="h-3 w-3" />
+            <UsersIcon />
             <span>{socialCount} pessoas responderam hoje</span>
           </div>
         )}
