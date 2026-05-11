@@ -52,7 +52,23 @@ export const FONT_WEIGHTS = [300, 400, 500, 600, 700, 800];
 /** Inject a Google Font <link> if not already present. */
 export function useGoogleFont(family: string, weights: number[] = [400, 700]) {
   useEffect(() => {
-    if (!family) return;
+    if (!family || family === "Inter") return;
+
+    // Add preconnect for performance
+    if (!document.getElementById("gf-preconnect")) {
+      const pc1 = document.createElement("link");
+      pc1.id = "gf-preconnect";
+      pc1.rel = "preconnect";
+      pc1.href = "https://fonts.googleapis.com";
+      document.head.appendChild(pc1);
+
+      const pc2 = document.createElement("link");
+      pc2.rel = "preconnect";
+      pc2.href = "https://fonts.gstatic.com";
+      pc2.crossOrigin = "anonymous";
+      document.head.appendChild(pc2);
+    }
+
     const id = `gf-${family.replace(/\s+/g, "-")}`;
     if (document.getElementById(id)) return;
     const link = document.createElement("link");

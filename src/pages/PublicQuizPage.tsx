@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -7,13 +7,25 @@ import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle2, AlertTriangle, Users, Lock } from "lucide-react";
 import { mergeTheme, useGoogleFont, buttonRadius, type QuizTheme } from "@/lib/quizTheme";
 import { renderVisualElements, type VisualElement } from "@/components/quiz/VisualSectionEditor";
-import {
-  ScarcityBlock, SocialProofBlock, TestimonialsBlock, CtaWhatsAppBlock,
-  CtaPriceBlock, AuthorityBlock, BeforeAfterBlock, ComparisonTableBlock,
-  GaugeChartBlock, ProgressMotivationalBlock, ToastSocialOverlay,
-  ExitIntentPopup, ProgressiveRevealBlock, RoiCalculatorBlock,
-  MaturityThermometerBlock, PricingPlansBlock, PostResultFormBlock,
-} from "@/components/quiz/SalesBlocks";
+
+// Lazy load heavy sales blocks
+const ScarcityBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.ScarcityBlock })));
+const SocialProofBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.SocialProofBlock })));
+const TestimonialsBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.TestimonialsBlock })));
+const CtaWhatsAppBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.CtaWhatsAppBlock })));
+const CtaPriceBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.CtaPriceBlock })));
+const AuthorityBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.AuthorityBlock })));
+const BeforeAfterBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.BeforeAfterBlock })));
+const ComparisonTableBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.ComparisonTableBlock })));
+const GaugeChartBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.GaugeChartBlock })));
+const ProgressMotivationalBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.ProgressMotivationalBlock })));
+const ToastSocialOverlay = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.ToastSocialOverlay })));
+const ExitIntentPopup = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.ExitIntentPopup })));
+const ProgressiveRevealBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.ProgressiveRevealBlock })));
+const RoiCalculatorBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.RoiCalculatorBlock })));
+const MaturityThermometerBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.MaturityThermometerBlock })));
+const PricingPlansBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.PricingPlansBlock })));
+const PostResultFormBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.PostResultFormBlock })));
 
 interface Quiz {
   id: string; name: string; description: string; status: string;
@@ -335,7 +347,7 @@ export default function PublicQuizPage() {
       <div className="max-w-xl mx-auto p-6 sm:p-10">
         <header className="mb-6 text-center">
           {theme.show_logo && theme.logo_url && (
-            <img src={theme.logo_url} alt="" className="h-10 mx-auto mb-3 object-contain" />
+            <img src={theme.logo_url} alt="" className="h-10 mx-auto mb-3 object-contain" height="40" width="auto" loading="eager" />
           )}
         </header>
 
@@ -363,7 +375,7 @@ export default function PublicQuizPage() {
             className="p-6 sm:p-8 space-y-5"
           >
             {q.image_url && (
-              <img src={q.image_url} alt="" className="w-full" style={{ borderRadius: theme.border_radius }} />
+              <img src={q.image_url} alt="" className="w-full" style={{ borderRadius: theme.border_radius }} loading="eager" />
             )}
             {(q.title || q.description) && (
               <div className={alignClass}>
@@ -406,7 +418,7 @@ export default function PublicQuizPage() {
                       }}
                     >
                       {o.image_url && (
-                        <img src={o.image_url} alt="" className="w-full object-cover" style={{ maxHeight: 200 }} />
+                        <img src={o.image_url} alt="" className="w-full object-cover" style={{ maxHeight: 200 }} loading="lazy" />
                       )}
                       <div className="flex items-center gap-4 p-5">
                         <div
@@ -545,25 +557,27 @@ export default function PublicQuizPage() {
             )}
 
             {/* Sales blocks rendering */}
-            {q.type === "scarcity" && <ScarcityBlock config={q.config} theme={theme} />}
-            {q.type === "social_proof" && <SocialProofBlock config={q.config} theme={theme} />}
-            {q.type === "testimonials" && <TestimonialsBlock config={q.config} theme={theme} />}
-            {q.type === "cta_whatsapp" && <CtaWhatsAppBlock config={q.config} theme={theme} />}
-            {q.type === "cta_price" && <CtaPriceBlock config={q.config} theme={theme} />}
-            {q.type === "authority" && <AuthorityBlock config={q.config} theme={theme} />}
-            {q.type === "before_after" && <BeforeAfterBlock config={q.config} theme={theme} />}
-            {q.type === "comparison_table" && <ComparisonTableBlock config={q.config} theme={theme} />}
-            {q.type === "gauge_chart" && <GaugeChartBlock config={q.config} theme={theme} />}
-            {q.type === "progressive_reveal" && <ProgressiveRevealBlock config={q.config} theme={theme} />}
-            {q.type === "roi_calculator" && <RoiCalculatorBlock config={q.config} theme={theme} />}
-            {q.type === "maturity_thermometer" && <MaturityThermometerBlock config={q.config} theme={theme} />}
-            {q.type === "pricing_plans" && <PricingPlansBlock config={q.config} theme={theme} />}
-            {q.type === "post_result_form" && <PostResultFormBlock config={q.config} theme={theme} />}
+            <Suspense fallback={<div className="h-20 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin opacity-20" /></div>}>
+              {q.type === "scarcity" && <ScarcityBlock config={q.config} theme={theme} />}
+              {q.type === "social_proof" && <SocialProofBlock config={q.config} theme={theme} />}
+              {q.type === "testimonials" && <TestimonialsBlock config={q.config} theme={theme} />}
+              {q.type === "cta_whatsapp" && <CtaWhatsAppBlock config={q.config} theme={theme} />}
+              {q.type === "cta_price" && <CtaPriceBlock config={q.config} theme={theme} />}
+              {q.type === "authority" && <AuthorityBlock config={q.config} theme={theme} />}
+              {q.type === "before_after" && <BeforeAfterBlock config={q.config} theme={theme} />}
+              {q.type === "comparison_table" && <ComparisonTableBlock config={q.config} theme={theme} />}
+              {q.type === "gauge_chart" && <GaugeChartBlock config={q.config} theme={theme} />}
+              {q.type === "progressive_reveal" && <ProgressiveRevealBlock config={q.config} theme={theme} />}
+              {q.type === "roi_calculator" && <RoiCalculatorBlock config={q.config} theme={theme} />}
+              {q.type === "maturity_thermometer" && <MaturityThermometerBlock config={q.config} theme={theme} />}
+              {q.type === "pricing_plans" && <PricingPlansBlock config={q.config} theme={theme} />}
+              {q.type === "post_result_form" && <PostResultFormBlock config={q.config} theme={theme} />}
 
-            {/* Motivational progress bar block */}
-            {q.type === "progress_motivational" && (
-              <ProgressMotivationalBlock config={q.config} theme={theme} progress={progress} />
-            )}
+              {/* Motivational progress bar block */}
+              {q.type === "progress_motivational" && (
+                <ProgressMotivationalBlock config={q.config} theme={theme} progress={progress} />
+              )}
+            </Suspense>
 
             {/* Continue button for legacy sales blocks */}
             {["scarcity","social_proof","testimonials","authority","before_after","comparison_table","gauge_chart","progress_motivational","progressive_reveal","roi_calculator","maturity_thermometer"].includes(q.type) && (
