@@ -84,41 +84,35 @@ export default function PublicQuizPage() {
     setLoading(true); setError(null);
 
     try {
-      // Step 1: Get client
-      const { data: client } = await supabase
-        .from("quiz_clients").select("id").eq("slug", clientSlug).maybeSingle();
+      // Fetch everything in one go: Client -> Quiz -> Questions -> Options
+      const { data, error: qErr } = await supabase
+        .from("quizzes")
+        .select(`
+          *,
+          quiz_clients!inner(id, slug),
+          quiz_questions(
+            id, type, title, description, required, order_index, config, image_url,
+            quiz_options(id, text, image_url, order_index)
+          )
+        `)
+        .eq("quiz_clients.slug", clientSlug)
+        .eq("slug", quizSlug)
+        .maybeSingle();
       
-      if (!client) throw new Error("Quiz indisponível.");
+      if (qErr) throw qErr;
+      if (!data) throw new Error("Quiz indisponível.");
+      if (data.status !== "active") throw new Error("Este quiz não está aceitando respostas no momento.");
 
-      // Step 2: Get quiz
-      const { data: q } = await supabase
-        .from("quizzes").select("*").eq("client_id", client.id).eq("slug", quizSlug).maybeSingle();
-      
-      if (!q) throw new Error("Quiz indisponível.");
-      if (q.status !== "active") throw new Error("Este quiz não está aceitando respostas no momento.");
-
-      // Step 3: Get questions and options
-      const { data: qs } = await supabase
-        .from("quiz_questions").select("*").eq("quiz_id", q.id).order("order_index");
-      
-      const qIds = (qs ?? []).map(x => x.id);
-      const { data: opts } = qIds.length
-        ? await supabase.from("quiz_options").select("*").in("question_id", qIds).order("order_index")
-        : { data: [] };
-
-      const optsByQ = new Map<string, any[]>();
-      (opts ?? []).forEach(o => {
-        if (!optsByQ.has(o.question_id)) optsByQ.set(o.question_id, []);
-        optsByQ.get(o.question_id)!.push(o);
-      });
+      const q = data;
+      const qs = (data.quiz_questions as any[]) || [];
 
       setQuiz(q as any);
-      setQuestions((qs ?? []).map(x => ({
+      setQuestions(qs.sort((a, b) => a.order_index - b.order_index).map(x => ({
         id: x.id, type: x.type, title: x.title, description: x.description,
         required: x.required, order_index: x.order_index, config: x.config,
-        image_url: (x as any).image_url ?? "",
-        options: (optsByQ.get(x.id) ?? []).map(o => ({
-          id: o.id, text: o.text, image_url: (o as any).image_url ?? "",
+        image_url: x.image_url ?? "",
+        options: (x.quiz_options || []).sort((a, b) => a.order_index - b.order_index).map(o => ({
+          id: o.id, text: o.text, image_url: o.image_url ?? "",
         })),
       })));
 

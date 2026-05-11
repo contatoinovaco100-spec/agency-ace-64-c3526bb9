@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import PublicQuizPage from "./pages/PublicQuizPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -74,7 +75,6 @@ const QuizBuilderClientsPage  = lazy(() => import("./pages/QuizBuilderClientsPag
 const QuizBuilderQuizzesPage  = lazy(() => import("./pages/QuizBuilderQuizzesPage"));
 const QuizEditorPage          = lazy(() => import("./pages/QuizEditorPage"));
 const QuizResponsesPage       = lazy(() => import("./pages/QuizResponsesPage"));
-const PublicQuizPage          = lazy(() => import("./pages/PublicQuizPage"));
 
 // New pages
 const CalendarPage              = lazy(() => import("./pages/CalendarPage"));
@@ -227,15 +227,9 @@ function AppRoutes() {
 // Lightweight wrapper for quiz-only routes — no Auth, no Agency, no Toasters
 function QuizOnlyRoutes() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen grid place-items-center bg-[#0a0a0a]">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    }>
-      <Routes>
-        <Route path="/quiz/:clientSlug/:quizSlug" element={<PublicQuizPage />} />
-      </Routes>
-    </Suspense>
+    <Routes>
+      <Route path="/quiz/:clientSlug/:quizSlug" element={<PublicQuizPage />} />
+    </Routes>
   );
 }
 
