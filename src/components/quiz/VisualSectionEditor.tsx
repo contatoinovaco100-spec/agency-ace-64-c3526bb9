@@ -17,7 +17,7 @@ import {
   MaturityThermometerBlock, PricingPlansBlock, PostResultFormBlock,
   AlertBlock, ArgumentsBlock, AudioBlock, VideoBlock, SpacerBlock, HtmlBlock,
   FakeLoadingBlock, CircularProgressBlock, HighlightTextBlock, ImpactSummaryBlock,
-  InfiniteMarqueeBlock, ScrollToOfferBlock, IconInfoBlock
+  InfiniteMarqueeBlock, ScrollToOfferBlock, IconInfoBlock, FaqBlock
 } from "./SalesBlocks";
 
 export type VisualElement =
@@ -66,6 +66,7 @@ export const TYPE_LABELS: Record<string, { label: string; icon: any; default?: a
   infinite_marquee: { label: "Marquee Infinito", icon: ArrowDownUp, default: { items: ["Economia", "Segurança", "Agilidade", "Resultados", "Compliance", "Tecnologia"], speed: 25, rows: 2 } },
   scroll_to_offer: { label: "Botão Scroll Oferta", icon: MousePointerClick, default: { label: "Quero meu diagnóstico por R$ 97,90 →", subtext: "Acesso imediato · Garantia de 7 dias · 100% legal" } },
   icon_info: { label: "Destaque com Ícone", icon: Sparkles, default: { emoji: "💡", title: "Você sabia?", description: "A maioria das empresas paga mais impostos do que deveria por falta de planejamento.", align: "center" } },
+  faq: { label: "Dúvidas (FAQ)", icon: MessageSquare, default: { items: [{ q: "Como funciona?", a: "Simples e rápido." }] } },
 };
 
 export function VisualSectionEditor({ question }: { question: QuizQuestionDraft }) {
@@ -330,6 +331,7 @@ export function renderVisualElements(
     if (el.type === "infinite_marquee") return <InfiniteMarqueeBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "scroll_to_offer") return <ScrollToOfferBlock key={el.id} config={el} theme={theme as any} />;
     if (el.type === "icon_info") return <IconInfoBlock key={el.id} config={el} theme={theme as any} />;
+    if (el.type === "faq") return <FaqBlock key={el.id} config={el} theme={theme as any} />;
 
     return null;
   });

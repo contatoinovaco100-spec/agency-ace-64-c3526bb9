@@ -1173,3 +1173,41 @@ export function IconInfoBlock({ config, theme }: BlockProps) {
     </div>
   );
 }
+
+/* ─── FAQ (ACORDION) ─── */
+export function FaqBlock({ config, theme }: BlockProps) {
+  const t = useBlockTheme(theme, config);
+  const items = config.items || [
+    { q: "Como funciona o diagnóstico?", a: "Analisamos seus dados em tempo real para encontrar oportunidades." },
+    { q: "É seguro enviar meus dados?", a: "Sim, utilizamos criptografia de ponta a ponta e seguimos a LGPD." }
+  ];
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+
+  return (
+    <div className="w-full py-6 space-y-3">
+      {items.map((it: any, i: number) => (
+        <div key={i} className="rounded-xl overflow-hidden transition-all border" 
+             style={{ 
+               backgroundColor: t.is_light ? (openIdx === i ? "rgba(0,0,0,0.02)" : "#fff") : t.alpha(0.05),
+               borderColor: openIdx === i ? t.primary_color : t.alpha(0.1)
+             }}>
+          <button 
+            onClick={() => setOpenIdx(openIdx === i ? null : i)}
+            className="w-full p-4 flex items-center justify-between text-left font-bold"
+            style={{ color: t.text_color }}
+          >
+            <span className="pr-4">{it.q}</span>
+            <div className={`transition-transform duration-300 ${openIdx === i ? 'rotate-180' : ''}`}>
+              <ChevronRight className="h-5 w-5 opacity-50" />
+            </div>
+          </button>
+          <div className={`overflow-hidden transition-all duration-300 ${openIdx === i ? 'max-h-96 opacity-100 p-4 pt-0' : 'max-h-0 opacity-0'}`}>
+            <p className="text-sm opacity-70 leading-relaxed" style={{ color: t.text_color }}>
+              {it.a}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

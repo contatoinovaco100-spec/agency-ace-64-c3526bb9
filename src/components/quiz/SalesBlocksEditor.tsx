@@ -715,6 +715,32 @@ function getSettings(element: any, patch: (p: any) => void, cid: string) {
           <AlignSelect value={c.align ?? "center"} onChange={v => patch({ align: v })} />
         </div>
       );
+    case "faq":
+      return (
+        <div className="space-y-3">
+          <Label className="text-xs font-bold">Perguntas e Respostas</Label>
+          {(c.items || [{}, {}]).map((it: any, i: number) => (
+            <div key={i} className="p-3 border rounded-lg space-y-2 bg-muted/30">
+              <Input placeholder="Pergunta" value={it.q || ""} onChange={e => {
+                const items = [...(c.items || [{}, {}])];
+                items[i] = { ...items[i], q: e.target.value };
+                patch({ items });
+              }} />
+              <Textarea placeholder="Resposta" value={it.a || ""} onChange={e => {
+                const items = [...(c.items || [{}, {}])];
+                items[i] = { ...items[i], a: e.target.value };
+                patch({ items });
+              }} />
+              <Button size="icon" variant="ghost" className="h-6 w-6 text-red-500" onClick={() => patch({ items: (c.items || []).filter((_: any, j: number) => j !== i) })}>
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+          <Button size="sm" variant="outline" onClick={() => patch({ items: [...(c.items || []), { q: "", a: "" }] })}>
+            <Plus className="h-3.5 w-3.5 mr-1" />Adicionar FAQ
+          </Button>
+        </div>
+      );
     default:
       return null;
   }
