@@ -258,9 +258,9 @@ export default function PublicQuizPage() {
 
   if (loading) {
     return (
-      <div style={pageStyle} className="grid place-items-center">
+      <div className="min-h-screen grid place-items-center bg-[#0a0a0a]">
         <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin mx-auto mb-3" style={{ color: theme.primary_color }} />
+          <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary" />
         </div>
       </div>
     );
@@ -325,6 +325,13 @@ export default function PublicQuizPage() {
 
   return (
     <div style={pageStyle}>
+      <style>{`
+        .quiz-input:focus { 
+          border-color: ${theme.primary_color} !important;
+          box-shadow: 0 0 0 1px ${theme.primary_color} !important;
+          outline: none !important;
+        }
+      `}</style>
       <div className="max-w-xl mx-auto p-6 sm:p-10">
         <header className="mb-6 text-center">
           {theme.show_logo && theme.logo_url && (
@@ -469,7 +476,7 @@ export default function PublicQuizPage() {
                     <Input value={lead.name} onChange={e => setLead({ ...lead, name: e.target.value })}
                       placeholder={q.config?.labels?.name || "Digite seu nome completo"}
                       style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
-                      className="border-white/20" />
+                      className="border-white/20 quiz-input transition-all" />
                   </div>
                 )}
                 {q.config?.fields?.email && (
@@ -478,7 +485,7 @@ export default function PublicQuizPage() {
                     <Input type="email" value={lead.email} onChange={e => setLead({ ...lead, email: e.target.value })}
                       placeholder="seu@email.com"
                       style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
-                      className="border-white/20" />
+                      className="border-white/20 quiz-input transition-all" />
                   </div>
                 )}
                 {q.config?.fields?.phone && (
@@ -487,7 +494,7 @@ export default function PublicQuizPage() {
                     <Input value={lead.phone} onChange={e => setLead({ ...lead, phone: e.target.value })}
                       placeholder="(11) 99999-9999"
                       style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
-                      className="border-white/20" />
+                      className="border-white/20 quiz-input transition-all" />
                   </div>
                 )}
                 {q.config?.fields?.cnpj && (
@@ -496,7 +503,7 @@ export default function PublicQuizPage() {
                     <Input value={lead.cnpj} onChange={e => setLead({ ...lead, cnpj: e.target.value })}
                       placeholder="00.000.000/0000-00"
                       style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
-                      className="border-white/20" />
+                      className="border-white/20 quiz-input transition-all" />
                   </div>
                 )}
                 {q.config?.fields?.company_name && (
@@ -505,7 +512,7 @@ export default function PublicQuizPage() {
                     <Input value={lead.company_name} onChange={e => setLead({ ...lead, company_name: e.target.value })}
                       placeholder="Nome da sua empresa"
                       style={{ backgroundColor: "rgba(255,255,255,0.06)", color: theme.text_color, borderRadius: theme.border_radius, padding: "1rem", height: "auto", fontSize: "1rem" }}
-                      className="border-white/20" />
+                      className="border-white/20 quiz-input transition-all" />
                   </div>
                 )}
                 <button
