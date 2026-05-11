@@ -167,6 +167,10 @@ export default function PublicQuizPage() {
     localStorage.setItem(STORAGE(`${clientSlug}_${quizSlug}`), JSON.stringify({ answers, lead, step }));
   }, [answers, lead, step, done, clientSlug, quizSlug]);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step, done, loading]);
+
   const ensureStartedRef = { current: "" };
 
   const ensureStarted = async () => {
