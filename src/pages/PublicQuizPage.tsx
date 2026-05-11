@@ -67,45 +67,63 @@ export default function PublicQuizPage() {
   const load = async () => {
     if (!clientSlug || !quizSlug) return;
     setLoading(true); setError(null);
-    const { data: client } = await supabase
-      .from("quiz_clients").select("id").eq("slug", clientSlug).maybeSingle();
-    if (!client) { setError("Quiz indisponível."); setLoading(false); return; }
-    const { data: q } = await supabase
-      .from("quizzes").select("*").eq("client_id", client.id).eq("slug", quizSlug).maybeSingle();
-    if (!q) { setError("Quiz indisponível."); setLoading(false); return; }
-    if (q.status !== "active") { setError("Este quiz não está aceitando respostas no momento."); setLoading(false); return; }
-    const { data: qs } = await supabase
-      .from("quiz_questions").select("*").eq("quiz_id", q.id).order("order_index");
-    const ids = (qs ?? []).map(x => x.id);
-    const { data: opts } = ids.length
-      ? await supabase.from("quiz_options").select("*").in("question_id", ids).order("order_index")
-      : { data: [] };
-    const optsByQ = new Map<string, any[]>();
-    (opts ?? []).forEach(o => {
-      if (!optsByQ.has(o.question_id)) optsByQ.set(o.question_id, []);
-      optsByQ.get(o.question_id)!.push(o);
-    });
-    setQuiz(q as any);
-    setQuestions((qs ?? []).map(x => ({
-      id: x.id, type: x.type, title: x.title, description: x.description,
-      required: x.required, order_index: x.order_index, config: x.config,
-      image_url: (x as any).image_url ?? "",
-      options: (optsByQ.get(x.id) ?? []).map(o => ({
-        id: o.id, text: o.text, image_url: (o as any).image_url ?? "",
-      })),
-    })));
+
     try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE(`${clientSlug}_${quizSlug}`)) ?? "null");
-      if (saved) {
-        setAnswers(saved.answers ?? {});
-        setLead({ name: "", email: "", phone: "", cnpj: "", company_name: "", ...(saved.lead ?? {}) });
-        setStep(saved.step ?? 0);
-      }
-    } catch {}
-    await supabase.rpc("increment_quiz_counter", { _quiz_id: q.id, _field: "views_count" });
-    setLoading(false);
-    // Auto-start response immediately (no welcome screen)
-    ensureStartedRef.current = q.id;
+      // Step 1: Get client
+      const { data: client } = await supabase
+        .from("quiz_clients").select("id").eq("slug", clientSlug).maybeSingle();
+      
+      if (!client) throw new Error("Quiz indisponível.");
+
+      // Step 2: Get quiz
+      const { data: q } = await supabase
+        .from("quizzes").select("*").eq("client_id", client.id).eq("slug", quizSlug).maybeSingle();
+      
+      if (!q) throw new Error("Quiz indisponível.");
+      if (q.status !== "active") throw new Error("Este quiz não está aceitando respostas no momento.");
+
+      // Step 3: Get questions and options
+      const { data: qs } = await supabase
+        .from("quiz_questions").select("*").eq("quiz_id", q.id).order("order_index");
+      
+      const qIds = (qs ?? []).map(x => x.id);
+      const { data: opts } = qIds.length
+        ? await supabase.from("quiz_options").select("*").in("question_id", qIds).order("order_index")
+        : { data: [] };
+
+      const optsByQ = new Map<string, any[]>();
+      (opts ?? []).forEach(o => {
+        if (!optsByQ.has(o.question_id)) optsByQ.set(o.question_id, []);
+        optsByQ.get(o.question_id)!.push(o);
+      });
+
+      setQuiz(q as any);
+      setQuestions((qs ?? []).map(x => ({
+        id: x.id, type: x.type, title: x.title, description: x.description,
+        required: x.required, order_index: x.order_index, config: x.config,
+        image_url: (x as any).image_url ?? "",
+        options: (optsByQ.get(x.id) ?? []).map(o => ({
+          id: o.id, text: o.text, image_url: (o as any).image_url ?? "",
+        })),
+      })));
+
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE(`${clientSlug}_${quizSlug}`)) ?? "null");
+        if (saved) {
+          setAnswers(saved.answers ?? {});
+          setLead({ name: "", email: "", phone: "", cnpj: "", company_name: "", ...(saved.lead ?? {}) });
+          setStep(saved.step ?? 0);
+        }
+      } catch {}
+
+      supabase.rpc("increment_quiz_counter", { _quiz_id: q.id, _field: "views_count" }).then(() => {});
+      setLoading(false);
+      ensureStartedRef.current = q.id;
+
+    } catch (err: any) {
+      setError(err.message || "Erro ao carregar quiz.");
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -243,7 +261,6 @@ export default function PublicQuizPage() {
       <div style={pageStyle} className="grid place-items-center">
         <div className="text-center">
           <Loader2 className="h-10 w-10 animate-spin mx-auto mb-3" style={{ color: theme.primary_color }} />
-          <p className="text-sm opacity-60 animate-pulse">Carregando quiz...</p>
         </div>
       </div>
     );
