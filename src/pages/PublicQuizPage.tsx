@@ -79,6 +79,31 @@ export default function PublicQuizPage() {
 
   useEffect(() => { load(); }, [clientSlug, quizSlug]);
 
+  // Preload LCP assets dynamically
+  useEffect(() => {
+    if (theme.background_image_url) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = theme.background_image_url;
+      link.fetchPriority = 'high';
+      document.head.appendChild(link);
+      return () => { document.head.removeChild(link); };
+    }
+  }, [theme.background_image_url]);
+
+  useEffect(() => {
+    if (theme.logo_url) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = theme.logo_url;
+      link.fetchPriority = 'high';
+      document.head.appendChild(link);
+      return () => { document.head.removeChild(link); };
+    }
+  }, [theme.logo_url]);
+
   const load = async () => {
     if (!clientSlug || !quizSlug) return;
     setLoading(true); setError(null);
@@ -335,6 +360,7 @@ export default function PublicQuizPage() {
   return (
     <div style={pageStyle}>
       <style>{`
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .quiz-input:focus { 
           border-color: ${theme.primary_color} !important;
           box-shadow: 0 0 0 1px ${theme.primary_color} !important;
@@ -344,7 +370,7 @@ export default function PublicQuizPage() {
       <div className="max-w-xl mx-auto p-6 sm:p-10">
         <header className="mb-6 text-center">
           {theme.show_logo && theme.logo_url && (
-            <img src={theme.logo_url} alt="" className="h-10 mx-auto mb-3 object-contain" height="40" width="auto" loading="eager" />
+            <img src={theme.logo_url} alt="" className="h-10 mx-auto mb-3 object-contain" height="40" width="160" loading="eager" fetchPriority="high" />
           )}
         </header>
 
@@ -367,22 +393,22 @@ export default function PublicQuizPage() {
             key={q.id}
             style={{
               ...cardStyle,
-              animation: "quizSlideIn 0.35s cubic-bezier(0.16,1,0.3,1)",
+              animation: step === 0 ? "fadeIn 0.2s ease-out" : "quizSlideIn 0.35s cubic-bezier(0.16,1,0.3,1)",
             }}
             className="p-6 sm:p-8 space-y-5"
           >
             {q.image_url && (
-              <img src={q.image_url} alt="" className="w-full" style={{ borderRadius: theme.border_radius }} loading="eager" />
+              <img src={q.image_url} alt="" className="w-full" style={{ borderRadius: theme.border_radius }} loading="eager" fetchPriority={step === 0 ? "high" : "auto"} />
             )}
             {(q.title || q.description) && (
               <div className={alignClass}>
                 {q.title && (
-                  <h2 className="text-2xl leading-tight" style={headingStyle}>
+                  <h1 className="text-2xl sm:text-3xl leading-tight" style={headingStyle}>
                     {q.title}
                     {q.required && <span style={{ color: theme.primary_color }}> *</span>}
-                  </h2>
+                  </h1>
                 )}
-                {q.description && <p className="text-sm opacity-70 mt-2 whitespace-pre-line">{q.description}</p>}
+                {q.description && <p className="text-base opacity-70 mt-2 whitespace-pre-line">{q.description}</p>}
               </div>
             )}
 
