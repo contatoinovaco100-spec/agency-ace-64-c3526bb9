@@ -718,3 +718,19 @@ function getSettings(element: any, patch: (p: any) => void, cid: string) {
       return null;
   }
 }
+
+function AlignSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-[10px]">Alinhamento</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="left">Esquerda</SelectItem>
+          <SelectItem value="center">Centro</SelectItem>
+          <SelectItem value="right">Direita</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
