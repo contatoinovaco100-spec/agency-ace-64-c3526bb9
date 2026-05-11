@@ -127,7 +127,7 @@ export function SocialProofBlock({ config, theme }: BlockProps) {
 }
 
 /* ─── DEPOIMENTOS CARROSSEL ─── */
-interface Testimonial { name: string; role: string; text: string; stars: number; photo_url?: string; }
+interface Testimonial { name: string; role: string; text: string; stars: number; photo_url?: string; highlight?: string; }
 
 export function TestimonialsBlock({ config, theme }: BlockProps) {
   const t = useBlockTheme(theme, config);
@@ -145,31 +145,42 @@ export function TestimonialsBlock({ config, theme }: BlockProps) {
   const item = items[idx];
 
   return (
-    <div className="rounded-xl p-5 space-y-3 transition-colors" style={{ backgroundColor: t.is_light ? "rgba(0,0,0,0.03)" : `${t.primary_color}08`, border: t.border(t.is_light ? 0.08 : 0.2) }}>
+    <div className="rounded-xl p-5 space-y-4 transition-all" style={{ backgroundColor: t.is_light ? "rgba(0,0,0,0.02)" : `${t.primary_color}08`, border: t.border(t.is_light ? 0.08 : 0.2) }}>
       <div className="flex justify-center gap-0.5">
         {Array.from({ length: 5 }).map((_, i) => (
           <Star key={i} className="h-4 w-4" style={{ color: i < item.stars ? "#facc15" : t.alpha(0.15), fill: i < item.stars ? "#facc15" : "none" }} />
         ))}
       </div>
-      <p className="text-center italic opacity-90" style={{ color: t.text_color }}>"{item.text}"</p>
-      <div className="flex items-center justify-center gap-3">
-        {item.photo_url && <img src={item.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />}
-        <div className="text-sm">
-          <div className="font-semibold" style={{ color: t.text_color }}>{item.name}</div>
-          {item.role && <div className="text-xs opacity-60" style={{ color: t.text_color }}>{item.role}</div>}
+      <p className="text-center italic opacity-90 leading-relaxed" style={{ color: t.text_color }}>"{item.text}"</p>
+      
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex items-center gap-3">
+          {item.photo_url && <img src={item.photo_url} alt="" className="w-10 h-10 rounded-full object-cover border-2" style={{ borderColor: t.primary_color }} />}
+          <div className="text-sm">
+            <div className="font-bold" style={{ color: t.text_color }}>{item.name}</div>
+            {item.role && <div className="text-[11px] opacity-60 uppercase tracking-wider font-medium" style={{ color: t.text_color }}>{item.role}</div>}
+          </div>
         </div>
+
+        {item.highlight && (
+          <div className="px-4 py-2 rounded-lg text-sm font-bold animate-in fade-in slide-in-from-bottom-2 duration-500" 
+               style={{ backgroundColor: t.is_light ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.1)", color: t.primary_color }}>
+            {item.highlight}
+          </div>
+        )}
       </div>
+
       {items.length > 1 && (
-        <div className="flex items-center justify-center gap-3">
-          <button onClick={() => setIdx((idx - 1 + items.length) % items.length)} className="opacity-50 hover:opacity-100 transition" style={{ color: t.text_color }}>
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <button onClick={() => setIdx((idx - 1 + items.length) % items.length)} className="opacity-40 hover:opacity-100 transition" style={{ color: t.text_color }}>
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="flex gap-1.5">
             {items.map((_, i) => (
-              <div key={i} className="w-2 h-2 rounded-full transition-all" style={{ backgroundColor: i === idx ? t.primary_color : t.alpha(0.2) }} />
+              <div key={i} className="w-1.5 h-1.5 rounded-full transition-all" style={{ backgroundColor: i === idx ? t.primary_color : t.alpha(0.2) }} />
             ))}
           </div>
-          <button onClick={() => setIdx((idx + 1) % items.length)} className="opacity-50 hover:opacity-100 transition" style={{ color: t.text_color }}>
+          <button onClick={() => setIdx((idx + 1) % items.length)} className="opacity-40 hover:opacity-100 transition" style={{ color: t.text_color }}>
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>

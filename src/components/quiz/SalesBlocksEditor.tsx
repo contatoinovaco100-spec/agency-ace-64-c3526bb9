@@ -139,6 +139,7 @@ function getSettings(element: any, patch: (p: any) => void, cid: string) {
                 </div>
               </div>
               <QuizMediaUploader label="Foto" value={item.photo_url ?? ""} onChange={v => updateItem(i, { photo_url: v })} clientId={cid} />
+              <Input value={item.highlight ?? ""} placeholder="Destaque (Ex: R$ 100k recuperados)" onChange={e => updateItem(i, { highlight: e.target.value })} />
             </div>
           ))}
           <Button size="sm" variant="outline" onClick={() => patch({ items: [...items, { name: "Cliente", role: "", text: "", stars: 5, photo_url: "" }] })}>
