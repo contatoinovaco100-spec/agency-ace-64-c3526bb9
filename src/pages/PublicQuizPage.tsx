@@ -29,6 +29,8 @@ const RoiCalculatorBlock = lazy(() => import("@/components/quiz/SalesBlocks").th
 const MaturityThermometerBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.MaturityThermometerBlock })));
 const PricingPlansBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.PricingPlansBlock })));
 const PostResultFormBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.PostResultFormBlock })));
+const FakeLoadingBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.FakeLoadingBlock })));
+const CircularProgressBlock = lazy(() => import("@/components/quiz/SalesBlocks").then(m => ({ default: m.CircularProgressBlock })));
 
 interface Quiz {
   id: string; name: string; description: string; status: string;
@@ -599,6 +601,14 @@ export default function PublicQuizPage() {
               {/* Motivational progress bar block */}
               {q.type === "progress_motivational" && (
                 <ProgressMotivationalBlock config={q.config} theme={theme} progress={progress} />
+              )}
+
+              {q.type === "fake_loading" && (
+                <FakeLoadingBlock config={q.config} theme={theme} onNext={() => goNext()} />
+              )}
+
+              {q.type === "circular_progress" && (
+                <CircularProgressBlock config={q.config} theme={theme} onNext={() => goNext()} />
               )}
             </Suspense>
 

@@ -950,7 +950,7 @@ export function FakeLoadingBlock({ config, theme, onNext }: BlockProps) {
 }
 
 /* ─── PROGRESSO CIRCULAR ─── */
-export function CircularProgressBlock({ config, theme }: BlockProps) {
+export function CircularProgressBlock({ config, theme, onNext }: BlockProps) {
   const t = useBlockTheme(theme, config);
   const [val, setVal] = useState(0);
   const target = Math.min(100, Math.max(0, config.percentage || 85));
@@ -961,6 +961,13 @@ export function CircularProgressBlock({ config, theme }: BlockProps) {
     }, 100);
     return () => clearTimeout(timer);
   }, [target]);
+
+  useEffect(() => {
+    if (val >= 100 && onNext) {
+      const timer = setTimeout(() => onNext(), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [val, onNext]);
 
   const size = 160;
   const strokeWidth = 12;

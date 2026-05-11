@@ -101,8 +101,8 @@ export function renderVisualElements(elements: VisualElement[], theme: QuizTheme
         else if (el.type === "video") content = <VideoBlock config={el} theme={theme as any} />;
         else if (el.type === "spacer") content = <SpacerBlock config={el} theme={theme as any} />;
         else if (el.type === "html") content = <HtmlBlock config={el} theme={theme as any} />;
-        else if (el.type === "fake_loading") content = <FakeLoadingBlock config={el} theme={theme as any} />;
-        else if (el.type === "circular_progress") content = <CircularProgressBlock config={el} theme={theme as any} />;
+        else if (el.type === "fake_loading") content = <FakeLoadingBlock config={el} theme={theme as any} onNext={onNext} />;
+        else if (el.type === "circular_progress") content = <CircularProgressBlock config={el} theme={theme as any} onNext={onNext} />;
         else if (el.type === "highlight_text") content = <HighlightTextBlock config={el} theme={theme as any} />;
         else if (el.type === "impact_summary") content = <ImpactSummaryBlock config={el} theme={theme as any} />;
         else if (el.type === "infinite_marquee") content = <InfiniteMarqueeBlock config={el} theme={theme as any} />;
