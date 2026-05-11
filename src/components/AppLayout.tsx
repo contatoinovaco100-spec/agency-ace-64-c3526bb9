@@ -126,7 +126,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background h-full">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <div className="mx-auto w-full max-w-screen-2xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
           {children}
         </div>
       </main>

@@ -336,9 +336,9 @@ Use "single" para escolha única, "multiple" para múltipla, "text" para texto a
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-[220px_1fr_320px] gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-[180px_1fr_300px] gap-4 items-start">
         {/* Library */}
-        <Card>
+        <Card className="xl:sticky xl:top-4">
           <CardContent className="p-3 space-y-2">
             <div className="flex items-center justify-between mb-2">
               <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Blocos</div>
@@ -488,7 +488,7 @@ Use "single" para escolha única, "multiple" para múltipla, "text" para texto a
         </Card>
 
         {/* Settings */}
-        <Card>
+        <Card className="xl:sticky xl:top-4">
           <CardContent className="p-4">
             {selected ? <BlockSettings question={selected} /> : (
               <div className="text-sm text-muted-foreground text-center py-12">
