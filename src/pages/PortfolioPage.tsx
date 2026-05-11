@@ -9,8 +9,26 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, ExternalLink, Trash2, Film, Copy, Pencil } from 'lucide-react';
+import { Plus, ExternalLink, Trash2, Film, Copy, Pencil, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface PortfolioProject {
   id: string;
@@ -22,6 +40,7 @@ interface PortfolioProject {
   category: string;
   completed_at: string | null;
   created_at: string;
+  order_index: number;
 }
 
 const CATEGORIES = ['Institucional', 'Publicitário', 'Social Media', 'Documentário', 'Evento', 'Motion Graphics', 'Outro'];
@@ -38,9 +57,27 @@ export default function PortfolioPage() {
   const [form, setForm] = useState(emptyForm);
 
   const fetchProjects = async () => {
-    const { data } = await supabase.from('portfolio_projects').select('*').order('created_at', { ascending: false });
-    setProjects((data as any[]) || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('portfolio_projects')
+        .select('*')
+        .order('order_index', { ascending: true });
+      
+      if (error) {
+        // Fallback to created_at if order_index doesn't exist yet
+        const { data: fallbackData } = await supabase
+          .from('portfolio_projects')
+          .select('*')
+          .order('created_at', { ascending: false });
+        setProjects((fallbackData as any[]) || []);
+      } else {
+        setProjects((data as any[]) || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchProjects(); }, []);
@@ -80,7 +117,8 @@ export default function PortfolioPage() {
       await supabase.from('portfolio_projects').update(payload as any).eq('id', editingId);
       toast.success('Projeto atualizado');
     } else {
-      await supabase.from('portfolio_projects').insert(payload as any);
+      const nextOrder = projects.length;
+      await supabase.from('portfolio_projects').insert({ ...payload, order_index: nextOrder } as any);
       toast.success('Projeto adicionado ao portfólio');
     }
     setForm(emptyForm);
@@ -93,6 +131,37 @@ export default function PortfolioPage() {
     await supabase.from('portfolio_projects').delete().eq('id', id);
     toast.success('Projeto removido');
     fetchProjects();
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = projects.findIndex((p) => p.id === active.id);
+    const newIndex = projects.findIndex((p) => p.id === over.id);
+
+    const newProjects = arrayMove(projects, oldIndex, newIndex);
+    setProjects(newProjects);
+
+    // Update orders in background
+    const updates = newProjects.map((p, i) => ({
+      id: p.id,
+      order_index: i,
+    }));
+
+    try {
+      // We do it one by one or batch if supported
+      for (const update of updates) {
+        await supabase.from('portfolio_projects').update({ order_index: update.order_index } as any).eq('id', update.id);
+      }
+    } catch (err) {
+      toast.error('Erro ao salvar nova ordem');
+    }
   };
 
   const getVideoEmbed = (url: string) => {
@@ -171,50 +240,87 @@ export default function PortfolioPage() {
           <p>Nenhum projeto no portfólio ainda</p>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map(p => {
-            const embed = getVideoEmbed(p.video_url);
-            const client = clients.find(c => c.id === p.client_id);
-            return (
-              <Card key={p.id} className="overflow-hidden">
-                {embed ? (
-                  <div className="aspect-video"><iframe src={embed} className="h-full w-full" allowFullScreen /></div>
-                ) : p.thumbnail_url ? (
-                  <div className="aspect-video"><img src={p.thumbnail_url} alt={p.title} className="h-full w-full object-cover" /></div>
-                ) : (
-                  <div className="aspect-video bg-muted flex items-center justify-center"><Film className="h-10 w-10 text-muted-foreground" /></div>
-                )}
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-foreground truncate">{p.title}</h3>
-                      {client && <p className="text-xs text-muted-foreground truncate">{client.companyName}</p>}
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {p.video_url && (
-                        <a href={p.video_url} target="_blank" rel="noreferrer" title="Abrir vídeo">
-                          <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
-                        </a>
-                      )}
-                      <button onClick={() => openEdit(p)} title="Editar projeto" aria-label="Editar projeto">
-                        <Pencil className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
-                      </button>
-                      <button onClick={() => handleDelete(p.id)} title="Excluir projeto" aria-label="Excluir projeto">
-                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive transition-colors" />
-                      </button>
-                    </div>
-                  </div>
-                  {p.description && <p className="text-sm text-muted-foreground line-clamp-2">{p.description}</p>}
-                  <div className="flex gap-2">
-                    {p.category && <Badge variant="secondary">{p.category}</Badge>}
-                    {p.completed_at && <Badge variant="outline">{new Date(p.completed_at).toLocaleDateString('pt-BR')}</Badge>}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={filtered.map(p => p.id)} strategy={rectSortingStrategy}>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filtered.map(p => (
+                <SortableProjectCard 
+                  key={p.id} 
+                  p={p} 
+                  clients={clients} 
+                  openEdit={openEdit} 
+                  handleDelete={handleDelete}
+                  getVideoEmbed={getVideoEmbed}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
+  );
+}
+
+function SortableProjectCard({ 
+  p, clients, openEdit, handleDelete, getVideoEmbed 
+}: { 
+  p: PortfolioProject; clients: any[]; openEdit: (p: PortfolioProject) => void; 
+  handleDelete: (id: string) => void; getVideoEmbed: (url: string) => string | null;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 'auto',
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  const embed = getVideoEmbed(p.video_url);
+  const client = clients.find(c => c.id === p.client_id);
+
+  return (
+    <Card ref={setNodeRef} style={style} className="overflow-hidden group relative">
+      <div 
+        {...attributes} 
+        {...listeners} 
+        className="absolute top-2 left-2 z-10 p-1.5 bg-black/60 text-white rounded-md cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <GripVertical className="h-4 w-4" />
+      </div>
+
+      {embed ? (
+        <div className="aspect-video"><iframe src={embed} className="h-full w-full" allowFullScreen /></div>
+      ) : p.thumbnail_url ? (
+        <div className="aspect-video"><img src={p.thumbnail_url} alt={p.title} className="h-full w-full object-cover" /></div>
+      ) : (
+        <div className="aspect-video bg-muted flex items-center justify-center"><Film className="h-10 w-10 text-muted-foreground" /></div>
+      )}
+      <CardContent className="p-4 space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="font-semibold text-foreground truncate">{p.title}</h3>
+            {client && <p className="text-xs text-muted-foreground truncate">{client.companyName}</p>}
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            {p.video_url && (
+              <a href={p.video_url} target="_blank" rel="noreferrer" title="Abrir vídeo">
+                <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
+              </a>
+            )}
+            <button onClick={() => openEdit(p)} title="Editar projeto" aria-label="Editar projeto">
+              <Pencil className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
+            </button>
+            <button onClick={() => handleDelete(p.id)} title="Excluir projeto" aria-label="Excluir projeto">
+              <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive transition-colors" />
+            </button>
+          </div>
+        </div>
+        {p.description && <p className="text-sm text-muted-foreground line-clamp-2">{p.description}</p>}
+        <div className="flex gap-2">
+          {p.category && <Badge variant="secondary">{p.category}</Badge>}
+          {p.completed_at && <Badge variant="outline">{new Date(p.completed_at).toLocaleDateString('pt-BR')}</Badge>}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

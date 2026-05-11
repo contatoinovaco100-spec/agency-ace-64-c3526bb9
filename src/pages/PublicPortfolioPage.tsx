@@ -219,11 +219,20 @@ export default function PublicPortfolioPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('portfolio_projects').select('*').order('created_at', { ascending: false }),
+      supabase.from('portfolio_projects').select('*').order('order_index', { ascending: true }),
       supabase.from('instagram_posts' as any).select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: false }),
     ]).then(([projectsRes, igRes]) => {
-      const fetchedProjects = (projectsRes.data as Project[]) || [];
-      setProjects(fetchedProjects.length > 0 ? fetchedProjects : DEMO_PROJECTS);
+      let fetchedProjects = (projectsRes.data as Project[]) || [];
+      
+      // Fallback if order_index doesn't exist yet (indicated by error or empty if we expect items)
+      if (projectsRes.error || fetchedProjects.length === 0) {
+        supabase.from('portfolio_projects').select('*').order('created_at', { ascending: false }).then(res => {
+          setProjects((res.data as Project[]) || (fetchedProjects.length > 0 ? fetchedProjects : DEMO_PROJECTS));
+        });
+      } else {
+        setProjects(fetchedProjects);
+      }
+      
       setIgPosts(((igRes.data as any[]) || []) as IGPost[]);
       setLoading(false);
     });
