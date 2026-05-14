@@ -213,7 +213,7 @@ export function VisualSectionEditor({ question }: { question: QuizQuestionDraft 
                   <span className="text-[9px] text-muted-foreground">Preview</span>
                 </div>
                 <div className="p-4 flex flex-col gap-4 pointer-events-none text-white overflow-hidden max-h-[300px]">
-                   {renderVisualElements([previewBase], mockTheme)}
+                   {renderVisualElements([previewBase], mockTheme as any, () => {})}
                 </div>
               </HoverCardContent>
             </HoverCard>

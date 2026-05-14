@@ -112,7 +112,7 @@ export function renderVisualElements(elements: VisualElement[], theme: QuizTheme
 
         if (!content) return null;
 
-        const delay = el.delay_seconds || 0;
+        const delay = (el as any).delay_seconds || 0;
         return (
           <Suspense key={el.id} fallback={<div className="h-4 animate-pulse bg-white/5 rounded" />}>
             <DelayedElement delay={delay}>
