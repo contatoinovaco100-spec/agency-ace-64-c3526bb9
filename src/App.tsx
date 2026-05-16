@@ -103,6 +103,7 @@ const PublicInvoicePage         = lazy(() => import("./pages/PublicInvoicePage")
 const RedeNegociosPage          = lazy(() => import("./pages/RedeNegociosPage"));
 const RedeNovoPostPage          = lazy(() => import("./pages/RedeNovoPostPage"));
 const PublicReferralsPage       = lazy(() => import("./pages/PublicReferralsPage"));
+const PublicReferralFormPage    = lazy(() => import("./pages/PublicReferralFormPage"));
 const ReferralsAdminPage        = lazy(() => import("./pages/ReferralsAdminPage"));
 const RedeAdminPage             = lazy(() => import("./pages/RedeAdminPage"));
 const RedePerfilPage            = lazy(() => import("./pages/RedePerfilPage"));
