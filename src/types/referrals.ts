@@ -4,6 +4,7 @@ export interface ReferralClient {
   id: string;
   name: string;
   token: string;
+  client_id?: string | null;
   created_at: string;
 }
 
