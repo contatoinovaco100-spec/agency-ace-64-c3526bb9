@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trophy, Check, Lock, MessageCircle, Gift, Users } from 'lucide-react';
+import { Sparkles, Trophy, Check, Lock, MessageCircle, Gift, Users, Copy, Link2 } from 'lucide-react';
 import { Referral, ReferralClient, ReferralTier, STATUS_LABELS, ReferralStatus } from '@/types/referrals';
+import { useToast } from '@/hooks/use-toast';
 
 const WHATSAPP_TARGET = '5500000000000'; // central da Inova
 const SHARE_MSG = 'Quero indicar um contato para a Inova 👇';
