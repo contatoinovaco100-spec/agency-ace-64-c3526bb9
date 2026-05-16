@@ -169,7 +169,10 @@ function ClientsTab({
                     <td className="py-3 px-2"><Badge variant="outline">{tierOf(closed)}</Badge></td>
                     <td className="py-3 px-2 text-right space-x-1">
                       <Button size="sm" variant="outline" onClick={() => copyLink(c.token)} className="gap-1">
-                        <Copy className="h-3.5 w-3.5" /> Copiar link
+                        <Copy className="h-3.5 w-3.5" /> Painel
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => copyFormLink(c.token)} className="gap-1">
+                        <Link2 className="h-3.5 w-3.5" /> Formulário
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => remove(c.id)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
