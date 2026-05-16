@@ -404,3 +404,173 @@ function ClientPortalTab({ client }: { client: Client }) {
     </div>
   );
 }
+
+/* =========================== CLIENT REFERRALS TAB =========================== */
+function ClientReferralsTab({ clientId, clientName }: { clientId: string; clientName: string }) {
+  const [referralClient, setReferralClient] = useState<{ id: string; token: string; name: string } | null>(null);
+  const [referrals, setReferrals] = useState<{ id: string; referred_name: string; referred_whatsapp: string; status: string; created_at: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => { load(); }, [clientId]);
+
+  async function load() {
+    setLoading(true);
+    const { data: rc } = await supabase
+      .from('referral_clients')
+      .select('id, token, name')
+      .eq('client_id', clientId)
+      .maybeSingle();
+
+    if (rc) {
+      setReferralClient(rc);
+      const { data: refs } = await supabase
+        .from('referrals')
+        .select('id, referred_name, referred_whatsapp, status, created_at')
+        .eq('client_id', rc.id)
+        .order('created_at', { ascending: false });
+      setReferrals(refs ?? []);
+    } else {
+      setReferralClient(null);
+      setReferrals([]);
+    }
+    setLoading(false);
+  }
+
+  async function createReferralClient() {
+    setCreating(true);
+    const token = crypto.randomUUID();
+    const { error } = await supabase
+      .from('referral_clients')
+      .insert({ name: clientName, token, client_id: clientId });
+    setCreating(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success('Programa de indicações ativado!');
+    load();
+  }
+
+  const copyFormLink = () => {
+    if (!referralClient) return;
+    const url = `${window.location.origin}/indicar/${referralClient.token}`;
+    navigator.clipboard.writeText(url);
+    toast.success('Link do formulário copiado!');
+  };
+
+  const shareOnWhatsApp = () => {
+    if (!referralClient) return;
+    const url = `${window.location.origin}/indicar/${referralClient.token}`;
+    const text = `Olá! Indique amigos para conhecer nossos serviços e ganhe prêmios exclusivos. Preencha o formulário aqui: ${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const statusColors: Record<string, string> = {
+    enviada: 'bg-info/10 text-info',
+    negociacao: 'bg-warning/10 text-warning',
+    fechada: 'bg-success/10 text-success',
+  };
+
+  const statusLabels: Record<string, string> = {
+    enviada: 'Enviada',
+    negociacao: 'Em negociação',
+    fechada: 'Fechada',
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!referralClient) {
+    return (
+      <div className="rounded-xl border border-border bg-secondary/20 p-8 text-center space-y-4">
+        <Gift className="h-10 w-10 mx-auto text-muted-foreground opacity-40" />
+        <div>
+          <h3 className="font-semibold text-foreground">Programa de Indicações</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Ative o programa para gerar um link exclusivo que {clientName} pode compartilhar com amigos.
+          </p>
+        </div>
+        <Button onClick={createReferralClient} disabled={creating} className="gap-2">
+          {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+          Ativar programa de indicações
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Form Link Card */}
+      <div className="rounded-xl border border-border bg-secondary/20 p-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-primary/10 grid place-items-center">
+            <Link2 className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-foreground">Link de Indicação</h3>
+            <p className="text-xs text-muted-foreground">Compartilhe este link para receber leads indicados.</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 rounded-lg bg-background border border-border p-3">
+          <code className="flex-1 text-xs text-muted-foreground truncate">{window.location.origin}/indicar/{referralClient.token}</code>
+          <Button size="sm" variant="outline" onClick={copyFormLink} className="gap-1 shrink-0">
+            <Copy className="h-3.5 w-3.5" /> Copiar
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={shareOnWhatsApp} className="gap-1.5">
+            <MessageCircle className="h-3.5 w-3.5" /> Compartilhar no WhatsApp
+          </Button>
+          <Button size="sm" variant="secondary" asChild className="gap-1.5">
+            <a href={`/indicar/${referralClient.token}`} target="_blank" rel="noreferrer">
+              <Gift className="h-3.5 w-3.5" /> Abrir formulário
+            </a>
+          </Button>
+        </div>
+      </div>
+
+      {/* Referrals List */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Users className="h-4 w-4 text-muted-foreground" />
+          <h3 className="font-semibold text-foreground">Leads Indicados ({referrals.length})</h3>
+        </div>
+
+        {referrals.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            Nenhuma indicação recebida ainda.
+          </div>
+        ) : (
+          <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+            {referrals.map(r => (
+              <div key={r.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{r.referred_name}</p>
+                  {r.referred_whatsapp && (
+                    <p className="text-xs text-muted-foreground">{r.referred_whatsapp}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(r.created_at).toLocaleDateString('pt-BR')}
+                  </span>
+                  <span className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-medium ${statusColors[r.status] || 'bg-muted text-muted-foreground'}`}>
+                    {statusLabels[r.status] || r.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
