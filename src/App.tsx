@@ -128,6 +128,7 @@ function AppRoutes() {
     location.pathname.startsWith('/fatura/') ||
     location.pathname.startsWith('/proposta') ||
     location.pathname.startsWith('/indicacoes/') ||
+    location.pathname.startsWith('/indicar/') ||
     location.pathname === '/negocios' ||
     location.pathname === '/rede/perfil' ||
     location.pathname === '/rede/novo' ||
