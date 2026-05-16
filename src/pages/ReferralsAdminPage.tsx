@@ -126,7 +126,13 @@ function ClientsTab({
   const copyLink = (token: string) => {
     const url = `${window.location.origin}/indicacoes/${token}`;
     navigator.clipboard.writeText(url);
-    toast({ title: 'Link copiado!', description: url });
+    toast({ title: 'Link do painel copiado!', description: url });
+  };
+
+  const copyFormLink = (token: string) => {
+    const url = `${window.location.origin}/indicar/${token}`;
+    navigator.clipboard.writeText(url);
+    toast({ title: 'Link do formulário copiado!', description: url });
   };
 
   return (
