@@ -32,6 +32,7 @@ function statusBadge(status: ReferralStatus) {
 
 export default function PublicReferralsPage() {
   const { token } = useParams<{ token: string }>();
+  const { toast } = useToast();
   const [client, setClient] = useState<ReferralClient | null>(null);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [tiers, setTiers] = useState<ReferralTier[]>([]);
@@ -39,6 +40,14 @@ export default function PublicReferralsPage() {
   const [notFound, setNotFound] = useState(false);
 
   const closedCount = referrals.filter(r => r.status === 'fechada').length;
+  const formUrl = token ? `${window.location.origin}/indicar/${token}` : '';
+  const shareMsg = `Oi! Estou indicando você para a INOVA. Preenche aqui em 30s: ${formUrl}`;
+
+  const copyFormLink = () => {
+    if (!formUrl) return;
+    navigator.clipboard.writeText(formUrl);
+    toast({ title: 'Link copiado!', description: 'Envie para seus amigos.' });
+  };
 
   useEffect(() => {
     if (!token) return;
