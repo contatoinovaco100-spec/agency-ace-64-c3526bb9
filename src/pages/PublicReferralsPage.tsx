@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trophy, Check, Lock, MessageCircle, Gift, Users } from 'lucide-react';
+import { Sparkles, Trophy, Check, Lock, MessageCircle, Gift, Users, Copy, Link2 } from 'lucide-react';
 import { Referral, ReferralClient, ReferralTier, STATUS_LABELS, ReferralStatus } from '@/types/referrals';
+import { useToast } from '@/hooks/use-toast';
 
 const WHATSAPP_TARGET = '5500000000000'; // central da Inova
 const SHARE_MSG = 'Quero indicar um contato para a Inova 👇';
@@ -31,6 +32,7 @@ function statusBadge(status: ReferralStatus) {
 
 export default function PublicReferralsPage() {
   const { token } = useParams<{ token: string }>();
+  const { toast } = useToast();
   const [client, setClient] = useState<ReferralClient | null>(null);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [tiers, setTiers] = useState<ReferralTier[]>([]);
@@ -38,6 +40,14 @@ export default function PublicReferralsPage() {
   const [notFound, setNotFound] = useState(false);
 
   const closedCount = referrals.filter(r => r.status === 'fechada').length;
+  const formUrl = token ? `${window.location.origin}/indicar/${token}` : '';
+  const shareMsg = `Oi! Estou indicando você para a INOVA. Preenche aqui em 30s: ${formUrl}`;
+
+  const copyFormLink = () => {
+    if (!formUrl) return;
+    navigator.clipboard.writeText(formUrl);
+    toast({ title: 'Link copiado!', description: 'Envie para seus amigos.' });
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -222,22 +232,40 @@ export default function PublicReferralsPage() {
           )}
         </section>
 
-        {/* CTA */}
+        {/* CTA — link público de indicação */}
         <section className="pb-10">
-          <Card className="p-6 bg-primary/5 border-primary/30 text-center">
-            <h3 className="font-bold text-lg mb-2">Indique mais um contato e avance no programa</h3>
+          <Card className="p-6 bg-primary/5 border-primary/30">
+            <div className="flex items-center gap-2 text-primary text-xs font-semibold uppercase tracking-wider mb-2">
+              <Link2 className="h-4 w-4" /> Seu link exclusivo de indicação
+            </div>
+            <h3 className="font-bold text-lg mb-2">Compartilhe e ganhe prêmios</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Mande pra gente o nome e WhatsApp da pessoa via WhatsApp.
+              Envie o link abaixo para seus amigos. Quando eles preencherem o formulário, a indicação entra automaticamente aqui no seu painel.
             </p>
-            <Button asChild size="lg" className="gap-2">
-              <a
-                href={`https://wa.me/${WHATSAPP_TARGET}?text=${encodeURIComponent(SHARE_MSG)}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <MessageCircle className="h-5 w-5" /> Indicar via WhatsApp
-              </a>
-            </Button>
+
+            <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-background border border-border/60">
+              <code className="flex-1 text-xs sm:text-sm truncate">{formUrl}</code>
+              <Button size="sm" variant="outline" onClick={copyFormLink} className="gap-1 shrink-0">
+                <Copy className="h-3.5 w-3.5" /> Copiar
+              </Button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button asChild size="lg" className="gap-2 flex-1">
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(shareMsg)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <MessageCircle className="h-5 w-5" /> Compartilhar no WhatsApp
+                </a>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="gap-2">
+                <a href={formUrl} target="_blank" rel="noreferrer">
+                  <Link2 className="h-5 w-5" /> Abrir formulário
+                </a>
+              </Button>
+            </div>
           </Card>
         </section>
       </main>
