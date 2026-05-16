@@ -158,6 +158,7 @@ function AppRoutes() {
           <Route path="/rede/perfil"         element={<RedePerfilPage />} />
           <Route path="/rede/novo"           element={<RedeNovoPostPage />} />
           <Route path="/indicacoes/:token"   element={<PublicReferralsPage />} />
+          <Route path="/indicar/:token"      element={<PublicReferralFormPage />} />
           <Route path="/quiz/:clientSlug/:quizSlug" element={<PublicQuizPage />} />
         </Routes>
       ) : (
