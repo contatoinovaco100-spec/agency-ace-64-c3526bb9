@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ClientDiagnosisTab } from '@/components/clients/ClientDiagnosisTab';
-import { Shield, Lock, Mail, Key, Loader2, Link as LinkIcon, Target, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { Shield, Lock, Mail, Key, Loader2, Link as LinkIcon, Target, Sparkles, Eye, EyeOff, Gift, Link2, Copy, MessageCircle, UserPlus, Users } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 
 const serviceOptions: ServiceType[] = ['Tráfego Pago', 'Social Media', 'Design', 'Copy', 'SEO', 'Landing Page', 'Branding', 'Email Marketing'];
@@ -129,18 +129,21 @@ export default function ClientsPage() {
                 >
                    <div className="border-t border-border px-4 py-4 sm:px-5">
                      <Tabs defaultValue="info">
-                        <TabsList className="mb-4 w-full justify-start overflow-x-auto scroller-hide">
-                          <TabsTrigger value="info">Informações</TabsTrigger>
-                          <TabsTrigger value="diagnostico" className="gap-1.5 flex-shrink-0">
-                            <Target className="h-3.5 w-3.5" /> Diagnóstico
-                          </TabsTrigger>
-                          <TabsTrigger value="insights" className="gap-1.5 flex-shrink-0">
-                            <BarChart3 className="h-3.5 w-3.5" /> Insights Meta
-                          </TabsTrigger>
-                          <TabsTrigger value="portal" className="gap-1.5 flex-shrink-0">
-                            <Shield className="h-3.5 w-3.5" /> Portal do Cliente
-                          </TabsTrigger>
-                        </TabsList>
+                         <TabsList className="mb-4 w-full justify-start overflow-x-auto scroller-hide">
+                           <TabsTrigger value="info">Informações</TabsTrigger>
+                           <TabsTrigger value="diagnostico" className="gap-1.5 flex-shrink-0">
+                             <Target className="h-3.5 w-3.5" /> Diagnóstico
+                           </TabsTrigger>
+                           <TabsTrigger value="insights" className="gap-1.5 flex-shrink-0">
+                             <BarChart3 className="h-3.5 w-3.5" /> Insights Meta
+                           </TabsTrigger>
+                           <TabsTrigger value="indicacoes" className="gap-1.5 flex-shrink-0">
+                             <Gift className="h-3.5 w-3.5" /> Indicações
+                           </TabsTrigger>
+                           <TabsTrigger value="portal" className="gap-1.5 flex-shrink-0">
+                             <Shield className="h-3.5 w-3.5" /> Portal do Cliente
+                           </TabsTrigger>
+                         </TabsList>
 
                        <TabsContent value="info" className="space-y-4">
                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -213,9 +216,13 @@ export default function ClientsPage() {
                           <ClientDiagnosisTab clientId={client.id} />
                         </TabsContent>
 
-                        <TabsContent value="portal">
-                          <ClientPortalTab client={client} />
-                        </TabsContent>
+                         <TabsContent value="indicacoes">
+                           <ClientReferralsTab clientId={client.id} clientName={client.companyName} />
+                         </TabsContent>
+
+                         <TabsContent value="portal">
+                           <ClientPortalTab client={client} />
+                         </TabsContent>
                       </Tabs>
                    </div>
                 </motion.div>
