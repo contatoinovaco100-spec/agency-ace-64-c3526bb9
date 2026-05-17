@@ -114,6 +114,47 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
     setLoading(false);
   };
 
+  // Automação: Travar faturamento do mês anterior automaticamente se não existir
+  useEffect(() => {
+    const autoSnapshot = async () => {
+      if (loading || expenses.length === 0 || clients.length === 0) return;
+      
+      const today = new Date();
+      // O mês anterior
+      const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const prevMonthStr = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}-01`;
+      
+      const hasSnapshot = expenses.some(e => e.type === 'faturamento' && e.month_ref === prevMonthStr);
+      
+      if (!hasSnapshot) {
+        // Calcula o faturamento daquele mês
+        const [year, month] = prevMonthStr.split('-');
+        const endOfPrevMonth = new Date(Number(year), Number(month), 0, 23, 59, 59);
+        const faturamentoPrevMonth = clients.reduce((sum, c) => {
+          if (!c.contractStartDate) return sum;
+          if (c.status === 'Cancelado') return sum;
+          const start = new Date(c.contractStartDate);
+          if (isNaN(start.getTime())) return sum;
+          if (start <= endOfPrevMonth) return sum + (c.monthlyValue || 0);
+          return sum;
+        }, 0);
+
+        if (faturamentoPrevMonth > 0) {
+          await supabase.from('expenses').insert({
+             type: 'faturamento',
+             amount: faturamentoPrevMonth,
+             category: 'Faturamento Mensal (Trava)',
+             description: `Fechamento Automático de ${formatMonth(prevMonthStr)}`,
+             month_ref: prevMonthStr
+          });
+          loadExpenses();
+        }
+      }
+    };
+
+    autoSnapshot();
+  }, [loading, expenses.length, clients.length]);
+
   const handleSave = async () => {
     if (!form.category || !form.description.trim() || form.amount <= 0) {
       toast.error('Preencha todos os campos');
