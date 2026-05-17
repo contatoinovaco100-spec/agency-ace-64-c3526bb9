@@ -190,8 +190,8 @@ export default function AffiliateDashboardPage() {
                 {contracts.map(c => (
                   <div key={c.id} className="p-4 flex justify-between items-center">
                     <div>
-                      <div className="font-semibold">{c.client_name}</div>
-                      <div className="text-sm text-muted-foreground">R$ {Number(c.monthly_value).toFixed(2)}/mês</div>
+                      <div className="font-semibold text-white">{c.client_name}</div>
+                      <div className="text-sm text-zinc-400 mt-1">Cliente Inova</div>
                     </div>
                     <Badge>{STATUS_LABEL[c.status]}</Badge>
                   </div>
