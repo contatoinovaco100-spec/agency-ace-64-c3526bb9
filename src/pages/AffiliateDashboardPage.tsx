@@ -65,8 +65,8 @@ export default function AffiliateDashboardPage() {
           <h2 className="text-2xl font-bold">Cadastro {STATUS_LABEL[affiliate.status]}</h2>
           <p className="text-muted-foreground">
             {affiliate.status === 'em_analise' && 'Aguarde a aprovação do seu cadastro para acessar o painel de afiliado.'}
-            {affiliate.status === 'reprovado' && 'Seu cadastro foi reprovado. Entre em contato com a Innova.'}
-            {affiliate.status === 'suspenso' && 'Seu cadastro está suspenso. Entre em contato com a Innova.'}
+            {affiliate.status === 'reprovado' && 'Seu cadastro foi reprovado. Entre em contato com a Inova.'}
+            {affiliate.status === 'suspenso' && 'Seu cadastro está suspenso. Entre em contato com a Inova.'}
           </p>
         </CardContent></Card>
       </div>
@@ -79,7 +79,7 @@ export default function AffiliateDashboardPage() {
 
   const copy = () => { navigator.clipboard.writeText(link); toast({ title: 'Link copiado!' }); };
   const share = () => {
-    const msg = `Conheça a Innova Marketing pelo meu link: ${link}`;
+    const msg = `Conheça a Inova Marketing pelo meu link: ${link}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   };
 

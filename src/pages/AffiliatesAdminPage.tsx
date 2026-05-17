@@ -138,8 +138,12 @@ export default function AffiliatesAdminPage() {
               <div key={a.id} className="p-4 flex flex-wrap justify-between items-center gap-3">
                 <div className="flex-1 min-w-[200px]">
                   <div className="font-semibold">{a.full_name} <Badge variant="outline" className="ml-2">{STATUS_LABEL[a.status]}</Badge></div>
-                  <div className="text-sm text-muted-foreground">{a.email} • {a.whatsapp} • {a.city_state}</div>
-                  {a.slug && <div className="text-xs text-[#BFF720] font-mono mt-1">/in/{a.slug}</div>}
+                  <div className="text-sm text-muted-foreground mt-1">
+                    <p><strong>Email:</strong> {a.email} • <strong>WhatsApp:</strong> {a.whatsapp} • <strong>Cidade/UF:</strong> {a.city_state}</p>
+                    <p><strong>CPF/CNPJ:</strong> {a.cpf_cnpj} • <strong>Instagram:</strong> {a.instagram}</p>
+                    <p><strong>Como conheceu:</strong> {a.how_found || 'Não informado'} • <strong>Exp. Vendas:</strong> {a.sales_experience ? 'Sim' : 'Não'}</p>
+                  </div>
+                  {a.slug && <div className="text-xs text-[#BFF720] font-mono mt-2">/in/{a.slug}</div>}
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {a.status === 'em_analise' && (

@@ -64,7 +64,7 @@ export default function AffiliateLandingPage() {
           <CardContent className="pt-8 text-center space-y-3">
             <CheckCircle2 className="w-16 h-16 text-green-600 mx-auto" />
             <h2 className="text-2xl font-bold">Recebido!</h2>
-            <p className="text-zinc-600">Em breve a equipe da Innova entrará em contato.</p>
+            <p className="text-zinc-600">Em breve a equipe da Inova entrará em contato.</p>
           </CardContent>
         </Card>
       </div>
@@ -75,7 +75,7 @@ export default function AffiliateLandingPage() {
     <div className="min-h-screen bg-white text-zinc-900 py-10 px-4">
       <div className="max-w-md mx-auto">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold">Innova Marketing</h1>
+          <h1 className="text-3xl font-bold">Inova Marketing</h1>
           <p className="text-zinc-600 mt-2">Você foi indicado por <strong>{affiliate.full_name}</strong>. Preencha seus dados para receber um contato.</p>
         </div>
         <Card>
