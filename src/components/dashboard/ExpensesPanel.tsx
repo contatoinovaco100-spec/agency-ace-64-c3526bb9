@@ -25,7 +25,7 @@ interface Expense {
   category: string;
   description: string;
   amount: number;
-  type: string; // 'gasto' | 'investimento' | 'ganho_extra'
+  type: string; // 'gasto' | 'investimento' | 'ganho_extra' | 'faturamento'
   month_ref: string;
   created_at: string;
 }
@@ -128,6 +128,7 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
       gasto: 'Gasto adicionado',
       investimento: 'Investimento adicionado',
       ganho_extra: 'Ganho extra adicionado',
+      faturamento: 'Faturamento manual salvo',
     };
     toast.success(labels[form.type] || 'Lançamento adicionado');
     setSaving(false);
@@ -148,11 +149,14 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
   const totalInvestimentos = monthExpenses.filter(e => e.type === 'investimento').reduce((a, e) => a + Number(e.amount), 0);
   const totalGanhosExtras = monthExpenses.filter(e => e.type === 'ganho_extra').reduce((a, e) => a + Number(e.amount), 0);
   const totalDespesas = totalGastos + totalInvestimentos;
-  const lucro = mrr + totalGanhosExtras - totalDespesas;
+  // O Faturamento Manual no mês atual substitui o dinâmico (MRR) se existir.
+  const faturamentoManualAtual = monthExpenses.filter(e => e.type === 'faturamento').reduce((a, e) => a + Number(e.amount), 0);
+  const faturamentoAtivo = faturamentoManualAtual > 0 ? faturamentoManualAtual : mrr;
+  const lucro = faturamentoAtivo + totalGanhosExtras - totalDespesas;
 
   // Category breakdown (despesas only)
   const categoryMap: Record<string, number> = {};
-  monthExpenses.filter(e => e.type !== 'ganho_extra').forEach(e => {
+  monthExpenses.filter(e => e.type === 'gasto' || e.type === 'investimento').forEach(e => {
     categoryMap[e.category] = (categoryMap[e.category] || 0) + Number(e.amount);
   });
   const categoryData = Object.entries(categoryMap)
@@ -184,28 +188,33 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
     }
 
     expenses.forEach(e => {
-      const cur = map.get(e.month_ref) || { faturamento: 0, gastos: 0, investimentos: 0, ganhos: 0 };
+      const cur = map.get(e.month_ref) || { faturamentoManual: 0, faturamento: 0, gastos: 0, investimentos: 0, ganhos: 0 };
       const v = Number(e.amount);
       if (e.type === 'gasto') cur.gastos += v;
       else if (e.type === 'investimento') cur.investimentos += v;
       else if (e.type === 'ganho_extra') cur.ganhos += v;
+      else if (e.type === 'faturamento') cur.faturamentoManual += v;
       map.set(e.month_ref, cur);
     });
 
     for (const monthStr of map.keys()) {
-      const [year, month] = monthStr.split('-');
-      const endOfMonth = new Date(Number(year), Number(month), 0, 23, 59, 59);
-      const faturamento = clients.reduce((sum, c) => {
-        if (!c.contractStartDate) return sum;
-        if (c.status === 'Cancelado') return sum;
-        const start = new Date(c.contractStartDate);
-        if (isNaN(start.getTime())) return sum;
-        if (start <= endOfMonth) return sum + (c.monthlyValue || 0);
-        return sum;
-      }, 0);
-      
       const cur = map.get(monthStr)!;
-      cur.faturamento = faturamento;
+      
+      if (cur.faturamentoManual > 0) {
+        cur.faturamento = cur.faturamentoManual;
+      } else {
+        const [year, month] = monthStr.split('-');
+        const endOfMonth = new Date(Number(year), Number(month), 0, 23, 59, 59);
+        const faturamento = clients.reduce((sum, c) => {
+          if (!c.contractStartDate) return sum;
+          if (c.status === 'Cancelado') return sum;
+          const start = new Date(c.contractStartDate);
+          if (isNaN(start.getTime())) return sum;
+          if (start <= endOfMonth) return sum + (c.monthlyValue || 0);
+          return sum;
+        }, 0);
+        cur.faturamento = faturamento;
+      }
       map.set(monthStr, cur);
     }
 
@@ -245,7 +254,7 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   const formCategoriesByType =
-    form.type === 'ganho_extra' ? FREELA_CATEGORIES : EXPENSE_CATEGORIES;
+    form.type === 'ganho_extra' ? FREELA_CATEGORIES : form.type === 'faturamento' ? ['Faturamento Mensal (Trava)'] : EXPENSE_CATEGORIES;
 
   if (loading) {
     return (
@@ -296,6 +305,7 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
                       <SelectItem value="gasto">Gasto</SelectItem>
                       <SelectItem value="investimento">Investimento</SelectItem>
                       <SelectItem value="ganho_extra">Ganho Extra (Freela)</SelectItem>
+                      <SelectItem value="faturamento">Travar Faturamento do Mês</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -320,6 +330,8 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
                     placeholder={
                       form.type === 'ganho_extra'
                         ? 'Ex: Edição de vídeo para Cliente X'
+                        : form.type === 'faturamento'
+                        ? 'Ex: Fechamento de Maio/26'
                         : 'Ex: Assinatura Adobe Creative Cloud'
                     }
                   />
@@ -356,7 +368,7 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
           {/* KPIs */}
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
             {[
-              { label: 'Faturamento', value: formatCurrency(mrr), icon: Wallet, accent: 'text-[hsl(var(--success))]', bg: 'bg-[hsl(var(--success))]/10' },
+              { label: 'Faturamento', value: formatCurrency(faturamentoAtivo), icon: Wallet, accent: 'text-[hsl(var(--success))]', bg: 'bg-[hsl(var(--success))]/10' },
               { label: 'Gastos', value: formatCurrency(totalGastos), icon: TrendingDown, accent: 'text-destructive', bg: 'bg-destructive/10' },
               { label: 'Investimentos', value: formatCurrency(totalInvestimentos), icon: TrendingUp, accent: 'text-[hsl(var(--info))]', bg: 'bg-[hsl(var(--info))]/10' },
               { label: 'Ganhos Extras', value: formatCurrency(totalGanhosExtras), icon: Sparkles, accent: 'text-primary', bg: 'bg-primary/10' },
@@ -436,16 +448,17 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
                       {monthExpenses.map(e => {
                         const isGanho = e.type === 'ganho_extra';
                         const isInv = e.type === 'investimento';
+                        const isFat = e.type === 'faturamento';
                         return (
                           <div key={e.id} className="flex items-center justify-between rounded-lg bg-secondary/30 p-3 group">
                             <div className="flex items-center gap-3 min-w-0">
                               <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                                isGanho ? 'bg-primary/15'
+                                isGanho || isFat ? 'bg-primary/15'
                                   : isInv ? 'bg-[hsl(var(--info))]/15'
                                   : 'bg-destructive/10'
                               }`}>
-                                {isGanho
-                                  ? <Sparkles className="h-3.5 w-3.5 text-primary" />
+                                {isGanho || isFat
+                                  ? <Sparkles className={`h-3.5 w-3.5 ${isFat ? 'text-[hsl(var(--success))]' : 'text-primary'}`} />
                                   : isInv
                                     ? <TrendingUp className="h-3.5 w-3.5 text-[hsl(var(--info))]" />
                                     : <TrendingDown className="h-3.5 w-3.5 text-destructive" />}
@@ -457,9 +470,9 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                               <span className={`text-sm font-semibold tabular-nums ${
-                                isGanho ? 'text-primary' : 'text-foreground'
+                                isGanho ? 'text-primary' : isFat ? 'text-[hsl(var(--success))]' : 'text-foreground'
                               }`}>
-                                {isGanho ? '+ ' : ''}{formatCurrency(Number(e.amount))}
+                                {isGanho || isFat ? '+ ' : ''}{formatCurrency(Number(e.amount))}
                               </span>
                               <Button
                                 variant="ghost"
