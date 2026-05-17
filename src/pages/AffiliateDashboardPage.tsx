@@ -177,8 +177,8 @@ export default function AffiliateDashboardPage() {
         {/* A barra lateral interna foi ocultada, pois agora usamos o menu geral da aplicação */}
         <TabsList className="hidden">
           <TabsTrigger value="leads">Leads</TabsTrigger>
-          <TabsTrigger value="contracts">Contratos</TabsTrigger>
-          <TabsTrigger value="commissions">Comissões</TabsTrigger>
+          <TabsTrigger value="contratos">Contratos</TabsTrigger>
+          <TabsTrigger value="comissoes">Comissões</TabsTrigger>
           <TabsTrigger value="info">Informações</TabsTrigger>
           <TabsTrigger value="vitrine">Nossos Serviços</TabsTrigger>
         </TabsList>
@@ -202,7 +202,7 @@ export default function AffiliateDashboardPage() {
           </CardContent></Card>
         </TabsContent>
 
-        <TabsContent value="contracts" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <TabsContent value="contratos" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <Card><CardContent className="p-0">
             {contracts.length === 0 ? <p className="p-6 text-muted-foreground text-center">Nenhum contrato ainda.</p> : (
               <div className="divide-y">
@@ -220,7 +220,7 @@ export default function AffiliateDashboardPage() {
           </CardContent></Card>
         </TabsContent>
 
-        <TabsContent value="commissions" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <TabsContent value="comissoes" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <Card><CardContent className="p-0">
             {commissions.length === 0 ? <p className="p-6 text-muted-foreground text-center">Nenhuma comissão ainda.</p> : (
               <div className="divide-y">
