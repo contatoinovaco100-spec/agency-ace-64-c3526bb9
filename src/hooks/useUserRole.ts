@@ -9,6 +9,7 @@ export const REDE_COMPANY_ALLOWED_PATHS = ['/negocios', '/rede/perfil', '/rede/n
 // Cache em sessão para eliminar latência de checagem de role/empresa em navegações.
 const roleCache = new Map<string, boolean>();
 const redeCache = new Map<string, { is: boolean; id: string | null }>();
+const affiliateCache = new Map<string, boolean>();
 
 function readSessionCache<T>(key: string): T | null {
   try { const raw = sessionStorage.getItem(key); return raw ? (JSON.parse(raw) as T) : null; } catch { return null; }
@@ -58,6 +59,41 @@ export function useIsRedeCompanyUser() {
   return { isRedeCompanyUser, companyId, loading };
 }
 
+export function useIsAffiliate() {
+  const { user } = useAuth();
+  const cached = user
+    ? (affiliateCache.get(`aff:${user.id}`) ?? readSessionCache<boolean>(`aff:${user.id}`))
+    : null;
+  const [isAffiliate, setIsAffiliate] = useState(cached ?? false);
+  const [loading, setLoading] = useState(cached === null || cached === undefined);
+
+  useEffect(() => {
+    if (!user) { setIsAffiliate(false); setLoading(false); return; }
+    const key = `aff:${user.id}`;
+    const sessionCached = affiliateCache.get(key) ?? readSessionCache<boolean>(key);
+    if (sessionCached !== null && sessionCached !== undefined) {
+      setIsAffiliate(sessionCached);
+      setLoading(false);
+      return;
+    }
+    supabase
+      .from('affiliates')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('status', 'aprovado')
+      .maybeSingle()
+      .then(({ data }) => {
+        const value = !!data;
+        affiliateCache.set(key, value);
+        writeSessionCache(key, value);
+        setIsAffiliate(value);
+        setLoading(false);
+      });
+  }, [user]);
+
+  return { isAffiliate, loading };
+}
+
 export function useUserRole() {
   const { user } = useAuth();
   const cached = user ? (roleCache.get(`role:${user.id}`) ?? readSessionCache<boolean>(`role:${user.id}`)) : null;
@@ -98,12 +134,13 @@ export function usePageAccess() {
   const { user } = useAuth();
   const { isAdmin, loading: roleLoading } = useUserRole();
   const { isRedeCompanyUser, loading: redeLoading } = useIsRedeCompanyUser();
+  const { isAffiliate, loading: affiliateLoading } = useIsAffiliate();
   const [allowedPaths, setAllowedPaths] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) { setAllowedPaths(new Set()); setLoading(false); return; }
-    if (roleLoading || redeLoading) return;
+    if (roleLoading || redeLoading || affiliateLoading) return;
     if (isAdmin) { setAllowedPaths(new Set(APP_PAGES.map(p => p.path))); setLoading(false); return; }
 
     // Empresa parceira da Rede: whitelist estrita.
@@ -127,6 +164,9 @@ export function usePageAccess() {
   }, [user, isAdmin, roleLoading, isRedeCompanyUser, redeLoading]);
 
   const hasPageAccess = (path: string) => {
+    const page = APP_PAGES.find(p => p.path === path);
+    if (page?.affiliateOnly && !isAffiliate) return false;
+    
     if (isAdmin) return true;
 
     // Empresa parceira: ignora alwaysAllowed e libera APENAS a whitelist da Rede.
@@ -153,7 +193,8 @@ export function usePageAccess() {
     hasPageAccess,
     isAdmin,
     isRedeCompanyUser,
-    loading: loading || roleLoading || redeLoading,
+    isAffiliate,
+    loading: loading || roleLoading || redeLoading || affiliateLoading,
   };
 }
 

@@ -21,6 +21,8 @@ export interface AppPage {
   category: PageCategory;
   /** Always visible to any authenticated user (no permission needed) */
   alwaysAllowed?: boolean;
+  /** Only visible to approved affiliates */
+  affiliateOnly?: boolean;
   /** Only admins can ever access */
   adminOnly?: boolean;
 }
@@ -82,11 +84,11 @@ export const APP_PAGES: AppPage[] = [
   { path: '/financeiro',          label: 'Financeiro',          icon: Wallet,          category: 'Administração', adminOnly: true },
   // { path: '/rede/admin',          label: 'Rede de Negócios',    icon: Network,         category: 'Administração', adminOnly: true },
   { path: '/afiliados-admin',     label: 'Programa de Afiliados', icon: Gift,          category: 'Administração', adminOnly: true },
-  { path: '/afiliado/leads',        label: 'Meus Leads',          icon: Target,          category: 'Geral', alwaysAllowed: true },
-  { path: '/afiliado/contratos',    label: 'Meus Contratos',      icon: FileText,        category: 'Geral', alwaysAllowed: true },
-  { path: '/afiliado/comissoes',    label: 'Minhas Comissões',    icon: Wallet,          category: 'Geral', alwaysAllowed: true },
-  { path: '/afiliado/info',         label: 'Regras do Programa',  icon: BookOpen,        category: 'Geral', alwaysAllowed: true },
-  { path: '/afiliado/vitrine',      label: 'Nossos Serviços',     icon: Film,            category: 'Geral', alwaysAllowed: true },
+  { path: '/afiliado/leads',        label: 'Meus Leads',          icon: Target,          category: 'Geral', affiliateOnly: true },
+  { path: '/afiliado/contratos',    label: 'Meus Contratos',      icon: FileText,        category: 'Geral', affiliateOnly: true },
+  { path: '/afiliado/comissoes',    label: 'Minhas Comissões',    icon: Wallet,          category: 'Geral', affiliateOnly: true },
+  { path: '/afiliado/info',         label: 'Regras do Programa',  icon: BookOpen,        category: 'Geral', affiliateOnly: true },
+  { path: '/afiliado/vitrine',      label: 'Nossos Serviços',     icon: Film,            category: 'Geral', affiliateOnly: true },
 ];
 
 export const PAGE_CATEGORIES: PageCategory[] = [
