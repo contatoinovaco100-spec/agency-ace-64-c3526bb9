@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Check, X, Pause, RefreshCw, Plus, Copy, TrendingUp, Users, DollarSign, Clock, AlertCircle } from 'lucide-react';
+import { Loader2, Check, X, Pause, RefreshCw, Plus, Copy, TrendingUp, Users, DollarSign, Clock, AlertCircle, Trash2, FileText, Gift, Award, CheckCircle2 } from 'lucide-react';
 import { slugify } from '@/types/affiliates';
 import type { Affiliate, AffiliateLead, AffiliateContract, AffiliateCommission } from '@/types/affiliates';
 
@@ -18,6 +18,22 @@ const STATUS_LABEL: Record<string, string> = {
   novo: 'Novo', em_negociacao: 'Em negociação', convertido: 'Convertido', perdido: 'Perdido',
   ativo: 'Ativo', pendente: 'Pendente', cancelado: 'Cancelado', inadimplente: 'Inadimplente',
   pago: 'Pago',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  aprovado: 'bg-[hsl(var(--success))]/15 text-[hsl(var(--success))] border-[hsl(var(--success))]/30',
+  em_analise: 'bg-[hsl(var(--warning))]/15 text-[hsl(var(--warning))] border-[hsl(var(--warning))]/30',
+  reprovado: 'bg-destructive/15 text-destructive border-destructive/30',
+  suspenso: 'bg-muted text-muted-foreground border-border',
+  ativo: 'bg-[hsl(var(--success))]/15 text-[hsl(var(--success))] border-[hsl(var(--success))]/30',
+  pendente: 'bg-[hsl(var(--warning))]/15 text-[hsl(var(--warning))] border-[hsl(var(--warning))]/30',
+  cancelado: 'bg-destructive/15 text-destructive border-destructive/30',
+  inadimplente: 'bg-destructive/20 text-destructive border-destructive/40',
+  convertido: 'bg-[hsl(var(--success))]/15 text-[hsl(var(--success))] border-[hsl(var(--success))]/30',
+  em_negociacao: 'bg-[hsl(var(--info))]/15 text-[hsl(var(--info))] border-[hsl(var(--info))]/30',
+  novo: 'bg-primary/15 text-primary border-primary/30',
+  perdido: 'bg-destructive/15 text-destructive border-destructive/30',
+  pago: 'bg-[hsl(var(--success))]/15 text-[hsl(var(--success))] border-[hsl(var(--success))]/30',
 };
 
 export default function AffiliatesAdminPage() {
@@ -61,19 +77,20 @@ export default function AffiliatesAdminPage() {
       status: 'aprovado', slug, approved_at: new Date().toISOString(),
     }).eq('id', aff.id);
     if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-    else { toast({ title: 'Afiliado aprovado' }); load(); }
+    else { toast({ title: 'Afiliado aprovado com sucesso!' }); load(); }
   }
 
   async function setStatus(aff: Affiliate, status: string) {
     const { error } = await supabase.from('affiliates' as any).update({ status }).eq('id', aff.id);
     if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-    else { toast({ title: 'Status atualizado' }); load(); }
+    else { toast({ title: 'Status do afiliado atualizado' }); load(); }
   }
 
   async function updateLeadStatus(id: string, status: string) {
     const upd: any = { status };
     if (status === 'convertido') upd.converted_at = new Date().toISOString();
     await supabase.from('affiliate_leads' as any).update(upd).eq('id', id);
+    toast({ title: 'Status do lead atualizado' });
     load();
   }
 
@@ -97,6 +114,7 @@ export default function AffiliatesAdminPage() {
         });
       }
     }
+    toast({ title: 'Status do contrato atualizado' });
     load();
   }
 
@@ -104,18 +122,48 @@ export default function AffiliatesAdminPage() {
     await supabase.from('affiliate_commissions' as any).update({
       status: 'pago', paid_at: new Date().toISOString(),
     }).eq('id', id);
+    toast({ title: 'Comissão marcada como paga!' });
     load();
   }
 
   async function generateRecurring() {
     const { data, error } = await supabase.rpc('generate_monthly_affiliate_commissions' as any);
     if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-    else { toast({ title: `${data || 0} comissões geradas` }); load(); }
+    else { toast({ title: `${data || 0} comissões recorrentes geradas com sucesso!` }); load(); }
   }
 
-  const affiliateName = (id: string) => affiliates.find(a => a.id === id)?.full_name || '—';
+  // ==== EXCLUSÕES ====
+  async function deleteContract(id: string) {
+    if (!confirm('Tem certeza que deseja excluir este contrato? Esta ação não pode ser desfeita.')) return;
+    const { error } = await supabase.from('affiliate_contracts' as any).delete().eq('id', id);
+    if (error) toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+    else { toast({ title: 'Contrato excluído com sucesso' }); load(); }
+  }
 
-  if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>;
+  async function deleteLead(id: string) {
+    if (!confirm('Tem certeza que deseja excluir este lead?')) return;
+    const { error } = await supabase.from('affiliate_leads' as any).delete().eq('id', id);
+    if (error) toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+    else { toast({ title: 'Lead excluído com sucesso' }); load(); }
+  }
+
+  async function deleteCommission(id: string) {
+    if (!confirm('Tem certeza que deseja excluir esta comissão?')) return;
+    const { error } = await supabase.from('affiliate_commissions' as any).delete().eq('id', id);
+    if (error) toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+    else { toast({ title: 'Comissão excluída com sucesso' }); load(); }
+  }
+
+  async function deleteAffiliate(id: string) {
+    if (!confirm('Tem certeza que deseja excluir este afiliado e todos os seus dados?')) return;
+    const { error } = await supabase.from('affiliates' as any).delete().eq('id', id);
+    if (error) toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+    else { toast({ title: 'Afiliado excluído com sucesso' }); load(); }
+  }
+
+  const affiliateName = (id: string) => affiliates.find(a => a.id === id)?.full_name || 'Afiliado desconhecido';
+
+  if (loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   // Calculate Metrics
   const approvedAffiliatesCount = affiliates.filter(a => a.status === 'aprovado').length;
@@ -124,211 +172,374 @@ export default function AffiliatesAdminPage() {
   const paidCommissions = commissions.filter(c => c.status === 'pago').reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
 
   return (
-    <div className="p-6 md:p-10 space-y-8 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Gestão de Afiliados</h1>
-          <p className="text-muted-foreground mt-1">Visão geral do programa de parcerias, aprovações e comissionamento.</p>
+    <div className="space-y-8 relative pb-12">
+      {/* Futuristic ambient background */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-primary/[0.08] blur-[120px]" />
+        <div className="absolute top-1/3 -right-40 h-[400px] w-[400px] rounded-full bg-[hsl(var(--success))]/10 blur-[120px]" />
+        <div className="absolute bottom-0 left-1/3 h-[350px] w-[350px] rounded-full bg-[hsl(var(--info))]/10 blur-[100px]" />
+      </div>
+
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card via-card to-card/40 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_hsl(73,93%,55%,0.1),_transparent_60%)]" />
+        <div className="absolute -top-px left-10 right-10 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/30 shadow-[0_0_20px_hsl(73,93%,55%/0.2)]">
+              <Gift className="h-7 w-7 text-primary" />
+              <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-lg" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-[10px] uppercase tracking-wider font-bold">
+                  Painel de Controle
+                </Badge>
+                <span className="text-xs text-muted-foreground">· Gestão Exclusiva</span>
+              </div>
+              <h1 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+                Programa de <span className="text-primary">Afiliados</span>
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-xl">
+                Aprove parceiros, gerencie leads indicados, monitore contratos ativos e processe comissões de fechamento e recorrência.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/afiliados/cadastro`); toast({ title: 'Link de cadastro copiado com sucesso!' }); }}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-6 py-6 rounded-xl shadow-[0_0_25px_hsl(73,93%,55%/0.3)] transition-all hover:scale-105 flex items-center gap-2 self-start sm:self-center"
+          >
+            <Copy className="w-5 h-5" />
+            Copiar Link de Cadastro
+          </Button>
         </div>
-        <Button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/afiliados/cadastro`); toast({ title: 'Link copiado!' }); }} className="bg-[#BFF720] text-black hover:bg-[#a8de15] font-medium shadow-sm transition-all hover:shadow-[#BFF720]/20 hover:shadow-lg">
-          <Copy className="w-4 h-4 mr-2" /> Copiar Link de Cadastro
-        </Button>
       </div>
 
       {/* KPI Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-zinc-900/40 border-zinc-800/50 hover:bg-zinc-900/60 transition-colors">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-zinc-400">Afiliados Ativos</p>
-              <Users className="w-4 h-4 text-[#BFF720]" />
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <h2 className="text-3xl font-bold text-white">{approvedAffiliatesCount}</h2>
-              <span className="text-xs text-zinc-500">de {affiliates.length} totais</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-zinc-900/40 border-zinc-800/50 hover:bg-zinc-900/60 transition-colors relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-[#BFF720]/5 rounded-full blur-[40px] -mr-10 -mt-10" />
-          <CardContent className="p-6 relative z-10">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-zinc-400">MRR dos Afiliados</p>
-              <TrendingUp className="w-4 h-4 text-[#BFF720]" />
-            </div>
-            <div className="mt-2">
-              <h2 className="text-3xl font-bold text-white">R$ {totalMRR.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h2>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-zinc-900/40 border-amber-500/20 hover:bg-zinc-900/60 transition-colors relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-[40px] -mr-10 -mt-10" />
-          <CardContent className="p-6 relative z-10">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-zinc-400">Comissões Pendentes</p>
-              <Clock className="w-4 h-4 text-amber-500" />
-            </div>
-            <div className="mt-2">
-              <h2 className="text-3xl font-bold text-amber-400">R$ {pendingCommissions.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h2>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-zinc-900/40 border-zinc-800/50 hover:bg-zinc-900/60 transition-colors">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-zinc-400">Total Pago</p>
-              <DollarSign className="w-4 h-4 text-zinc-400" />
-            </div>
-            <div className="mt-2">
-              <h2 className="text-3xl font-bold text-white">R$ {paidCommissions.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h2>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {[
+          { label: 'Afiliados Aprovados', value: `${approvedAffiliatesCount} / ${affiliates.length}`, icon: Users, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20', glow: 'hsl(73,93%,55%)' },
+          { label: 'MRR dos Afiliados', value: `R$ ${totalMRR.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: 'text-[hsl(var(--success))]', bg: 'bg-[hsl(var(--success))]/10', border: 'border-[hsl(var(--success))]/20', glow: 'hsl(var(--success))' },
+          { label: 'Comissões Pendentes', value: `R$ ${pendingCommissions.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: Clock, color: 'text-[hsl(var(--warning))]', bg: 'bg-[hsl(var(--warning))]/10', border: 'border-[hsl(var(--warning))]/20', glow: 'hsl(var(--warning))' },
+          { label: 'Comissões Pagas', value: `R$ ${paidCommissions.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: 'text-[hsl(var(--info))]', bg: 'bg-[hsl(var(--info))]/10', border: 'border-[hsl(var(--info))]/20', glow: 'hsl(var(--info))' },
+        ].map((kpi, i) => (
+          <Card key={kpi.label} className={`group relative overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-card/30 backdrop-blur-xl transition-all duration-300 hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_-5px_hsl(73,93%,55%/0.15)]`}>
+            <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full blur-2xl opacity-15 transition-opacity duration-500 group-hover:opacity-30" style={{ background: kpi.glow }} />
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <CardContent className="relative p-6">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{kpi.label}</span>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${kpi.bg} ring-1 ring-white/5`}>
+                  <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
+                </div>
+              </div>
+              <p className="mt-4 text-2xl sm:text-3xl font-extrabold tabular-nums text-foreground tracking-tight">{kpi.value}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <Tabs defaultValue="affiliates" className="w-full">
-        <TabsList className="bg-zinc-900/50 border border-zinc-800 p-1 rounded-xl mb-6">
-          <TabsTrigger value="affiliates" className="rounded-lg data-[state=active]:bg-zinc-800">Afiliados ({affiliates.length})</TabsTrigger>
-          <TabsTrigger value="leads" className="rounded-lg data-[state=active]:bg-zinc-800">Leads ({leads.length})</TabsTrigger>
-          <TabsTrigger value="contracts" className="rounded-lg data-[state=active]:bg-zinc-800">Contratos ({contracts.length})</TabsTrigger>
-          <TabsTrigger value="commissions" className="rounded-lg data-[state=active]:bg-zinc-800">Comissões</TabsTrigger>
+      {/* Main Tabs */}
+      <Tabs defaultValue="contracts" className="w-full space-y-6">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-card/60 backdrop-blur-xl border border-border/50 p-1.5 rounded-xl gap-1">
+          <TabsTrigger value="contracts" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all">
+            Contratos ({contracts.length})
+          </TabsTrigger>
+          <TabsTrigger value="leads" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all">
+            Leads ({leads.length})
+          </TabsTrigger>
+          <TabsTrigger value="affiliates" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all">
+            Afiliados ({affiliates.length})
+          </TabsTrigger>
+          <TabsTrigger value="commissions" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all">
+            Comissões
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="affiliates" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Card className="border-zinc-800/50 bg-zinc-900/30 backdrop-blur-sm"><CardContent className="p-0 divide-y divide-zinc-800/50">
-            {affiliates.map(a => (
-              <div key={a.id} className="p-5 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 transition-colors hover:bg-zinc-900/50">
-                <div className="flex-1 min-w-[200px]">
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="font-semibold text-lg text-white">{a.full_name}</span>
-                    <Badge variant="outline" className={`${a.status === 'em_analise' ? 'border-amber-500/30 text-amber-500' : a.status === 'aprovado' ? 'border-[#BFF720]/30 text-[#BFF720]' : ''}`}>
-                      {STATUS_LABEL[a.status]}
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-zinc-400 mt-2 space-y-1">
-                    <p><strong className="text-zinc-300">Email:</strong> {a.email} &bull; <strong className="text-zinc-300">WhatsApp:</strong> {a.whatsapp} &bull; <strong className="text-zinc-300">Cidade/UF:</strong> {a.city_state}</p>
-                    <p><strong className="text-zinc-300">CPF/CNPJ:</strong> {a.cpf_cnpj} &bull; <strong className="text-zinc-300">PIX:</strong> <span className="text-white font-mono bg-zinc-800 px-1 py-0.5 rounded">{a.pix_key || 'Não informado'}</span> &bull; <strong className="text-zinc-300">Instagram:</strong> {a.instagram}</p>
-                    <p><strong className="text-zinc-300">Como conheceu:</strong> {a.how_found || 'Não informado'} &bull; <strong className="text-zinc-300">Exp. Vendas:</strong> {a.sales_experience ? 'Sim' : 'Não'}</p>
-                  </div>
-                  {a.slug && (
-                    <div className="mt-3 flex items-center gap-2">
-                      <div className="text-xs text-[#BFF720] font-mono bg-[#BFF720]/10 px-2 py-1 rounded-md">/in/{a.slug}</div>
+        {/* ============ ABA CONTRATOS ============ */}
+        <TabsContent value="contracts" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Card className="border-border/50 bg-card/40 backdrop-blur-xl overflow-hidden shadow-xl">
+            <CardHeader className="border-b border-border/40 bg-card/20 px-6 py-4">
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-foreground">
+                <FileText className="w-5 h-5 text-primary" /> Contratos de Afiliados
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 divide-y divide-border/40">
+              {contracts.map(c => (
+                <div key={c.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:bg-secondary/20 transition-all">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <h3 className="font-bold text-lg text-foreground tracking-tight">{c.client_name}</h3>
+                      <Badge variant="outline" className={`px-2.5 py-0.5 text-xs font-semibold ${STATUS_COLORS[c.status] || 'bg-secondary text-foreground'}`}>
+                        {STATUS_LABEL[c.status] || c.status}
+                      </Badge>
                     </div>
-                  )}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1 font-semibold text-foreground">
+                        <DollarSign className="w-4 h-4 text-[hsl(var(--success))]" /> R$ {Number(c.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês
+                      </span>
+                      <span>Afiliado: <strong className="text-foreground">{affiliateName(c.affiliate_id)}</strong></span>
+                      {c.signed_at && <span>Ativado em: {new Date(c.signed_at).toLocaleDateString('pt-BR')}</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <Select value={c.status} onValueChange={v => updateContractStatus(c.id, v)}>
+                      <SelectTrigger className="w-[160px] bg-background/50 border-border/60 focus:ring-primary">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pendente">Pendente</SelectItem>
+                        <SelectItem value="ativo">Ativo</SelectItem>
+                        <SelectItem value="inadimplente">Inadimplente</SelectItem>
+                        <SelectItem value="cancelado">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteContract(c.id)}
+                      className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      title="Excluir contrato"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2 flex-wrap items-center">
-                  {a.status === 'em_analise' && (
-                    <>
-                      <Button size="sm" onClick={() => approve(a)} className="bg-[#BFF720] text-black hover:bg-[#a8de15] font-semibold"><Check className="w-4 h-4 mr-1" /> Aprovar</Button>
-                      <Button size="sm" variant="destructive" className="bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-400 border-none" onClick={() => setStatus(a, 'reprovado')}><X className="w-4 h-4 mr-1" /> Reprovar</Button>
-                    </>
-                  )}
-                  {a.status === 'aprovado' && (
-                    <Button size="sm" variant="outline" className="border-zinc-700 hover:bg-zinc-800" onClick={() => setStatus(a, 'suspenso')}><Pause className="w-4 h-4 mr-1" /> Suspender</Button>
-                  )}
-                  {a.status === 'suspenso' && (
-                    <Button size="sm" onClick={() => setStatus(a, 'aprovado')} className="bg-[#BFF720] text-black hover:bg-[#a8de15]">Reativar</Button>
-                  )}
-                  {a.status === 'reprovado' && (
-                    <Button size="sm" variant="outline" className="border-zinc-700 hover:bg-zinc-800" onClick={() => approve(a)}>Aprovar agora</Button>
-                  )}
+              ))}
+              {contracts.length === 0 && (
+                <div className="p-12 text-center flex flex-col items-center">
+                  <FileText className="w-12 h-12 text-muted-foreground/40 mb-3" />
+                  <p className="text-muted-foreground font-medium text-base">Nenhum contrato cadastrado ainda.</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Quando você marcar um lead como "Convertido", poderá criar o contrato dele.</p>
                 </div>
-              </div>
-            ))}
-            {affiliates.length === 0 && (
-              <div className="p-12 text-center flex flex-col items-center">
-                <AlertCircle className="w-10 h-10 text-zinc-600 mb-3" />
-                <p className="text-zinc-400 font-medium">Nenhum afiliado cadastrado no momento.</p>
-              </div>
-            )}
-          </CardContent></Card>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        <TabsContent value="leads">
-          <Card><CardContent className="p-0 divide-y">
-            {leads.map(l => (
-              <div key={l.id} className="p-4 flex flex-wrap justify-between items-center gap-3">
-                <div className="flex-1 min-w-[200px]">
-                  <div className="font-semibold">{l.lead_name}</div>
-                  <div className="text-sm text-muted-foreground">{l.whatsapp} {l.company && `• ${l.company}`} {l.email && `• ${l.email}`}</div>
-                  <div className="text-xs text-muted-foreground mt-1">Afiliado: <strong>{affiliateName(l.affiliate_id)}</strong> • {new Date(l.created_at).toLocaleDateString('pt-BR')}</div>
+        {/* ============ ABA LEADS ============ */}
+        <TabsContent value="leads" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Card className="border-border/50 bg-card/40 backdrop-blur-xl overflow-hidden shadow-xl">
+            <CardHeader className="border-b border-border/40 bg-card/20 px-6 py-4">
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-foreground">
+                <Users className="w-5 h-5 text-primary" /> Leads Indicados pelos Afiliados
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 divide-y divide-border/40">
+              {leads.map(l => (
+                <div key={l.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:bg-secondary/20 transition-all">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <h3 className="font-bold text-lg text-foreground tracking-tight">{l.lead_name}</h3>
+                      <Badge variant="outline" className={`px-2.5 py-0.5 text-xs font-semibold ${STATUS_COLORS[l.status] || 'bg-secondary text-foreground'}`}>
+                        {STATUS_LABEL[l.status] || l.status}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                      {l.whatsapp && <span>WhatsApp: <strong className="text-foreground">{l.whatsapp}</strong></span>}
+                      {l.company && <span>Empresa: <strong className="text-foreground">{l.company}</strong></span>}
+                      {l.email && <span>Email: <strong className="text-foreground">{l.email}</strong></span>}
+                      <span>Afiliado: <strong className="text-foreground">{affiliateName(l.affiliate_id)}</strong></span>
+                      <span>Data: {new Date(l.created_at).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <Select value={l.status} onValueChange={v => updateLeadStatus(l.id, v)}>
+                      <SelectTrigger className="w-[160px] bg-background/50 border-border/60 focus:ring-primary">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="novo">Novo</SelectItem>
+                        <SelectItem value="em_negociacao">Em negociação</SelectItem>
+                        <SelectItem value="convertido">Convertido</SelectItem>
+                        <SelectItem value="perdido">Perdido</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {l.status === 'convertido' && <ContractDialog lead={l} onCreated={load} />}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteLead(l.id)}
+                      className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      title="Excluir lead"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Select value={l.status} onValueChange={v => updateLeadStatus(l.id, v)}>
-                    <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="novo">Novo</SelectItem>
-                      <SelectItem value="em_negociacao">Em negociação</SelectItem>
-                      <SelectItem value="convertido">Convertido</SelectItem>
-                      <SelectItem value="perdido">Perdido</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {l.status === 'convertido' && <ContractDialog lead={l} onCreated={load} />}
+              ))}
+              {leads.length === 0 && (
+                <div className="p-12 text-center flex flex-col items-center">
+                  <Users className="w-12 h-12 text-muted-foreground/40 mb-3" />
+                  <p className="text-muted-foreground font-medium text-base">Nenhum lead indicado ainda.</p>
                 </div>
-              </div>
-            ))}
-            {leads.length === 0 && <p className="p-6 text-center text-muted-foreground">Nenhum lead ainda.</p>}
-          </CardContent></Card>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        <TabsContent value="contracts">
-          <Card><CardContent className="p-0 divide-y">
-            {contracts.map(c => (
-              <div key={c.id} className="p-4 flex flex-wrap justify-between items-center gap-3">
-                <div className="flex-1 min-w-[200px]">
-                  <div className="font-semibold">{c.client_name}</div>
-                  <div className="text-sm text-muted-foreground">R$ {Number(c.monthly_value).toFixed(2)}/mês • Afiliado: <strong>{affiliateName(c.affiliate_id)}</strong></div>
+        {/* ============ ABA AFILIADOS ============ */}
+        <TabsContent value="affiliates" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Card className="border-border/50 bg-card/40 backdrop-blur-xl overflow-hidden shadow-xl">
+            <CardHeader className="border-b border-border/40 bg-card/20 px-6 py-4">
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-foreground">
+                <Award className="w-5 h-5 text-primary" /> Parceiros Cadastrados
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 divide-y divide-border/40">
+              {affiliates.map(a => (
+                <div key={a.id} className="p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6 group hover:bg-secondary/20 transition-all">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="font-bold text-xl text-foreground tracking-tight">{a.full_name}</h3>
+                      <Badge variant="outline" className={`px-2.5 py-0.5 text-xs font-semibold ${STATUS_COLORS[a.status] || 'bg-secondary text-foreground'}`}>
+                        {STATUS_LABEL[a.status] || a.status}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                      <p><strong className="text-foreground">Email:</strong> {a.email}</p>
+                      <p><strong className="text-foreground">WhatsApp:</strong> {a.whatsapp}</p>
+                      <p><strong className="text-foreground">Cidade/UF:</strong> {a.city_state}</p>
+                      <p><strong className="text-foreground">CPF/CNPJ:</strong> {a.cpf_cnpj}</p>
+                      <p><strong className="text-foreground">PIX:</strong> <span className="text-foreground font-mono bg-secondary/60 px-1.5 py-0.5 rounded border border-border/50">{a.pix_key || 'Não informado'}</span></p>
+                      <p><strong className="text-foreground">Instagram:</strong> {a.instagram}</p>
+                      <p><strong className="text-foreground">Como conheceu:</strong> {a.how_found || 'Não informado'}</p>
+                      <p><strong className="text-foreground">Exp. Vendas:</strong> {a.sales_experience ? 'Sim' : 'Não'}</p>
+                    </div>
+                    {a.slug && (
+                      <div className="mt-4 flex items-center gap-2">
+                        <div className="text-xs text-primary font-mono bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-[0_0_15px_hsl(73,93%,55%/0.15)]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                          /in/{a.slug}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap shrink-0">
+                    {a.status === 'em_analise' && (
+                      <>
+                        <Button size="sm" onClick={() => approve(a)} className="bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white font-bold shadow-[0_0_20px_hsl(var(--success)/0.3)] gap-1.5">
+                          <Check className="w-4 h-4" /> Aprovar
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => setStatus(a, 'reprovado')} className="gap-1.5">
+                          <X className="w-4 h-4" /> Reprovar
+                        </Button>
+                      </>
+                    )}
+                    {a.status === 'aprovado' && (
+                      <Button size="sm" variant="outline" onClick={() => setStatus(a, 'suspenso')} className="border-border hover:bg-secondary/50 gap-1.5">
+                        <Pause className="w-4 h-4" /> Suspender
+                      </Button>
+                    )}
+                    {a.status === 'suspenso' && (
+                      <Button size="sm" onClick={() => setStatus(a, 'aprovado')} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-1.5">
+                        <Check className="w-4 h-4" /> Reativar
+                      </Button>
+                    )}
+                    {a.status === 'reprovado' && (
+                      <Button size="sm" variant="outline" onClick={() => approve(a)} className="border-border hover:bg-secondary/50 gap-1.5">
+                        <Check className="w-4 h-4" /> Aprovar agora
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteAffiliate(a.id)}
+                      className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      title="Excluir afiliado"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <Select value={c.status} onValueChange={v => updateContractStatus(c.id, v)}>
-                  <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="ativo">Ativo</SelectItem>
-                    <SelectItem value="inadimplente">Inadimplente</SelectItem>
-                    <SelectItem value="cancelado">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
-            {contracts.length === 0 && <p className="p-6 text-center text-muted-foreground">Nenhum contrato. Marque um lead como "convertido" para criar.</p>}
-          </CardContent></Card>
+              ))}
+              {affiliates.length === 0 && (
+                <div className="p-12 text-center flex flex-col items-center">
+                  <AlertCircle className="w-12 h-12 text-muted-foreground/40 mb-3" />
+                  <p className="text-muted-foreground font-medium text-base">Nenhum afiliado cadastrado no momento.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
+        {/* ============ ABA COMISSÕES ============ */}
         <TabsContent value="commissions" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="mb-4 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800/50 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-card via-card to-card/40 p-6 rounded-2xl border border-border/50 flex flex-col md:flex-row items-center justify-between gap-6 backdrop-blur-xl shadow-xl">
             <div>
-              <h3 className="font-semibold text-white">Geração de Comissões</h3>
-              <p className="text-sm text-zinc-400">Calcule as comissões recorrentes do mês atual (R$ 100 por contrato ativo).</p>
+              <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-primary animate-spin-slow" /> Geração Automática de Comissões Recorrentes
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+                O sistema calcula e gera automaticamente as comissões mensais (R$ 100,00 por cada contrato ativo) para todos os afiliados com base no mês atual.
+              </p>
             </div>
-            <Button onClick={generateRecurring} className="bg-[#BFF720] text-black hover:bg-[#a8de15] shadow-[0_0_15px_rgba(191,247,32,0.15)]">
-              <RefreshCw className="w-4 h-4 mr-2" /> Rodar Recorrência do Mês
+            <Button
+              onClick={generateRecurring}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-6 py-6 rounded-xl shadow-[0_0_25px_hsl(73,93%,55%/0.3)] transition-all hover:scale-105 flex items-center gap-2 self-start md:self-center shrink-0"
+            >
+              <RefreshCw className="w-5 h-5" />
+              Rodar Recorrência do Mês
             </Button>
           </div>
-          <Card className="border-zinc-800/50 bg-zinc-900/30 backdrop-blur-sm"><CardContent className="p-0 divide-y divide-zinc-800/50">
-            {commissions.map(c => (
-              <div key={c.id} className="p-5 flex flex-wrap justify-between items-center gap-3 hover:bg-zinc-900/50 transition-colors">
-                <div className="flex-1 min-w-[200px]">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-lg text-white">R$ {Number(c.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    <Badge variant="outline" className="bg-zinc-800 border-zinc-700 text-zinc-300">{c.type}</Badge>
+
+          <Card className="border-border/50 bg-card/40 backdrop-blur-xl overflow-hidden shadow-xl">
+            <CardHeader className="border-b border-border/40 bg-card/20 px-6 py-4">
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-foreground">
+                <DollarSign className="w-5 h-5 text-primary" /> Histórico de Comissões
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 divide-y divide-border/40">
+              {commissions.map(c => (
+                <div key={c.id} className="p-6 flex flex-wrap items-center justify-between gap-4 group hover:bg-secondary/20 transition-all">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <span className="font-extrabold text-xl text-foreground tabular-nums tracking-tight">
+                        R$ {Number(c.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                      <Badge variant="outline" className="bg-secondary/60 border-border text-foreground text-xs uppercase font-semibold">
+                        {c.type}
+                      </Badge>
+                      <Badge variant="outline" className={`px-2.5 py-0.5 text-xs font-semibold ${STATUS_COLORS[c.status] || 'bg-secondary text-foreground'}`}>
+                        {STATUS_LABEL[c.status] || c.status}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                      <span>Afiliado: <strong className="text-foreground">{affiliateName(c.affiliate_id)}</strong></span>
+                      <span>Mês de Referência: <strong className="text-foreground">{new Date(c.reference_month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</strong></span>
+                      {c.paid_at && <span>Pago em: {new Date(c.paid_at).toLocaleDateString('pt-BR')}</span>}
+                    </div>
                   </div>
-                  <div className="text-sm text-zinc-400">
-                    Afiliado: <strong className="text-white">{affiliateName(c.affiliate_id)}</strong> &bull; Ref: {new Date(c.reference_month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                  <div className="flex items-center gap-3 shrink-0">
+                    {c.status === 'pendente' && (
+                      <Button
+                        size="sm"
+                        onClick={() => markCommissionPaid(c.id)}
+                        className="bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white font-bold shadow-[0_0_20px_hsl(var(--success)/0.3)] gap-1.5"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> Marcar como pago
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteCommission(c.id)}
+                      className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      title="Excluir comissão"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge className={`${c.status === 'pago' ? 'bg-[#BFF720]/20 text-[#BFF720] border-none' : 'bg-amber-500/20 text-amber-500 border-none'}`}>
-                    {STATUS_LABEL[c.status]}
-                  </Badge>
-                  {c.status === 'pendente' && <Button size="sm" variant="outline" className="border-[#BFF720]/50 text-[#BFF720] hover:bg-[#BFF720]/10" onClick={() => markCommissionPaid(c.id)}>Marcar como pago</Button>}
+              ))}
+              {commissions.length === 0 && (
+                <div className="p-12 text-center flex flex-col items-center">
+                  <DollarSign className="w-12 h-12 text-muted-foreground/40 mb-3" />
+                  <p className="text-muted-foreground font-medium text-base">Nenhuma comissão gerada ainda.</p>
                 </div>
-              </div>
-            ))}
-            {commissions.length === 0 && <p className="p-12 text-center text-muted-foreground">Nenhuma comissão ainda.</p>}
-          </CardContent></Card>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
@@ -352,20 +563,47 @@ function ContractDialog({ lead, onCreated }: { lead: AffiliateLead; onCreated: (
     }).select().single();
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); setSaving(false); return; }
     
-    toast({ title: 'Contrato criado como pendente' });
+    toast({ title: 'Contrato criado com sucesso como Pendente!' });
     setOpen(false); setSaving(false); onCreated();
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" /> Contrato</Button></DialogTrigger>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Criar contrato — {lead.lead_name}</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <div><Label>Valor mensal (R$)</Label><Input type="number" value={value} onChange={e => setValue(e.target.value)} /></div>
-          <p className="text-xs text-muted-foreground">Será criado como "Pendente". A comissão de R$300 só será gerada quando você mudar o status para "Ativo".</p>
+      <DialogTrigger asChild>
+        <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold gap-1.5 shadow-[0_0_15px_hsl(73,93%,55%/0.25)]">
+          <Plus className="w-4 h-4" /> Criar Contrato
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="border-border/60 bg-card/95 backdrop-blur-2xl shadow-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold text-foreground">Criar contrato — {lead.lead_name}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-foreground">Valor mensal (R$)</Label>
+            <Input
+              type="number"
+              value={value}
+              onChange={e => setValue(e.target.value)}
+              className="bg-background/50 border-border/60 focus:ring-primary h-11 text-lg font-bold"
+            />
+          </div>
+          <div className="bg-secondary/40 border border-border/50 p-4 rounded-xl space-y-1">
+            <p className="text-xs font-semibold text-primary">Informação importante:</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              O contrato será criado com o status inicial de <strong className="text-foreground">"Pendente"</strong>. A comissão de fechamento de R$ 300,00 para o afiliado só será gerada no momento em que você alterar o status para <strong className="text-foreground">"Ativo"</strong>.
+            </p>
+          </div>
         </div>
-        <DialogFooter><Button onClick={create} disabled={saving}>{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Criar'}</Button></DialogFooter>
+        <DialogFooter>
+          <Button
+            onClick={create}
+            disabled={saving}
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold h-11 shadow-[0_0_20px_hsl(73,93%,55%/0.3)]"
+          >
+            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirmar e Criar Contrato'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
