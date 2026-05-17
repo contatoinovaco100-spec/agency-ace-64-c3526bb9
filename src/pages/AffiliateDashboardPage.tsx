@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +18,10 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function AffiliateDashboardPage() {
+  const { tab } = useParams();
+  const navigate = useNavigate();
+  const activeTab = tab || 'leads';
+
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -149,13 +154,14 @@ export default function AffiliateDashboardPage() {
         <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Comissões pagas</div><div className="text-2xl font-bold text-[#BFF720]">R$ {paidTotal.toFixed(2)}</div></CardContent></Card>
       </div>
 
-      <Tabs defaultValue="leads" orientation="vertical" className="flex flex-col md:flex-row gap-6 items-start">
-        <TabsList className="flex flex-col w-full md:w-64 h-auto bg-zinc-900/40 p-2 border border-zinc-800/50 rounded-xl justify-start space-y-1 shrink-0 sticky top-24">
-          <TabsTrigger value="leads" className="w-full justify-start text-left px-4 py-3 rounded-lg data-[state=active]:bg-[#BFF720] data-[state=active]:text-black data-[state=active]:font-semibold transition-all">Leads</TabsTrigger>
-          <TabsTrigger value="contracts" className="w-full justify-start text-left px-4 py-3 rounded-lg data-[state=active]:bg-[#BFF720] data-[state=active]:text-black data-[state=active]:font-semibold transition-all">Contratos</TabsTrigger>
-          <TabsTrigger value="commissions" className="w-full justify-start text-left px-4 py-3 rounded-lg data-[state=active]:bg-[#BFF720] data-[state=active]:text-black data-[state=active]:font-semibold transition-all">Comissões</TabsTrigger>
-          <TabsTrigger value="info" className="w-full justify-start text-left px-4 py-3 rounded-lg data-[state=active]:bg-[#BFF720] data-[state=active]:text-black data-[state=active]:font-semibold transition-all">Informações</TabsTrigger>
-          <TabsTrigger value="vitrine" className="w-full justify-start text-left px-4 py-3 rounded-lg data-[state=active]:bg-[#BFF720] data-[state=active]:text-black data-[state=active]:font-semibold transition-all">Nossos Serviços</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={(v) => navigate(`/afiliado/${v}`)} orientation="vertical" className="flex flex-col md:flex-row gap-6 items-start">
+        {/* A barra lateral interna foi ocultada, pois agora usamos o menu geral da aplicação */}
+        <TabsList className="hidden">
+          <TabsTrigger value="leads">Leads</TabsTrigger>
+          <TabsTrigger value="contracts">Contratos</TabsTrigger>
+          <TabsTrigger value="commissions">Comissões</TabsTrigger>
+          <TabsTrigger value="info">Informações</TabsTrigger>
+          <TabsTrigger value="vitrine">Nossos Serviços</TabsTrigger>
         </TabsList>
 
         <div className="flex-1 w-full min-w-0">

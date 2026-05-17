@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import PublicQuizPage from "./pages/PublicQuizPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -220,7 +220,8 @@ function AppRoutes() {
                     <Route path="/rede/admin"          element={<RedeAdminPage />} />
                     <Route path="/indicacoes-admin"    element={<ReferralsAdminPage />} />
                     <Route path="/afiliados-admin"     element={<AffiliatesAdminPage />} />
-                    <Route path="/afiliado"            element={<AffiliateDashboardPage />} />
+                    <Route path="/afiliado"            element={<Navigate to="/afiliado/leads" replace />} />
+                    <Route path="/afiliado/:tab"       element={<AffiliateDashboardPage />} />
                     <Route path="/quiz-builder"        element={<QuizBuilderClientsPage />} />
                     <Route path="/quiz-builder/c/:clientId" element={<QuizBuilderQuizzesPage />} />
                     <Route path="/quiz-builder/editor/:quizId" element={<QuizEditorPage />} />
