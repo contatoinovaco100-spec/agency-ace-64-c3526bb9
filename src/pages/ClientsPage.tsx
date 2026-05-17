@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { useAgency } from '@/contexts/AgencyContext';
 import { Client, ServiceType, ClientStatus, ScopeDetails } from '@/types/agency';
