@@ -15,6 +15,7 @@ export interface Affiliate {
   city_state: string;
   how_found: string;
   sales_experience: boolean;
+  pix_key: string;
   slug: string | null;
   status: AffiliateStatus;
   approved_at: string | null;

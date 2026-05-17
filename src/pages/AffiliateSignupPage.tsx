@@ -16,7 +16,7 @@ export default function AffiliateSignupPage() {
   const [done, setDone] = useState(false);
   const [form, setForm] = useState({
     full_name: '', cpf_cnpj: '', whatsapp: '', email: '', instagram: '',
-    city_state: '', how_found: '', sales_experience: 'nao', password: '',
+    city_state: '', how_found: '', sales_experience: 'nao', pix_key: '', password: '',
   });
 
   const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
@@ -57,6 +57,7 @@ export default function AffiliateSignupPage() {
         city_state: form.city_state.trim(),
         how_found: form.how_found.trim(),
         sales_experience: form.sales_experience === 'sim',
+        pix_key: form.pix_key.trim(),
         status: 'em_analise',
       });
       
@@ -71,7 +72,8 @@ export default function AffiliateSignupPage() {
           p_instagram: form.instagram.trim(),
           p_city_state: form.city_state.trim(),
           p_how_found: form.how_found.trim(),
-          p_sales_experience: form.sales_experience === 'sim'
+          p_sales_experience: form.sales_experience === 'sim',
+          p_pix_key: form.pix_key.trim()
         });
         
         if (rpcErr) {
@@ -136,6 +138,7 @@ export default function AffiliateSignupPage() {
                 <div><Label>Cidade/Estado *</Label><Input required value={form.city_state} onChange={e => set('city_state', e.target.value)} className="bg-zinc-800 border-zinc-700" /></div>
               </div>
               <div><Label>Como conheceu a Inova?</Label><Textarea value={form.how_found} onChange={e => set('how_found', e.target.value)} className="bg-zinc-800 border-zinc-700" /></div>
+              <div><Label>Chave PIX *</Label><Input required value={form.pix_key} onChange={e => set('pix_key', e.target.value)} placeholder="Email, CPF/CNPJ, Celular ou Aleatória" className="bg-zinc-800 border-zinc-700" /></div>
               <div>
                 <Label>Experiência com vendas?</Label>
                 <div className="flex gap-4 mt-2">

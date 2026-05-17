@@ -140,7 +140,7 @@ export default function AffiliatesAdminPage() {
                   <div className="font-semibold">{a.full_name} <Badge variant="outline" className="ml-2">{STATUS_LABEL[a.status]}</Badge></div>
                   <div className="text-sm text-muted-foreground mt-1">
                     <p><strong>Email:</strong> {a.email} • <strong>WhatsApp:</strong> {a.whatsapp} • <strong>Cidade/UF:</strong> {a.city_state}</p>
-                    <p><strong>CPF/CNPJ:</strong> {a.cpf_cnpj} • <strong>Instagram:</strong> {a.instagram}</p>
+                    <p><strong>CPF/CNPJ:</strong> {a.cpf_cnpj} • <strong>PIX:</strong> {a.pix_key || 'Não informado'} • <strong>Instagram:</strong> {a.instagram}</p>
                     <p><strong>Como conheceu:</strong> {a.how_found || 'Não informado'} • <strong>Exp. Vendas:</strong> {a.sales_experience ? 'Sim' : 'Não'}</p>
                   </div>
                   {a.slug && <div className="text-xs text-[#BFF720] font-mono mt-2">/in/{a.slug}</div>}
