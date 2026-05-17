@@ -243,13 +243,10 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
   const reportRows = useMemo(() => {
     const map = new Map<string, { faturamento: number; gastos: number; investimentos: number; ganhos: number }>();
 
-    // seed last 12 months with zeros so timeline is continuous
+    // Apenas garante que o mês atual exista na linha do tempo
     const today = new Date();
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-      map.set(key, { faturamento: 0, gastos: 0, investimentos: 0, ganhos: 0 });
-    }
+    const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+    map.set(currentMonthKey, { faturamentoManual: 0, faturamento: 0, gastos: 0, investimentos: 0, ganhos: 0 });
 
     expenses.forEach(e => {
       const cur = map.get(e.month_ref) || { faturamentoManual: 0, faturamento: 0, gastos: 0, investimentos: 0, ganhos: 0 };
