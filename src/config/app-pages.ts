@@ -38,15 +38,15 @@ export const APP_PAGES: AppPage[] = [
   { path: '/notificacoes',        label: 'Notificações',        icon: Bell,            category: 'Geral' },
   { path: '/chat',                label: 'Chat Interno',        icon: MessageSquare,   category: 'Geral' },
   { path: '/roleta',              label: 'Roleta de Prêmios',   icon: Gift,            category: 'Geral' },
-  { path: '/negocios',            label: 'Rede de Negócios',    icon: Network,         category: 'Geral' },
+  // { path: '/negocios',            label: 'Rede de Negócios',    icon: Network,         category: 'Geral' },
 
   // Comercial
   { path: '/crm',                 label: 'CRM',                 icon: Target,          category: 'Comercial' },
-  { path: '/whatsapp',            label: 'WhatsApp',            icon: MessageSquare,   category: 'Comercial' },
-  { path: '/whatsapp/config',     label: 'Config. WhatsApp',    icon: Settings,        category: 'Comercial', adminOnly: true },
+  // { path: '/whatsapp',            label: 'WhatsApp',            icon: MessageSquare,   category: 'Comercial' },
+  // { path: '/whatsapp/config',     label: 'Config. WhatsApp',    icon: Settings,        category: 'Comercial', adminOnly: true },
   { path: '/prospeccao',          label: 'Prospecção IA',       icon: Bot,             category: 'Comercial' },
-  { path: '/proposta',            label: 'Proposta Comercial',  icon: Sparkles,        category: 'Comercial' },
-  { path: '/proposta/editar',     label: 'Editar Proposta',     icon: Settings,        category: 'Comercial' },
+  // { path: '/proposta',            label: 'Proposta Comercial',  icon: Sparkles,        category: 'Comercial' },
+  // { path: '/proposta/editar',     label: 'Editar Proposta',     icon: Settings,        category: 'Comercial' },
 
   // Operacional
   { path: '/clientes',            label: 'Clientes',            icon: Users,           category: 'Operacional' },
@@ -54,11 +54,11 @@ export const APP_PAGES: AppPage[] = [
   { path: '/escopos',             label: 'Escopo do Cliente',   icon: ListChecks,      category: 'Operacional' },
   { path: '/planejamento',        label: 'Planejamento',        icon: LayoutList,      category: 'Operacional' },
   { path: '/diagnostico/editar',  label: 'Diagnóstico',         icon: Target,          category: 'Operacional' },
-  { path: '/metas',               label: 'Metas',               icon: Target,          category: 'Operacional' },
-  { path: '/resultados-semanais', label: 'Resultados Semanais', icon: TrendingUp,      category: 'Operacional' },
+  // { path: '/metas',               label: 'Metas',               icon: Target,          category: 'Operacional' },
+  // { path: '/resultados-semanais', label: 'Resultados Semanais', icon: TrendingUp,      category: 'Operacional' },
 
   // Produção
-  { path: '/galeria',             label: 'Galeria',             icon: Images,          category: 'Produção' },
+  // { path: '/galeria',             label: 'Galeria',             icon: Images,          category: 'Produção' },
   { path: '/portfolio',           label: 'Portfólio',           icon: Film,            category: 'Produção' },
   { path: '/portfolio-instagram', label: 'Posts Instagram',     icon: Sparkles,        category: 'Produção' },
   { path: '/gravacoes',           label: 'Gravações',           icon: Clapperboard,    category: 'Produção' },
@@ -80,7 +80,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/contratos-prestadores', label: 'Contratos Prestadores', icon: FileText,    category: 'Administração', adminOnly: true },
   { path: '/relatorios',          label: 'Relatórios',          icon: BarChart3,       category: 'Administração', adminOnly: true },
   { path: '/financeiro',          label: 'Financeiro',          icon: Wallet,          category: 'Administração', adminOnly: true },
-  { path: '/rede/admin',          label: 'Rede de Negócios',    icon: Network,         category: 'Administração', adminOnly: true },
+  // { path: '/rede/admin',          label: 'Rede de Negócios',    icon: Network,         category: 'Administração', adminOnly: true },
   { path: '/afiliados-admin',     label: 'Programa de Afiliados', icon: Gift,          category: 'Administração', adminOnly: true },
   { path: '/afiliado/leads',        label: 'Meus Leads',          icon: Target,          category: 'Geral', alwaysAllowed: true },
   { path: '/afiliado/contratos',    label: 'Meus Contratos',      icon: FileText,        category: 'Geral', alwaysAllowed: true },
