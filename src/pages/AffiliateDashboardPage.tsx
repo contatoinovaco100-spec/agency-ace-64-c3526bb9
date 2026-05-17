@@ -33,22 +33,41 @@ export default function AffiliateDashboardPage() {
 
   useEffect(() => {
     if (!user) return;
-    (async () => {
+    let isSubscribed = true;
+
+    async function load() {
       const { data: a } = await supabase.from('affiliates' as any).select('*').eq('user_id', user.id).maybeSingle();
-      if (!a) { setLoading(false); return; }
-      setAffiliate(a as any);
+      if (!a) { if (isSubscribed) setLoading(false); return; }
+      if (isSubscribed) setAffiliate(a as any);
+      
       const [l, c, cm, p] = await Promise.all([
-        supabase.from('affiliate_leads' as any).select('*').eq('affiliate_id', (a as any).id).order('created_at', { ascending: false }),
-        supabase.from('affiliate_contracts' as any).select('*').eq('affiliate_id', (a as any).id).order('created_at', { ascending: false }),
-        supabase.from('affiliate_commissions' as any).select('*').eq('affiliate_id', (a as any).id).order('created_at', { ascending: false }),
+        supabase.from('affiliate_leads' as any).select('*').eq('affiliate_id', a.id).order('created_at', { ascending: false }),
+        supabase.from('affiliate_contracts' as any).select('*').eq('affiliate_id', a.id).order('created_at', { ascending: false }),
+        supabase.from('affiliate_commissions' as any).select('*').eq('affiliate_id', a.id).order('created_at', { ascending: false }),
         supabase.from('portfolio_projects').select('*').order('created_at', { ascending: false }).limit(6),
       ]);
-      setLeads((l.data as any) || []);
-      setContracts((c.data as any) || []);
-      setCommissions((cm.data as any) || []);
-      setPortfolio(p.data || []);
-      setLoading(false);
-    })();
+      
+      if (isSubscribed) {
+        setLeads(l.data || []);
+        setContracts(c.data || []);
+        setCommissions(cm.data || []);
+        setPortfolio(p.data || []);
+        setLoading(false);
+      }
+    }
+
+    load();
+
+    const channel = supabase.channel('affiliate_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'affiliate_contracts' }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'affiliate_commissions' }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'affiliate_leads' }, load)
+      .subscribe();
+
+    return () => {
+      isSubscribed = false;
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   function getVideoThumb(url: string) {

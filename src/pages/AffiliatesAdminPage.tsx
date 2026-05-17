@@ -84,13 +84,18 @@ export default function AffiliatesAdminPage() {
     if (status === 'ativo' && cur && !cur.signed_at) upd.signed_at = new Date().toISOString();
     await supabase.from('affiliate_contracts' as any).update(upd).eq('id', id);
 
-    // Gera comissão de fechamento ao ativar
+    // Gera comissão de fechamento ao ativar pela PRIMEIRA VEZ
     if (status === 'ativo' && cur) {
-      await supabase.from('affiliate_commissions' as any).insert({
-        affiliate_id: cur.affiliate_id, contract_id: cur.id,
-        type: 'fechamento', amount: 300, status: 'pendente',
-        reference_month: new Date().toISOString().slice(0, 10),
-      });
+      const { data: existing } = await supabase.from('affiliate_commissions' as any)
+        .select('id').eq('contract_id', cur.id).eq('type', 'fechamento').maybeSingle();
+        
+      if (!existing) {
+        await supabase.from('affiliate_commissions' as any).insert({
+          affiliate_id: cur.affiliate_id, contract_id: cur.id,
+          type: 'fechamento', amount: 300, status: 'pendente',
+          reference_month: new Date().toISOString().slice(0, 10),
+        });
+      }
     }
     load();
   }
@@ -343,17 +348,11 @@ function ContractDialog({ lead, onCreated }: { lead: AffiliateLead; onCreated: (
       lead_id: lead.id,
       client_name: lead.lead_name,
       monthly_value: Number(value),
-      status: 'ativo',
-      signed_at: new Date().toISOString(),
+      status: 'pendente',
     }).select().single();
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); setSaving(false); return; }
-    // Gera comissão de fechamento R$300
-    await supabase.from('affiliate_commissions' as any).insert({
-      affiliate_id: lead.affiliate_id, contract_id: (contract as any).id,
-      type: 'fechamento', amount: 300, status: 'pendente',
-      reference_month: new Date().toISOString().slice(0, 10),
-    });
-    toast({ title: 'Contrato criado' });
+    
+    toast({ title: 'Contrato criado como pendente' });
     setOpen(false); setSaving(false); onCreated();
   }
 
@@ -364,7 +363,7 @@ function ContractDialog({ lead, onCreated }: { lead: AffiliateLead; onCreated: (
         <DialogHeader><DialogTitle>Criar contrato — {lead.lead_name}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div><Label>Valor mensal (R$)</Label><Input type="number" value={value} onChange={e => setValue(e.target.value)} /></div>
-          <p className="text-xs text-muted-foreground">Será criado como "Ativo" e a comissão de fechamento de R$300 será registrada como pendente.</p>
+          <p className="text-xs text-muted-foreground">Será criado como "Pendente". A comissão de R$300 só será gerada quando você mudar o status para "Ativo".</p>
         </div>
         <DialogFooter><Button onClick={create} disabled={saving}>{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Criar'}</Button></DialogFooter>
       </DialogContent>
