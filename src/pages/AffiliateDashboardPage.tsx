@@ -113,6 +113,7 @@ export default function AffiliateDashboardPage() {
           <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="contracts">Contratos</TabsTrigger>
           <TabsTrigger value="commissions">Comissões</TabsTrigger>
+          <TabsTrigger value="info">Informações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="leads">
@@ -167,6 +168,35 @@ export default function AffiliateDashboardPage() {
               </div>
             )}
           </CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="info">
+          <Card>
+            <CardHeader>
+              <CardTitle>Regras do Programa de Afiliados</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div>
+                <h3 className="font-semibold text-lg text-[#BFF720]">1. Como funciona?</h3>
+                <p className="text-muted-foreground text-sm mt-1">Você compartilha seu link exclusivo e sempre que o cliente se cadastrar através dele, aparecerá na sua aba "Leads". Se a pessoa fechar um serviço contínuo com a Inova, você recebe comissões.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg text-[#BFF720]">2. Comissões</h3>
+                <ul className="list-disc list-inside text-sm text-muted-foreground mt-1 space-y-1">
+                  <li><strong>R$ 300,00</strong> por cada contrato fechado (comissão de fechamento, paga apenas uma vez).</li>
+                  <li><strong>R$ 100,00</strong> mensais por cada cliente que permanecer com contrato ativo (comissão recorrente).</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg text-[#BFF720]">3. Pagamentos</h3>
+                <p className="text-muted-foreground text-sm mt-1">Os pagamentos são realizados via PIX, utilizando a chave que você cadastrou. Acompanhe a aba de "Comissões" para ver seus ganhos pendentes ou já pagos.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg text-[#BFF720]">4. Acompanhamento</h3>
+                <p className="text-muted-foreground text-sm mt-1">Fique de olho na aba "Leads" para ver o andamento das negociações. Quando o lead virar cliente, ele passa para a aba "Contratos".</p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
