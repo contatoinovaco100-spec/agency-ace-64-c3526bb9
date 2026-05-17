@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Check, X, Pause, RefreshCw, Plus, Copy } from 'lucide-react';
+import { Loader2, Check, X, Pause, RefreshCw, Plus, Copy, TrendingUp, Users, DollarSign, Clock, AlertCircle } from 'lucide-react';
 import { slugify } from '@/types/affiliates';
 import type { Affiliate, AffiliateLead, AffiliateContract, AffiliateCommission } from '@/types/affiliates';
 
@@ -112,59 +112,133 @@ export default function AffiliatesAdminPage() {
 
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>;
 
+  // Calculate Metrics
+  const approvedAffiliatesCount = affiliates.filter(a => a.status === 'aprovado').length;
+  const totalMRR = contracts.filter(c => c.status === 'ativo').reduce((acc, curr) => acc + Number(curr.monthly_value || 0), 0);
+  const pendingCommissions = commissions.filter(c => c.status === 'pendente').reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+  const paidCommissions = commissions.filter(c => c.status === 'pago').reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6 md:p-10 space-y-8 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Programa de Afiliados</h1>
-          <p className="text-muted-foreground">Gerencie afiliados, leads, contratos e comissões.</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">Gestão de Afiliados</h1>
+          <p className="text-muted-foreground mt-1">Visão geral do programa de parcerias, aprovações e comissionamento.</p>
         </div>
-        <Button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/afiliados/cadastro`); toast({ title: 'Link de cadastro copiado!' }); }} variant="outline">
-          <Copy className="w-4 h-4 mr-2" /> Link de cadastro público
+        <Button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/afiliados/cadastro`); toast({ title: 'Link copiado!' }); }} className="bg-[#BFF720] text-black hover:bg-[#a8de15] font-medium shadow-sm transition-all hover:shadow-[#BFF720]/20 hover:shadow-lg">
+          <Copy className="w-4 h-4 mr-2" /> Copiar Link de Cadastro
         </Button>
       </div>
 
-      <Tabs defaultValue="affiliates">
-        <TabsList>
-          <TabsTrigger value="affiliates">Afiliados ({affiliates.length})</TabsTrigger>
-          <TabsTrigger value="leads">Leads ({leads.length})</TabsTrigger>
-          <TabsTrigger value="contracts">Contratos ({contracts.length})</TabsTrigger>
-          <TabsTrigger value="commissions">Comissões</TabsTrigger>
+      {/* KPI Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-zinc-900/40 border-zinc-800/50 hover:bg-zinc-900/60 transition-colors">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-zinc-400">Afiliados Ativos</p>
+              <Users className="w-4 h-4 text-[#BFF720]" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <h2 className="text-3xl font-bold text-white">{approvedAffiliatesCount}</h2>
+              <span className="text-xs text-zinc-500">de {affiliates.length} totais</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-900/40 border-zinc-800/50 hover:bg-zinc-900/60 transition-colors relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#BFF720]/5 rounded-full blur-[40px] -mr-10 -mt-10" />
+          <CardContent className="p-6 relative z-10">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-zinc-400">MRR dos Afiliados</p>
+              <TrendingUp className="w-4 h-4 text-[#BFF720]" />
+            </div>
+            <div className="mt-2">
+              <h2 className="text-3xl font-bold text-white">R$ {totalMRR.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h2>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-900/40 border-amber-500/20 hover:bg-zinc-900/60 transition-colors relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-[40px] -mr-10 -mt-10" />
+          <CardContent className="p-6 relative z-10">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-zinc-400">Comissões Pendentes</p>
+              <Clock className="w-4 h-4 text-amber-500" />
+            </div>
+            <div className="mt-2">
+              <h2 className="text-3xl font-bold text-amber-400">R$ {pendingCommissions.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h2>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-900/40 border-zinc-800/50 hover:bg-zinc-900/60 transition-colors">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-zinc-400">Total Pago</p>
+              <DollarSign className="w-4 h-4 text-zinc-400" />
+            </div>
+            <div className="mt-2">
+              <h2 className="text-3xl font-bold text-white">R$ {paidCommissions.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h2>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="affiliates" className="w-full">
+        <TabsList className="bg-zinc-900/50 border border-zinc-800 p-1 rounded-xl mb-6">
+          <TabsTrigger value="affiliates" className="rounded-lg data-[state=active]:bg-zinc-800">Afiliados ({affiliates.length})</TabsTrigger>
+          <TabsTrigger value="leads" className="rounded-lg data-[state=active]:bg-zinc-800">Leads ({leads.length})</TabsTrigger>
+          <TabsTrigger value="contracts" className="rounded-lg data-[state=active]:bg-zinc-800">Contratos ({contracts.length})</TabsTrigger>
+          <TabsTrigger value="commissions" className="rounded-lg data-[state=active]:bg-zinc-800">Comissões</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="affiliates">
-          <Card><CardContent className="p-0 divide-y">
+        <TabsContent value="affiliates" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Card className="border-zinc-800/50 bg-zinc-900/30 backdrop-blur-sm"><CardContent className="p-0 divide-y divide-zinc-800/50">
             {affiliates.map(a => (
-              <div key={a.id} className="p-4 flex flex-wrap justify-between items-center gap-3">
+              <div key={a.id} className="p-5 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 transition-colors hover:bg-zinc-900/50">
                 <div className="flex-1 min-w-[200px]">
-                  <div className="font-semibold">{a.full_name} <Badge variant="outline" className="ml-2">{STATUS_LABEL[a.status]}</Badge></div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    <p><strong>Email:</strong> {a.email} • <strong>WhatsApp:</strong> {a.whatsapp} • <strong>Cidade/UF:</strong> {a.city_state}</p>
-                    <p><strong>CPF/CNPJ:</strong> {a.cpf_cnpj} • <strong>PIX:</strong> {a.pix_key || 'Não informado'} • <strong>Instagram:</strong> {a.instagram}</p>
-                    <p><strong>Como conheceu:</strong> {a.how_found || 'Não informado'} • <strong>Exp. Vendas:</strong> {a.sales_experience ? 'Sim' : 'Não'}</p>
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="font-semibold text-lg text-white">{a.full_name}</span>
+                    <Badge variant="outline" className={`${a.status === 'em_analise' ? 'border-amber-500/30 text-amber-500' : a.status === 'aprovado' ? 'border-[#BFF720]/30 text-[#BFF720]' : ''}`}>
+                      {STATUS_LABEL[a.status]}
+                    </Badge>
                   </div>
-                  {a.slug && <div className="text-xs text-[#BFF720] font-mono mt-2">/in/{a.slug}</div>}
+                  <div className="text-sm text-zinc-400 mt-2 space-y-1">
+                    <p><strong className="text-zinc-300">Email:</strong> {a.email} &bull; <strong className="text-zinc-300">WhatsApp:</strong> {a.whatsapp} &bull; <strong className="text-zinc-300">Cidade/UF:</strong> {a.city_state}</p>
+                    <p><strong className="text-zinc-300">CPF/CNPJ:</strong> {a.cpf_cnpj} &bull; <strong className="text-zinc-300">PIX:</strong> <span className="text-white font-mono bg-zinc-800 px-1 py-0.5 rounded">{a.pix_key || 'Não informado'}</span> &bull; <strong className="text-zinc-300">Instagram:</strong> {a.instagram}</p>
+                    <p><strong className="text-zinc-300">Como conheceu:</strong> {a.how_found || 'Não informado'} &bull; <strong className="text-zinc-300">Exp. Vendas:</strong> {a.sales_experience ? 'Sim' : 'Não'}</p>
+                  </div>
+                  {a.slug && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <div className="text-xs text-[#BFF720] font-mono bg-[#BFF720]/10 px-2 py-1 rounded-md">/in/{a.slug}</div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 flex-wrap items-center">
                   {a.status === 'em_analise' && (
                     <>
-                      <Button size="sm" onClick={() => approve(a)} className="bg-[#BFF720] text-black hover:bg-[#a8de15]"><Check className="w-4 h-4 mr-1" /> Aprovar</Button>
-                      <Button size="sm" variant="destructive" onClick={() => setStatus(a, 'reprovado')}><X className="w-4 h-4 mr-1" /> Reprovar</Button>
+                      <Button size="sm" onClick={() => approve(a)} className="bg-[#BFF720] text-black hover:bg-[#a8de15] font-semibold"><Check className="w-4 h-4 mr-1" /> Aprovar</Button>
+                      <Button size="sm" variant="destructive" className="bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-400 border-none" onClick={() => setStatus(a, 'reprovado')}><X className="w-4 h-4 mr-1" /> Reprovar</Button>
                     </>
                   )}
                   {a.status === 'aprovado' && (
-                    <Button size="sm" variant="outline" onClick={() => setStatus(a, 'suspenso')}><Pause className="w-4 h-4 mr-1" /> Suspender</Button>
+                    <Button size="sm" variant="outline" className="border-zinc-700 hover:bg-zinc-800" onClick={() => setStatus(a, 'suspenso')}><Pause className="w-4 h-4 mr-1" /> Suspender</Button>
                   )}
                   {a.status === 'suspenso' && (
                     <Button size="sm" onClick={() => setStatus(a, 'aprovado')} className="bg-[#BFF720] text-black hover:bg-[#a8de15]">Reativar</Button>
                   )}
                   {a.status === 'reprovado' && (
-                    <Button size="sm" variant="outline" onClick={() => approve(a)}>Aprovar agora</Button>
+                    <Button size="sm" variant="outline" className="border-zinc-700 hover:bg-zinc-800" onClick={() => approve(a)}>Aprovar agora</Button>
                   )}
                 </div>
               </div>
             ))}
-            {affiliates.length === 0 && <p className="p-6 text-center text-muted-foreground">Nenhum afiliado cadastrado.</p>}
+            {affiliates.length === 0 && (
+              <div className="p-12 text-center flex flex-col items-center">
+                <AlertCircle className="w-10 h-10 text-zinc-600 mb-3" />
+                <p className="text-zinc-400 font-medium">Nenhum afiliado cadastrado no momento.</p>
+              </div>
+            )}
           </CardContent></Card>
         </TabsContent>
 
@@ -218,26 +292,37 @@ export default function AffiliatesAdminPage() {
           </CardContent></Card>
         </TabsContent>
 
-        <TabsContent value="commissions">
-          <div className="mb-4">
-            <Button onClick={generateRecurring} className="bg-[#BFF720] text-black hover:bg-[#a8de15]">
-              <RefreshCw className="w-4 h-4 mr-2" /> Gerar recorrência do mês (R$100 por contrato ativo)
+        <TabsContent value="commissions" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="mb-4 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800/50 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <h3 className="font-semibold text-white">Geração de Comissões</h3>
+              <p className="text-sm text-zinc-400">Calcule as comissões recorrentes do mês atual (R$ 100 por contrato ativo).</p>
+            </div>
+            <Button onClick={generateRecurring} className="bg-[#BFF720] text-black hover:bg-[#a8de15] shadow-[0_0_15px_rgba(191,247,32,0.15)]">
+              <RefreshCw className="w-4 h-4 mr-2" /> Rodar Recorrência do Mês
             </Button>
           </div>
-          <Card><CardContent className="p-0 divide-y">
+          <Card className="border-zinc-800/50 bg-zinc-900/30 backdrop-blur-sm"><CardContent className="p-0 divide-y divide-zinc-800/50">
             {commissions.map(c => (
-              <div key={c.id} className="p-4 flex flex-wrap justify-between items-center gap-3">
+              <div key={c.id} className="p-5 flex flex-wrap justify-between items-center gap-3 hover:bg-zinc-900/50 transition-colors">
                 <div className="flex-1 min-w-[200px]">
-                  <div className="font-semibold">R$ {Number(c.amount).toFixed(2)} <Badge variant="outline" className="ml-2">{c.type}</Badge></div>
-                  <div className="text-sm text-muted-foreground">Afiliado: <strong>{affiliateName(c.affiliate_id)}</strong> • Ref: {new Date(c.reference_month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-lg text-white">R$ {Number(c.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    <Badge variant="outline" className="bg-zinc-800 border-zinc-700 text-zinc-300">{c.type}</Badge>
+                  </div>
+                  <div className="text-sm text-zinc-400">
+                    Afiliado: <strong className="text-white">{affiliateName(c.affiliate_id)}</strong> &bull; Ref: {new Date(c.reference_month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={c.status === 'pago' ? 'default' : 'secondary'}>{STATUS_LABEL[c.status]}</Badge>
-                  {c.status === 'pendente' && <Button size="sm" onClick={() => markCommissionPaid(c.id)}>Marcar como pago</Button>}
+                <div className="flex items-center gap-3">
+                  <Badge className={`${c.status === 'pago' ? 'bg-[#BFF720]/20 text-[#BFF720] border-none' : 'bg-amber-500/20 text-amber-500 border-none'}`}>
+                    {STATUS_LABEL[c.status]}
+                  </Badge>
+                  {c.status === 'pendente' && <Button size="sm" variant="outline" className="border-[#BFF720]/50 text-[#BFF720] hover:bg-[#BFF720]/10" onClick={() => markCommissionPaid(c.id)}>Marcar como pago</Button>}
                 </div>
               </div>
             ))}
-            {commissions.length === 0 && <p className="p-6 text-center text-muted-foreground">Nenhuma comissão ainda.</p>}
+            {commissions.length === 0 && <p className="p-12 text-center text-muted-foreground">Nenhuma comissão ainda.</p>}
           </CardContent></Card>
         </TabsContent>
       </Tabs>
