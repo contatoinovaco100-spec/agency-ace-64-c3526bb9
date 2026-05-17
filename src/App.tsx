@@ -107,6 +107,10 @@ const PublicReferralFormPage    = lazy(() => import("./pages/PublicReferralFormP
 const ReferralsAdminPage        = lazy(() => import("./pages/ReferralsAdminPage"));
 const RedeAdminPage             = lazy(() => import("./pages/RedeAdminPage"));
 const RedePerfilPage            = lazy(() => import("./pages/RedePerfilPage"));
+const AffiliateSignupPage       = lazy(() => import("./pages/AffiliateSignupPage"));
+const AffiliateLandingPage      = lazy(() => import("./pages/AffiliateLandingPage"));
+const AffiliateDashboardPage    = lazy(() => import("./pages/AffiliateDashboardPage"));
+const AffiliatesAdminPage       = lazy(() => import("./pages/AffiliatesAdminPage"));
 
 function PageLoader() {
   return (
