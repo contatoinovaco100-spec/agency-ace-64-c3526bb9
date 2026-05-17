@@ -1877,24 +1877,35 @@ export type Database = {
       }
       referral_clients: {
         Row: {
+          client_id: string | null
           created_at: string
           id: string
           name: string
           token: string
         }
         Insert: {
+          client_id?: string | null
           created_at?: string
           id?: string
           name: string
           token?: string
         }
         Update: {
+          client_id?: string | null
           created_at?: string
           id?: string
           name?: string
           token?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "referral_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       referral_tiers: {
         Row: {
