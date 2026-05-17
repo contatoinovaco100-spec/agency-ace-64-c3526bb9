@@ -1,128 +1,88 @@
+## Programa de Afiliados Innova
 
-# Quiz Builder Inlead-like — Pacote completo
+Sistema completo de afiliados com cadastro público, aprovação admin, links únicos de rastreamento, captura de leads, contratos e comissões recorrentes.
 
-Você escolheu: **Pacote completo**, **bucket público novo `quiz-media`**, **tema visual global por quiz**.
+### 1. Banco de Dados (migração)
 
-Como é muito conteúdo, vou dividir em **4 fases**. Cada fase termina funcional e testável. Após cada fase, você confirma e seguimos para a próxima.
+Novas tabelas:
 
----
+- **affiliates**
+  - `id`, `user_id` (FK auth.users, null até criar conta), `full_name`, `cpf_cnpj`, `whatsapp`, `email`, `instagram`, `city_state`, `how_found`, `sales_experience` (bool), `slug` (único, gerado na aprovação), `status` (`em_analise` | `aprovado` | `reprovado` | `suspenso`), `approved_at`, `approved_by`, timestamps
+- **affiliate_leads**
+  - `id`, `affiliate_id` (FK), `lead_name`, `whatsapp`, `company`, `email`, `status` (`novo` | `em_negociacao` | `convertido` | `perdido`), `notes`, `converted_at`, timestamps
+- **affiliate_contracts**
+  - `id`, `affiliate_id`, `lead_id`, `client_name`, `monthly_value`, `signed_at`, `status` (`ativo` | `pendente` | `cancelado` | `inadimplente`), `cancelled_at`, timestamps
+- **affiliate_commissions**
+  - `id`, `affiliate_id`, `contract_id`, `type` (`fechamento` | `recorrencia`), `amount` (R$300 ou R$100), `reference_month` (date), `status` (`pendente` | `pago`), `paid_at`, timestamps
 
-## FASE 1 — Mídia self-hosted + Tema visual global
+Enums via CHECK constraints. RLS:
+- `affiliates`: insert público (cadastro), select próprio + admin, update admin
+- `affiliate_leads`: insert público (via link), select próprio afiliado + admin
+- `affiliate_contracts` / `affiliate_commissions`: select próprio + admin, write admin
 
-### Banco de dados
-- Criar bucket público `quiz-media` (com RLS: leitura pública, upload/delete por authenticated).
-- Adicionar colunas em `quizzes`:
-  - `theme jsonb default '{}'` — guarda toda a config visual em um único campo flexível.
-  - `result_image_url text`, `redirect_url text`, `redirect_delay_seconds int`.
-  - `score_enabled boolean default false`, `score_ranges jsonb default '[]'` (faixas: `{min, max, title, text, cta_label, cta_url, image_url}`).
-  - `pixel_meta text`, `pixel_ga text`, `webhook_url text`.
-  - `progress_bar boolean default true`, `show_question_numbers boolean default true`.
-- Adicionar colunas em `quiz_questions`:
-  - `image_url text` — imagem opcional acima do bloco.
-  - `next_question_id uuid` e `branching jsonb default '[]'` (`[{option_id, target_question_id|"end"}]`) — para Fase 2.
-- Adicionar colunas em `quiz_options`:
-  - `points int default 0`, `image_url text` (cards visuais).
+Função `generate_monthly_recurring_commissions()` para gerar R$100 mensal para contratos ativos (rodar manualmente via botão admin ou cron futuro).
 
-### Estrutura `theme` (jsonb)
-```json
-{
-  "primary_color": "#bff720",
-  "background_color": "#0a0a0a",
-  "background_image_url": "",
-  "text_color": "#ffffff",
-  "card_background": "#171717",
-  "button_text_color": "#000000",
-  "font_family": "Inter",
-  "heading_weight": 700,
-  "body_weight": 400,
-  "border_radius": 12,
-  "logo_url": "",
-  "cover_image_url": "",
-  "show_logo": true,
-  "button_style": "rounded",
-  "animation": "fade"
-}
-```
+### 2. Páginas públicas (sem auth)
 
-### Frontend
-- Editor: nova aba lateral **"Tema"** com:
-  - Color pickers (primária, fundo, texto, card, botão).
-  - Upload de logo, capa e imagem de fundo (componente `QuizMediaUploader` reutilizável → bucket `quiz-media/{client_id}/`).
-  - Seletor de fonte (Google Fonts: Inter, Poppins, Roboto, Montserrat, Plus Jakarta, Manrope, Sora, Playfair, DM Sans, Space Grotesk + custom).
-  - Pesos heading/body (300/400/500/600/700/800).
-  - Slider de border radius (0–24px).
-  - Toggle de barra de progresso, números de pergunta, animação (fade/slide/none).
-- Cada bloco no editor: campo de "Imagem do bloco" (upload).
-- Cada opção (single/multiple): campo opcional de imagem (vira card visual).
-- Página pública `PublicQuizPage`: aplica `theme` via CSS-in-JS (style inline + `<link>` Google Fonts dinâmico).
+- **`/afiliados/cadastro`** — formulário de cadastro do afiliado, cria registro com status `em_analise` + conta auth (signUp). Mostra mensagem "Cadastro em análise".
+- **`/in/:slug`** — landing simples com formulário de lead (nome, whatsapp, empresa, email). Insere em `affiliate_leads` vinculado ao afiliado pelo slug. Só funciona se afiliado `aprovado`.
 
----
+Rotas adicionadas em `App.tsx` na lista `isPublicPage`.
 
-## FASE 2 — Lógica condicional + Score + Variáveis dinâmicas
+### 3. Painel do Afiliado (autenticado)
 
-- Editor: aba "Lógica" no painel direito de cada pergunta.
-  - Default: "Próxima na ordem" / "Pular para…" / "Finalizar".
-  - Por opção (single choice): destino diferente.
-  - Pontos por opção (input number).
-- Toggle global "Habilitar pontuação" → libera UI de **faixas de resultado** (min–max → título/texto/CTA/imagem).
-- Variáveis dinâmicas: `{{nome}}`, `{{email}}`, `{{score}}`, `{{resposta:slug-da-pergunta}}` substituídas no result/CTA/redirect.
-- Página pública: roteamento condicional baseado em `next_question_id` ou `branching`. Cálculo de score acumulado. Resolução da faixa de resultado e renderização correspondente.
+- **`/afiliado`** — dashboard do afiliado logado:
+  - Status do cadastro (se não aprovado, mostra aviso)
+  - Link único copiável + share WhatsApp
+  - Lista de leads
+  - Lista de contratos ativos
+  - Comissões: pendentes vs pagas, totais
+- `ProtectedRoute` permite acesso se usuário tem registro em `affiliates`.
 
----
+### 4. Painel Admin
 
-## FASE 3 — Blocos avançados + Integrações
+- **`/afiliados-admin`** — nova rota admin-only:
+  - Tab "Afiliados": lista com filtro por status, ações aprovar/reprovar/suspender
+  - Tab "Leads": todos os leads com afiliado responsável
+  - Tab "Contratos": criar contrato a partir de lead convertido, editar status (ativo/pendente/cancelado/inadimplente)
+  - Tab "Comissões": lista, marcar como pago, botão "Gerar recorrência do mês" (R$100 por contrato ativo)
 
-### Novos tipos de bloco
-- **video** — embed YouTube/Vimeo/MP4.
-- **testimonial** — citação + avatar + nome.
-- **comparative** — tabela "antes/depois" ou "nós vs. concorrente".
-- **nps** — escala 0–10.
-- **rating** — estrelas 1–5.
-- **cta** — botão intermediário (destino: próxima, url, whatsapp).
-- **divider** — separador estético.
+Aprovação gera `slug` a partir do nome (`nomedoafiliado`) garantindo unicidade.
 
-### Integrações
-- **Webhook**: POST com payload completo da resposta (campo `webhook_url` no quiz). Edge Function `quiz-webhook-dispatch` chamada após completar.
-- **Pixel Meta**: injeta script no `PublicQuizPage` quando `pixel_meta` definido + dispara `Lead`/`CompleteRegistration`.
-- **Google Analytics**: gtag.js + eventos `quiz_start`, `quiz_complete`, `quiz_lead`.
-- **Notificação por e-mail** ao admin via Edge Function existente (reaproveitar `notify-contract-signed` como base → criar `notify-quiz-lead`).
-- **Redirect** automático após X segundos (campo `redirect_url` + `redirect_delay_seconds`).
+### 5. Sidebar / navegação
 
----
+Adicionar em `src/config/app-pages.ts`:
+- `/afiliados-admin` → "Programa de Afiliados" (categoria Administração, adminOnly)
+- `/afiliado` → "Meu Afiliado" (alwaysAllowed para quem tem registro)
 
-## FASE 4 — Templates + Analytics avançado + Compartilhamento
+### 6. Regras de comissão (código)
 
-- **4 templates** prontos para produtora audiovisual:
-  1. Diagnóstico de presença digital.
-  2. Qual estilo de vídeo combina com você?
-  3. Briefing rápido para orçamento.
-  4. Quiz de leads para Reels/Shorts.
-  - Botão "Criar a partir de template" na criação de quiz.
-- **Analytics por quiz**:
-  - Funil de abandono (quantos chegaram em cada pergunta).
-  - Distribuição por opção (gráfico de barras).
-  - Tempo médio para completar.
-  - Origem (UTM gráfico de pizza).
-  - Conversão por dia (linha).
-- **Compartilhamento**:
-  - QR Code (com `qrcode.react`).
-  - Embed iframe (snippet copiável).
-  - Senha opcional (`password text` no quiz).
-  - Data de expiração (`expires_at timestamp`).
+- Ao mudar contrato para `ativo` pela primeira vez (signed_at preenchido) → inserir comissão `fechamento` R$300 status `pendente`.
+- Botão admin "Gerar recorrência mensal" → insere R$100 `recorrencia` para cada contrato `ativo` no mês de referência (constraint única por contract_id + reference_month).
+- Cancelar contrato (`cancelado`) → para de gerar recorrência (filtro no gerador).
+- Marcar comissão como `pago` → preenche `paid_at`.
 
----
+### Arquivos a criar/editar
 
-## Detalhes técnicos
+Novos:
+- `supabase/migrations/<timestamp>_affiliates.sql`
+- `src/types/affiliates.ts`
+- `src/pages/AffiliateSignupPage.tsx`
+- `src/pages/AffiliateLandingPage.tsx` (`/in/:slug`)
+- `src/pages/AffiliateDashboardPage.tsx` (`/afiliado`)
+- `src/pages/AffiliatesAdminPage.tsx` (`/afiliados-admin`)
 
-- Arquivos novos por fase: componentes `QuizThemeEditor`, `QuizMediaUploader`, `QuizLogicPanel`, `QuizScoringPanel`, `QuizPublicRenderer` (refatorado), `QuizAnalyticsCharts`, `QuizTemplatesGallery`.
-- Bibliotecas adicionais: `recharts` (já presente), `qrcode.react` (Fase 4).
-- Renderização de fontes Google: hook `useGoogleFont(family, weights)` adiciona `<link>` ao `<head>`.
-- Compatibilidade: quizzes existentes recebem theme padrão dark Inova ao migrar (#000/#bff720/Inter).
+Editar:
+- `src/App.tsx` — rotas + lista pública
+- `src/config/app-pages.ts` — entradas de menu
 
----
+### Detalhes técnicos
 
-## O que faço agora
+- Auth: usa Supabase Auth padrão (email+senha). Após signUp, insere row em `affiliates` com `user_id`.
+- Slug: gerado no momento da aprovação a partir de `full_name` (slugify + sufixo numérico se conflito).
+- Validação: zod nos formulários (nome, email, whatsapp, CPF formato).
+- Estilo: tema escuro padrão do sistema (#000000 / #BFF720). Página `/in/:slug` light theme (regra de páginas públicas de contrato).
+- Sem integração com tabela `clients` existente — afiliados é fluxo separado.
+- Comissão recorrente: gerada manualmente pelo admin (cron pode ser adicionado depois).
 
-Executo a **Fase 1 completa** (migration + bucket + editor de tema + uploads + página pública aplicando tema). Após você validar visualmente, sigo para a Fase 2.
-
-Confirma para começar pela Fase 1?
+Após aprovação do plano, executo a migração e implemento todos os arquivos.
