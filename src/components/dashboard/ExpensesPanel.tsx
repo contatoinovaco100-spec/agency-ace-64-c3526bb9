@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import {
   Plus, Trash2, TrendingDown, TrendingUp, Wallet, Receipt, Loader2,
-  Sparkles, FileBarChart,
+  Sparkles, FileBarChart, Edit2,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -92,6 +92,7 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthRef());
   const [form, setForm] = useState({
     category: '',
@@ -161,21 +162,43 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
       return;
     }
     setSaving(true);
-    await supabase.from('expenses').insert({
-      ...form,
-      month_ref: selectedMonth,
-    });
-    const labels: Record<string, string> = {
-      gasto: 'Gasto adicionado',
-      investimento: 'Investimento adicionado',
-      ganho_extra: 'Ganho extra adicionado',
-      faturamento: 'Faturamento manual salvo',
-    };
-    toast.success(labels[form.type] || 'Lançamento adicionado');
+    
+    if (editingId) {
+      await supabase.from('expenses').update({
+        ...form,
+        month_ref: selectedMonth,
+      }).eq('id', editingId);
+      toast.success('Lançamento atualizado');
+    } else {
+      await supabase.from('expenses').insert({
+        ...form,
+        month_ref: selectedMonth,
+      });
+      const labels: Record<string, string> = {
+        gasto: 'Gasto adicionado',
+        investimento: 'Investimento adicionado',
+        ganho_extra: 'Ganho extra adicionado',
+        faturamento: 'Faturamento manual salvo',
+      };
+      toast.success(labels[form.type] || 'Lançamento adicionado');
+    }
+    
     setSaving(false);
     setDialogOpen(false);
+    setEditingId(null);
     setForm({ category: '', description: '', amount: 0, type: 'gasto' });
     await loadExpenses();
+  };
+
+  const handleEdit = (e: Expense) => {
+    setEditingId(e.id);
+    setForm({
+      category: e.category,
+      description: e.description,
+      amount: Number(e.amount),
+      type: e.type,
+    });
+    setDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -324,13 +347,22 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
               ))}
             </SelectContent>
           </Select>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) {
+              setEditingId(null);
+              setForm({ category: '', description: '', amount: 0, type: 'gasto' });
+            }
+          }}>
             <DialogTrigger asChild>
-              <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
+              <Button size="sm" onClick={() => {
+                setEditingId(null);
+                setForm({ category: '', description: '', amount: 0, type: 'gasto' });
+              }}><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Novo Lançamento</DialogTitle>
+                <DialogTitle>{editingId ? 'Editar Lançamento' : 'Novo Lançamento'}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -386,7 +418,7 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
                   />
                 </div>
                 <Button onClick={handleSave} disabled={saving} className="w-full">
-                  {saving ? 'Salvando...' : 'Adicionar'}
+                  {saving ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Adicionar'}
                 </Button>
               </div>
             </DialogContent>
@@ -515,6 +547,14 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
                               }`}>
                                 {isGanho || isFat ? '+ ' : ''}{formatCurrency(Number(e.amount))}
                               </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+                                onClick={() => handleEdit(e)}
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -659,6 +699,14 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
                         <span className="text-sm font-semibold tabular-nums text-primary">
                           + {formatCurrency(Number(f.amount))}
                         </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+                          onClick={() => handleEdit(f)}
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
