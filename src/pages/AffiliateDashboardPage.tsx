@@ -243,26 +243,32 @@ export default function AffiliateDashboardPage() {
             <CardHeader>
               <CardTitle>Regras do Programa de Afiliados</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-5">
-              <div>
-                <h3 className="font-semibold text-lg text-[#BFF720]">1. Como funciona?</h3>
-                <p className="text-muted-foreground text-sm mt-1">Você compartilha seu link exclusivo e sempre que o cliente se cadastrar através dele, aparecerá na sua aba "Leads". Se a pessoa fechar um serviço contínuo com a Inova, você recebe comissões.</p>
+            <CardContent className="space-y-6">
+              <div className="bg-zinc-900/40 p-5 rounded-xl border border-zinc-800/50">
+                <h3 className="font-bold text-lg text-[#BFF720] flex items-center gap-2"><span className="bg-[#BFF720]/20 text-[#BFF720] w-6 h-6 flex items-center justify-center rounded-full text-sm">1</span> Como funciona a indicação?</h3>
+                <p className="text-zinc-300 text-sm mt-3 leading-relaxed">Você possui um link exclusivo e intransferível. Sempre que um potencial cliente se cadastrar através dele, o nome aparecerá imediatamente na sua aba de "Leads". A partir desse momento, a equipe comercial da Inova assume toda a parte de apresentação, negociação e fechamento. Você só precisa indicar e acompanhar os resultados em tempo real.</p>
               </div>
-              <div>
-                <h3 className="font-semibold text-lg text-[#BFF720]">2. Comissões</h3>
-                <ul className="list-disc list-inside text-sm text-muted-foreground mt-1 space-y-1">
-                  <li><strong>R$ 300,00</strong> por cada contrato fechado (comissão de fechamento, paga apenas uma vez).</li>
-                  <li><strong>R$ 100,00</strong> mensais por cada cliente que permanecer com contrato ativo (comissão recorrente).</li>
+
+              <div className="bg-zinc-900/40 p-5 rounded-xl border border-zinc-800/50">
+                <h3 className="font-bold text-lg text-[#BFF720] flex items-center gap-2"><span className="bg-[#BFF720]/20 text-[#BFF720] w-6 h-6 flex items-center justify-center rounded-full text-sm">2</span> Estrutura de Comissionamento</h3>
+                <p className="text-zinc-300 text-sm mt-3 mb-3">Nosso modelo foi desenhado para criar uma verdadeira parceria de longo prazo. Ao fecharmos um contrato com o seu lead, você ganha de duas formas:</p>
+                <ul className="list-disc list-inside text-sm text-zinc-300 space-y-2 ml-2">
+                  <li><strong>Comissão de Fechamento:</strong> <span className="text-white font-bold bg-zinc-800 px-2 py-0.5 rounded">R$ 300,00</span> pagos de forma única assim que o cliente assina e inicia o projeto.</li>
+                  <li><strong>Comissão Recorrente:</strong> <span className="text-white font-bold bg-zinc-800 px-2 py-0.5 rounded">R$ 100,00</span> pagos todos os meses, de forma contínua, enquanto o seu indicado mantiver o contrato ativo com a Inova.</li>
                 </ul>
               </div>
-              <div>
-                <h3 className="font-semibold text-lg text-[#BFF720]">3. Pagamentos</h3>
-                <p className="text-muted-foreground text-sm mt-1">Os pagamentos são realizados via PIX, utilizando a chave que você cadastrou. Acompanhe a aba de "Comissões" para ver seus ganhos pendentes ou já pagos.</p>
+
+              <div className="bg-red-500/5 p-5 rounded-xl border border-red-500/20 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-full blur-[30px] -mr-10 -mt-10" />
+                <h3 className="font-bold text-lg text-red-400 flex items-center gap-2 relative z-10"><AlertCircle className="w-5 h-5" /> Regra de Inatividade (Importante)</h3>
+                <p className="text-zinc-300 text-sm mt-3 leading-relaxed relative z-10">Para manter a saúde e o engajamento do programa de afiliados, exigimos uma constância mínima. Se o afiliado passar <strong>3 meses consecutivos sem registrar nenhuma nova indicação</strong> (sem entrada de novos leads), ele <strong>perderá definitivamente o direito de receber as comissões recorrentes</strong> dos contratos antigos. Mantenha seu link sempre ativo na sua rede de contatos para continuar faturando mensalmente!</p>
               </div>
-              <div>
-                <h3 className="font-semibold text-lg text-[#BFF720]">4. Acompanhamento</h3>
-                <p className="text-muted-foreground text-sm mt-1">Fique de olho na aba "Leads" para ver o andamento das negociações. Quando o lead virar cliente, ele passa para a aba "Contratos".</p>
+
+              <div className="bg-zinc-900/40 p-5 rounded-xl border border-zinc-800/50">
+                <h3 className="font-bold text-lg text-[#BFF720] flex items-center gap-2"><span className="bg-[#BFF720]/20 text-[#BFF720] w-6 h-6 flex items-center justify-center rounded-full text-sm">4</span> Prazos e Pagamentos (PIX)</h3>
+                <p className="text-zinc-300 text-sm mt-3 leading-relaxed">Não trabalhamos com burocracias de saque de plataforma. Os pagamentos das suas comissões são realizados de forma direta e rápida via <strong>PIX</strong>, utilizando a chave cadastrada no seu perfil. Acompanhe a sua aba "Comissões": o que estiver verde (Pago) já está na sua conta bancária!</p>
               </div>
+
             </CardContent>
           </Card>
         </TabsContent>
