@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, MessageCircle, Loader2, Clock, AlertCircle, Users, Film, Play } from 'lucide-react';
+import { Copy, MessageCircle, Loader2, Clock, AlertCircle, Users, Film, Play, Megaphone, TrendingUp } from 'lucide-react';
 import type { Affiliate, AffiliateLead, AffiliateContract, AffiliateCommission } from '@/types/affiliates';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -243,12 +243,44 @@ export default function AffiliateDashboardPage() {
         </TabsContent>
 
         <TabsContent value="vitrine" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Card>
-            <CardHeader>
-              <CardTitle>O que nós entregamos (Vitrine Inova)</CardTitle>
+          <Card className="border-zinc-800/50 bg-zinc-900/30">
+            <CardHeader className="border-b border-zinc-800/50 mb-6 pb-6">
+              <CardTitle className="text-2xl font-bold">A Inova e o nosso Portfólio</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground mb-6">Aqui está uma amostra do nosso portfólio para você conhecer a qualidade do nosso trabalho e apresentar aos seus leads com confiança.</p>
+              <div className="mb-12 space-y-8">
+                <div className="p-6 md:p-8 rounded-2xl bg-gradient-to-br from-zinc-900/80 to-black border border-zinc-800/50 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-[#BFF720]/5 rounded-full blur-[60px] -mr-32 -mt-32 pointer-events-none" />
+                  
+                  <h3 className="text-xl md:text-2xl font-extrabold text-[#BFF720] mb-4">O que nós somos?</h3>
+                  <p className="text-zinc-300 leading-relaxed mb-8 text-base md:text-lg max-w-4xl">
+                    A Inova é uma produtora focada em aliar <strong>estética, estratégia e alma</strong>. Nossa missão não é apenas fazer vídeos ou posts; é transformar ideias em narrativas visuais que conectam marcas a pessoas e geram resultados extraordinários. Do planejamento estratégico à entrega cinematográfica.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div className="p-5 bg-white/5 rounded-xl border border-white/5 hover:border-[#BFF720]/30 transition-colors group">
+                      <Film className="w-8 h-8 text-[#BFF720] mb-3 group-hover:scale-110 transition-transform" />
+                      <h4 className="font-bold text-white text-lg">Produção Audiovisual</h4>
+                      <p className="text-sm text-zinc-400 mt-2 leading-relaxed">Vídeos institucionais, comerciais e documentários com qualidade de cinema.</p>
+                    </div>
+                    <div className="p-5 bg-white/5 rounded-xl border border-white/5 hover:border-[#BFF720]/30 transition-colors group">
+                      <Megaphone className="w-8 h-8 text-[#BFF720] mb-3 group-hover:scale-110 transition-transform" />
+                      <h4 className="font-bold text-white text-lg">Social Media Estratégico</h4>
+                      <p className="text-sm text-zinc-400 mt-2 leading-relaxed">Conteúdo para redes sociais que não apenas engaja, mas converte público em cliente.</p>
+                    </div>
+                    <div className="p-5 bg-white/5 rounded-xl border border-white/5 hover:border-[#BFF720]/30 transition-colors group">
+                      <TrendingUp className="w-8 h-8 text-[#BFF720] mb-3 group-hover:scale-110 transition-transform" />
+                      <h4 className="font-bold text-white text-lg">Foco em Resultados</h4>
+                      <p className="text-sm text-zinc-400 mt-2 leading-relaxed">Não vendemos visualizações vazias. Tudo é pensado para impulsionar o faturamento das empresas.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Trabalhos Selecionados</h3>
+                  <p className="text-zinc-400 text-lg">Utilize estes projetos como prova social para mostrar a qualidade da Inova aos seus leads.</p>
+                </div>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {portfolio.map(p => {
