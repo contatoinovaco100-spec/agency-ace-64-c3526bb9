@@ -178,7 +178,6 @@ export function usePageAccess() {
       return false;
     }
 
-    const page = APP_PAGES.find(p => p.path === path);
     if (page?.alwaysAllowed) return true;
     if (page?.adminOnly) return false;
     if (allowedPaths.has(path)) return true;
