@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, MessageCircle, Loader2, Clock, AlertCircle, Users } from 'lucide-react';
+import { Copy, MessageCircle, Loader2, Clock, AlertCircle, Users, Film, Play } from 'lucide-react';
 import type { Affiliate, AffiliateLead, AffiliateContract, AffiliateCommission } from '@/types/affiliates';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -24,6 +24,7 @@ export default function AffiliateDashboardPage() {
   const [leads, setLeads] = useState<AffiliateLead[]>([]);
   const [contracts, setContracts] = useState<AffiliateContract[]>([]);
   const [commissions, setCommissions] = useState<AffiliateCommission[]>([]);
+  const [portfolio, setPortfolio] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -31,17 +32,26 @@ export default function AffiliateDashboardPage() {
       const { data: a } = await supabase.from('affiliates' as any).select('*').eq('user_id', user.id).maybeSingle();
       if (!a) { setLoading(false); return; }
       setAffiliate(a as any);
-      const [l, c, cm] = await Promise.all([
+      const [l, c, cm, p] = await Promise.all([
         supabase.from('affiliate_leads' as any).select('*').eq('affiliate_id', (a as any).id).order('created_at', { ascending: false }),
         supabase.from('affiliate_contracts' as any).select('*').eq('affiliate_id', (a as any).id).order('created_at', { ascending: false }),
         supabase.from('affiliate_commissions' as any).select('*').eq('affiliate_id', (a as any).id).order('created_at', { ascending: false }),
+        supabase.from('portfolio_projects').select('*').order('created_at', { ascending: false }).limit(6),
       ]);
       setLeads((l.data as any) || []);
       setContracts((c.data as any) || []);
       setCommissions((cm.data as any) || []);
+      setPortfolio(p.data || []);
       setLoading(false);
     })();
   }, [user]);
+
+  function getVideoThumb(url: string) {
+    if (!url) return null;
+    const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    if (yt) return `https://img.youtube.com/vi/${yt[1]}/maxresdefault.jpg`;
+    return null;
+  }
 
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>;
 
@@ -145,6 +155,7 @@ export default function AffiliateDashboardPage() {
           <TabsTrigger value="contracts">Contratos</TabsTrigger>
           <TabsTrigger value="commissions">Comissões</TabsTrigger>
           <TabsTrigger value="info">Informações</TabsTrigger>
+          <TabsTrigger value="vitrine">Nossos Serviços</TabsTrigger>
         </TabsList>
 
         <TabsContent value="leads">
@@ -226,6 +237,50 @@ export default function AffiliateDashboardPage() {
                 <h3 className="font-semibold text-lg text-[#BFF720]">4. Acompanhamento</h3>
                 <p className="text-muted-foreground text-sm mt-1">Fique de olho na aba "Leads" para ver o andamento das negociações. Quando o lead virar cliente, ele passa para a aba "Contratos".</p>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="vitrine">
+          <Card>
+            <CardHeader>
+              <CardTitle>O que nós entregamos (Vitrine Inova)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-6">Aqui está uma amostra do nosso portfólio para você conhecer a qualidade do nosso trabalho e apresentar aos seus leads com confiança.</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {portfolio.map(p => {
+                  const thumb = p.thumbnail_url || getVideoThumb(p.video_url);
+                  return (
+                    <div key={p.id} className="group relative cursor-pointer overflow-hidden rounded-xl aspect-[4/5] bg-black border border-zinc-800" onClick={() => p.video_url && window.open(p.video_url, '_blank')}>
+                      {thumb ? (
+                        <img src={thumb} alt={p.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100" />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-zinc-900"><Film className="h-12 w-12 text-zinc-700" /></div>
+                      )}
+                      
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
+                      
+                      {p.video_url && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#BFF720]/90 text-black opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
+                            <Play className="h-6 w-6 ml-1" fill="currentColor" />
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="absolute bottom-0 left-0 right-0 p-5">
+                        {p.category && <span className="inline-block px-2 py-1 rounded-md text-[10px] font-bold uppercase bg-[#BFF720]/20 text-[#BFF720] mb-2">{p.category}</span>}
+                        <h3 className="text-lg font-bold text-white leading-tight">{p.title}</h3>
+                        {p.description && <p className="text-xs text-white/60 mt-1 line-clamp-2">{p.description}</p>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {portfolio.length === 0 && <p className="text-center text-muted-foreground p-8">Nenhum projeto no portfólio ainda.</p>}
             </CardContent>
           </Card>
         </TabsContent>
