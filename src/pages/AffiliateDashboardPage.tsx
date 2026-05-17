@@ -149,16 +149,17 @@ export default function AffiliateDashboardPage() {
         <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Comissões pagas</div><div className="text-2xl font-bold text-[#BFF720]">R$ {paidTotal.toFixed(2)}</div></CardContent></Card>
       </div>
 
-      <Tabs defaultValue="leads">
-        <TabsList>
-          <TabsTrigger value="leads">Leads</TabsTrigger>
-          <TabsTrigger value="contracts">Contratos</TabsTrigger>
-          <TabsTrigger value="commissions">Comissões</TabsTrigger>
-          <TabsTrigger value="info">Informações</TabsTrigger>
-          <TabsTrigger value="vitrine">Nossos Serviços</TabsTrigger>
+      <Tabs defaultValue="leads" orientation="vertical" className="flex flex-col md:flex-row gap-6 items-start">
+        <TabsList className="flex flex-col w-full md:w-64 h-auto bg-zinc-900/40 p-2 border border-zinc-800/50 rounded-xl justify-start space-y-1 shrink-0 sticky top-24">
+          <TabsTrigger value="leads" className="w-full justify-start text-left px-4 py-3 rounded-lg data-[state=active]:bg-[#BFF720] data-[state=active]:text-black data-[state=active]:font-semibold transition-all">Leads</TabsTrigger>
+          <TabsTrigger value="contracts" className="w-full justify-start text-left px-4 py-3 rounded-lg data-[state=active]:bg-[#BFF720] data-[state=active]:text-black data-[state=active]:font-semibold transition-all">Contratos</TabsTrigger>
+          <TabsTrigger value="commissions" className="w-full justify-start text-left px-4 py-3 rounded-lg data-[state=active]:bg-[#BFF720] data-[state=active]:text-black data-[state=active]:font-semibold transition-all">Comissões</TabsTrigger>
+          <TabsTrigger value="info" className="w-full justify-start text-left px-4 py-3 rounded-lg data-[state=active]:bg-[#BFF720] data-[state=active]:text-black data-[state=active]:font-semibold transition-all">Informações</TabsTrigger>
+          <TabsTrigger value="vitrine" className="w-full justify-start text-left px-4 py-3 rounded-lg data-[state=active]:bg-[#BFF720] data-[state=active]:text-black data-[state=active]:font-semibold transition-all">Nossos Serviços</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="leads">
+        <div className="flex-1 w-full min-w-0">
+          <TabsContent value="leads" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <Card><CardContent className="p-0">
             {leads.length === 0 ? <p className="p-6 text-muted-foreground text-center">Nenhum lead ainda.</p> : (
               <div className="divide-y">
@@ -176,7 +177,7 @@ export default function AffiliateDashboardPage() {
           </CardContent></Card>
         </TabsContent>
 
-        <TabsContent value="contracts">
+        <TabsContent value="contracts" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <Card><CardContent className="p-0">
             {contracts.length === 0 ? <p className="p-6 text-muted-foreground text-center">Nenhum contrato ainda.</p> : (
               <div className="divide-y">
@@ -194,7 +195,7 @@ export default function AffiliateDashboardPage() {
           </CardContent></Card>
         </TabsContent>
 
-        <TabsContent value="commissions">
+        <TabsContent value="commissions" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <Card><CardContent className="p-0">
             {commissions.length === 0 ? <p className="p-6 text-muted-foreground text-center">Nenhuma comissão ainda.</p> : (
               <div className="divide-y">
@@ -212,7 +213,7 @@ export default function AffiliateDashboardPage() {
           </CardContent></Card>
         </TabsContent>
 
-        <TabsContent value="info">
+        <TabsContent value="info" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <Card>
             <CardHeader>
               <CardTitle>Regras do Programa de Afiliados</CardTitle>
@@ -241,7 +242,7 @@ export default function AffiliateDashboardPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="vitrine">
+        <TabsContent value="vitrine" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <Card>
             <CardHeader>
               <CardTitle>O que nós entregamos (Vitrine Inova)</CardTitle>
@@ -284,6 +285,7 @@ export default function AffiliateDashboardPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        </div>
       </Tabs>
     </div>
   );
