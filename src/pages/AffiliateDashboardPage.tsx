@@ -260,7 +260,7 @@ export default function AffiliateDashboardPage() {
                   
                   <h3 className="text-xl md:text-2xl font-extrabold text-[#BFF720] mb-4">O que nós somos?</h3>
                   <p className="text-zinc-300 leading-relaxed mb-8 text-base md:text-lg max-w-4xl">
-                    Somos muito mais do que uma produtora — somos uma <strong>aceleradora de marcas</strong>. A Inova une a mais alta estética cinematográfica com inteligência de mercado para posicionar empresas como líderes absolutas. Não entregamos apenas "vídeos e posts"; nós criamos narrativas visuais magnéticas, orquestrando do planejamento estratégico inicial até a execução final de altíssimo padrão. Nosso único objetivo é <strong>fazer o seu cliente vender mais</strong>, encantando a audiência dele.
+                    Somos muito mais do que uma produtora, somos uma <strong>aceleradora de marcas</strong>. A Inova une a mais alta estética cinematográfica com inteligência de mercado para posicionar empresas como líderes absolutas. Não entregamos apenas "vídeos e posts"; nós criamos narrativas visuais magnéticas, orquestrando do planejamento estratégico inicial até a execução final de altíssimo padrão. Nosso único objetivo é <strong>fazer o seu cliente vender mais</strong>, encantando a audiência dele.
                   </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
