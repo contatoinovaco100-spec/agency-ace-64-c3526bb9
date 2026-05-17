@@ -264,17 +264,22 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
       if (cur.faturamentoManual > 0) {
         cur.faturamento = cur.faturamentoManual;
       } else {
-        const [year, month] = monthStr.split('-');
-        const endOfMonth = new Date(Number(year), Number(month), 0, 23, 59, 59);
-        const faturamento = clients.reduce((sum, c) => {
-          if (!c.contractStartDate) return sum;
-          if (c.status === 'Cancelado') return sum;
-          const start = new Date(c.contractStartDate);
-          if (isNaN(start.getTime())) return sum;
-          if (start <= endOfMonth) return sum + (c.monthlyValue || 0);
-          return sum;
-        }, 0);
-        cur.faturamento = faturamento;
+        const isCurrentMonth = monthStr === currentMonthKey;
+        if (isCurrentMonth) {
+          cur.faturamento = mrr;
+        } else {
+          const [year, month] = monthStr.split('-');
+          const endOfMonth = new Date(Number(year), Number(month), 0, 23, 59, 59);
+          const faturamento = clients.reduce((sum, c) => {
+            if (!c.contractStartDate) return sum;
+            if (c.status === 'Cancelado') return sum;
+            const start = new Date(c.contractStartDate);
+            if (isNaN(start.getTime())) return sum;
+            if (start <= endOfMonth) return sum + (c.monthlyValue || 0);
+            return sum;
+          }, 0);
+          cur.faturamento = faturamento;
+        }
       }
       map.set(monthStr, cur);
     }
