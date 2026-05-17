@@ -53,6 +53,227 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_commissions: {
+        Row: {
+          affiliate_id: string
+          amount: number
+          contract_id: string
+          created_at: string
+          id: string
+          notes: string
+          paid_at: string | null
+          reference_month: string
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id: string
+          amount?: number
+          contract_id: string
+          created_at?: string
+          id?: string
+          notes?: string
+          paid_at?: string | null
+          reference_month?: string
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string
+          amount?: number
+          contract_id?: string
+          created_at?: string
+          id?: string
+          notes?: string
+          paid_at?: string | null
+          reference_month?: string
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_commissions_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_commissions_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_contracts: {
+        Row: {
+          affiliate_id: string
+          cancelled_at: string | null
+          client_name: string
+          created_at: string
+          id: string
+          lead_id: string | null
+          monthly_value: number
+          notes: string
+          signed_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id: string
+          cancelled_at?: string | null
+          client_name: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          monthly_value?: number
+          notes?: string
+          signed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string
+          cancelled_at?: string | null
+          client_name?: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          monthly_value?: number
+          notes?: string
+          signed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_contracts_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_contracts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_leads: {
+        Row: {
+          affiliate_id: string
+          company: string
+          converted_at: string | null
+          created_at: string
+          email: string
+          id: string
+          lead_name: string
+          notes: string
+          status: string
+          updated_at: string
+          whatsapp: string
+        }
+        Insert: {
+          affiliate_id: string
+          company?: string
+          converted_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          lead_name: string
+          notes?: string
+          status?: string
+          updated_at?: string
+          whatsapp?: string
+        }
+        Update: {
+          affiliate_id?: string
+          company?: string
+          converted_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          lead_name?: string
+          notes?: string
+          status?: string
+          updated_at?: string
+          whatsapp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_leads_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliates: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          city_state: string
+          cpf_cnpj: string
+          created_at: string
+          email: string
+          full_name: string
+          how_found: string
+          id: string
+          instagram: string
+          sales_experience: boolean
+          slug: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+          whatsapp: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          city_state?: string
+          cpf_cnpj?: string
+          created_at?: string
+          email: string
+          full_name: string
+          how_found?: string
+          id?: string
+          instagram?: string
+          sales_experience?: boolean
+          slug?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          whatsapp?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          city_state?: string
+          cpf_cnpj?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          how_found?: string
+          id?: string
+          instagram?: string
+          sales_experience?: boolean
+          slug?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       budget_items: {
         Row: {
           actual_cost: number
@@ -2651,6 +2872,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_monthly_affiliate_commissions: {
+        Args: { _month?: string }
+        Returns: number
+      }
       has_page_access: {
         Args: { _path: string; _user_id: string }
         Returns: boolean

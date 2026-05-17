@@ -81,6 +81,8 @@ export const APP_PAGES: AppPage[] = [
   { path: '/relatorios',          label: 'Relatórios',          icon: BarChart3,       category: 'Administração', adminOnly: true },
   { path: '/financeiro',          label: 'Financeiro',          icon: Wallet,          category: 'Administração', adminOnly: true },
   { path: '/rede/admin',          label: 'Rede de Negócios',    icon: Network,         category: 'Administração', adminOnly: true },
+  { path: '/afiliados-admin',     label: 'Programa de Afiliados', icon: Gift,          category: 'Administração', adminOnly: true },
+  { path: '/afiliado',            label: 'Meu Afiliado',        icon: Gift,            category: 'Geral', alwaysAllowed: true },
 ];
 
 export const PAGE_CATEGORIES: PageCategory[] = [

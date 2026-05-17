@@ -107,6 +107,10 @@ const PublicReferralFormPage    = lazy(() => import("./pages/PublicReferralFormP
 const ReferralsAdminPage        = lazy(() => import("./pages/ReferralsAdminPage"));
 const RedeAdminPage             = lazy(() => import("./pages/RedeAdminPage"));
 const RedePerfilPage            = lazy(() => import("./pages/RedePerfilPage"));
+const AffiliateSignupPage       = lazy(() => import("./pages/AffiliateSignupPage"));
+const AffiliateLandingPage      = lazy(() => import("./pages/AffiliateLandingPage"));
+const AffiliateDashboardPage    = lazy(() => import("./pages/AffiliateDashboardPage"));
+const AffiliatesAdminPage       = lazy(() => import("./pages/AffiliatesAdminPage"));
 
 function PageLoader() {
   return (
@@ -129,6 +133,8 @@ function AppRoutes() {
     location.pathname.startsWith('/proposta') ||
     location.pathname.startsWith('/indicacoes/') ||
     location.pathname.startsWith('/indicar/') ||
+    location.pathname.startsWith('/afiliados/cadastro') ||
+    location.pathname.startsWith('/in/') ||
     location.pathname === '/negocios' ||
     location.pathname === '/rede/perfil' ||
     location.pathname === '/rede/novo' ||
@@ -159,6 +165,8 @@ function AppRoutes() {
           <Route path="/rede/novo"           element={<RedeNovoPostPage />} />
           <Route path="/indicacoes/:token"   element={<PublicReferralsPage />} />
           <Route path="/indicar/:token"      element={<PublicReferralFormPage />} />
+          <Route path="/afiliados/cadastro"  element={<AffiliateSignupPage />} />
+          <Route path="/in/:slug"            element={<AffiliateLandingPage />} />
           <Route path="/quiz/:clientSlug/:quizSlug" element={<PublicQuizPage />} />
         </Routes>
       ) : (
@@ -211,6 +219,8 @@ function AppRoutes() {
                     <Route path="/financeiro-base"     element={<FinancialPage />} />
                     <Route path="/rede/admin"          element={<RedeAdminPage />} />
                     <Route path="/indicacoes-admin"    element={<ReferralsAdminPage />} />
+                    <Route path="/afiliados-admin"     element={<AffiliatesAdminPage />} />
+                    <Route path="/afiliado"            element={<AffiliateDashboardPage />} />
                     <Route path="/quiz-builder"        element={<QuizBuilderClientsPage />} />
                     <Route path="/quiz-builder/c/:clientId" element={<QuizBuilderQuizzesPage />} />
                     <Route path="/quiz-builder/editor/:quizId" element={<QuizEditorPage />} />
