@@ -133,6 +133,8 @@ function AppRoutes() {
     location.pathname.startsWith('/proposta') ||
     location.pathname.startsWith('/indicacoes/') ||
     location.pathname.startsWith('/indicar/') ||
+    location.pathname.startsWith('/afiliados/cadastro') ||
+    location.pathname.startsWith('/in/') ||
     location.pathname === '/negocios' ||
     location.pathname === '/rede/perfil' ||
     location.pathname === '/rede/novo' ||
