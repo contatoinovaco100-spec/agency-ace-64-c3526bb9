@@ -135,13 +135,13 @@ export default function AffiliateDashboardPage() {
             Comunidade Exclusiva
           </Badge>
           <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight tracking-tight">
-            Faça parte do nosso <span className="text-[#BFF720]">Grupo VIP</span>
+            Entre no grupo do whatsapp de afiliados <span className="text-[#BFF720]">INOVA</span>
           </h2>
           <p className="text-zinc-300 mb-8 text-lg max-w-xl leading-relaxed">
             Receba dicas avançadas de vendas, novos materiais de divulgação, suporte prioritário e faça networking direto com a equipe da Inova.
           </p>
           <Button 
-            onClick={() => window.open('https://chat.whatsapp.com/SEU_LINK_DE_CONVITE_AQUI', '_blank')}
+            onClick={() => window.open('https://chat.whatsapp.com/CVRk9eWDsNQ5yFYTWdiagT?mode=gi_t', '_blank')}
             className="bg-[#BFF720] text-black hover:bg-[#a8de15] font-bold text-md h-12 px-6 rounded-xl flex items-center gap-2 transition-all hover:scale-105 shadow-[0_0_20px_rgba(191,247,32,0.2)]"
           >
             <MessageCircle className="w-5 h-5" />
