@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, MessageCircle, Loader2, Clock, AlertCircle } from 'lucide-react';
+import { Copy, MessageCircle, Loader2, Clock, AlertCircle, Users } from 'lucide-react';
 import type { Affiliate, AffiliateLead, AffiliateContract, AffiliateCommission } from '@/types/affiliates';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -85,7 +85,38 @@ export default function AffiliateDashboardPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      <div>
+      {/* Banner / Aba no topo */}
+      <div className="w-full relative rounded-2xl overflow-hidden shadow-2xl group border border-zinc-800">
+        {/* Imagem estática 1920x1080 placeholder */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=1920&h=1080')" }}
+        />
+        {/* Overlay escuro/gradiente para leitura do texto */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-black/30" />
+        
+        {/* Conteúdo do banner */}
+        <div className="relative z-10 p-8 md:p-12 flex flex-col items-start justify-center min-h-[320px] max-w-3xl">
+          <Badge className="bg-[#BFF720] text-black hover:bg-[#a8de15] mb-4 text-xs font-bold uppercase tracking-wider">
+            Comunidade Exclusiva
+          </Badge>
+          <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight tracking-tight">
+            Faça parte do nosso <span className="text-[#BFF720]">Grupo VIP</span>
+          </h2>
+          <p className="text-zinc-300 mb-8 text-lg max-w-xl leading-relaxed">
+            Receba dicas avançadas de vendas, novos materiais de divulgação, suporte prioritário e faça networking direto com a equipe da Inova.
+          </p>
+          <Button 
+            onClick={() => window.open('https://chat.whatsapp.com/SEU_LINK_DE_CONVITE_AQUI', '_blank')}
+            className="bg-[#BFF720] text-black hover:bg-[#a8de15] font-bold text-md h-12 px-6 rounded-xl flex items-center gap-2 transition-all hover:scale-105 shadow-[0_0_20px_rgba(191,247,32,0.2)]"
+          >
+            <MessageCircle className="w-5 h-5" />
+            Entrar no Grupo do WhatsApp
+          </Button>
+        </div>
+      </div>
+
+      <div className="pt-4">
         <h1 className="text-3xl font-bold">Meu Painel de Afiliado</h1>
         <p className="text-muted-foreground">{affiliate.full_name}</p>
       </div>
