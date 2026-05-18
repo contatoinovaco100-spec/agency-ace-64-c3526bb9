@@ -49,12 +49,14 @@ export default function LoginPage() {
         if (roleRow) { navigate('/'); return; }
 
         // 2) Afiliado → /afiliado
-        const { data: affiliateRows } = await supabase
-          .from('affiliates')
-          .select('id')
-          .or(`user_id.eq.${user.id},email.eq.${user.email}`)
-          .limit(1);
-        if (affiliateRows && affiliateRows.length > 0) { navigate('/afiliado'); return; }
+        if (user.email) {
+          const { data: affiliateRows } = await supabase
+            .from('affiliates')
+            .select('id')
+            .ilike('email', user.email)
+            .limit(1);
+          if (affiliateRows && affiliateRows.length > 0) { navigate('/afiliado'); return; }
+        }
 
         // 3) Empresa da Rede de Negócios → feed /negocios
         const { data: companyRow } = await supabase
