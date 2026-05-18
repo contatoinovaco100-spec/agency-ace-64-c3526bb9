@@ -55,7 +55,7 @@ export default function LoginPage() {
             .select('id')
             .ilike('email', user.email)
             .limit(1);
-          if (affiliateRows && affiliateRows.length > 0) { navigate('/afiliado'); return; }
+          if (affiliateRows && affiliateRows.length > 0) { navigate('/afiliado/leads'); return; }
         }
 
         // 3) Empresa da Rede de Negócios → feed /negocios

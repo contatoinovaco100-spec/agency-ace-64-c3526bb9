@@ -21,7 +21,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   // Page-level access check (admin always passes)
   if (!hasPageAccess(location.pathname)) {
-    if (isAffiliate) return <Navigate to="/afiliado" replace />;
+    if (isAffiliate) return <Navigate to="/afiliado/leads" replace />;
     if (isRedeCompanyUser) return <Navigate to="/negocios" replace />;
     if (isAdmin) return <Navigate to="/" replace />;
     
