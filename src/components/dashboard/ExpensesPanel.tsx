@@ -241,7 +241,7 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
   // Fill in continuous timeline: all months with data + last 12 months window,
   // so the report is always visible even right after deletions.
   const reportRows = useMemo(() => {
-    const map = new Map<string, { faturamento: number; gastos: number; investimentos: number; ganhos: number }>();
+    const map = new Map<string, { faturamentoManual: number; faturamento: number; gastos: number; investimentos: number; ganhos: number }>();
 
     // Apenas garante que o mês atual exista na linha do tempo
     const today = new Date();

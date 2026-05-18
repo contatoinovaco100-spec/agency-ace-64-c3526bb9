@@ -36,21 +36,39 @@ export default function AffiliateDashboardPage() {
     let isSubscribed = true;
 
     async function load() {
-      const { data: a } = await supabase.from('affiliates' as any).select('*').eq('user_id', user.id).maybeSingle();
+      // Lookup affiliate by user_id OR by email (caso o cadastro tenha sido feito anonimamente)
+      let { data: a } = await supabase
+        .from('affiliates' as any)
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (!a && user.email) {
+        const { data: byEmail } = await supabase
+          .from('affiliates' as any)
+          .select('*')
+          .ilike('email', user.email)
+          .maybeSingle();
+        a = byEmail as any;
+        // Link user_id para próximas consultas
+        if (a && (a as any).id) {
+          await supabase.from('affiliates' as any).update({ user_id: user.id }).eq('id', (a as any).id);
+        }
+      }
       if (!a) { if (isSubscribed) setLoading(false); return; }
       if (isSubscribed) setAffiliate(a as any);
-      
+      const affId = (a as any).id;
+
       const [l, c, cm, p] = await Promise.all([
-        supabase.from('affiliate_leads' as any).select('*').eq('affiliate_id', a.id).order('created_at', { ascending: false }),
-        supabase.from('affiliate_contracts' as any).select('*').eq('affiliate_id', a.id).order('created_at', { ascending: false }),
-        supabase.from('affiliate_commissions' as any).select('*').eq('affiliate_id', a.id).order('created_at', { ascending: false }),
+        supabase.from('affiliate_leads' as any).select('*').eq('affiliate_id', affId).order('created_at', { ascending: false }),
+        supabase.from('affiliate_contracts' as any).select('*').eq('affiliate_id', affId).order('created_at', { ascending: false }),
+        supabase.from('affiliate_commissions' as any).select('*').eq('affiliate_id', affId).order('created_at', { ascending: false }),
         supabase.from('portfolio_projects').select('*').order('created_at', { ascending: false }).limit(6),
       ]);
-      
+
       if (isSubscribed) {
-        setLeads(l.data || []);
-        setContracts(c.data || []);
-        setCommissions(cm.data || []);
+        setLeads((l.data as any) || []);
+        setContracts((c.data as any) || []);
+        setCommissions((cm.data as any) || []);
         setPortfolio(p.data || []);
         setLoading(false);
       }
