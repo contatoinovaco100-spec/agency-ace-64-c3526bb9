@@ -6,8 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle2, Loader2, User, Phone, Building2, Mail, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Loader2, User, Phone, Building2, Mail, ArrowRight, Video } from 'lucide-react';
 import type { Affiliate } from '@/types/affiliates';
+
+// ==========================================
+// CONFIGURAÇÕES DA PÁGINA (FÁCIL EDIÇÃO)
+// ==========================================
+const WHATSAPP_NUMBER = '5588994463203'; // Número da Inova (com 55 e DDD)
+const VSL_VIDEO_URL = 'https://www.youtube.com/embed/dQw4w9WgXcQ'; // URL do vídeo VSL (YouTube embed ou similar)
 
 export default function AffiliateLandingPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -41,6 +47,12 @@ export default function AffiliateLandingPage() {
         status: 'novo',
       });
       if (error) throw error;
+      
+      // Mensagem personalizada para o WhatsApp
+      const msg = `Olá! Fui indicado(a) por ${affiliate.full_name} através da página exclusiva e acabei de preencher o formulário. Gostaria de falar com um especialista sobre as soluções da Inova!`;
+      const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+      window.open(waUrl, '_blank');
+      
       setDone(true);
     } catch (err: any) {
       toast({ title: 'Erro ao enviar', description: err.message, variant: 'destructive' });
@@ -69,7 +81,17 @@ export default function AffiliateLandingPage() {
             </div>
             <div>
               <h2 className="text-3xl font-bold mb-3 tracking-tight">Contato Recebido!</h2>
-              <p className="text-zinc-400 text-sm leading-relaxed">Nossa equipe de especialistas entrará em contato com você em breve pelo WhatsApp para agendar uma conversa.</p>
+              <p className="text-zinc-400 text-sm leading-relaxed mb-6">Nossa equipe de especialistas entrará em contato com você em breve pelo WhatsApp para agendar uma conversa.</p>
+              
+              <Button 
+                onClick={() => {
+                  const msg = `Olá! Fui indicado(a) por ${affiliate.full_name} através da página exclusiva e acabei de preencher o formulário. Gostaria de falar com um especialista sobre as soluções da Inova!`;
+                  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+                }} 
+                className="w-full bg-[#BFF720] text-black hover:bg-[#a8de15] hover:shadow-[0_0_20px_rgba(191,247,32,0.3)] transition-all font-bold h-12 text-md flex items-center justify-center gap-2"
+              >
+                <Phone className="w-5 h-5" /> Abrir WhatsApp da Inova Agora
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -90,6 +112,16 @@ export default function AffiliateLandingPage() {
           <p className="text-zinc-400 text-md px-4">
             Você foi indicado(a) por <strong className="text-white">{affiliate.full_name}</strong>. Preencha seus dados abaixo para nossa equipe entrar em contato.
           </p>
+        </div>
+
+        {/* ================= VSL VIDEO NO TOPO ================= */}
+        <div className="mb-8 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-900/40 aspect-video relative animate-in fade-in zoom-in duration-700">
+          <iframe 
+            src={VSL_VIDEO_URL}
+            className="w-full h-full absolute inset-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowFullScreen
+          />
         </div>
 
         <Card className="bg-zinc-900/60 backdrop-blur-xl border-zinc-800/60 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">
