@@ -76,7 +76,7 @@ export default function AffiliateSignupPage() {
       
       if (initialErr) {
         // Fallback para RPC se o insert falhar por RLS
-        let { error: rpcErr } = await supabase.rpc('register_affiliate_safe', {
+        let { error: rpcErr } = await (supabase as any).rpc('register_affiliate_safe', {
           p_user_id: userId,
           p_full_name: form.full_name.trim(),
           p_cpf_cnpj: form.cpf_cnpj.trim(),
