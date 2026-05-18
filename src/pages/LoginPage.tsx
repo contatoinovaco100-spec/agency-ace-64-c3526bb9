@@ -48,13 +48,21 @@ export default function LoginPage() {
           .eq('user_id', user.id).eq('role', 'admin').maybeSingle();
         if (roleRow) { navigate('/'); return; }
 
-        // 2) Empresa da Rede de Negócios → feed /negocios
+        // 2) Afiliado → /afiliado
+        const { data: affiliateRows } = await supabase
+          .from('affiliates')
+          .select('id')
+          .or(`user_id.eq.${user.id},email.eq.${user.email}`)
+          .limit(1);
+        if (affiliateRows && affiliateRows.length > 0) { navigate('/afiliado'); return; }
+
+        // 3) Empresa da Rede de Negócios → feed /negocios
         const { data: companyRow } = await supabase
           .from('rede_companies').select('id')
           .eq('owner_user_id', user.id).maybeSingle();
         if (companyRow) { navigate('/negocios'); return; }
 
-        // 3) Funcionário Inova → minhas tarefas
+        // 4) Funcionário Inova → minhas tarefas
         navigate('/minhas-tarefas');
       } else {
         navigate('/');
