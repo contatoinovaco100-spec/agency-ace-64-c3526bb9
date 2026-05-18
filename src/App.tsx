@@ -173,6 +173,14 @@ function AppRoutes() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route
+            path="/roleta"
+            element={
+              <ProtectedRoute>
+                <RoletaPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/*"
             element={
               <ProtectedRoute>
@@ -207,7 +215,6 @@ function AppRoutes() {
                     <Route path="/galeria"             element={<GalleryPage />} />
                     <Route path="/onboarding"          element={<OnboardingPage />} />
                     <Route path="/calculadora"         element={<CalculatorPage />} />
-                    <Route path="/roleta"              element={<RoletaPage />} />
                     <Route path="/linktree"            element={<LinktreePage />} />
                     <Route path="/linktree/:id"        element={<LinktreeEditorPage />} />
                     <Route path="/nova"                element={<NovaAssistantPage />} />

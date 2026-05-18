@@ -69,6 +69,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {items.map(item => {
                 const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
                 const Icon = item.icon;
+                if (item.path === '/roleta') {
+                  return (
+                    <a
+                      key={item.path}
+                      href={item.path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        'flex items-center gap-3 rounded-md px-3 py-2 text-body transition-all duration-200',
+                        'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className={cn('transition-all duration-300', collapsed ? 'lg:hidden' : 'block')}>
+                        {item.label}
+                      </span>
+                    </a>
+                  );
+                }
+
                 return (
                   <NavLink
                     key={item.path}
