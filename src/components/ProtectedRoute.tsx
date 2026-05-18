@@ -5,7 +5,7 @@ import { usePageAccess } from '@/hooks/useUserRole';
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
-  const { hasPageAccess, allowedPaths, isAdmin, isRedeCompanyUser, loading: accessLoading } = usePageAccess();
+  const { hasPageAccess, allowedPaths, isAdmin, isRedeCompanyUser, isAffiliate, loading: accessLoading } = usePageAccess();
 
   if (loading || accessLoading) {
     return (
@@ -21,6 +21,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   // Page-level access check (admin always passes)
   if (!hasPageAccess(location.pathname)) {
+    if (isAffiliate) return <Navigate to="/afiliado" replace />;
     if (isRedeCompanyUser) return <Navigate to="/negocios" replace />;
     if (isAdmin) return <Navigate to="/" replace />;
     
