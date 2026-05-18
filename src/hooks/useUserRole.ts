@@ -76,18 +76,23 @@ export function useIsAffiliate() {
       setLoading(false);
       return;
     }
-    supabase
-      .from('affiliates')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        const value = !!data;
-        affiliateCache.set(key, value);
-        writeSessionCache(key, value);
-        setIsAffiliate(value);
-        setLoading(false);
-      });
+    async function checkAff() {
+      if (!user) return;
+      let { data } = await supabase.from('affiliates').select('id, user_id').eq('user_id', user.id).maybeSingle();
+      if (!data && user.email) {
+        const res = await supabase.from('affiliates').select('id, user_id').ilike('email', user.email).maybeSingle();
+        data = res.data;
+        if (data && !data.user_id) {
+          await supabase.from('affiliates').update({ user_id: user.id }).eq('id', data.id);
+        }
+      }
+      const value = !!data;
+      affiliateCache.set(key, value);
+      writeSessionCache(key, value);
+      setIsAffiliate(value);
+      setLoading(false);
+    }
+    checkAff();
   }, [user]);
 
   return { isAffiliate, loading };
