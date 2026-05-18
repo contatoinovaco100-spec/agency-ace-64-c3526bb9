@@ -80,7 +80,6 @@ export function useIsAffiliate() {
       .from('affiliates')
       .select('id')
       .eq('user_id', user.id)
-      .eq('status', 'aprovado')
       .maybeSingle()
       .then(({ data }) => {
         const value = !!data;
@@ -164,8 +163,10 @@ export function usePageAccess() {
   }, [user, isAdmin, roleLoading, isRedeCompanyUser, redeLoading]);
 
   const hasPageAccess = (path: string) => {
+    if (isAffiliate && path.startsWith('/afiliado')) return true;
     const page = APP_PAGES.find(p => p.path === path);
     if (page?.affiliateOnly && !isAffiliate) return false;
+    if (page?.affiliateOnly && isAffiliate) return true;
     
     if (isAdmin) return true;
 
