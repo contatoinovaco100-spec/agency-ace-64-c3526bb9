@@ -1150,7 +1150,20 @@ export default function DiagnosticEditorPage() {
           {/* PAGE 5-7 — DETALHAMENTO DO CRONOGRAMA */}
           <div className="bg-[#F5F3EE]">
                 {config.semanas.map((s: any, i: number) => (
-                    <section key={i} className="min-h-[80vh] px-8 lg:px-24 py-32 border-t border-[#e8e4dc]">
+                    <section key={i} className="min-h-[80vh] px-8 lg:px-24 py-32 border-t border-[#e8e4dc] relative">
+                        {isEditing && (
+                          <button
+                            onClick={() => {
+                              if (!confirm('Excluir esta seção/semana inteira?')) return;
+                              const newS = [...config.semanas];
+                              newS.splice(i, 1);
+                              setConfig({...config, semanas: newS});
+                            }}
+                            className="absolute top-6 right-6 z-20 flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-full shadow-lg hover:scale-105 transition-transform text-xs font-black uppercase tracking-widest"
+                          >
+                            <Trash2 size={14} /> Excluir Seção
+                          </button>
+                        )}
                         <div className="max-w-6xl mx-auto space-y-20">
                             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10 text-left">
                                 <div className="space-y-4">
