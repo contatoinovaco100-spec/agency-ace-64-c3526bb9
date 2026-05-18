@@ -13,6 +13,36 @@ import type { Affiliate } from '@/types/affiliates';
 const DEFAULT_WHATSAPP = '5588994463203';
 const DEFAULT_VSL = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
 
+// Função inteligente para extrair URL limpa de iframes a partir de códigos HTML colados (Wistia, YouTube, Vimeo, etc)
+function cleanVideoUrl(url: string): string {
+  if (!url) return DEFAULT_VSL;
+
+  // 1. Se colou o código HTML completo do Wistia (com <script>, <wistia-player>, media-id, etc)
+  const wistiaMatch = url.match(/media-id=['"]([^'"]+)['"]/) || url.match(/embed\/([a-zA-Z0-9]+)\.js/);
+  if (wistiaMatch && wistiaMatch[1]) {
+    return `https://fast.wistia.net/embed/iframe/${wistiaMatch[1]}?autoplay=1`;
+  }
+
+  // 2. Se colou link direto do Wistia iframe
+  if (url.includes('wistia.net/embed/iframe')) {
+    return url;
+  }
+
+  // 3. Se colou link do YouTube watch?v=
+  const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|(?:embed|v)\/))([a-zA-Z0-9_-]{11})/);
+  if (ytMatch && ytMatch[1]) {
+    return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  }
+
+  // 4. Se for um iframe ou script genérico, tenta extrair o atributo src
+  const srcMatch = url.match(/src=['"]([^'"]+)['"]/);
+  if (srcMatch && srcMatch[1] && !srcMatch[1].endsWith('.js')) {
+    return srcMatch[1];
+  }
+
+  return url;
+}
+
 export default function AffiliateLandingPage() {
   const { slug } = useParams<{ slug: string }>();
   const { toast } = useToast();
@@ -136,7 +166,7 @@ export default function AffiliateLandingPage() {
         {/* ================= VSL VIDEO NO TOPO ================= */}
         <div className="mb-8 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-900/40 aspect-video relative animate-in fade-in zoom-in duration-700">
           <iframe 
-            src={settings.vslVideoUrl}
+            src={cleanVideoUrl(settings.vslVideoUrl)}
             className="w-full h-full absolute inset-0"
             allow="autoplay; fullscreen; picture-in-picture; accelerometer; clipboard-write; encrypted-media; gyroscope" 
             allowFullScreen
