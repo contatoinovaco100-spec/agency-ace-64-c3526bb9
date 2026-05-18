@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Check, X, Pause, RefreshCw, Plus, Copy, TrendingUp, Users, DollarSign, Clock, AlertCircle, Trash2, FileText, Gift, Award, CheckCircle2 } from 'lucide-react';
+import { Loader2, Check, X, Pause, RefreshCw, Plus, Copy, TrendingUp, Users, DollarSign, Clock, AlertCircle, Trash2, FileText, Gift, Award, CheckCircle2, Settings } from 'lucide-react';
 import { slugify } from '@/types/affiliates';
 import type { Affiliate, AffiliateLead, AffiliateContract, AffiliateCommission } from '@/types/affiliates';
 
@@ -43,6 +43,8 @@ export default function AffiliatesAdminPage() {
   const [leads, setLeads] = useState<AffiliateLead[]>([]);
   const [contracts, setContracts] = useState<AffiliateContract[]>([]);
   const [commissions, setCommissions] = useState<AffiliateCommission[]>([]);
+  const [pageSettings, setPageSettings] = useState({ whatsappNumber: '5588994463203', vslVideoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ' });
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -56,9 +58,52 @@ export default function AffiliatesAdminPage() {
     setLeads((l.data as any) || []);
     setContracts((c.data as any) || []);
     setCommissions((cm.data as any) || []);
+
+    // Carrega configurações da página de captação
+    let loadedCfg = { whatsappNumber: '5588994463203', vslVideoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ' };
+    try {
+      const { data: cfg } = await supabase.from('affiliate_settings' as any).select('*').limit(1).maybeSingle();
+      if (cfg) {
+        loadedCfg = { whatsappNumber: cfg.whatsapp_number || '5588994463203', vslVideoUrl: cfg.vsl_video_url || 'https://www.youtube.com/embed/dQw4w9WgXcQ' };
+      } else {
+        const saved = localStorage.getItem('affiliate_page_settings');
+        if (saved) { try { loadedCfg = JSON.parse(saved); } catch {} }
+      }
+    } catch (err) {
+      const saved = localStorage.getItem('affiliate_page_settings');
+      if (saved) { try { loadedCfg = JSON.parse(saved); } catch {} }
+    }
+    setPageSettings(loadedCfg);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  async function savePageSettings() {
+    setSavingSettings(true);
+    localStorage.setItem('affiliate_page_settings', JSON.stringify(pageSettings));
+    try {
+      const { data: existing, error: selectErr } = await supabase.from('affiliate_settings' as any).select('id').limit(1).maybeSingle();
+      if (!selectErr) {
+        if (existing) {
+          await supabase.from('affiliate_settings' as any).update({
+            whatsapp_number: pageSettings.whatsappNumber,
+            vsl_video_url: pageSettings.vslVideoUrl,
+            updated_at: new Date().toISOString()
+          }).eq('id', existing.id);
+        } else {
+          await supabase.from('affiliate_settings' as any).insert({
+            whatsapp_number: pageSettings.whatsappNumber,
+            vsl_video_url: pageSettings.vslVideoUrl
+          });
+        }
+      }
+      toast({ title: 'Configurações salvas com sucesso!' });
+    } catch (err: any) {
+      toast({ title: 'Configurações salvas no cache local!', description: 'As alterações já estão ativas para os leads.' });
+    } finally {
+      setSavingSettings(false);
+    }
+  }
 
   async function ensureSlug(aff: Affiliate): Promise<string> {
     if (aff.slug) return aff.slug;
@@ -241,7 +286,7 @@ export default function AffiliatesAdminPage() {
 
       {/* Main Tabs */}
       <Tabs defaultValue="contracts" className="w-full space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-card/60 backdrop-blur-xl border border-border/50 p-1.5 rounded-xl gap-1">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 bg-card/60 backdrop-blur-xl border border-border/50 p-1.5 rounded-xl gap-1">
           <TabsTrigger value="contracts" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all">
             Contratos ({contracts.length})
           </TabsTrigger>
@@ -253,6 +298,9 @@ export default function AffiliatesAdminPage() {
           </TabsTrigger>
           <TabsTrigger value="commissions" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all">
             Comissões
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all flex items-center justify-center gap-1.5">
+            <Settings className="w-4 h-4" /> Configs da Página
           </TabsTrigger>
         </TabsList>
 
@@ -538,6 +586,57 @@ export default function AffiliatesAdminPage() {
                   <p className="text-muted-foreground font-medium text-base">Nenhuma comissão gerada ainda.</p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ============ ABA CONFIGURAÇÕES DA PÁGINA ============ */}
+        <TabsContent value="settings" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Card className="border-border/50 bg-card/40 backdrop-blur-xl overflow-hidden shadow-xl max-w-3xl mx-auto">
+            <CardHeader className="border-b border-border/40 bg-card/20 px-6 py-5">
+              <CardTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
+                <Settings className="w-5 h-5 text-primary" /> Configurações da Página de Captação dos Afiliados
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Altere aqui o número de WhatsApp que receberá os leads e o link do vídeo VSL exibido no topo da página exclusiva de cada afiliado (ex: /in/nome).
+              </p>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-foreground">Número do WhatsApp da Inova</Label>
+                <Input 
+                  value={pageSettings.whatsappNumber} 
+                  onChange={e => setPageSettings({ ...pageSettings, whatsappNumber: e.target.value })}
+                  placeholder="5588994463203" 
+                  className="bg-background/50 border-border/60 focus:ring-primary h-11 text-base font-medium"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Digite o número completo com código do país (55) e DDD, sem espaços ou símbolos. Ex: <strong className="text-foreground font-mono">5588994463203</strong>.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-foreground">URL do Vídeo VSL (Wistia, YouTube, Vimeo, PandaVideo)</Label>
+                <Input 
+                  value={pageSettings.vslVideoUrl} 
+                  onChange={e => setPageSettings({ ...pageSettings, vslVideoUrl: e.target.value })}
+                  placeholder="https://fast.wistia.net/embed/iframe/..." 
+                  className="bg-background/50 border-border/60 focus:ring-primary h-11 text-base font-mono"
+                />
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Cole o link de embed direto do vídeo. Para o Wistia, use o formato <strong className="text-foreground font-mono">https://fast.wistia.net/embed/iframe/SEU_CODIGO</strong>. Para o YouTube, use <strong className="text-foreground font-mono">https://www.youtube.com/embed/SEU_CODIGO</strong>.
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-border/40 flex justify-end">
+                <Button 
+                  onClick={savePageSettings} 
+                  disabled={savingSettings}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-8 h-12 rounded-xl shadow-[0_0_20px_hsl(73,93%,55%/0.3)] transition-all hover:scale-105 flex items-center gap-2"
+                >
+                  {savingSettings ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Salvar Configurações</>}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

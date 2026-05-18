@@ -9,14 +9,9 @@ import { useToast } from '@/hooks/use-toast';
 import { CheckCircle2, Loader2, User, Phone, Building2, Mail, ArrowRight, Video } from 'lucide-react';
 import type { Affiliate } from '@/types/affiliates';
 
-// ==========================================
-// CONFIGURAÇÕES DA PÁGINA (FÁCIL EDIÇÃO)
-// ==========================================
-const WHATSAPP_NUMBER = '5588994463203'; // Número da Inova (com 55 e DDD)
-
-// URL do vídeo VSL (Cole aqui o link de embed do Wistia, YouTube, Vimeo ou PandaVideo)
-// Exemplo Wistia: 'https://fast.wistia.net/embed/iframe/abc123xyz'
-const VSL_VIDEO_URL = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+// Valores padrão de fallback
+const DEFAULT_WHATSAPP = '5588994463203';
+const DEFAULT_VSL = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
 
 export default function AffiliateLandingPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -26,12 +21,33 @@ export default function AffiliateLandingPage() {
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [form, setForm] = useState({ lead_name: '', whatsapp: '', company: '', email: '' });
+  const [settings, setSettings] = useState({ whatsappNumber: DEFAULT_WHATSAPP, vslVideoUrl: DEFAULT_VSL });
 
   useEffect(() => {
     (async () => {
+      // 1. Carrega dados do afiliado
       const { data } = await supabase.from('affiliates' as any)
         .select('*').eq('slug', slug).eq('status', 'aprovado').maybeSingle();
       setAffiliate(data as any);
+
+      // 2. Carrega configurações da página (Supabase affiliate_settings com fallback para localStorage)
+      let loadedSettings = { whatsappNumber: DEFAULT_WHATSAPP, vslVideoUrl: DEFAULT_VSL };
+      try {
+        const { data: cfg } = await supabase.from('affiliate_settings' as any).select('*').limit(1).maybeSingle();
+        if (cfg) {
+          loadedSettings = {
+            whatsappNumber: cfg.whatsapp_number || DEFAULT_WHATSAPP,
+            vslVideoUrl: cfg.vsl_video_url || DEFAULT_VSL
+          };
+        } else {
+          const saved = localStorage.getItem('affiliate_page_settings');
+          if (saved) { try { loadedSettings = JSON.parse(saved); } catch {} }
+        }
+      } catch (err) {
+        const saved = localStorage.getItem('affiliate_page_settings');
+        if (saved) { try { loadedSettings = JSON.parse(saved); } catch {} }
+      }
+      setSettings(loadedSettings);
       setLoading(false);
     })();
   }, [slug]);
@@ -53,7 +69,7 @@ export default function AffiliateLandingPage() {
       
       // Mensagem personalizada para o WhatsApp
       const msg = `Olá! Fui indicado(a) por ${affiliate.full_name} através da página exclusiva e acabei de preencher o formulário. Gostaria de falar com um especialista sobre as soluções da Inova!`;
-      const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+      const waUrl = `https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent(msg)}`;
       window.open(waUrl, '_blank');
       
       setDone(true);
@@ -89,7 +105,7 @@ export default function AffiliateLandingPage() {
               <Button 
                 onClick={() => {
                   const msg = `Olá! Fui indicado(a) por ${affiliate.full_name} através da página exclusiva e acabei de preencher o formulário. Gostaria de falar com um especialista sobre as soluções da Inova!`;
-                  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+                  window.open(`https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent(msg)}`, '_blank');
                 }} 
                 className="w-full bg-[#BFF720] text-black hover:bg-[#a8de15] hover:shadow-[0_0_20px_rgba(191,247,32,0.3)] transition-all font-bold h-12 text-md flex items-center justify-center gap-2"
               >
@@ -120,7 +136,7 @@ export default function AffiliateLandingPage() {
         {/* ================= VSL VIDEO NO TOPO ================= */}
         <div className="mb-8 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-900/40 aspect-video relative animate-in fade-in zoom-in duration-700">
           <iframe 
-            src={VSL_VIDEO_URL}
+            src={settings.vslVideoUrl}
             className="w-full h-full absolute inset-0"
             allow="autoplay; fullscreen; picture-in-picture; accelerometer; clipboard-write; encrypted-media; gyroscope" 
             allowFullScreen
