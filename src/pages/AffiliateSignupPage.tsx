@@ -48,7 +48,7 @@ export default function AffiliateSignupPage() {
       }
 
       let insErr = null;
-      const { error: initialErr } = await supabase.from('affiliates' as any).insert({
+      let insertPayload: any = {
         user_id: userId,
         full_name: form.full_name.trim(),
         cpf_cnpj: form.cpf_cnpj.trim(),
@@ -58,13 +58,25 @@ export default function AffiliateSignupPage() {
         city_state: form.city_state.trim(),
         how_found: form.how_found.trim(),
         sales_experience: form.sales_experience === 'sim',
-        pix_key: form.pix_key.trim(),
         status: 'em_analise',
+      };
+
+      // Tenta inserir primeiro com a chave pix (caso a coluna exista no banco)
+      let { error: initialErr } = await supabase.from('affiliates' as any).insert({
+        ...insertPayload,
+        pix_key: form.pix_key.trim(),
       });
       
+      // Se falhar porque a coluna pix_key não existe, coloca o PIX no how_found
+      if (initialErr && (initialErr.message.includes('pix_key') || initialErr.code === 'PGRST204')) {
+        insertPayload.how_found = insertPayload.how_found ? `${insertPayload.how_found} | PIX: ${form.pix_key.trim()}` : `PIX: ${form.pix_key.trim()}`;
+        const { error: retryErr } = await supabase.from('affiliates' as any).insert(insertPayload);
+        initialErr = retryErr;
+      }
+      
       if (initialErr) {
-        // Fallback to RPC if RLS blocks the insert/select cycle
-        const { error: rpcErr } = await supabase.rpc('register_affiliate_safe', {
+        // Fallback para RPC se o insert falhar por RLS
+        let { error: rpcErr } = await supabase.rpc('register_affiliate_safe', {
           p_user_id: userId,
           p_full_name: form.full_name.trim(),
           p_cpf_cnpj: form.cpf_cnpj.trim(),
@@ -77,12 +89,26 @@ export default function AffiliateSignupPage() {
           p_pix_key: form.pix_key.trim()
         });
         
+        if (rpcErr && rpcErr.message.includes('pix_key')) {
+          const { error: rpcRetryErr } = await supabase.rpc('register_affiliate_safe', {
+            p_user_id: userId,
+            p_full_name: form.full_name.trim(),
+            p_cpf_cnpj: form.cpf_cnpj.trim(),
+            p_whatsapp: form.whatsapp.trim(),
+            p_email: form.email.trim(),
+            p_instagram: form.instagram.trim(),
+            p_city_state: form.city_state.trim(),
+            p_how_found: insertPayload.how_found,
+            p_sales_experience: form.sales_experience === 'sim'
+          });
+          rpcErr = rpcRetryErr;
+        }
+
         if (rpcErr) {
-          // If RPC also fails (or doesn't exist yet), check if original was RLS
           if (initialErr.message.includes('row-level security')) {
-            // Ignoramos erro de RLS e assumimos sucesso parcial se for apenas select failing
+            // Ignoramos erro de RLS
           } else {
-            insErr = initialErr;
+            insErr = rpcErr.message ? rpcErr : initialErr;
           }
         }
       }
