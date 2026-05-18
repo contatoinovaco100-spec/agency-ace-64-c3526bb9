@@ -53,6 +53,7 @@ type SignedContract = {
   sent_at: string | null;
   created_at: string;
   status: string;
+  contract_signatures?: { signed_at: string }[];
 };
 
 export default function Dashboard() {
@@ -67,7 +68,7 @@ export default function Dashboard() {
     (async () => {
       const { data } = await supabase
         .from('contracts')
-        .select('id, client_id, client_name, monthly_value, duration_months, sent_at, created_at, status')
+        .select('id, client_id, client_name, monthly_value, duration_months, sent_at, created_at, status, contract_signatures(signed_at)')
         .eq('status', 'assinado');
       if (data) setSignedContracts(data as SignedContract[]);
     })();
@@ -129,12 +130,30 @@ export default function Dashboard() {
   }> = {};
 
   signedContracts.forEach(ct => {
-    const refDate = ct.sent_at ? new Date(ct.sent_at) : new Date(ct.created_at);
+    let signatureDateStr = ct.sent_at || ct.created_at;
+    if (ct.contract_signatures && ct.contract_signatures.length > 0) {
+      signatureDateStr = ct.contract_signatures[0].signed_at;
+    }
+    
+    const refDate = new Date(signatureDateStr);
     if (isNaN(refDate.getTime())) return;
-    const elapsedMonths = Math.floor(
-      (todayDate.getTime() - refDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
-    );
-    const monthsPaid = Math.max(0, Math.min(elapsedMonths, ct.duration_months || 0));
+    
+    let monthsPaid = 0;
+    
+    // Inicia no dia 10 do mês da assinatura
+    let currentPaymentDate = new Date(refDate.getFullYear(), refDate.getMonth(), 10);
+    
+    // Se a assinatura foi DEPOIS do dia 10, o primeiro pagamento é só no mês seguinte
+    if (refDate.getDate() > 10) {
+      currentPaymentDate.setMonth(currentPaymentDate.getMonth() + 1);
+    }
+    
+    const duration = ct.duration_months || 999;
+    while (currentPaymentDate <= todayDate && monthsPaid < duration) {
+      monthsPaid++;
+      currentPaymentDate.setMonth(currentPaymentDate.getMonth() + 1);
+    }
+
     if (monthsPaid < 1) return; // só conta quem já pagou pelo menos 1 mês completo
     const ltv = monthsPaid * (ct.monthly_value || 0);
 
