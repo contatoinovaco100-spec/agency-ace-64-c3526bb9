@@ -13,7 +13,10 @@ import type { Affiliate } from '@/types/affiliates';
 // CONFIGURAÇÕES DA PÁGINA (FÁCIL EDIÇÃO)
 // ==========================================
 const WHATSAPP_NUMBER = '5588994463203'; // Número da Inova (com 55 e DDD)
-const VSL_VIDEO_URL = 'https://www.youtube.com/embed/dQw4w9WgXcQ'; // URL do vídeo VSL (YouTube embed ou similar)
+
+// URL do vídeo VSL (Cole aqui o link de embed do Wistia, YouTube, Vimeo ou PandaVideo)
+// Exemplo Wistia: 'https://fast.wistia.net/embed/iframe/abc123xyz'
+const VSL_VIDEO_URL = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
 
 export default function AffiliateLandingPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -119,7 +122,7 @@ export default function AffiliateLandingPage() {
           <iframe 
             src={VSL_VIDEO_URL}
             className="w-full h-full absolute inset-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allow="autoplay; fullscreen; picture-in-picture; accelerometer; clipboard-write; encrypted-media; gyroscope" 
             allowFullScreen
           />
         </div>
