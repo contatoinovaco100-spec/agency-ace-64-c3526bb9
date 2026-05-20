@@ -65,9 +65,10 @@ export default function AffiliateLandingPage() {
       try {
         const { data: cfg } = await supabase.from('affiliate_settings' as any).select('*').limit(1).maybeSingle();
         if (cfg) {
+          const c = cfg as any;
           loadedSettings = {
-            whatsappNumber: cfg.whatsapp_number || DEFAULT_WHATSAPP,
-            vslVideoUrl: cfg.vsl_video_url || DEFAULT_VSL
+            whatsappNumber: c.whatsapp_number || DEFAULT_WHATSAPP,
+            vslVideoUrl: c.vsl_video_url || DEFAULT_VSL
           };
         } else {
           const saved = localStorage.getItem('affiliate_page_settings');

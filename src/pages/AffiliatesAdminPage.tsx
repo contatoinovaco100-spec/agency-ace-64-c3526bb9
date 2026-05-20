@@ -64,7 +64,8 @@ export default function AffiliatesAdminPage() {
     try {
       const { data: cfg } = await supabase.from('affiliate_settings' as any).select('*').limit(1).maybeSingle();
       if (cfg) {
-        loadedCfg = { whatsappNumber: cfg.whatsapp_number || '5588994463203', vslVideoUrl: cfg.vsl_video_url || 'https://www.youtube.com/embed/dQw4w9WgXcQ' };
+        const c = cfg as any;
+        loadedCfg = { whatsappNumber: c.whatsapp_number || '5588994463203', vslVideoUrl: c.vsl_video_url || 'https://www.youtube.com/embed/dQw4w9WgXcQ' };
       } else {
         const saved = localStorage.getItem('affiliate_page_settings');
         if (saved) { try { loadedCfg = JSON.parse(saved); } catch {} }
@@ -89,7 +90,7 @@ export default function AffiliatesAdminPage() {
             whatsapp_number: pageSettings.whatsappNumber,
             vsl_video_url: pageSettings.vslVideoUrl,
             updated_at: new Date().toISOString()
-          }).eq('id', existing.id);
+          }).eq('id', (existing as any).id);
         } else {
           await supabase.from('affiliate_settings' as any).insert({
             whatsapp_number: pageSettings.whatsappNumber,
