@@ -239,16 +239,18 @@ export default function Dashboard() {
     return new Date(c.contractStartDate) >= thirtyDaysAgo;
   });
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'BOM DIA' : hour < 18 ? 'BOA TARDE' : 'BOA NOITE';
+
   return (
-    <div className="space-y-6 relative">
-      {/* Futuristic ambient background */}
+    <div className="space-y-8 relative">
+      {/* Ambient glow */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-primary/[0.07] blur-[120px]" />
-        <div className="absolute top-1/3 -right-40 h-[400px] w-[400px] rounded-full bg-[hsl(174,98%,19%)]/20 blur-[120px]" />
-        <div className="absolute bottom-0 left-1/3 h-[350px] w-[350px] rounded-full bg-[hsl(var(--info))]/10 blur-[100px]" />
+        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-primary/[0.05] blur-[140px]" />
+        <div className="absolute top-1/3 -right-40 h-[400px] w-[400px] rounded-full bg-primary/[0.04] blur-[120px]" />
       </div>
 
-      {/* Smart Alerts (toggleable) */}
+      {/* Smart Alerts toggle */}
       <div className="flex items-center justify-end">
         <Button
           variant="ghost"
@@ -261,79 +263,57 @@ export default function Dashboard() {
       </div>
       {!alertsHidden && <SmartAlerts />}
 
-      {/* Header — Futuristic */}
+      {/* Header — Bento moderno */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card via-card to-card/40 p-6 backdrop-blur-xl"
+        transition={{ duration: 0.45 }}
+        className="flex flex-col md:flex-row md:items-end justify-between gap-6"
       >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_hsl(73,93%,55%,0.08),_transparent_60%)]" />
-        <div className="absolute -top-px left-10 right-10 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/30">
-              <BarChart3 className="h-6 w-6 text-primary" />
-              <div className="absolute inset-0 rounded-xl bg-primary/20 blur-lg" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">Live · Painel Admin</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mt-0.5 tracking-tight">
-                Visão <span className="text-primary">Estratégica</span>
-              </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Financeiro, entregas e performance da agência em tempo real
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => requestPermission()}
-              className="hidden sm:flex gap-2 border-border/50 backdrop-blur"
-            >
-              Habilitar Push
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => triggerNotification("Nova Venda Realizada! 🎉", "O cliente fechou o contrato de R$ 5.000,00.", "success", "sale")}
-              className="gap-2 bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white shadow-[0_0_20px_hsl(var(--success)/0.3)]"
-            >
-              <BellRing className="h-4 w-4" /> Venda
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => triggerNotification("Reunião em 10 minutos 📅", "Alinhamento com Cliente X.", "info", "agenda")}
-              className="gap-2 shadow-[0_0_20px_hsl(73,93%,55%/0.25)]"
-            >
-              <BellRing className="h-4 w-4" /> Agenda
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => triggerNotification("Tarefa Atrasada 🚨", "A entrega da Landing Page está atrasada.", "error", "overdue")}
-              className="gap-2"
-            >
-              <AlertTriangle className="h-4 w-4" /> Atraso
-            </Button>
-          </div>
+        <div className="space-y-1">
+          <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.2em]">Dashboard Principal</p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+            {greeting}, <span className="text-primary">INOVA CO.</span>
+          </h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => requestPermission()}
+            className="hidden sm:flex gap-2 rounded-xl border-border/60"
+          >
+            <BellRing className="h-4 w-4" /> Habilitar Push
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => triggerNotification("Nova Venda Realizada! 🎉", "O cliente fechou o contrato de R$ 5.000,00.", "success", "sale")}
+            className="gap-2 rounded-xl bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white"
+          >
+            <BellRing className="h-4 w-4" /> Venda
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => triggerNotification("Tarefa Atrasada 🚨", "A entrega da Landing Page está atrasada.", "error", "overdue")}
+            className="gap-2 rounded-xl"
+          >
+            <AlertTriangle className="h-4 w-4" /> Atraso
+          </Button>
         </div>
       </motion.div>
 
-      {/* Tabs */}
+      {/* Tabs — pill style */}
       <Tabs defaultValue="financeiro" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:grid-cols-none sm:inline-flex bg-card/60 backdrop-blur-xl border border-border/50 p-1">
-          <TabsTrigger value="financeiro" className="gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_15px_hsl(73,93%,55%/0.2)]">
+        <TabsList className="inline-flex h-auto bg-card/70 backdrop-blur-xl border border-border/60 rounded-2xl p-1.5 gap-1">
+          <TabsTrigger value="financeiro" className="gap-2 rounded-xl px-5 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_24px_-4px_hsl(73,93%,55%/0.5)]">
             <DollarSign className="h-4 w-4" /> Financeiro
           </TabsTrigger>
-          <TabsTrigger value="entregas" className="gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_15px_hsl(73,93%,55%/0.2)]">
+          <TabsTrigger value="entregas" className="gap-2 rounded-xl px-5 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_24px_-4px_hsl(73,93%,55%/0.5)]">
             <CheckSquare className="h-4 w-4" /> Entregas
           </TabsTrigger>
         </TabsList>
+
 
         {/* ==================== FINANCIAL TAB ==================== */}
         <TabsContent value="financeiro" className="space-y-6">
