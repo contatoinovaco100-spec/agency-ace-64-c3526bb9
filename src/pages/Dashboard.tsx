@@ -317,38 +317,31 @@ export default function Dashboard() {
 
         {/* ==================== FINANCIAL TAB ==================== */}
         <TabsContent value="financeiro" className="space-y-6">
-          {/* Top KPIs — Futuristic */}
+          {/* Top KPIs — Bento */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { label: 'MRR', value: formatCurrency(mrr), icon: DollarSign, accent: 'text-[hsl(var(--success))]', bg: 'bg-[hsl(var(--success))]/10', glow: 'hsl(var(--success))', ring: 'ring-[hsl(var(--success))]/30' },
-              { label: 'Receita Anual Projetada', value: formatCurrency(mrr * 12), icon: TrendingUp, accent: 'text-primary', bg: 'bg-primary/10', glow: 'hsl(73,93%,55%)', ring: 'ring-primary/30' },
-              { label: 'Clientes Ativos', value: activeClients.length.toString(), icon: Users, accent: 'text-[hsl(var(--info))]', bg: 'bg-[hsl(var(--info))]/10', glow: 'hsl(var(--info))', ring: 'ring-[hsl(var(--info))]/30' },
-              { label: 'Ticket Médio', value: formatCurrency(activeClients.length > 0 ? mrr / activeClients.length : 0), icon: BarChart3, accent: 'text-[hsl(var(--warning))]', bg: 'bg-[hsl(var(--warning))]/10', glow: 'hsl(var(--warning))', ring: 'ring-[hsl(var(--warning))]/30' },
+              { label: 'MRR', value: formatCurrency(mrr), icon: DollarSign, accent: 'text-primary', highlight: true },
+              { label: 'Receita Anual Projetada', value: formatCurrency(mrr * 12), icon: TrendingUp, accent: 'text-muted-foreground', highlight: false },
+              { label: 'Clientes Ativos', value: activeClients.length.toString(), icon: Users, accent: 'text-muted-foreground', highlight: false },
+              { label: 'Ticket Médio', value: formatCurrency(activeClients.length > 0 ? mrr / activeClients.length : 0), icon: BarChart3, accent: 'text-muted-foreground', highlight: false },
             ].map((kpi, i) => (
               <motion.div key={kpi.label} {...anim(i)}>
-                <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-card/30 backdrop-blur-xl transition-all duration-300 hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_-5px_hsl(73,93%,55%/0.15)]">
-                  <div
-                    className="absolute -top-12 -right-12 h-32 w-32 rounded-full blur-2xl opacity-20 transition-opacity duration-500 group-hover:opacity-40"
-                    style={{ background: kpi.glow }}
-                  />
-                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  <CardContent className="relative p-5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.15em]">{kpi.label}</span>
-                      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${kpi.bg} ring-1 ${kpi.ring} backdrop-blur`}>
-                        <kpi.icon className={`h-4 w-4 ${kpi.accent}`} />
-                      </div>
+                <div className="group relative bg-card p-6 rounded-[2rem] border border-border/60 hover:border-primary/40 transition-all duration-300 hover:-translate-y-0.5">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className={`p-2.5 rounded-xl bg-secondary/70 ${kpi.accent}`}>
+                      <kpi.icon className="h-5 w-5" />
                     </div>
-                    <p className="mt-4 text-2xl sm:text-3xl font-bold tabular-nums text-foreground tracking-tight">{kpi.value}</p>
-                    <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground/70">
-                      <span className="h-1 w-1 rounded-full bg-primary animate-pulse" />
-                      <span>Atualizado agora</span>
-                    </div>
-                  </CardContent>
-                </Card>
+                    {kpi.highlight && (
+                      <span className="text-primary text-[10px] font-bold bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider">Live</span>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider mb-1.5">{kpi.label}</p>
+                  <h3 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums text-foreground">{kpi.value}</h3>
+                </div>
               </motion.div>
             ))}
           </div>
+
 
           {/* Charts Row */}
           <div className="grid gap-4 lg:grid-cols-3">
