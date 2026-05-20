@@ -239,16 +239,18 @@ export default function Dashboard() {
     return new Date(c.contractStartDate) >= thirtyDaysAgo;
   });
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'BOM DIA' : hour < 18 ? 'BOA TARDE' : 'BOA NOITE';
+
   return (
-    <div className="space-y-6 relative">
-      {/* Futuristic ambient background */}
+    <div className="space-y-8 relative">
+      {/* Ambient glow */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-primary/[0.07] blur-[120px]" />
-        <div className="absolute top-1/3 -right-40 h-[400px] w-[400px] rounded-full bg-[hsl(174,98%,19%)]/20 blur-[120px]" />
-        <div className="absolute bottom-0 left-1/3 h-[350px] w-[350px] rounded-full bg-[hsl(var(--info))]/10 blur-[100px]" />
+        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-primary/[0.05] blur-[140px]" />
+        <div className="absolute top-1/3 -right-40 h-[400px] w-[400px] rounded-full bg-primary/[0.04] blur-[120px]" />
       </div>
 
-      {/* Smart Alerts (toggleable) */}
+      {/* Smart Alerts toggle */}
       <div className="flex items-center justify-end">
         <Button
           variant="ghost"
@@ -261,120 +263,91 @@ export default function Dashboard() {
       </div>
       {!alertsHidden && <SmartAlerts />}
 
-      {/* Header — Futuristic */}
+      {/* Header — Bento moderno */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card via-card to-card/40 p-6 backdrop-blur-xl"
+        transition={{ duration: 0.45 }}
+        className="flex flex-col md:flex-row md:items-end justify-between gap-6"
       >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_hsl(73,93%,55%,0.08),_transparent_60%)]" />
-        <div className="absolute -top-px left-10 right-10 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/30">
-              <BarChart3 className="h-6 w-6 text-primary" />
-              <div className="absolute inset-0 rounded-xl bg-primary/20 blur-lg" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">Live · Painel Admin</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mt-0.5 tracking-tight">
-                Visão <span className="text-primary">Estratégica</span>
-              </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Financeiro, entregas e performance da agência em tempo real
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => requestPermission()}
-              className="hidden sm:flex gap-2 border-border/50 backdrop-blur"
-            >
-              Habilitar Push
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => triggerNotification("Nova Venda Realizada! 🎉", "O cliente fechou o contrato de R$ 5.000,00.", "success", "sale")}
-              className="gap-2 bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white shadow-[0_0_20px_hsl(var(--success)/0.3)]"
-            >
-              <BellRing className="h-4 w-4" /> Venda
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => triggerNotification("Reunião em 10 minutos 📅", "Alinhamento com Cliente X.", "info", "agenda")}
-              className="gap-2 shadow-[0_0_20px_hsl(73,93%,55%/0.25)]"
-            >
-              <BellRing className="h-4 w-4" /> Agenda
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => triggerNotification("Tarefa Atrasada 🚨", "A entrega da Landing Page está atrasada.", "error", "overdue")}
-              className="gap-2"
-            >
-              <AlertTriangle className="h-4 w-4" /> Atraso
-            </Button>
-          </div>
+        <div className="space-y-1">
+          <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.2em]">Dashboard Principal</p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+            {greeting}, <span className="text-primary">INOVA CO.</span>
+          </h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => requestPermission()}
+            className="hidden sm:flex gap-2 rounded-xl border-border/60"
+          >
+            <BellRing className="h-4 w-4" /> Habilitar Push
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => triggerNotification("Nova Venda Realizada! 🎉", "O cliente fechou o contrato de R$ 5.000,00.", "success", "sale")}
+            className="gap-2 rounded-xl bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white"
+          >
+            <BellRing className="h-4 w-4" /> Venda
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => triggerNotification("Tarefa Atrasada 🚨", "A entrega da Landing Page está atrasada.", "error", "overdue")}
+            className="gap-2 rounded-xl"
+          >
+            <AlertTriangle className="h-4 w-4" /> Atraso
+          </Button>
         </div>
       </motion.div>
 
-      {/* Tabs */}
+      {/* Tabs — pill style */}
       <Tabs defaultValue="financeiro" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:grid-cols-none sm:inline-flex bg-card/60 backdrop-blur-xl border border-border/50 p-1">
-          <TabsTrigger value="financeiro" className="gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_15px_hsl(73,93%,55%/0.2)]">
+        <TabsList className="inline-flex h-auto bg-card/70 backdrop-blur-xl border border-border/60 rounded-2xl p-1.5 gap-1">
+          <TabsTrigger value="financeiro" className="gap-2 rounded-xl px-5 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_24px_-4px_hsl(73,93%,55%/0.5)]">
             <DollarSign className="h-4 w-4" /> Financeiro
           </TabsTrigger>
-          <TabsTrigger value="entregas" className="gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_15px_hsl(73,93%,55%/0.2)]">
+          <TabsTrigger value="entregas" className="gap-2 rounded-xl px-5 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_24px_-4px_hsl(73,93%,55%/0.5)]">
             <CheckSquare className="h-4 w-4" /> Entregas
           </TabsTrigger>
         </TabsList>
 
+
         {/* ==================== FINANCIAL TAB ==================== */}
         <TabsContent value="financeiro" className="space-y-6">
-          {/* Top KPIs — Futuristic */}
+          {/* Top KPIs — Bento */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { label: 'MRR', value: formatCurrency(mrr), icon: DollarSign, accent: 'text-[hsl(var(--success))]', bg: 'bg-[hsl(var(--success))]/10', glow: 'hsl(var(--success))', ring: 'ring-[hsl(var(--success))]/30' },
-              { label: 'Receita Anual Projetada', value: formatCurrency(mrr * 12), icon: TrendingUp, accent: 'text-primary', bg: 'bg-primary/10', glow: 'hsl(73,93%,55%)', ring: 'ring-primary/30' },
-              { label: 'Clientes Ativos', value: activeClients.length.toString(), icon: Users, accent: 'text-[hsl(var(--info))]', bg: 'bg-[hsl(var(--info))]/10', glow: 'hsl(var(--info))', ring: 'ring-[hsl(var(--info))]/30' },
-              { label: 'Ticket Médio', value: formatCurrency(activeClients.length > 0 ? mrr / activeClients.length : 0), icon: BarChart3, accent: 'text-[hsl(var(--warning))]', bg: 'bg-[hsl(var(--warning))]/10', glow: 'hsl(var(--warning))', ring: 'ring-[hsl(var(--warning))]/30' },
+              { label: 'MRR', value: formatCurrency(mrr), icon: DollarSign, accent: 'text-primary', highlight: true },
+              { label: 'Receita Anual Projetada', value: formatCurrency(mrr * 12), icon: TrendingUp, accent: 'text-muted-foreground', highlight: false },
+              { label: 'Clientes Ativos', value: activeClients.length.toString(), icon: Users, accent: 'text-muted-foreground', highlight: false },
+              { label: 'Ticket Médio', value: formatCurrency(activeClients.length > 0 ? mrr / activeClients.length : 0), icon: BarChart3, accent: 'text-muted-foreground', highlight: false },
             ].map((kpi, i) => (
               <motion.div key={kpi.label} {...anim(i)}>
-                <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-card/30 backdrop-blur-xl transition-all duration-300 hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_-5px_hsl(73,93%,55%/0.15)]">
-                  <div
-                    className="absolute -top-12 -right-12 h-32 w-32 rounded-full blur-2xl opacity-20 transition-opacity duration-500 group-hover:opacity-40"
-                    style={{ background: kpi.glow }}
-                  />
-                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  <CardContent className="relative p-5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.15em]">{kpi.label}</span>
-                      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${kpi.bg} ring-1 ${kpi.ring} backdrop-blur`}>
-                        <kpi.icon className={`h-4 w-4 ${kpi.accent}`} />
-                      </div>
+                <div className="group relative bg-card p-6 rounded-[2rem] border border-border/60 hover:border-primary/40 transition-all duration-300 hover:-translate-y-0.5">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className={`p-2.5 rounded-xl bg-secondary/70 ${kpi.accent}`}>
+                      <kpi.icon className="h-5 w-5" />
                     </div>
-                    <p className="mt-4 text-2xl sm:text-3xl font-bold tabular-nums text-foreground tracking-tight">{kpi.value}</p>
-                    <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground/70">
-                      <span className="h-1 w-1 rounded-full bg-primary animate-pulse" />
-                      <span>Atualizado agora</span>
-                    </div>
-                  </CardContent>
-                </Card>
+                    {kpi.highlight && (
+                      <span className="text-primary text-[10px] font-bold bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider">Live</span>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider mb-1.5">{kpi.label}</p>
+                  <h3 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums text-foreground">{kpi.value}</h3>
+                </div>
               </motion.div>
             ))}
           </div>
+
 
           {/* Charts Row */}
           <div className="grid gap-4 lg:grid-cols-3">
             {/* Revenue Trend */}
             <motion.div {...anim(4)} className="lg:col-span-2">
-              <Card className="border-border/50">
+              <Card className="border-border/60 rounded-[2rem] bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <TrendingUp className="h-4 w-4 text-primary" /> Evolução de Receita
@@ -406,7 +379,7 @@ export default function Dashboard() {
 
             {/* Client Status Pie */}
             <motion.div {...anim(5)}>
-              <Card className="border-border/50">
+              <Card className="border-border/60 rounded-[2rem] bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <PieChart className="h-4 w-4 text-primary" /> Status dos Clientes
@@ -430,7 +403,7 @@ export default function Dashboard() {
           <div className="grid gap-4 lg:grid-cols-2">
             {/* Revenue by Client */}
             <motion.div {...anim(6)}>
-              <Card className="border-border/50">
+              <Card className="border-border/60 rounded-[2rem] bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <BarChart3 className="h-4 w-4 text-primary" /> Receita por Cliente
@@ -452,7 +425,7 @@ export default function Dashboard() {
 
             {/* Revenue by Service */}
             <motion.div {...anim(7)}>
-              <Card className="border-border/50">
+              <Card className="border-border/60 rounded-[2rem] bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Briefcase className="h-4 w-4 text-primary" /> Receita por Serviço
@@ -476,7 +449,7 @@ export default function Dashboard() {
           {/* LTV por Cliente — quem mais gerou receita histórica */}
           {ltvByClient.length > 0 && (
             <motion.div {...anim(8)}>
-              <Card className="border-border/50 overflow-hidden">
+              <Card className="border-border/60 rounded-[2rem] bg-card overflow-hidden">
                 <CardHeader className="pb-2">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <CardTitle className="flex items-center gap-2 text-base">
@@ -558,7 +531,7 @@ export default function Dashboard() {
 
           {newClients.length > 0 && (
             <motion.div {...anim(8)}>
-              <Card className="border-border/50">
+              <Card className="border-border/60 rounded-[2rem] bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <ArrowUpRight className="h-4 w-4 text-[hsl(var(--success))]" /> Novos Clientes (últimos 30 dias)
@@ -591,7 +564,7 @@ export default function Dashboard() {
 
           {/* All Clients Table */}
           <motion.div {...anim(9)}>
-            <Card className="border-border/50">
+            <Card className="border-border/60 rounded-[2rem] bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <FolderOpen className="h-4 w-4 text-primary" /> Todos os Contratos
@@ -658,39 +631,35 @@ export default function Dashboard() {
 
         {/* ==================== DELIVERY TAB ==================== */}
         <TabsContent value="entregas" className="space-y-6">
-          {/* Delivery KPIs — Futuristic */}
+          {/* Delivery KPIs — Bento */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { label: 'Total de Tarefas', value: tasks.length, icon: CheckSquare, accent: 'text-primary', bg: 'bg-primary/10', glow: 'hsl(73,93%,55%)', ring: 'ring-primary/30' },
-              { label: 'Concluídas', value: completedTasks.length, icon: CheckCircle2, accent: 'text-[hsl(var(--success))]', bg: 'bg-[hsl(var(--success))]/10', glow: 'hsl(var(--success))', ring: 'ring-[hsl(var(--success))]/30' },
-              { label: 'Em Andamento', value: pendingTasks.length, icon: Clock, accent: 'text-[hsl(var(--info))]', bg: 'bg-[hsl(var(--info))]/10', glow: 'hsl(var(--info))', ring: 'ring-[hsl(var(--info))]/30' },
-              { label: 'Atrasadas', value: overdueTasks.length, icon: AlertTriangle, accent: 'text-[hsl(var(--warning))]', bg: 'bg-[hsl(var(--warning))]/10', glow: 'hsl(var(--warning))', ring: 'ring-[hsl(var(--warning))]/30' },
+              { label: 'Total de Tarefas', value: tasks.length, icon: CheckSquare, accent: 'text-primary', highlight: true },
+              { label: 'Concluídas', value: completedTasks.length, icon: CheckCircle2, accent: 'text-[hsl(var(--success))]', highlight: false },
+              { label: 'Em Andamento', value: pendingTasks.length, icon: Clock, accent: 'text-muted-foreground', highlight: false },
+              { label: 'Atrasadas', value: overdueTasks.length, icon: AlertTriangle, accent: 'text-[hsl(var(--warning))]', highlight: false },
             ].map((kpi, i) => (
               <motion.div key={kpi.label} {...anim(i)}>
-                <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-card/30 backdrop-blur-xl transition-all duration-300 hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_-5px_hsl(73,93%,55%/0.15)]">
-                  <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full blur-2xl opacity-20 transition-opacity duration-500 group-hover:opacity-40" style={{ background: kpi.glow }} />
-                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  <CardContent className="relative p-5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.15em]">{kpi.label}</span>
-                      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${kpi.bg} ring-1 ${kpi.ring} backdrop-blur`}>
-                        <kpi.icon className={`h-4 w-4 ${kpi.accent}`} />
-                      </div>
+                <div className="group relative bg-card p-6 rounded-[2rem] border border-border/60 hover:border-primary/40 transition-all duration-300 hover:-translate-y-0.5">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className={`p-2.5 rounded-xl bg-secondary/70 ${kpi.accent}`}>
+                      <kpi.icon className="h-5 w-5" />
                     </div>
-                    <p className="mt-4 text-2xl sm:text-3xl font-bold tabular-nums text-foreground tracking-tight">{kpi.value}</p>
-                    <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground/70">
-                      <span className="h-1 w-1 rounded-full bg-primary animate-pulse" />
-                      <span>Em tempo real</span>
-                    </div>
-                  </CardContent>
-                </Card>
+                    {kpi.highlight && (
+                      <span className="text-primary text-[10px] font-bold bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider">Total</span>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider mb-1.5">{kpi.label}</p>
+                  <h3 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums text-foreground">{kpi.value}</h3>
+                </div>
               </motion.div>
             ))}
           </div>
 
+
           {/* Completion Progress */}
           <motion.div {...anim(4)}>
-            <Card className="border-border/50">
+            <Card className="border-border/60 rounded-[2rem] bg-card">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-foreground">Taxa de Conclusão</span>
@@ -706,7 +675,7 @@ export default function Dashboard() {
           <div className="grid gap-4 lg:grid-cols-2">
             {/* Task Status Distribution */}
             <motion.div {...anim(5)}>
-              <Card className="border-border/50">
+              <Card className="border-border/60 rounded-[2rem] bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <PieChart className="h-4 w-4 text-primary" /> Distribuição de Status
@@ -728,7 +697,7 @@ export default function Dashboard() {
 
             {/* Overdue Tasks */}
             <motion.div {...anim(6)}>
-              <Card className="border-border/50">
+              <Card className="border-border/60 rounded-[2rem] bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-4 w-4 text-[hsl(var(--warning))]" /> Tarefas Atrasadas
@@ -771,7 +740,7 @@ export default function Dashboard() {
 
           {/* Tasks by Client */}
           <motion.div {...anim(7)}>
-            <Card className="border-border/50">
+            <Card className="border-border/60 rounded-[2rem] bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <BarChart3 className="h-4 w-4 text-primary" /> Tarefas por Cliente
@@ -868,7 +837,7 @@ function LtvTable({ rows }: { rows: LtvRow[] }) {
     : 'bg-muted text-muted-foreground';
 
   return (
-    <Card className="border-border/50 overflow-hidden">
+    <Card className="border-border/60 rounded-[2rem] bg-card overflow-hidden">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <FileText className="h-4 w-4 text-primary" /> Ranking Completo de LTV
@@ -1054,7 +1023,7 @@ function SimpleDashboard({ clients, tasks, leads, mrr, activeClients, pendingTas
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Overdue */}
         <motion.div {...anim(5)}>
-          <Card className="border-border/50">
+          <Card className="border-border/60 rounded-[2rem] bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
                 <AlertTriangle className="h-4 w-4 text-[hsl(var(--warning))]" /> Tarefas Atrasadas
@@ -1090,7 +1059,7 @@ function SimpleDashboard({ clients, tasks, leads, mrr, activeClients, pendingTas
 
         {/* Pending tasks */}
         <motion.div {...anim(6)}>
-          <Card className="border-border/50">
+          <Card className="border-border/60 rounded-[2rem] bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Clock className="h-4 w-4 text-[hsl(var(--info))]" /> Próximas Tarefas
