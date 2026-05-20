@@ -347,7 +347,7 @@ export default function Dashboard() {
           <div className="grid gap-4 lg:grid-cols-3">
             {/* Revenue Trend */}
             <motion.div {...anim(4)} className="lg:col-span-2">
-              <Card className="border-border/50">
+              <Card className="border-border/60 rounded-[2rem] bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <TrendingUp className="h-4 w-4 text-primary" /> Evolução de Receita
@@ -379,7 +379,7 @@ export default function Dashboard() {
 
             {/* Client Status Pie */}
             <motion.div {...anim(5)}>
-              <Card className="border-border/50">
+              <Card className="border-border/60 rounded-[2rem] bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <PieChart className="h-4 w-4 text-primary" /> Status dos Clientes
@@ -403,7 +403,7 @@ export default function Dashboard() {
           <div className="grid gap-4 lg:grid-cols-2">
             {/* Revenue by Client */}
             <motion.div {...anim(6)}>
-              <Card className="border-border/50">
+              <Card className="border-border/60 rounded-[2rem] bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <BarChart3 className="h-4 w-4 text-primary" /> Receita por Cliente
@@ -425,7 +425,7 @@ export default function Dashboard() {
 
             {/* Revenue by Service */}
             <motion.div {...anim(7)}>
-              <Card className="border-border/50">
+              <Card className="border-border/60 rounded-[2rem] bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Briefcase className="h-4 w-4 text-primary" /> Receita por Serviço
@@ -449,7 +449,7 @@ export default function Dashboard() {
           {/* LTV por Cliente — quem mais gerou receita histórica */}
           {ltvByClient.length > 0 && (
             <motion.div {...anim(8)}>
-              <Card className="border-border/50 overflow-hidden">
+              <Card className="border-border/60 rounded-[2rem] bg-card overflow-hidden">
                 <CardHeader className="pb-2">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <CardTitle className="flex items-center gap-2 text-base">
@@ -531,7 +531,7 @@ export default function Dashboard() {
 
           {newClients.length > 0 && (
             <motion.div {...anim(8)}>
-              <Card className="border-border/50">
+              <Card className="border-border/60 rounded-[2rem] bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <ArrowUpRight className="h-4 w-4 text-[hsl(var(--success))]" /> Novos Clientes (últimos 30 dias)
@@ -564,7 +564,7 @@ export default function Dashboard() {
 
           {/* All Clients Table */}
           <motion.div {...anim(9)}>
-            <Card className="border-border/50">
+            <Card className="border-border/60 rounded-[2rem] bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <FolderOpen className="h-4 w-4 text-primary" /> Todos os Contratos
@@ -663,7 +663,7 @@ export default function Dashboard() {
 
           {/* Completion Progress */}
           <motion.div {...anim(4)}>
-            <Card className="border-border/50">
+            <Card className="border-border/60 rounded-[2rem] bg-card">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-foreground">Taxa de Conclusão</span>
@@ -679,7 +679,7 @@ export default function Dashboard() {
           <div className="grid gap-4 lg:grid-cols-2">
             {/* Task Status Distribution */}
             <motion.div {...anim(5)}>
-              <Card className="border-border/50">
+              <Card className="border-border/60 rounded-[2rem] bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <PieChart className="h-4 w-4 text-primary" /> Distribuição de Status
@@ -701,7 +701,7 @@ export default function Dashboard() {
 
             {/* Overdue Tasks */}
             <motion.div {...anim(6)}>
-              <Card className="border-border/50">
+              <Card className="border-border/60 rounded-[2rem] bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-4 w-4 text-[hsl(var(--warning))]" /> Tarefas Atrasadas
@@ -744,7 +744,7 @@ export default function Dashboard() {
 
           {/* Tasks by Client */}
           <motion.div {...anim(7)}>
-            <Card className="border-border/50">
+            <Card className="border-border/60 rounded-[2rem] bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <BarChart3 className="h-4 w-4 text-primary" /> Tarefas por Cliente
@@ -841,7 +841,7 @@ function LtvTable({ rows }: { rows: LtvRow[] }) {
     : 'bg-muted text-muted-foreground';
 
   return (
-    <Card className="border-border/50 overflow-hidden">
+    <Card className="border-border/60 rounded-[2rem] bg-card overflow-hidden">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <FileText className="h-4 w-4 text-primary" /> Ranking Completo de LTV
@@ -1027,7 +1027,7 @@ function SimpleDashboard({ clients, tasks, leads, mrr, activeClients, pendingTas
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Overdue */}
         <motion.div {...anim(5)}>
-          <Card className="border-border/50">
+          <Card className="border-border/60 rounded-[2rem] bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
                 <AlertTriangle className="h-4 w-4 text-[hsl(var(--warning))]" /> Tarefas Atrasadas
@@ -1063,7 +1063,7 @@ function SimpleDashboard({ clients, tasks, leads, mrr, activeClients, pendingTas
 
         {/* Pending tasks */}
         <motion.div {...anim(6)}>
-          <Card className="border-border/50">
+          <Card className="border-border/60 rounded-[2rem] bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Clock className="h-4 w-4 text-[hsl(var(--info))]" /> Próximas Tarefas
