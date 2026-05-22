@@ -9,6 +9,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Copy, MessageCircle, Loader2, Clock, AlertCircle, Users, Film, Play, Megaphone, TrendingUp } from 'lucide-react';
 import type { Affiliate, AffiliateLead, AffiliateContract, AffiliateCommission } from '@/types/affiliates';
+import logoInova from '@/assets/logo-inova.png';
+
+const REVENUE_GOAL = 10000;
 
 const STATUS_LABEL: Record<string, string> = {
   em_analise: 'Em análise', aprovado: 'Aprovado', reprovado: 'Reprovado', suspenso: 'Suspenso',
