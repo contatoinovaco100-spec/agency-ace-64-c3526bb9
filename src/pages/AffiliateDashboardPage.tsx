@@ -11,7 +11,7 @@ import { Copy, MessageCircle, Loader2, Clock, AlertCircle, Users, Film, Play, Me
 import type { Affiliate, AffiliateLead, AffiliateContract, AffiliateCommission } from '@/types/affiliates';
 import logoInova from '@/assets/logo-inova.png';
 
-const REVENUE_GOAL = 10000;
+
 
 const STATUS_LABEL: Record<string, string> = {
   em_analise: 'Em análise', aprovado: 'Aprovado', reprovado: 'Reprovado', suspenso: 'Suspenso',
@@ -139,8 +139,24 @@ export default function AffiliateDashboardPage() {
   };
 
   const totalRevenue = paidTotal + pendingTotal;
+
+  function getCurrentGoal(n: number) {
+    if (n < 10000) return 10000;
+    if (n < 100000) return 100000;
+    if (n < 1000000) return 1000000;
+    if (n < 10000000) return 10000000;
+    if (n < 100000000) return 100000000;
+    return 1000000000;
+  }
+
+  const REVENUE_GOAL = getCurrentGoal(totalRevenue);
   const revenuePct = Math.min(100, Math.round((totalRevenue / REVENUE_GOAL) * 100));
-  const fmtBRL = (n: number) => n >= 1000 ? `R$ ${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 2).replace('.', ',')}K` : `R$ ${n.toFixed(0)}`;
+
+  const fmtBRL = (n: number) => {
+    if (n >= 1000000) return `R$ ${(n / 1000000).toFixed(n % 1000000 === 0 ? 1 : 2).replace('.', ',')}M`;
+    if (n >= 1000) return `R$ ${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 2).replace('.', ',')}K`;
+    return `R$ ${n.toFixed(0)}`;
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
