@@ -9,6 +9,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Copy, MessageCircle, Loader2, Clock, AlertCircle, Users, Film, Play, Megaphone, TrendingUp } from 'lucide-react';
 import type { Affiliate, AffiliateLead, AffiliateContract, AffiliateCommission } from '@/types/affiliates';
+import logoInova from '@/assets/logo-inova.png';
+
+const REVENUE_GOAL = 10000;
 
 const STATUS_LABEL: Record<string, string> = {
   em_analise: 'Em análise', aprovado: 'Aprovado', reprovado: 'Reprovado', suspenso: 'Suspenso',
@@ -135,9 +138,34 @@ export default function AffiliateDashboardPage() {
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
+  const totalRevenue = paidTotal + pendingTotal;
+  const revenuePct = Math.min(100, Math.round((totalRevenue / REVENUE_GOAL) * 100));
+  const fmtBRL = (n: number) => n >= 1000 ? `R$ ${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 2).replace('.', ',')}K` : `R$ ${n.toFixed(0)}`;
+
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      {/* Banner / Aba no topo */}
+      {/* Barra de faturamento no topo */}
+      <div className="w-full rounded-2xl border border-zinc-800 bg-gradient-to-br from-zinc-950 to-black p-4 md:p-5 flex items-center gap-4 shadow-lg">
+        <img src={logoInova} alt="Inova" className="h-10 md:h-12 w-auto shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline justify-between gap-3 mb-2">
+            <div>
+              <div className="text-xs text-zinc-400 uppercase tracking-wider">Faturamento</div>
+              <div className="text-lg md:text-xl font-bold text-white">
+                {fmtBRL(totalRevenue)} <span className="text-zinc-500 font-normal">/ {fmtBRL(REVENUE_GOAL)}</span>
+              </div>
+            </div>
+            <div className="text-sm md:text-base font-bold text-[#BFF720]">{revenuePct}%</div>
+          </div>
+          <div className="h-2.5 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+            <div
+              className="h-full bg-gradient-to-r from-[#BFF720] to-[#a8de15] transition-all duration-700 rounded-full shadow-[0_0_12px_rgba(191,247,32,0.5)]"
+              style={{ width: `${revenuePct}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="w-full relative rounded-2xl overflow-hidden shadow-2xl group border border-zinc-800">
         {/* Imagem estática 1920x1080 placeholder */}
         <div 
