@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     // Verify contract exists and was just signed
     const { data: contract, error: contractError } = await supabase
       .from('contracts')
-      .select('title, client_name, monthly_value')
+      .select('*')
       .eq('id', contract_id)
       .eq('status', 'assinado')
       .single();
@@ -36,6 +36,40 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Contract not found or not signed' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Auto-create client in CRM if not already existing
+    try {
+      const clientName = (contract.client_name || '').trim();
+      if (clientName) {
+        const { data: existing } = await supabase
+          .from('clients')
+          .select('id')
+          .ilike('company_name', clientName)
+          .maybeSingle();
+
+        if (!existing) {
+          const { error: insertErr } = await supabase.from('clients').insert({
+            company_name: clientName,
+            contact_name: signer_name || clientName,
+            email: contract.client_email || '',
+            phone: '',
+            contract_start_date: new Date().toISOString().split('T')[0],
+            monthly_value: Number(contract.monthly_value) || 0,
+            scope: contract.scope_description || contract.services || '',
+            service_type: [],
+            account_manager: '',
+            status: 'Ativo',
+            notes: `Cliente criado automaticamente ao assinar contrato "${contract.title}".`,
+          });
+          if (insertErr) console.error('Failed to auto-create client:', insertErr);
+          else console.log('Client auto-created:', clientName);
+        } else {
+          console.log('Client already exists, skipping:', clientName);
+        }
+      }
+    } catch (e) {
+      console.error('Auto-create client error:', e);
     }
 
     const INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
