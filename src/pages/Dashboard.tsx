@@ -8,7 +8,7 @@ import {
   Users, DollarSign, Target, CheckSquare, FolderOpen,
   TrendingUp, PieChart, BarChart3, ArrowUpRight, ArrowDownRight,
   Clock, AlertTriangle, CheckCircle2, Briefcase, FileText, BellRing,
-  EyeOff, Eye, ArrowUpDown, ArrowUp, ArrowDown,
+  EyeOff, Eye, ArrowUpDown, ArrowUp, ArrowDown, Trophy, CalendarClock, Rocket, Minus, Medal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePushNotification } from '@/hooks/usePushNotification';
