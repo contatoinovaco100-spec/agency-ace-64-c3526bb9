@@ -19,7 +19,7 @@ import { ClientDiagnosisTab } from '@/components/clients/ClientDiagnosisTab';
 import { Shield, Lock, Mail, Key, Loader2, Link as LinkIcon, Target, Sparkles, Eye, EyeOff, Gift, Link2, Copy, MessageCircle, UserPlus, Users } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 
-const serviceOptions: ServiceType[] = ['Tráfego Pago', 'Social Media', 'Design', 'Copy', 'SEO', 'Landing Page', 'Branding', 'Email Marketing'];
+const serviceOptions: ServiceType[] = ['Gestor de trafego', 'Social Media', 'Estrategista digital', 'Editor de Video', 'Copywritter', 'Design'];
 const statusOptions: ClientStatus[] = ['Ativo', 'Pausado', 'Cancelado'];
 
 const statusColors: Record<string, string> = {

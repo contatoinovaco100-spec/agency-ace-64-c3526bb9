@@ -1,5 +1,5 @@
 export type ClientStatus = 'Ativo' | 'Pausado' | 'Cancelado';
-export type ServiceType = 'Tráfego Pago' | 'Social Media' | 'Design' | 'Copy' | 'SEO' | 'Landing Page' | 'Branding' | 'Email Marketing';
+export type ServiceType = 'Gestor de trafego' | 'Social Media' | 'Estrategista digital' | 'Editor de Video' | 'Copywritter' | 'Design';
 export type TaskStatus = 'A fazer' | 'Em andamento' | 'Revisão' | 'Concluído';
 export type TaskPriority = 'Alta' | 'Média' | 'Baixa';
 export type LeadStage = 'Lead novo' | 'Contato iniciado' | 'Reunião agendada' | 'Proposta enviada' | 'Negociação' | 'Cliente fechado' | 'Perdido';

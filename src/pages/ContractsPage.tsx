@@ -400,7 +400,7 @@ export default function ContractsPage() {
                 </div>
               </div>
 
-              <div><Label>Serviços contratados</Label><Input value={form.services} onChange={e => setForm(p => ({ ...p, services: e.target.value }))} placeholder="Ex: Social Media, Tráfego Pago, Design" /></div>
+              <div><Label>Serviços contratados</Label><Input value={form.services} onChange={e => setForm(p => ({ ...p, services: e.target.value }))} placeholder="Ex: Gestor de trafego, Social Media, Design" /></div>
               <div><Label>Descrição do escopo</Label><Textarea value={form.scope_description} onChange={e => setForm(p => ({ ...p, scope_description: e.target.value }))} rows={3} /></div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
