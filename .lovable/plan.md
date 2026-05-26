@@ -1,88 +1,48 @@
-## Programa de Afiliados Innova
+## Objetivo
+Garantir que, ao assinar um contrato, o cliente apareça automaticamente na aba **Clientes** em tempo real, com `email`, `escopo` e `valor mensal` corretamente preenchidos.
 
-Sistema completo de afiliados com cadastro público, aprovação admin, links únicos de rastreamento, captura de leads, contratos e comissões recorrentes.
+## Diagnóstico
 
-### 1. Banco de Dados (migração)
+**1. Mapeamento (já correto na edge function `notify-contract-signed`)**
+A criação automática já mapeia:
+- `contract.client_email` → `clients.email`
+- `contract.scope_description` (com fallback para `contract.services`) → `clients.scope`
+- `contract.monthly_value` → `clients.monthly_value`
+- `contract.client_name` → `clients.company_name`
+- `signer_name` → `clients.contact_name`
+- `contract_start_date` = data atual
+- `status` = `Ativo`
 
-Novas tabelas:
+→ Vou apenas reforçar: usar `contract.scope_description` quando existir, senão `contract.services`, e nunca string vazia para `scope` se houver `plan_name` (adicionar plano como fallback adicional).
 
-- **affiliates**
-  - `id`, `user_id` (FK auth.users, null até criar conta), `full_name`, `cpf_cnpj`, `whatsapp`, `email`, `instagram`, `city_state`, `how_found`, `sales_experience` (bool), `slug` (único, gerado na aprovação), `status` (`em_analise` | `aprovado` | `reprovado` | `suspenso`), `approved_at`, `approved_by`, timestamps
-- **affiliate_leads**
-  - `id`, `affiliate_id` (FK), `lead_name`, `whatsapp`, `company`, `email`, `status` (`novo` | `em_negociacao` | `convertido` | `perdido`), `notes`, `converted_at`, timestamps
-- **affiliate_contracts**
-  - `id`, `affiliate_id`, `lead_id`, `client_name`, `monthly_value`, `signed_at`, `status` (`ativo` | `pendente` | `cancelado` | `inadimplente`), `cancelled_at`, timestamps
-- **affiliate_commissions**
-  - `id`, `affiliate_id`, `contract_id`, `type` (`fechamento` | `recorrencia`), `amount` (R$300 ou R$100), `reference_month` (date), `status` (`pendente` | `pago`), `paid_at`, timestamps
+**2. Tempo real (faltando)**
+`ClientsPage` consome `clients` de `AgencyContext`, que faz um `fetchAll()` apenas uma vez no mount. Não há subscription no canal realtime do Postgres para a tabela `clients`. Por isso, o cliente recém-criado pela edge function só aparece após refresh manual.
 
-Enums via CHECK constraints. RLS:
-- `affiliates`: insert público (cadastro), select próprio + admin, update admin
-- `affiliate_leads`: insert público (via link), select próprio afiliado + admin
-- `affiliate_contracts` / `affiliate_commissions`: select próprio + admin, write admin
+## Mudanças
 
-Função `generate_monthly_recurring_commissions()` para gerar R$100 mensal para contratos ativos (rodar manualmente via botão admin ou cron futuro).
+### a) Banco (migration)
+Adicionar a tabela `clients` à publicação realtime:
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.clients;
+ALTER TABLE public.clients REPLICA IDENTITY FULL;
+```
 
-### 2. Páginas públicas (sem auth)
+### b) `src/contexts/AgencyContext.tsx`
+Adicionar um `useEffect` que cria um channel Supabase escutando `postgres_changes` (`event: '*'`, `schema: 'public'`, `table: 'clients'`):
+- `INSERT` → `setAllClients(prev => [...prev, rowToClient(payload.new)])` (com deduplicação por `id`)
+- `UPDATE` → substituir item pelo id
+- `DELETE` → remover por id
+- Cleanup: `supabase.removeChannel(channel)`
 
-- **`/afiliados/cadastro`** — formulário de cadastro do afiliado, cria registro com status `em_analise` + conta auth (signUp). Mostra mensagem "Cadastro em análise".
-- **`/in/:slug`** — landing simples com formulário de lead (nome, whatsapp, empresa, email). Insere em `affiliate_leads` vinculado ao afiliado pelo slug. Só funciona se afiliado `aprovado`.
+### c) `supabase/functions/notify-contract-signed/index.ts`
+Pequeno ajuste no fallback do campo `scope` para incluir o `plan_name`:
+```ts
+scope: contract.scope_description 
+  || contract.services 
+  || (contract.plan_name ? `Plano ${contract.plan_name}` : ''),
+```
+E garantir que números venham como `Number(...)` (já está).
 
-Rotas adicionadas em `App.tsx` na lista `isPublicPage`.
-
-### 3. Painel do Afiliado (autenticado)
-
-- **`/afiliado`** — dashboard do afiliado logado:
-  - Status do cadastro (se não aprovado, mostra aviso)
-  - Link único copiável + share WhatsApp
-  - Lista de leads
-  - Lista de contratos ativos
-  - Comissões: pendentes vs pagas, totais
-- `ProtectedRoute` permite acesso se usuário tem registro em `affiliates`.
-
-### 4. Painel Admin
-
-- **`/afiliados-admin`** — nova rota admin-only:
-  - Tab "Afiliados": lista com filtro por status, ações aprovar/reprovar/suspender
-  - Tab "Leads": todos os leads com afiliado responsável
-  - Tab "Contratos": criar contrato a partir de lead convertido, editar status (ativo/pendente/cancelado/inadimplente)
-  - Tab "Comissões": lista, marcar como pago, botão "Gerar recorrência do mês" (R$100 por contrato ativo)
-
-Aprovação gera `slug` a partir do nome (`nomedoafiliado`) garantindo unicidade.
-
-### 5. Sidebar / navegação
-
-Adicionar em `src/config/app-pages.ts`:
-- `/afiliados-admin` → "Programa de Afiliados" (categoria Administração, adminOnly)
-- `/afiliado` → "Meu Afiliado" (alwaysAllowed para quem tem registro)
-
-### 6. Regras de comissão (código)
-
-- Ao mudar contrato para `ativo` pela primeira vez (signed_at preenchido) → inserir comissão `fechamento` R$300 status `pendente`.
-- Botão admin "Gerar recorrência mensal" → insere R$100 `recorrencia` para cada contrato `ativo` no mês de referência (constraint única por contract_id + reference_month).
-- Cancelar contrato (`cancelado`) → para de gerar recorrência (filtro no gerador).
-- Marcar comissão como `pago` → preenche `paid_at`.
-
-### Arquivos a criar/editar
-
-Novos:
-- `supabase/migrations/<timestamp>_affiliates.sql`
-- `src/types/affiliates.ts`
-- `src/pages/AffiliateSignupPage.tsx`
-- `src/pages/AffiliateLandingPage.tsx` (`/in/:slug`)
-- `src/pages/AffiliateDashboardPage.tsx` (`/afiliado`)
-- `src/pages/AffiliatesAdminPage.tsx` (`/afiliados-admin`)
-
-Editar:
-- `src/App.tsx` — rotas + lista pública
-- `src/config/app-pages.ts` — entradas de menu
-
-### Detalhes técnicos
-
-- Auth: usa Supabase Auth padrão (email+senha). Após signUp, insere row em `affiliates` com `user_id`.
-- Slug: gerado no momento da aprovação a partir de `full_name` (slugify + sufixo numérico se conflito).
-- Validação: zod nos formulários (nome, email, whatsapp, CPF formato).
-- Estilo: tema escuro padrão do sistema (#000000 / #BFF720). Página `/in/:slug` light theme (regra de páginas públicas de contrato).
-- Sem integração com tabela `clients` existente — afiliados é fluxo separado.
-- Comissão recorrente: gerada manualmente pelo admin (cron pode ser adicionado depois).
-
-Após aprovação do plano, executo a migração e implemento todos os arquivos.
+## Resultado esperado
+- Ao assinar um contrato em `/contract/sign/:id`, a edge function cria o cliente.
+- A aba **Clientes** recebe o evento realtime e o cliente novo aparece instantaneamente, com email, escopo e valor mensal corretamente preenchidos.

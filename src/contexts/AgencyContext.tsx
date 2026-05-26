@@ -161,6 +161,26 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // Realtime subscription for clients table (auto-create on contract signing, etc.)
+  useEffect(() => {
+    const channel = supabase
+      .channel('clients-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const newClient = rowToClient(payload.new as Tables<'clients'>);
+          setAllClients(prev => prev.some(c => c.id === newClient.id) ? prev : [...prev, newClient]);
+        } else if (payload.eventType === 'UPDATE') {
+          const updated = rowToClient(payload.new as Tables<'clients'>);
+          setAllClients(prev => prev.map(c => c.id === updated.id ? updated : c));
+        } else if (payload.eventType === 'DELETE') {
+          const oldId = (payload.old as { id?: string })?.id;
+          if (oldId) setAllClients(prev => prev.filter(c => c.id !== oldId));
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   const taskToRow = (t: Task) => ({
     id: t.id, client_id: t.clientId || null, title: t.title, description: t.description,
     assignee: t.assignee, priority: t.priority, due_date: t.dueDate || null, status: toDatabaseTaskStatus(t.status),
