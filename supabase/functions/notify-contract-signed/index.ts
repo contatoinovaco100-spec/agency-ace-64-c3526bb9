@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
             phone: '',
             contract_start_date: new Date().toISOString().split('T')[0],
             monthly_value: Number(contract.monthly_value) || 0,
-            scope: contract.scope_description || contract.services || '',
+            scope: contract.scope_description || contract.services || (contract.plan_name ? `Plano ${contract.plan_name}` : ''),
             service_type: [],
             account_manager: '',
             status: 'Ativo',
