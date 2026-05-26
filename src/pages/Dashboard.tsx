@@ -239,6 +239,77 @@ export default function Dashboard() {
     return new Date(c.contractStartDate) >= thirtyDaysAgo;
   });
 
+  // === MoM (mês atual vs anterior) ===
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+  const lastMonthMrr = clients.reduce((sum, c) => {
+    if (!c.contractStartDate || c.status === 'Cancelado') return sum;
+    const start = new Date(c.contractStartDate);
+    if (isNaN(start.getTime())) return sum;
+    return start <= endOfLastMonth ? sum + (c.monthlyValue || 0) : sum;
+  }, 0);
+  const mrrDelta = mrr - lastMonthMrr;
+  const mrrPct = lastMonthMrr > 0 ? (mrrDelta / lastMonthMrr) * 100 : (mrr > 0 ? 100 : 0);
+
+  const newClientsThisMonth = clients.filter(c => {
+    if (!c.contractStartDate) return false;
+    const d = new Date(c.contractStartDate);
+    return d >= startOfThisMonth;
+  }).length;
+  const newClientsLastMonth = clients.filter(c => {
+    if (!c.contractStartDate) return false;
+    const d = new Date(c.contractStartDate);
+    return d >= startOfLastMonth && d <= endOfLastMonth;
+  }).length;
+
+  const contractsSignedThisMonth = signedContracts.filter(ct => {
+    const ds = ct.contract_signatures?.[0]?.signed_at || ct.sent_at || ct.created_at;
+    const d = new Date(ds);
+    return !isNaN(d.getTime()) && d >= startOfThisMonth;
+  }).length;
+  const contractsSignedLastMonth = signedContracts.filter(ct => {
+    const ds = ct.contract_signatures?.[0]?.signed_at || ct.sent_at || ct.created_at;
+    const d = new Date(ds);
+    return !isNaN(d.getTime()) && d >= startOfLastMonth && d <= endOfLastMonth;
+  }).length;
+
+  // === Meta de faturamento (10k → 100k → 1M) ===
+  const milestones = [10000, 100000, 1000000];
+  const nextGoal = milestones.find(m => mrr < m) || milestones[milestones.length - 1];
+  const prevGoal = [0, ...milestones].filter(m => m < nextGoal).pop() || 0;
+  const goalProgress = nextGoal > prevGoal ? Math.min(100, ((mrr - prevGoal) / (nextGoal - prevGoal)) * 100) : 100;
+  const goalLabel = nextGoal >= 1000000 ? 'R$ 1M' : nextGoal >= 100000 ? 'R$ 100k' : 'R$ 10k';
+
+  // === Próximas renovações (próximos 60 dias) ===
+  const today60 = new Date();
+  const in60 = new Date();
+  in60.setDate(in60.getDate() + 60);
+  const upcomingRenewals = signedContracts
+    .map(ct => {
+      const ds = ct.contract_signatures?.[0]?.signed_at || ct.sent_at || ct.created_at;
+      const start = new Date(ds);
+      if (isNaN(start.getTime())) return null;
+      const end = new Date(start);
+      end.setMonth(end.getMonth() + (ct.duration_months || 12));
+      return { id: ct.id, name: ct.client_name, value: ct.monthly_value || 0, endDate: end };
+    })
+    .filter((x): x is { id: string; name: string; value: number; endDate: Date } => !!x && x.endDate >= today60 && x.endDate <= in60)
+    .sort((a, b) => a.endDate.getTime() - b.endDate.getTime());
+
+  // === Ranking de equipe (tarefas concluídas) ===
+  const completionByMember: Record<string, number> = {};
+  completedTasks.forEach(t => {
+    if (!t.assignee) return;
+    completionByMember[t.assignee] = (completionByMember[t.assignee] || 0) + 1;
+  });
+  const teamRanking = Object.entries(completionByMember)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+  const maxCompletion = teamRanking[0]?.count || 1;
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'BOM DIA' : hour < 18 ? 'BOA TARDE' : 'BOA NOITE';
 
