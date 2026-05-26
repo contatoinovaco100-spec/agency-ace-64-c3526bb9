@@ -8,7 +8,7 @@ import {
   Users, DollarSign, Target, CheckSquare, FolderOpen,
   TrendingUp, PieChart, BarChart3, ArrowUpRight, ArrowDownRight,
   Clock, AlertTriangle, CheckCircle2, Briefcase, FileText, BellRing,
-  EyeOff, Eye, ArrowUpDown, ArrowUp, ArrowDown,
+  EyeOff, Eye, ArrowUpDown, ArrowUp, ArrowDown, Trophy, CalendarClock, Rocket, Minus, Medal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePushNotification } from '@/hooks/usePushNotification';
@@ -239,6 +239,77 @@ export default function Dashboard() {
     return new Date(c.contractStartDate) >= thirtyDaysAgo;
   });
 
+  // === MoM (mês atual vs anterior) ===
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+  const lastMonthMrr = clients.reduce((sum, c) => {
+    if (!c.contractStartDate || c.status === 'Cancelado') return sum;
+    const start = new Date(c.contractStartDate);
+    if (isNaN(start.getTime())) return sum;
+    return start <= endOfLastMonth ? sum + (c.monthlyValue || 0) : sum;
+  }, 0);
+  const mrrDelta = mrr - lastMonthMrr;
+  const mrrPct = lastMonthMrr > 0 ? (mrrDelta / lastMonthMrr) * 100 : (mrr > 0 ? 100 : 0);
+
+  const newClientsThisMonth = clients.filter(c => {
+    if (!c.contractStartDate) return false;
+    const d = new Date(c.contractStartDate);
+    return d >= startOfThisMonth;
+  }).length;
+  const newClientsLastMonth = clients.filter(c => {
+    if (!c.contractStartDate) return false;
+    const d = new Date(c.contractStartDate);
+    return d >= startOfLastMonth && d <= endOfLastMonth;
+  }).length;
+
+  const contractsSignedThisMonth = signedContracts.filter(ct => {
+    const ds = ct.contract_signatures?.[0]?.signed_at || ct.sent_at || ct.created_at;
+    const d = new Date(ds);
+    return !isNaN(d.getTime()) && d >= startOfThisMonth;
+  }).length;
+  const contractsSignedLastMonth = signedContracts.filter(ct => {
+    const ds = ct.contract_signatures?.[0]?.signed_at || ct.sent_at || ct.created_at;
+    const d = new Date(ds);
+    return !isNaN(d.getTime()) && d >= startOfLastMonth && d <= endOfLastMonth;
+  }).length;
+
+  // === Meta de faturamento (10k → 100k → 1M) ===
+  const milestones = [10000, 100000, 1000000];
+  const nextGoal = milestones.find(m => mrr < m) || milestones[milestones.length - 1];
+  const prevGoal = [0, ...milestones].filter(m => m < nextGoal).pop() || 0;
+  const goalProgress = nextGoal > prevGoal ? Math.min(100, ((mrr - prevGoal) / (nextGoal - prevGoal)) * 100) : 100;
+  const goalLabel = nextGoal >= 1000000 ? 'R$ 1M' : nextGoal >= 100000 ? 'R$ 100k' : 'R$ 10k';
+
+  // === Próximas renovações (próximos 60 dias) ===
+  const today60 = new Date();
+  const in60 = new Date();
+  in60.setDate(in60.getDate() + 60);
+  const upcomingRenewals = signedContracts
+    .map(ct => {
+      const ds = ct.contract_signatures?.[0]?.signed_at || ct.sent_at || ct.created_at;
+      const start = new Date(ds);
+      if (isNaN(start.getTime())) return null;
+      const end = new Date(start);
+      end.setMonth(end.getMonth() + (ct.duration_months || 12));
+      return { id: ct.id, name: ct.client_name, value: ct.monthly_value || 0, endDate: end };
+    })
+    .filter((x): x is { id: string; name: string; value: number; endDate: Date } => !!x && x.endDate >= today60 && x.endDate <= in60)
+    .sort((a, b) => a.endDate.getTime() - b.endDate.getTime());
+
+  // === Ranking de equipe (tarefas concluídas) ===
+  const completionByMember: Record<string, number> = {};
+  completedTasks.forEach(t => {
+    if (!t.assignee) return;
+    completionByMember[t.assignee] = (completionByMember[t.assignee] || 0) + 1;
+  });
+  const teamRanking = Object.entries(completionByMember)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+  const maxCompletion = teamRanking[0]?.count || 1;
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'BOM DIA' : hour < 18 ? 'BOA TARDE' : 'BOA NOITE';
 
@@ -342,6 +413,172 @@ export default function Dashboard() {
             ))}
           </div>
 
+          {/* === Meta de Faturamento === */}
+          <motion.div {...anim(4)}>
+            <div className="relative overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-br from-card via-card to-primary/[0.04] p-6">
+              <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-primary/10 blur-3xl" />
+              <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
+                    <Rocket className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">Próxima Meta</p>
+                    <h3 className="text-xl font-bold text-foreground">Faturamento mensal · <span className="text-primary">{goalLabel}</span></h3>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold tabular-nums text-foreground">{formatCurrency(mrr)}</p>
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    Faltam {formatCurrency(Math.max(0, nextGoal - mrr))} para bater a meta
+                  </p>
+                </div>
+              </div>
+              <div className="relative h-3 w-full overflow-hidden rounded-full bg-secondary/60">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-[hsl(var(--success))] shadow-[0_0_20px_hsl(73,93%,55%/0.5)] transition-all duration-700"
+                  style={{ width: `${goalProgress}%` }}
+                />
+              </div>
+              <div className="mt-2 flex justify-between text-[11px] text-muted-foreground tabular-nums">
+                <span>{formatCurrency(prevGoal)}</span>
+                <span className="font-semibold text-primary">{goalProgress.toFixed(1)}%</span>
+                <span>{formatCurrency(nextGoal)}</span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* === Mês atual vs anterior · Renovações · Ranking equipe === */}
+          <div className="grid gap-4 lg:grid-cols-3">
+            {/* MoM comparison */}
+            <motion.div {...anim(5)}>
+              <Card className="border-border/60 rounded-[2rem] bg-card h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <TrendingUp className="h-4 w-4 text-primary" /> Mês atual vs anterior
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[
+                    { label: 'MRR', current: mrr, previous: lastMonthMrr, delta: mrrDelta, pct: mrrPct, currency: true },
+                    { label: 'Novos clientes', current: newClientsThisMonth, previous: newClientsLastMonth, delta: newClientsThisMonth - newClientsLastMonth, pct: newClientsLastMonth > 0 ? ((newClientsThisMonth - newClientsLastMonth) / newClientsLastMonth) * 100 : (newClientsThisMonth > 0 ? 100 : 0), currency: false },
+                    { label: 'Contratos assinados', current: contractsSignedThisMonth, previous: contractsSignedLastMonth, delta: contractsSignedThisMonth - contractsSignedLastMonth, pct: contractsSignedLastMonth > 0 ? ((contractsSignedThisMonth - contractsSignedLastMonth) / contractsSignedLastMonth) * 100 : (contractsSignedThisMonth > 0 ? 100 : 0), currency: false },
+                  ].map(row => {
+                    const up = row.delta > 0;
+                    const flat = row.delta === 0;
+                    const Icon = flat ? Minus : up ? ArrowUpRight : ArrowDownRight;
+                    const color = flat ? 'text-muted-foreground' : up ? 'text-[hsl(var(--success))]' : 'text-destructive';
+                    const bg = flat ? 'bg-muted/50' : up ? 'bg-[hsl(var(--success))]/10' : 'bg-destructive/10';
+                    return (
+                      <div key={row.label} className="flex items-center justify-between gap-3 rounded-xl bg-secondary/30 p-3">
+                        <div className="min-w-0">
+                          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{row.label}</p>
+                          <p className="text-lg font-bold tabular-nums text-foreground mt-0.5">
+                            {row.currency ? formatCurrency(row.current) : row.current}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground tabular-nums">
+                            anterior: {row.currency ? formatCurrency(row.previous) : row.previous}
+                          </p>
+                        </div>
+                        <div className={`flex flex-col items-end gap-0.5 px-2.5 py-1.5 rounded-lg ${bg} ${color} shrink-0`}>
+                          <Icon className="h-3.5 w-3.5" />
+                          <span className="text-xs font-bold tabular-nums">{flat ? '0%' : `${up ? '+' : ''}${row.pct.toFixed(0)}%`}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Renewals */}
+            <motion.div {...anim(6)}>
+              <Card className="border-border/60 rounded-[2rem] bg-card h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <CalendarClock className="h-4 w-4 text-[hsl(var(--warning))]" /> Renovações em até 60 dias
+                    {upcomingRenewals.length > 0 && (
+                      <Badge variant="secondary" className="ml-auto text-[10px]">{upcomingRenewals.length}</Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {upcomingRenewals.length === 0 ? (
+                    <div className="flex flex-col items-center gap-2 py-10 text-center">
+                      <CheckCircle2 className="h-10 w-10 text-[hsl(var(--success))]" />
+                      <p className="text-sm text-muted-foreground">Nenhum contrato vencendo nos próximos 60 dias.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+                      {upcomingRenewals.map(r => {
+                        const daysLeft = Math.ceil((r.endDate.getTime() - Date.now()) / 86400000);
+                        const urgent = daysLeft <= 15;
+                        return (
+                          <div key={r.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/40 bg-card/40 p-2.5">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{r.name}</p>
+                              <p className="text-[10px] text-muted-foreground tabular-nums">
+                                Vence em {r.endDate.toLocaleDateString('pt-BR')} · {formatCurrency(r.value)}/mês
+                              </p>
+                            </div>
+                            <Badge
+                              variant="secondary"
+                              className={`text-[10px] shrink-0 ${urgent ? 'bg-destructive/15 text-destructive' : 'bg-[hsl(var(--warning))]/10 text-[hsl(var(--warning))]'}`}
+                            >
+                              {daysLeft}d
+                            </Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Team ranking */}
+            <motion.div {...anim(7)}>
+              <Card className="border-border/60 rounded-[2rem] bg-card h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Trophy className="h-4 w-4 text-primary" /> Ranking de Equipe
+                    <span className="ml-auto text-[10px] text-muted-foreground font-normal">tarefas concluídas</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {teamRanking.length === 0 ? (
+                    <div className="py-10 text-center text-sm text-muted-foreground">Nenhuma tarefa concluída ainda.</div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {teamRanking.map((m, i) => {
+                        const pct = (m.count / maxCompletion) * 100;
+                        const isTop = i === 0;
+                        return (
+                          <div key={m.name} className="group">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className={`flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold tabular-nums ${i < 3 ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-secondary text-muted-foreground'}`}>
+                                  {i === 0 ? <Medal className="h-3.5 w-3.5" /> : i + 1}
+                                </span>
+                                <span className="text-sm font-medium text-foreground truncate">{m.name}</span>
+                              </div>
+                              <span className={`text-sm font-bold tabular-nums shrink-0 ${isTop ? 'text-primary' : 'text-foreground'}`}>{m.count}</span>
+                            </div>
+                            <div className="h-1.5 w-full rounded-full bg-secondary/60 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-primary to-[hsl(var(--success))] transition-all duration-500"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
 
           {/* Charts Row */}
           <div className="grid gap-4 lg:grid-cols-3">
