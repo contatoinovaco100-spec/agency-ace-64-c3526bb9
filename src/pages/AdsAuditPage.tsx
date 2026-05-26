@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 import {
   Upload, X, Loader2, BarChart3, Wand2, AlertTriangle,
   CheckCircle2, AlertCircle, TrendingUp, TrendingDown, Target, Zap, MessageCircle,
@@ -108,17 +108,9 @@ export default function AdsAuditPage() {
   const [savedClient, setSavedClient] = useState<string>('');
   const [history, setHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
   const reportRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const total = document.documentElement.scrollHeight - window.innerHeight;
-      setScrollProgress(total > 0 ? (window.scrollY / total) * 100 : 0);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Load by slug if public view OR direct link
   useEffect(() => {
@@ -380,7 +372,7 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
       {diagnosis && (
         <motion.div
           className="fixed top-0 left-0 right-0 h-1 bg-primary z-50 origin-left print:hidden"
-          style={{ scaleX: scrollProgress / 100 }}
+          style={{ scaleX }}
         />
       )}
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useSpring } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -75,9 +75,15 @@ export default function DiagnosticLP() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<any>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
   const [resolvedProfileImage, setResolvedProfileImage] = useState('');
   const [resolvedAnalysisImage, setResolvedAnalysisImage] = useState('');
+  
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
 
   useEffect(() => {
     const fetchDiagnostic = async () => {
@@ -113,15 +119,6 @@ export default function DiagnosticLP() {
       }
     };
     fetchDiagnostic();
-
-    const handleScroll = () => {
-      const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
-      const currentScroll = window.scrollY;
-      setScrollProgress((currentScroll / totalScroll) * 100);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, [slug]);
 
   useEffect(() => {
@@ -223,7 +220,7 @@ export default function DiagnosticLP() {
       {/* PROGRESS BAR */}
       <motion.div 
         className="fixed top-0 left-0 right-0 h-1 bg-[#bff720] z-50 origin-left no-print"
-        style={{ scaleX: scrollProgress / 100 }}
+        style={{ scaleX }}
       />
 
       {/* PAGE 1 — HERO COVER */}
