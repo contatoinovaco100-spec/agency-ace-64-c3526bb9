@@ -140,6 +140,13 @@ export default function FinancePage() {
     installments: '1'
   });
 
+  const [showAutoModal, setShowAutoModal] = useState(false);
+  const [autoMonth, setAutoMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [autoDueDate, setAutoDueDate] = useState(() => new Date().toISOString().split('T')[0]);
+
   const [loading, setLoading] = useState(true);
 
   // Fetch from Supabase
@@ -427,31 +434,35 @@ export default function FinancePage() {
     }
   };
 
-  const generateAutomaticInvoices = async () => {
+  const openAutoModal = () => {
     const activeClients = clients.filter(c => c.status === 'Ativo');
     if (activeClients.length === 0) {
       toast.error('Nenhum cliente ativo encontrado.');
       return;
     }
-
     if (!pixConfig.pixKey) {
       toast.error('Configure sua chave Pix primeiro');
       return;
     }
+    setShowAutoModal(true);
+  };
 
-    if (!confirm(`Deseja gerar faturas para os ${activeClients.length} clientes ativos?`)) return;
-
-    const currentMonth = new Date().toLocaleString('pt-BR', { month: 'long' });
-    const today = new Date().toISOString().split('T')[0];
+  const confirmGenerateAutomaticInvoices = async () => {
+    const activeClients = clients.filter(c => c.status === 'Ativo');
+    
+    const [year, month] = autoMonth.split('-');
+    const dateObj = new Date(Number(year), Number(month) - 1, 1);
+    const monthName = dateObj.toLocaleString('pt-BR', { month: 'long' });
+    const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
     
     try {
       const inserts = activeClients.map(c => ({
         id: crypto.randomUUID(),
         client_name: c.companyName,
         client_contact: c.phone || '',
-        description: `Mensalidade - ${currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)}`,
+        description: `Mensalidade - ${capitalizedMonth}`,
         amount: c.monthlyValue,
-        due_date: today,
+        due_date: autoDueDate,
         notes: 'Gerada automaticamente via sistema',
         custom_message: 'Agradecemos pela parceria!',
         status: 'pendente',
@@ -462,9 +473,9 @@ export default function FinancePage() {
       const { error } = await supabase.from('invoices').insert(inserts);
       if (error) throw error;
 
-      // Refresh list
       fetchData();
-      toast.success(`${inserts.length} faturas geradas e salvas com sucesso!`);
+      toast.success(`${inserts.length} faturas geradas para ${capitalizedMonth}!`);
+      setShowAutoModal(false);
     } catch (error) {
       console.error('Error generating invoices:', error);
       toast.error('Erro ao gerar faturas no banco de dados');
@@ -526,7 +537,7 @@ export default function FinancePage() {
           <Button variant="outline" onClick={() => setShowConfigModal(true)} className="hidden sm:flex">
             <Settings className="mr-2 h-4 w-4" /> Configurar Pix
           </Button>
-          <Button variant="secondary" onClick={generateAutomaticInvoices} className="gap-2">
+          <Button variant="secondary" onClick={openAutoModal} className="gap-2">
             <Zap className="h-4 w-4 text-amber-500 fill-amber-500" /> Gerar Faturas Automáticas
           </Button>
           <Button onClick={openCreateModal} className="shadow-lg shadow-primary/20 transition-all hover:scale-105">
@@ -820,6 +831,37 @@ export default function FinancePage() {
             <Button variant="ghost" onClick={() => setShowInvoiceModal(false)} className="mr-auto">Cancelar</Button>
             <Button onClick={handleSaveInvoice} size="lg" className="w-36">
               {editingInvoice ? 'Salvar' : 'Criar Fatura'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Auto Generate Invoices Modal ─────────────────────────────────── */}
+      <Dialog open={showAutoModal} onOpenChange={setShowAutoModal}>
+        <DialogContent className="sm:max-w-[420px] shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Zap className="h-5 w-5 text-amber-500 fill-amber-500" /> Gerar Faturas Automáticas
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 py-2">
+            <p className="text-sm text-muted-foreground">
+              Serão geradas faturas para {clients.filter(c => c.status === 'Ativo').length} clientes ativos.
+            </p>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold">Mês de Referência</Label>
+              <Input type="month" value={autoMonth} onChange={e => setAutoMonth(e.target.value)} className="h-11" />
+              <p className="text-[11px] text-muted-foreground">Aparecerá na descrição: "Mensalidade - [Mês]"</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold">Data de Vencimento Base</Label>
+              <Input type="date" value={autoDueDate} onChange={e => setAutoDueDate(e.target.value)} className="h-11" />
+            </div>
+          </div>
+          <DialogFooter className="border-t pt-4">
+            <Button variant="ghost" onClick={() => setShowAutoModal(false)} className="mr-auto">Cancelar</Button>
+            <Button onClick={confirmGenerateAutomaticInvoices} size="lg" className="w-36 bg-amber-500 hover:bg-amber-600 text-white">
+              Gerar Faturas
             </Button>
           </DialogFooter>
         </DialogContent>
