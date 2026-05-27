@@ -102,16 +102,62 @@ export default function FinancialPage() {
 
   useEffect(() => { load(); }, []);
 
+  // Mês selecionado (primeiro dia do mês)
+  const [selectedMonth, setSelectedMonth] = useState<Date>(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+  const [viewAll, setViewAll] = useState(false);
+
+  const monthKey = (d: Date | string | null) => {
+    if (!d) return '';
+    const dt = typeof d === 'string' ? new Date(d) : d;
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+  };
+  const selectedKey = monthKey(selectedMonth);
+
+  // Faturas do mês selecionado: usa month_ref se existir, senão due_date, senão created_at
+  const invoicesOfMonth = useMemo(() => {
+    if (viewAll) return invoices;
+    return invoices.filter(i => {
+      const ref = i.month_ref || i.due_date || i.created_at;
+      return monthKey(ref as any) === selectedKey;
+    });
+  }, [invoices, selectedKey, viewAll]);
+
+  // Lista de meses disponíveis (para navegação rápida)
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    invoices.forEach(i => {
+      const ref = i.month_ref || i.due_date || i.created_at;
+      const k = monthKey(ref as any);
+      if (k) set.add(k);
+    });
+    set.add(selectedKey);
+    return Array.from(set).sort().reverse();
+  }, [invoices, selectedKey]);
+
   const stats = useMemo(() => {
-    const pending = invoices.filter(i => i.status === 'pendente');
-    const paid = invoices.filter(i => i.status === 'pago');
+    const pending = invoicesOfMonth.filter(i => i.status === 'pendente');
+    const paid = invoicesOfMonth.filter(i => i.status === 'pago');
     return {
       toReceive: pending.reduce((s, i) => s + Number(i.amount), 0),
       received: paid.reduce((s, i) => s + Number(i.amount), 0),
       pendingCount: pending.length,
       paidCount: paid.length,
     };
-  }, [invoices]);
+  }, [invoicesOfMonth]);
+
+  const monthLabel = (key: string) => {
+    const [y, m] = key.split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  };
+
+  const shiftMonth = (delta: number) => {
+    setViewAll(false);
+    setSelectedMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+  };
+
 
   const saveSettings = async () => {
     if (!settingsForm.pix_key.trim() || !settingsForm.receiver_name.trim()) {
