@@ -128,6 +128,11 @@ export default function FinancePage() {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'paid'>('all');
+  const [selectedMonth, setSelectedMonth] = useState<Date>(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+  const [viewAllMonths, setViewAllMonths] = useState(false);
 
   const [form, setForm] = useState({
     clientName: '', clientContact: '', description: '',
