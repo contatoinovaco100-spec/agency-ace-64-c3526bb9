@@ -300,7 +300,59 @@ export default function FinancialPage() {
         </Card>
       )}
 
-      {/* Dashboard */}
+      {/* Navegação por mês */}
+      <Card>
+        <CardContent className="pt-6 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => shiftMonth(-1)} disabled={viewAll}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-2 min-w-[200px] justify-center">
+              <CalendarIcon className="h-4 w-4 text-primary" />
+              <span className="font-semibold capitalize">
+                {viewAll ? 'Todos os meses' : monthLabel(selectedKey)}
+              </span>
+            </div>
+            <Button variant="outline" size="icon" onClick={() => shiftMonth(1)} disabled={viewAll}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select
+              value={viewAll ? 'all' : selectedKey}
+              onValueChange={(v) => {
+                if (v === 'all') { setViewAll(true); return; }
+                setViewAll(false);
+                const [y, m] = v.split('-').map(Number);
+                setSelectedMonth(new Date(y, m - 1, 1));
+              }}
+            >
+              <SelectTrigger className="w-[220px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os meses</SelectItem>
+                {availableMonths.map(k => (
+                  <SelectItem key={k} value={k} className="capitalize">{monthLabel(k)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant={viewAll ? 'outline' : 'default'}
+              size="sm"
+              onClick={() => {
+                setViewAll(false);
+                const d = new Date();
+                setSelectedMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+              }}
+            >
+              Mês atual
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dashboard do mês */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={<Wallet className="h-5 w-5" />} label="Total a receber" value={formatBRL(stats.toReceive)} accent="text-amber-500" />
         <StatCard icon={<TrendingUp className="h-5 w-5" />} label="Total recebido" value={formatBRL(stats.received)} accent="text-primary" />
@@ -311,21 +363,24 @@ export default function FinancialPage() {
       {/* Lista */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 flex-wrap">
             <Receipt className="h-5 w-5" /> Faturas
+            <span className="text-sm font-normal text-muted-foreground capitalize">
+              · {viewAll ? 'Todos os meses' : monthLabel(selectedKey)}
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="todas">
             <TabsList>
-              <TabsTrigger value="todas">Todas ({invoices.length})</TabsTrigger>
+              <TabsTrigger value="todas">Todas ({invoicesOfMonth.length})</TabsTrigger>
               <TabsTrigger value="pendente">Pendentes ({stats.pendingCount})</TabsTrigger>
               <TabsTrigger value="pago">Pagas ({stats.paidCount})</TabsTrigger>
             </TabsList>
             {(['todas', 'pendente', 'pago'] as const).map(tab => (
               <TabsContent key={tab} value={tab} className="mt-4">
                 <InvoiceList
-                  invoices={invoices.filter(i => tab === 'todas' || i.status === tab)}
+                  invoices={invoicesOfMonth.filter(i => tab === 'todas' || i.status === tab)}
                   onTogglePaid={togglePaid}
                   onDelete={deleteInvoice}
                   onShare={shareWhatsApp}
