@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import {
   Plus, Eye, CheckCircle2, Wallet, Clock, TrendingUp, Send, Trash2,
   DollarSign, Receipt, Settings as SettingsIcon, Copy, FileDown, Link2,
+  ChevronLeft, ChevronRight, Calendar as CalendarIcon,
 } from 'lucide-react';
 import { generatePixPayload } from '@/lib/pix';
 import { Link } from 'react-router-dom';
