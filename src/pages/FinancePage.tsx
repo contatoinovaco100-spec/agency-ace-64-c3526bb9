@@ -553,6 +553,56 @@ export default function FinancePage() {
         </motion.div>
       )}
 
+      {/* Navegação por mês */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between bg-card p-4 rounded-xl border border-border/50 shadow-sm">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={() => shiftMonth(-1)} disabled={viewAllMonths}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-2 min-w-[200px] justify-center">
+            <Calendar className="h-4 w-4 text-primary" />
+            <span className="font-semibold capitalize">
+              {viewAllMonths ? 'Todos os meses' : monthLabel(selectedKey)}
+            </span>
+          </div>
+          <Button variant="outline" size="icon" onClick={() => shiftMonth(1)} disabled={viewAllMonths}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select
+            value={viewAllMonths ? 'all' : selectedKey}
+            onValueChange={(v) => {
+              if (v === 'all') { setViewAllMonths(true); return; }
+              setViewAllMonths(false);
+              const [y, m] = v.split('-').map(Number);
+              setSelectedMonth(new Date(y, m - 1, 1));
+            }}
+          >
+            <SelectTrigger className="w-[200px] h-9 bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os meses</SelectItem>
+              {availableMonths.map(k => (
+                <SelectItem key={k} value={k} className="capitalize">{monthLabel(k)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            variant={viewAllMonths ? 'outline' : 'default'}
+            onClick={() => {
+              setViewAllMonths(false);
+              const d = new Date();
+              setSelectedMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+            }}
+          >
+            Mês atual
+          </Button>
+        </div>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
