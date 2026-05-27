@@ -13,7 +13,7 @@ import {
   DollarSign, Plus, Settings, Eye, CheckCircle2, Clock, FileText,
   Copy, Send, Trash2, Edit2, QrCode, CreditCard, TrendingUp,
   AlertCircle, Search, Calendar, ArrowUpRight, Banknote, Receipt,
-  Zap, RefreshCw
+  Zap, RefreshCw, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
