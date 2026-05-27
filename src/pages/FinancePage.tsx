@@ -220,21 +220,55 @@ export default function FinancePage() {
     }
   }, []);
 
-  // KPIs
+  // Month helpers
+  const monthKey = (d?: string | Date | null) => {
+    if (!d) return '';
+    const dt = typeof d === 'string' ? new Date(d) : d;
+    if (isNaN(dt.getTime())) return '';
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+  };
+  const selectedKey = monthKey(selectedMonth);
+  const monthLabel = (key: string) => {
+    if (!key) return '';
+    const [y, m] = key.split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  };
+
+  // Invoices of selected month (uses dueDate, fallback createdAt)
+  const invoicesOfMonth = useMemo(() => {
+    if (viewAllMonths) return invoices;
+    return invoices.filter(i => {
+      const ref = i.dueDate || i.createdAt;
+      return monthKey(ref) === selectedKey;
+    });
+  }, [invoices, selectedKey, viewAllMonths]);
+
+  // Available months (with at least one invoice)
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    invoices.forEach(i => {
+      const k = monthKey(i.dueDate || i.createdAt);
+      if (k) set.add(k);
+    });
+    set.add(selectedKey);
+    return Array.from(set).sort().reverse();
+  }, [invoices, selectedKey]);
+
+  // KPIs (do mês selecionado)
   const kpis = useMemo(() => {
-    const pending = invoices.filter(i => i.status === 'pending');
-    const paid = invoices.filter(i => i.status === 'paid');
+    const pending = invoicesOfMonth.filter(i => i.status === 'pending');
+    const paid = invoicesOfMonth.filter(i => i.status === 'paid');
     return {
       totalReceivable: pending.reduce((s, i) => s + i.amount, 0),
       totalReceived: paid.reduce((s, i) => s + i.amount, 0),
       pendingCount: pending.length,
       paidCount: paid.length,
     };
-  }, [invoices]);
+  }, [invoicesOfMonth]);
 
   // Filtered
   const filtered = useMemo(() => {
-    return invoices
+    return invoicesOfMonth
       .filter(i => filterStatus === 'all' || i.status === filterStatus)
       .filter(i => {
         if (!searchQuery) return true;
@@ -242,7 +276,13 @@ export default function FinancePage() {
         return i.clientName.toLowerCase().includes(q) || i.description.toLowerCase().includes(q);
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [invoices, filterStatus, searchQuery]);
+  }, [invoicesOfMonth, filterStatus, searchQuery]);
+
+  const shiftMonth = (delta: number) => {
+    setViewAllMonths(false);
+    setSelectedMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+  };
+
 
   // Create / Edit
   const openCreateModal = () => {
