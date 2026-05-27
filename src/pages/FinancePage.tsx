@@ -13,7 +13,7 @@ import {
   DollarSign, Plus, Settings, Eye, CheckCircle2, Clock, FileText,
   Copy, Send, Trash2, Edit2, QrCode, CreditCard, TrendingUp,
   AlertCircle, Search, Calendar, ArrowUpRight, Banknote, Receipt,
-  Zap, RefreshCw
+  Zap, RefreshCw, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -128,6 +128,11 @@ export default function FinancePage() {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'paid'>('all');
+  const [selectedMonth, setSelectedMonth] = useState<Date>(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+  const [viewAllMonths, setViewAllMonths] = useState(false);
 
   const [form, setForm] = useState({
     clientName: '', clientContact: '', description: '',
@@ -215,21 +220,55 @@ export default function FinancePage() {
     }
   }, []);
 
-  // KPIs
+  // Month helpers
+  const monthKey = (d?: string | Date | null) => {
+    if (!d) return '';
+    const dt = typeof d === 'string' ? new Date(d) : d;
+    if (isNaN(dt.getTime())) return '';
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+  };
+  const selectedKey = monthKey(selectedMonth);
+  const monthLabel = (key: string) => {
+    if (!key) return '';
+    const [y, m] = key.split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  };
+
+  // Invoices of selected month (uses dueDate, fallback createdAt)
+  const invoicesOfMonth = useMemo(() => {
+    if (viewAllMonths) return invoices;
+    return invoices.filter(i => {
+      const ref = i.dueDate || i.createdAt;
+      return monthKey(ref) === selectedKey;
+    });
+  }, [invoices, selectedKey, viewAllMonths]);
+
+  // Available months (with at least one invoice)
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    invoices.forEach(i => {
+      const k = monthKey(i.dueDate || i.createdAt);
+      if (k) set.add(k);
+    });
+    set.add(selectedKey);
+    return Array.from(set).sort().reverse();
+  }, [invoices, selectedKey]);
+
+  // KPIs (do mês selecionado)
   const kpis = useMemo(() => {
-    const pending = invoices.filter(i => i.status === 'pending');
-    const paid = invoices.filter(i => i.status === 'paid');
+    const pending = invoicesOfMonth.filter(i => i.status === 'pending');
+    const paid = invoicesOfMonth.filter(i => i.status === 'paid');
     return {
       totalReceivable: pending.reduce((s, i) => s + i.amount, 0),
       totalReceived: paid.reduce((s, i) => s + i.amount, 0),
       pendingCount: pending.length,
       paidCount: paid.length,
     };
-  }, [invoices]);
+  }, [invoicesOfMonth]);
 
   // Filtered
   const filtered = useMemo(() => {
-    return invoices
+    return invoicesOfMonth
       .filter(i => filterStatus === 'all' || i.status === filterStatus)
       .filter(i => {
         if (!searchQuery) return true;
@@ -237,7 +276,13 @@ export default function FinancePage() {
         return i.clientName.toLowerCase().includes(q) || i.description.toLowerCase().includes(q);
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [invoices, filterStatus, searchQuery]);
+  }, [invoicesOfMonth, filterStatus, searchQuery]);
+
+  const shiftMonth = (delta: number) => {
+    setViewAllMonths(false);
+    setSelectedMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+  };
+
 
   // Create / Edit
   const openCreateModal = () => {
@@ -507,6 +552,56 @@ export default function FinancePage() {
           </Card>
         </motion.div>
       )}
+
+      {/* Navegação por mês */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between bg-card p-4 rounded-xl border border-border/50 shadow-sm">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={() => shiftMonth(-1)} disabled={viewAllMonths}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-2 min-w-[200px] justify-center">
+            <Calendar className="h-4 w-4 text-primary" />
+            <span className="font-semibold capitalize">
+              {viewAllMonths ? 'Todos os meses' : monthLabel(selectedKey)}
+            </span>
+          </div>
+          <Button variant="outline" size="icon" onClick={() => shiftMonth(1)} disabled={viewAllMonths}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select
+            value={viewAllMonths ? 'all' : selectedKey}
+            onValueChange={(v) => {
+              if (v === 'all') { setViewAllMonths(true); return; }
+              setViewAllMonths(false);
+              const [y, m] = v.split('-').map(Number);
+              setSelectedMonth(new Date(y, m - 1, 1));
+            }}
+          >
+            <SelectTrigger className="w-[200px] h-9 bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os meses</SelectItem>
+              {availableMonths.map(k => (
+                <SelectItem key={k} value={k} className="capitalize">{monthLabel(k)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            variant={viewAllMonths ? 'outline' : 'default'}
+            onClick={() => {
+              setViewAllMonths(false);
+              const d = new Date();
+              setSelectedMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+            }}
+          >
+            Mês atual
+          </Button>
+        </div>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
