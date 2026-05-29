@@ -24,18 +24,35 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Verify contract exists and was just signed
+    // Verify contract exists
     const { data: contract, error: contractError } = await supabase
       .from('contracts')
       .select('*')
       .eq('id', contract_id)
-      .eq('status', 'assinado')
       .single();
 
     if (contractError || !contract) {
-      return new Response(JSON.stringify({ error: 'Contract not found or not signed' }), {
+      return new Response(JSON.stringify({ error: 'Contract not found' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Verify signature exists
+    const { data: signature } = await supabase
+      .from('contract_signatures')
+      .select('id')
+      .eq('contract_id', contract_id)
+      .maybeSingle();
+
+    if (!signature) {
+      return new Response(JSON.stringify({ error: 'Contract has not been signed yet' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Update contract status to assinado since frontend might fail due to RLS
+    if (contract.status !== 'assinado') {
+      await supabase.from('contracts').update({ status: 'assinado' }).eq('id', contract_id);
     }
 
     // Auto-create client in CRM if not already existing
