@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ClientDiagnosisTab } from '@/components/clients/ClientDiagnosisTab';
-import { Shield, Lock, Mail, Key, Loader2, Link as LinkIcon, Target, Sparkles, Eye, EyeOff, Gift, Link2, Copy, MessageCircle, UserPlus, Users } from 'lucide-react';
+import { Shield, Lock, Mail, Key, Loader2, Link as LinkIcon, Target, Sparkles, Eye, EyeOff, Gift, Link2, Copy, MessageCircle, UserPlus, Users, RefreshCw } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 
 const serviceOptions: ServiceType[] = ['Gestor de trafego', 'Social Media', 'Estrategista digital', 'Editor de Video', 'Copywritter', 'Design'];
