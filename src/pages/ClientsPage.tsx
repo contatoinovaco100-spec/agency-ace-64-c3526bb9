@@ -56,7 +56,7 @@ export default function ClientsPage() {
           contact_name: name,
           email: c.client_email || existing?.email || '',
           phone: '',
-          contract_start_date: (c.signed_at || c.created_at || new Date().toISOString()).split('T')[0],
+          contract_start_date: ((c as any).signed_at || c.created_at || new Date().toISOString()).split('T')[0],
           monthly_value: Number(c.monthly_value) || 0,
           scope: c.scope_description || c.services || (c.plan_name ? `Plano ${c.plan_name}` : '') || existing?.scope || '',
           service_type: [],
