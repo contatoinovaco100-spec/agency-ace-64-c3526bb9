@@ -11,6 +11,23 @@ import { toast } from 'sonner';
 import { InstagramEmbed } from '@/components/InstagramEmbed';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface InstagramPost {
   id: string;
@@ -121,6 +138,35 @@ export default function InstagramPostsPage() {
     await supabase.from('instagram_posts' as any).delete().eq('id', id);
     toast.success('Post removido');
     fetchPosts();
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = posts.findIndex((p) => p.id === active.id);
+    const newIndex = posts.findIndex((p) => p.id === over.id);
+
+    const newPosts = arrayMove(posts, oldIndex, newIndex);
+    setPosts(newPosts);
+
+    const updates = newPosts.map((p, i) => ({
+      id: p.id,
+      sort_order: i,
+    }));
+
+    try {
+      for (const update of updates) {
+        await supabase.from('instagram_posts' as any).update({ sort_order: update.sort_order } as any).eq('id', update.id);
+      }
+    } catch (err) {
+      toast.error('Erro ao salvar nova ordem');
+    }
   };
 
   const postsWithStrategy = posts.filter(p => p.strategic_description);
@@ -304,85 +350,111 @@ export default function InstagramPostsPage() {
           </Button>
         </motion.div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <AnimatePresence>
-            {posts.map((post, i) => (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <Card className="overflow-hidden rounded-2xl border-border/50 shadow-sm hover:shadow-md transition-all group">
-                  {/* Embed */}
-                  <div className="bg-muted/30 p-3 flex items-center justify-center min-h-[380px]">
-                    <InstagramEmbed url={post.post_url} />
-                  </div>
-
-                  <CardContent className="p-5 space-y-4">
-                    {/* Strategy & Result badges */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {post.strategic_description && (
-                        <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider gap-1">
-                          <BarChart3 className="h-3 w-3" /> Estratégia
-                        </Badge>
-                      )}
-                      {post.post_result && (
-                        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] uppercase font-bold tracking-wider gap-1">
-                          <TrendingUp className="h-3 w-3" /> Resultado
-                        </Badge>
-                      )}
-                    </div>
-
-                    {post.strategic_description && (
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
-                          Estratégia
-                        </p>
-                        <p className="text-sm text-foreground leading-relaxed line-clamp-3">{post.strategic_description}</p>
-                      </div>
-                    )}
-                    {post.post_result && (
-                      <div className={post.strategic_description ? 'pt-3 border-t border-border/40' : ''}>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-1">
-                          Resultado
-                        </p>
-                        <p className="text-sm text-foreground leading-relaxed line-clamp-3">{post.post_result}</p>
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex items-center justify-between pt-3 border-t border-border/40">
-                      <a
-                        href={post.post_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1.5 font-medium transition-colors"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" /> Ver no Instagram
-                      </a>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(post)} title="Editar">
-                          <Edit2 className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(post.id)} title="Remover">
-                          <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Disclaimer */}
-                    <p className="text-[10px] text-muted-foreground/60 leading-tight">
-                      Este conteúdo exibe apenas dados públicos do Instagram. Métricas como alcance, impressões e conversões não estão incluídas.
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={posts.map(p => p.id)} strategy={rectSortingStrategy}>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {posts.map((post) => (
+                <SortableInstagramPost
+                  key={post.id}
+                  post={post}
+                  handleEdit={handleEdit}
+                  handleDelete={handleDelete}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
+  );
+}
+
+function SortableInstagramPost({
+  post, handleEdit, handleDelete
+}: {
+  post: InstagramPost;
+  handleEdit: (post: InstagramPost) => void;
+  handleDelete: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: post.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 'auto',
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  return (
+    <Card ref={setNodeRef} style={style} className="overflow-hidden rounded-2xl border-border/50 shadow-sm hover:shadow-md transition-all group relative">
+      <div 
+        {...attributes} 
+        {...listeners} 
+        className="absolute top-2 left-2 z-10 p-1.5 bg-black/60 text-white rounded-md cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <GripVertical className="h-4 w-4" />
+      </div>
+
+      <div className="bg-muted/30 p-3 flex items-center justify-center min-h-[380px]">
+        <InstagramEmbed url={post.post_url} />
+      </div>
+
+      <CardContent className="p-5 space-y-4">
+        {/* Strategy & Result badges */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {post.strategic_description && (
+            <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider gap-1">
+              <BarChart3 className="h-3 w-3" /> Estratégia
+            </Badge>
+          )}
+          {post.post_result && (
+            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] uppercase font-bold tracking-wider gap-1">
+              <TrendingUp className="h-3 w-3" /> Resultado
+            </Badge>
+          )}
+        </div>
+
+        {post.strategic_description && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
+              Estratégia
+            </p>
+            <p className="text-sm text-foreground leading-relaxed line-clamp-3">{post.strategic_description}</p>
+          </div>
+        )}
+        {post.post_result && (
+          <div className={post.strategic_description ? 'pt-3 border-t border-border/40' : ''}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-1">
+              Resultado
+            </p>
+            <p className="text-sm text-foreground leading-relaxed line-clamp-3">{post.post_result}</p>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center justify-between pt-3 border-t border-border/40">
+          <a
+            href={post.post_url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1.5 font-medium transition-colors"
+          >
+            <ExternalLink className="h-3.5 w-3.5" /> Ver no Instagram
+          </a>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(post)} title="Editar">
+              <Edit2 className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(post.id)} title="Remover">
+              <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Disclaimer */}
+        <p className="text-[10px] text-muted-foreground/60 leading-tight">
+          Este conteúdo exibe apenas dados públicos do Instagram. Métricas como alcance, impressões e conversões não estão incluídas.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
