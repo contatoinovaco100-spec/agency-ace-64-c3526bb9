@@ -46,7 +46,12 @@ export default function AffiliatesAdminPage() {
   const [leads, setLeads] = useState<AffiliateLead[]>([]);
   const [contracts, setContracts] = useState<AffiliateContract[]>([]);
   const [commissions, setCommissions] = useState<AffiliateCommission[]>([]);
-  const [pageSettings, setPageSettings] = useState({ whatsappNumber: '5588994463203', vslVideoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ' });
+  const [pageSettings, setPageSettings] = useState({
+    whatsappNumber: '5588994463203',
+    vslVideoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    closingCommission: 300,
+    recurringCommission: 100,
+  });
   const [savingSettings, setSavingSettings] = useState(false);
 
   const load = async () => {
@@ -63,19 +68,24 @@ export default function AffiliatesAdminPage() {
     setCommissions((cm.data as any) || []);
 
     // Carrega configurações da página de captação
-    let loadedCfg = { whatsappNumber: '5588994463203', vslVideoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ' };
+    let loadedCfg = { whatsappNumber: '5588994463203', vslVideoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', closingCommission: 300, recurringCommission: 100 };
     try {
       const { data: cfg } = await supabase.from('affiliate_settings' as any).select('*').limit(1).maybeSingle();
       if (cfg) {
         const c = cfg as any;
-        loadedCfg = { whatsappNumber: c.whatsapp_number || '5588994463203', vslVideoUrl: c.vsl_video_url || 'https://www.youtube.com/embed/dQw4w9WgXcQ' };
+        loadedCfg = {
+          whatsappNumber: c.whatsapp_number || '5588994463203',
+          vslVideoUrl: c.vsl_video_url || 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+          closingCommission: Number(c.closing_commission) || 300,
+          recurringCommission: Number(c.recurring_commission) || 100,
+        };
       } else {
         const saved = localStorage.getItem('affiliate_page_settings');
-        if (saved) { try { loadedCfg = JSON.parse(saved); } catch {} }
+        if (saved) { try { const p = JSON.parse(saved); loadedCfg = { ...loadedCfg, ...p }; } catch {} }
       }
     } catch (err) {
       const saved = localStorage.getItem('affiliate_page_settings');
-      if (saved) { try { loadedCfg = JSON.parse(saved); } catch {} }
+      if (saved) { try { const p = JSON.parse(saved); loadedCfg = { ...loadedCfg, ...p }; } catch {} }
     }
     setPageSettings(loadedCfg);
     setLoading(false);
@@ -92,12 +102,16 @@ export default function AffiliatesAdminPage() {
           await supabase.from('affiliate_settings' as any).update({
             whatsapp_number: pageSettings.whatsappNumber,
             vsl_video_url: pageSettings.vslVideoUrl,
+            closing_commission: pageSettings.closingCommission,
+            recurring_commission: pageSettings.recurringCommission,
             updated_at: new Date().toISOString()
           }).eq('id', (existing as any).id);
         } else {
           await supabase.from('affiliate_settings' as any).insert({
             whatsapp_number: pageSettings.whatsappNumber,
-            vsl_video_url: pageSettings.vslVideoUrl
+            vsl_video_url: pageSettings.vslVideoUrl,
+            closing_commission: pageSettings.closingCommission,
+            recurring_commission: pageSettings.recurringCommission,
           });
         }
       }
@@ -158,7 +172,7 @@ export default function AffiliatesAdminPage() {
       if (!existing) {
         await supabase.from('affiliate_commissions' as any).insert({
           affiliate_id: cur.affiliate_id, contract_id: cur.id,
-          type: 'fechamento', amount: 300, status: 'pendente',
+          type: 'fechamento', amount: pageSettings.closingCommission, status: 'pendente',
           reference_month: new Date().toISOString().slice(0, 10),
         });
       }
@@ -176,9 +190,25 @@ export default function AffiliatesAdminPage() {
   }
 
   async function generateRecurring() {
-    const { data, error } = await supabase.rpc('generate_monthly_affiliate_commissions' as any);
-    if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-    else { toast({ title: `${data || 0} comissões recorrentes geradas com sucesso!` }); load(); }
+    const refMonth = new Date().toISOString().slice(0, 10);
+    let count = 0;
+    for (const contract of contracts) {
+      if (contract.status !== 'ativo') continue;
+      const { data: existing } = await supabase.from('affiliate_commissions' as any)
+        .select('id').eq('contract_id', contract.id).eq('type', 'recorrencia').eq('reference_month', refMonth).maybeSingle();
+      if (existing) continue;
+      const { error } = await supabase.from('affiliate_commissions' as any).insert({
+        affiliate_id: contract.affiliate_id,
+        contract_id: contract.id,
+        type: 'recorrencia',
+        amount: pageSettings.recurringCommission,
+        status: 'pendente',
+        reference_month: refMonth,
+      });
+      if (!error) count++;
+    }
+    toast({ title: `${count} comissões recorrentes de R$ ${pageSettings.recurringCommission} geradas!` });
+    load();
   }
 
   // ==== EXCLUSÕES ====
@@ -633,6 +663,32 @@ export default function AffiliatesAdminPage() {
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Cole o link de embed direto do vídeo. Para o Wistia, use o formato <strong className="text-foreground font-mono">https://fast.wistia.net/embed/iframe/SEU_CODIGO</strong>. Para o YouTube, use <strong className="text-foreground font-mono">https://www.youtube.com/embed/SEU_CODIGO</strong>.
                 </p>
+              </div>
+
+              <div className="pt-4 border-t border-border/40">
+                <h3 className="text-sm font-bold text-foreground mb-4">Valores das Comissões</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-foreground">Comissão de Fechamento (R$)</Label>
+                    <Input 
+                      type="number"
+                      value={pageSettings.closingCommission} 
+                      onChange={e => setPageSettings({ ...pageSettings, closingCommission: Number(e.target.value) })}
+                      className="bg-background/50 border-border/60 focus:ring-primary h-11 text-lg font-bold"
+                    />
+                    <p className="text-xs text-muted-foreground">Valor único pago quando o lead assina o contrato.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-foreground">Comissão Recorrente (R$)</Label>
+                    <Input 
+                      type="number"
+                      value={pageSettings.recurringCommission} 
+                      onChange={e => setPageSettings({ ...pageSettings, recurringCommission: Number(e.target.value) })}
+                      className="bg-background/50 border-border/60 focus:ring-primary h-11 text-lg font-bold"
+                    />
+                    <p className="text-xs text-muted-foreground">Valor mensal pago enquanto o contrato estiver ativo.</p>
+                  </div>
+                </div>
               </div>
 
               <div className="pt-4 border-t border-border/40 flex justify-end">
