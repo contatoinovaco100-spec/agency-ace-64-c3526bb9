@@ -288,9 +288,7 @@ export default function ClientsPage() {
                           <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
                            {client.phone && <WhatsAppButton phone={client.phone} name={client.contactName} size="md" />}
                            <Button size="sm" variant="outline" onClick={() => openEdit(client)} className="flex-1 sm:flex-none">Editar</Button>
-                           {isAdmin && (
-                             <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 flex-1 sm:flex-none" onClick={() => deleteClient(client.id)}>Excluir</Button>
-                           )}
+                           <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 flex-1 sm:flex-none" onClick={() => handleDelete(client)}>Excluir</Button>
                          </div>
                        </TabsContent>
 
