@@ -42,15 +42,31 @@ export default function ClientsPage() {
         .select('*')
         .eq('status', 'assinado');
       if (error) throw error;
-      let created = 0, updated = 0;
+
+      const norm = (s: string) => (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+      // Dedupe contracts by normalized client name — keep most recent
+      const byName = new Map<string, any>();
       for (const c of contracts || []) {
+        const key = norm(c.client_name);
+        if (!key) continue;
+        const prev = byName.get(key);
+        const cDate = new Date((c as any).signed_at || c.created_at || 0).getTime();
+        const pDate = prev ? new Date((prev as any).signed_at || prev.created_at || 0).getTime() : -1;
+        if (!prev || cDate >= pDate) byName.set(key, c);
+      }
+
+      // Preload existing clients to lookup by normalized name (avoids duplicate inserts)
+      const { data: existingClients } = await supabase
+        .from('clients')
+        .select('id, company_name, monthly_value, scope, email');
+      const existingMap = new Map<string, any>();
+      for (const ec of existingClients || []) existingMap.set(norm(ec.company_name), ec);
+
+      let created = 0, updated = 0;
+      for (const [key, c] of byName) {
         const name = (c.client_name || '').trim();
-        if (!name) continue;
-        const { data: existing } = await supabase
-          .from('clients')
-          .select('id, monthly_value, scope, email')
-          .ilike('company_name', name)
-          .maybeSingle();
+        const existing = existingMap.get(key);
         const payload = {
           company_name: name,
           contact_name: name,
@@ -73,7 +89,8 @@ export default function ClientsPage() {
           }).eq('id', existing.id);
           updated++;
         } else {
-          await supabase.from('clients').insert(payload);
+          const { data: inserted } = await supabase.from('clients').insert(payload).select('id, company_name').single();
+          if (inserted) existingMap.set(key, inserted);
           created++;
         }
       }
@@ -83,6 +100,16 @@ export default function ClientsPage() {
       toast.error('Erro ao sincronizar: ' + (e?.message || 'desconhecido'));
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleDelete = async (client: Client) => {
+    if (!confirm(`Excluir o cliente "${client.companyName}"? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await deleteClient(client.id);
+      toast.success('Cliente excluído.');
+    } catch (e: any) {
+      toast.error('Erro ao excluir: ' + (e?.message || 'desconhecido'));
     }
   };
   const { isAdmin } = useUserRole();
@@ -261,9 +288,7 @@ export default function ClientsPage() {
                           <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
                            {client.phone && <WhatsAppButton phone={client.phone} name={client.contactName} size="md" />}
                            <Button size="sm" variant="outline" onClick={() => openEdit(client)} className="flex-1 sm:flex-none">Editar</Button>
-                           {isAdmin && (
-                             <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 flex-1 sm:flex-none" onClick={() => deleteClient(client.id)}>Excluir</Button>
-                           )}
+                           <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 flex-1 sm:flex-none" onClick={() => handleDelete(client)}>Excluir</Button>
                          </div>
                        </TabsContent>
 
