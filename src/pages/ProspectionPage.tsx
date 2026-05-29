@@ -42,7 +42,21 @@ export default function ProspectionPage() {
   const [searchNiche, setSearchNiche] = useState('');
   const [searchCity, setSearchCity] = useState('');
   const [searching, setSearching] = useState(false);
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leads, setLeads] = useState<Lead[]>(() => {
+    const saved = localStorage.getItem('prospection_leads');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('prospection_leads', JSON.stringify(leads));
+  }, [leads]);
   
   // Persistência local
   const [agencyName, setAgencyName] = useState(() => localStorage.getItem('prospection_agency_name') || 'Inova Lab');
