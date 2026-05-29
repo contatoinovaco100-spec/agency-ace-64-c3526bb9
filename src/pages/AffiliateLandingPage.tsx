@@ -97,20 +97,8 @@ export default function AffiliateLandingPage() {
     if (!affiliate) return;
     setSending(true);
     try {
-      // Gera token único (garante unicidade com retry)
-      let token = '';
-      let attempts = 0;
-      while (attempts < 5) {
-        token = generateToken();
-        const { data: existing } = await supabase.from('affiliate_leads' as any)
-          .select('id').eq('token', token).maybeSingle();
-        if (!existing) break;
-        attempts++;
-      }
-
       const { error } = await supabase.from('affiliate_leads' as any).insert({
         affiliate_id: affiliate.id,
-        token,
         lead_name: form.lead_name.trim(),
         whatsapp: form.whatsapp.trim(),
         company: form.company.trim(),

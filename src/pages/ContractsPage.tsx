@@ -154,7 +154,7 @@ export default function ContractsPage() {
       const { data: lead, error } = await supabase
         .from('affiliate_leads' as any)
         .select('*, affiliates!inner(full_name)')
-        .eq('token', token.toUpperCase())
+        .eq('id', token)
         .maybeSingle();
       if (error) throw error;
       if (lead) {
@@ -163,7 +163,7 @@ export default function ContractsPage() {
           leadName: lead.lead_name,
         });
       } else {
-        setAffiliateSearchError('Nenhum lead encontrado com este token');
+        setAffiliateSearchError('Nenhum lead encontrado');
       }
     } catch (err: any) {
       setAffiliateSearchError('Erro ao buscar: ' + (err?.message || ''));

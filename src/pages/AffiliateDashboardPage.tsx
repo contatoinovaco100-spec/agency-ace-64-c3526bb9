@@ -260,7 +260,7 @@ export default function AffiliateDashboardPage() {
                     <div>
                       <div className="font-semibold">{l.lead_name}</div>
                       <div className="text-sm text-muted-foreground">{l.whatsapp} {l.company && `• ${l.company}`}</div>
-                      <div className="text-xs text-muted-foreground font-mono mt-1">Código: <span className="text-primary">{l.token || '—'}</span></div>
+
                     </div>
                     <Badge>{STATUS_LABEL[l.status]}</Badge>
                   </div>
