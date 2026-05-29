@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useUserRole } from '@/hooks/useUserRole';
 import { Loader2, Check, X, Pause, RefreshCw, Plus, Copy, TrendingUp, Users, DollarSign, Clock, AlertCircle, Trash2, FileText, Gift, Award, CheckCircle2, Settings } from 'lucide-react';
 import { slugify } from '@/types/affiliates';
 import type { Affiliate, AffiliateLead, AffiliateContract, AffiliateCommission } from '@/types/affiliates';
@@ -38,6 +40,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function AffiliatesAdminPage() {
   const { toast } = useToast();
+  const { isAdmin, loading: roleLoading } = useUserRole();
   const [loading, setLoading] = useState(true);
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const [leads, setLeads] = useState<AffiliateLead[]>([]);
@@ -117,21 +120,24 @@ export default function AffiliatesAdminPage() {
     }
   }
 
-  async function generateNextCode(): Promise<string> {
-    const { data: all } = await supabase.from('affiliates' as any).select('codigo_interno').not('codigo_interno', 'is', null).order('codigo_interno', { ascending: false }).limit(1);
-    const last = (all as any)?.[0]?.codigo_interno || 'AF-000';
-    const num = parseInt(last.replace('AF-', ''), 10) + 1;
-    return 'AF-' + String(num).padStart(3, '0');
-  }
-
   async function approve(aff: Affiliate) {
     const slug = await ensureSlug(aff);
-    const codigo_interno = await generateNextCode();
-    const { error } = await supabase.from('affiliates' as any).update({
-      status: 'aprovado', slug, codigo_interno, approved_at: new Date().toISOString(),
-    }).eq('id', aff.id);
+    
+    // Tenta atualizar incluindo codigo_interno; se a coluna não existir, faz só o básico
+    const payload: any = { status: 'aprovado', slug, approved_at: new Date().toISOString() };
+    
+    try {
+      const { data: all } = await supabase.from('affiliates' as any)
+        .select('codigo_interno').not('codigo_interno', 'is', null)
+        .order('codigo_interno', { ascending: false }).limit(1);
+      const last = (all as any)?.[0]?.codigo_interno || 'AF-000';
+      const num = parseInt(last.replace('AF-', ''), 10) + 1;
+      payload.codigo_interno = 'AF-' + String(num).padStart(3, '0');
+    } catch {}
+
+    const { error } = await supabase.from('affiliates' as any).update(payload).eq('id', aff.id);
     if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-    else { toast({ title: `Afiliado aprovado! Código: ${codigo_interno}` }); load(); }
+    else { toast({ title: 'Afiliado aprovado com sucesso!' }); load(); }
   }
 
   async function setStatus(aff: Affiliate, status: string) {
@@ -217,7 +223,8 @@ export default function AffiliatesAdminPage() {
 
   const affiliateName = (id: string) => affiliates.find(a => a.id === id)?.full_name || 'Afiliado desconhecido';
 
-  if (loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (roleLoading || loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (!isAdmin) return <Navigate to="/" replace />;
 
   // Calculate Metrics
   const approvedAffiliatesCount = affiliates.filter(a => a.status === 'aprovado').length;
@@ -463,7 +470,7 @@ export default function AffiliatesAdminPage() {
                       <p><strong className="text-foreground">Instagram:</strong> {a.instagram}</p>
                       <p><strong className="text-foreground">Como conheceu:</strong> {a.how_found || 'Não informado'}</p>
                       <p><strong className="text-foreground">Exp. Vendas:</strong> {a.sales_experience ? 'Sim' : 'Não'}</p>
-                      {a.codigo_interno && <p><strong className="text-foreground">Código interno:</strong> <span className="text-foreground font-mono bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-lg text-xs">{a.codigo_interno}</span></p>}
+                      {(a as any).codigo_interno && <p><strong className="text-foreground">Código interno:</strong> <span className="text-foreground font-mono bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-lg text-xs">{(a as any).codigo_interno}</span></p>}
                     </div>
                     {a.slug && (
                       <div className="mt-4 flex items-center gap-2">
