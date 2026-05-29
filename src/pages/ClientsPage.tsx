@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ClientDiagnosisTab } from '@/components/clients/ClientDiagnosisTab';
-import { Shield, Lock, Mail, Key, Loader2, Link as LinkIcon, Target, Sparkles, Eye, EyeOff, Gift, Link2, Copy, MessageCircle, UserPlus, Users } from 'lucide-react';
+import { Shield, Lock, Mail, Key, Loader2, Link as LinkIcon, Target, Sparkles, Eye, EyeOff, Gift, Link2, Copy, MessageCircle, UserPlus, Users, RefreshCw } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 
 const serviceOptions: ServiceType[] = ['Gestor de trafego', 'Social Media', 'Estrategista digital', 'Editor de Video', 'Copywritter', 'Design'];
@@ -31,7 +31,60 @@ const statusColors: Record<string, string> = {
 const emptyScope: ScopeDetails = { monthlyDeliverables: [], includedServices: [], demandLimits: '', platforms: [], strategicNotes: '' };
 
 export default function ClientsPage() {
-  const { clients, team, addClient, updateClient, deleteClient } = useAgency();
+  const { clients, team, addClient, updateClient, deleteClient, refresh } = useAgency();
+  const [syncing, setSyncing] = useState(false);
+
+  const syncFromContracts = async () => {
+    setSyncing(true);
+    try {
+      const { data: contracts, error } = await supabase
+        .from('contracts')
+        .select('*')
+        .eq('status', 'assinado');
+      if (error) throw error;
+      let created = 0, updated = 0;
+      for (const c of contracts || []) {
+        const name = (c.client_name || '').trim();
+        if (!name) continue;
+        const { data: existing } = await supabase
+          .from('clients')
+          .select('id, monthly_value, scope, email')
+          .ilike('company_name', name)
+          .maybeSingle();
+        const payload = {
+          company_name: name,
+          contact_name: name,
+          email: c.client_email || existing?.email || '',
+          phone: '',
+          contract_start_date: ((c as any).signed_at || c.created_at || new Date().toISOString()).split('T')[0],
+          monthly_value: Number(c.monthly_value) || 0,
+          scope: c.scope_description || c.services || (c.plan_name ? `Plano ${c.plan_name}` : '') || existing?.scope || '',
+          service_type: [],
+          account_manager: '',
+          status: 'Ativo',
+          notes: `Sincronizado do contrato "${c.title}".`,
+        };
+        if (existing) {
+          await supabase.from('clients').update({
+            monthly_value: payload.monthly_value,
+            scope: payload.scope,
+            email: payload.email,
+            status: 'Ativo',
+          }).eq('id', existing.id);
+          updated++;
+        } else {
+          await supabase.from('clients').insert(payload);
+          created++;
+        }
+      }
+      await refresh();
+      toast.success(`Sincronização concluída: ${created} criados, ${updated} atualizados.`);
+    } catch (e: any) {
+      toast.error('Erro ao sincronizar: ' + (e?.message || 'desconhecido'));
+    } finally {
+      setSyncing(false);
+    }
+  };
   const { isAdmin } = useUserRole();
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -70,9 +123,15 @@ export default function ClientsPage() {
           <h1 className="text-heading font-semibold text-foreground">Clientes</h1>
           <p className="text-body text-muted-foreground">{clients.length} clientes cadastrados</p>
         </div>
-        <Button onClick={openNew} className="gap-2 w-full sm:w-auto">
-          <Plus className="h-4 w-4" /> Novo Cliente
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center w-full sm:w-auto">
+          <Button onClick={syncFromContracts} variant="outline" disabled={syncing} className="gap-2 w-full sm:w-auto">
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Sincronizar contratos
+          </Button>
+          <Button onClick={openNew} className="gap-2 w-full sm:w-auto">
+            <Plus className="h-4 w-4" /> Novo Cliente
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
