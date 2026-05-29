@@ -214,7 +214,7 @@ export default function AffiliateDashboardPage() {
 
       <div className="pt-4">
         <h1 className="text-3xl font-bold">Meu Painel de Afiliado</h1>
-        <p className="text-muted-foreground">{affiliate.full_name}</p>
+        <p className="text-muted-foreground">{affiliate.full_name} {affiliate.codigo_interno && <span className="font-mono text-primary">({affiliate.codigo_interno})</span>}</p>
       </div>
 
       <Card className="border-[#BFF720]/30">
@@ -260,6 +260,7 @@ export default function AffiliateDashboardPage() {
                     <div>
                       <div className="font-semibold">{l.lead_name}</div>
                       <div className="text-sm text-muted-foreground">{l.whatsapp} {l.company && `• ${l.company}`}</div>
+                      <div className="text-xs text-muted-foreground font-mono mt-1">Código: <span className="text-primary">{l.token || '—'}</span></div>
                     </div>
                     <Badge>{STATUS_LABEL[l.status]}</Badge>
                   </div>

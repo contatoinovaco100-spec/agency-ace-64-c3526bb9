@@ -17,6 +17,7 @@ export interface Affiliate {
   sales_experience: boolean;
   pix_key: string;
   slug: string | null;
+  codigo_interno: string | null;
   status: AffiliateStatus;
   approved_at: string | null;
   approved_by: string | null;
@@ -27,6 +28,7 @@ export interface Affiliate {
 export interface AffiliateLead {
   id: string;
   affiliate_id: string;
+  token: string | null;
   lead_name: string;
   whatsapp: string;
   company: string;

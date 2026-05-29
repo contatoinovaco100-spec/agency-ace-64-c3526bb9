@@ -117,13 +117,21 @@ export default function AffiliatesAdminPage() {
     }
   }
 
+  async function generateNextCode(): Promise<string> {
+    const { data: all } = await supabase.from('affiliates' as any).select('codigo_interno').not('codigo_interno', 'is', null).order('codigo_interno', { ascending: false }).limit(1);
+    const last = (all as any)?.[0]?.codigo_interno || 'AF-000';
+    const num = parseInt(last.replace('AF-', ''), 10) + 1;
+    return 'AF-' + String(num).padStart(3, '0');
+  }
+
   async function approve(aff: Affiliate) {
     const slug = await ensureSlug(aff);
+    const codigo_interno = await generateNextCode();
     const { error } = await supabase.from('affiliates' as any).update({
-      status: 'aprovado', slug, approved_at: new Date().toISOString(),
+      status: 'aprovado', slug, codigo_interno, approved_at: new Date().toISOString(),
     }).eq('id', aff.id);
     if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-    else { toast({ title: 'Afiliado aprovado com sucesso!' }); load(); }
+    else { toast({ title: `Afiliado aprovado! Código: ${codigo_interno}` }); load(); }
   }
 
   async function setStatus(aff: Affiliate, status: string) {
@@ -390,6 +398,7 @@ export default function AffiliatesAdminPage() {
                       {l.email && <span>Email: <strong className="text-foreground">{l.email}</strong></span>}
                       <span>Afiliado: <strong className="text-foreground">{affiliateName(l.affiliate_id)}</strong></span>
                       <span>Data: {new Date(l.created_at).toLocaleDateString('pt-BR')}</span>
+                      {l.token && <span>Token: <strong className="text-foreground font-mono">{l.token}</strong></span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
@@ -454,6 +463,7 @@ export default function AffiliatesAdminPage() {
                       <p><strong className="text-foreground">Instagram:</strong> {a.instagram}</p>
                       <p><strong className="text-foreground">Como conheceu:</strong> {a.how_found || 'Não informado'}</p>
                       <p><strong className="text-foreground">Exp. Vendas:</strong> {a.sales_experience ? 'Sim' : 'Não'}</p>
+                      {a.codigo_interno && <p><strong className="text-foreground">Código interno:</strong> <span className="text-foreground font-mono bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-lg text-xs">{a.codigo_interno}</span></p>}
                     </div>
                     {a.slug && (
                       <div className="mt-4 flex items-center gap-2">

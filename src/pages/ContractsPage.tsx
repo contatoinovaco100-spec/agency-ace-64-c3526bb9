@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -20,7 +21,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   FileText, Plus, Send, CheckCircle2, Edit2, Copy, Loader2, ExternalLink,
-  Trash2, Hash, MessageCircle, RotateCcw, Download,
+  Trash2, Hash, MessageCircle, RotateCcw, Download, UserCheck, Search, Gift,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateContractPdf } from '@/lib/contractPdf';
@@ -52,6 +53,7 @@ interface Contract {
   status: string;
   sent_at: string | null;
   created_at: string;
+  affiliate_token: string | null;
 }
 
 interface Signature {
@@ -100,6 +102,7 @@ const emptyContract = {
   additional_clauses: '',
   plan_name: 'Plano Profissional',
   deliverables: DEFAULT_DELIVERABLES,
+  affiliate_token: '',
 };
 
 export default function ContractsPage() {
@@ -112,6 +115,11 @@ export default function ContractsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   
+  // Affiliate lookup state
+  const [affiliateSearchLoading, setAffiliateSearchLoading] = useState(false);
+  const [affiliateFound, setAffiliateFound] = useState<{ affiliateName: string; leadName: string } | null>(null);
+  const [affiliateSearchError, setAffiliateSearchError] = useState('');
+
   // AlertDialog state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [idToDelete, setIdToDelete] = useState<string | null>(null);
@@ -131,6 +139,37 @@ export default function ContractsPage() {
     })) as Contract[]);
     if (s) setSignatures(s as Signature[]);
     setLoading(false);
+  };
+
+  const searchAffiliateByToken = async (token: string) => {
+    if (!token || token.length < 3) {
+      setAffiliateFound(null);
+      setAffiliateSearchError('');
+      return;
+    }
+    setAffiliateSearchLoading(true);
+    setAffiliateSearchError('');
+    setAffiliateFound(null);
+    try {
+      const { data: lead, error } = await supabase
+        .from('affiliate_leads' as any)
+        .select('*, affiliates!inner(full_name)')
+        .eq('token', token.toUpperCase())
+        .maybeSingle();
+      if (error) throw error;
+      if (lead) {
+        setAffiliateFound({
+          affiliateName: (lead as any).affiliates?.full_name || 'Afiliado não encontrado',
+          leadName: lead.lead_name,
+        });
+      } else {
+        setAffiliateSearchError('Nenhum lead encontrado com este token');
+      }
+    } catch (err: any) {
+      setAffiliateSearchError('Erro ao buscar: ' + (err?.message || ''));
+    } finally {
+      setAffiliateSearchLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -243,8 +282,10 @@ export default function ContractsPage() {
       additional_clauses: c.additional_clauses,
       plan_name: c.plan_name || 'Plano Profissional',
       deliverables: c.deliverables?.length > 0 ? c.deliverables : DEFAULT_DELIVERABLES,
+      affiliate_token: c.affiliate_token || '',
     });
     setEditingId(c.id);
+    if (c.affiliate_token) searchAffiliateByToken(c.affiliate_token);
     setDialogOpen(true);
   };
 
@@ -294,6 +335,12 @@ export default function ContractsPage() {
                 {c.plan_name && <span>Plano: <strong className="text-foreground">{c.plan_name}</strong></span>}
                 <span>Duração: {c.duration_months} meses</span>
                 <span>Criado: {new Date(c.created_at).toLocaleDateString('pt-BR')}</span>
+                {c.affiliate_token && (
+                  <span className="flex items-center gap-1">
+                    <Gift className="h-3 w-3 text-primary" />
+                    Token afiliado: <strong className="text-foreground font-mono">{c.affiliate_token}</strong>
+                  </span>
+                )}
               </div>
               {sig && !isDeleted && (
                 <div className="mt-2 space-y-1">
@@ -398,6 +445,40 @@ export default function ContractsPage() {
                   <div><Label className="text-xs text-muted-foreground">Email</Label><Input type="email" value={form.client_email} onChange={e => setForm(p => ({ ...p, client_email: e.target.value }))} className="mt-1" /></div>
                   <div><Label className="text-xs text-muted-foreground">Endereço</Label><Input value={form.client_address} onChange={e => setForm(p => ({ ...p, client_address: e.target.value }))} className="mt-1" /></div>
                 </div>
+              </div>
+
+              {/* Afiliado */}
+              <div className="rounded-lg border border-border p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Gift className="h-4 w-4 text-primary" /> Lead veio de Afiliado?
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={form.affiliate_token}
+                      onChange={e => {
+                        const val = e.target.value.toUpperCase();
+                        setForm(p => ({ ...p, affiliate_token: val }));
+                        searchAffiliateByToken(val);
+                      }}
+                      placeholder="Digite o token do lead (ex: AF-1A2B3C)"
+                      className="pl-10 font-mono"
+                    />
+                  </div>
+                  {affiliateSearchLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />}
+                </div>
+                {affiliateFound && (
+                  <div className="flex items-center gap-2 text-sm text-[hsl(var(--success))] bg-[hsl(var(--success))]/5 border border-[hsl(var(--success))]/20 rounded-md px-3 py-2">
+                    <UserCheck className="h-4 w-4 shrink-0" />
+                    <span>
+                      <strong>{affiliateFound.leadName}</strong> — Indicado por <strong>{affiliateFound.affiliateName}</strong>
+                    </span>
+                  </div>
+                )}
+                {affiliateSearchError && (
+                  <p className="text-xs text-destructive">{affiliateSearchError}</p>
+                )}
               </div>
 
               <div><Label>Serviços contratados</Label><Input value={form.services} onChange={e => setForm(p => ({ ...p, services: e.target.value }))} placeholder="Ex: Gestor de trafego, Social Media, Design" /></div>

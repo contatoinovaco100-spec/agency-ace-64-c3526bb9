@@ -9,6 +9,15 @@ import { useToast } from '@/hooks/use-toast';
 import { CheckCircle2, Loader2, User, Phone, Building2, Mail, ArrowRight, Video } from 'lucide-react';
 import type { Affiliate } from '@/types/affiliates';
 
+function generateToken(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = 'AF-';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 // Valores padrão de fallback
 const DEFAULT_WHATSAPP = '5588994463203';
 const DEFAULT_VSL = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
@@ -88,8 +97,20 @@ export default function AffiliateLandingPage() {
     if (!affiliate) return;
     setSending(true);
     try {
+      // Gera token único (garante unicidade com retry)
+      let token = '';
+      let attempts = 0;
+      while (attempts < 5) {
+        token = generateToken();
+        const { data: existing } = await supabase.from('affiliate_leads' as any)
+          .select('id').eq('token', token).maybeSingle();
+        if (!existing) break;
+        attempts++;
+      }
+
       const { error } = await supabase.from('affiliate_leads' as any).insert({
         affiliate_id: affiliate.id,
+        token,
         lead_name: form.lead_name.trim(),
         whatsapp: form.whatsapp.trim(),
         company: form.company.trim(),
@@ -131,7 +152,8 @@ export default function AffiliateLandingPage() {
             </div>
             <div>
               <h2 className="text-3xl font-bold mb-3 tracking-tight">Contato Recebido!</h2>
-              <p className="text-zinc-400 text-sm leading-relaxed mb-6">Nossa equipe de especialistas entrará em contato com você em breve pelo WhatsApp para agendar uma conversa.</p>
+              <p className="text-zinc-400 text-sm leading-relaxed mb-4">Nossa equipe de especialistas entrará em contato com você em breve pelo WhatsApp para agendar uma conversa.</p>
+              
               
               <Button 
                 onClick={() => {
