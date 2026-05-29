@@ -229,8 +229,8 @@ export default function AffiliateDashboardPage() {
       </Card>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Leads</div><div className="text-2xl font-bold">{leads.length}</div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Contratos ativos</div><div className="text-2xl font-bold">{contracts.filter(c => c.status === 'ativo').length}</div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Total de Leads</div><div className="text-2xl font-bold">{leads.length}</div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Contratos (Total)</div><div className="text-2xl font-bold">{contracts.length} <span className="text-sm font-normal text-muted-foreground">({contracts.filter(c => c.status === 'ativo').length} ativos)</span></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Comissões pendentes</div><div className="text-2xl font-bold text-amber-500">R$ {pendingTotal.toFixed(2)}</div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Comissões pagas</div><div className="text-2xl font-bold text-[#BFF720]">R$ {paidTotal.toFixed(2)}</div></CardContent></Card>
       </div>
@@ -247,7 +247,12 @@ export default function AffiliateDashboardPage() {
 
         <div className="flex-1 w-full min-w-0">
           <TabsContent value="leads" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Card><CardContent className="p-0">
+          <Card>
+            <CardHeader className="border-b pb-4 mb-4 flex flex-row items-center justify-between">
+              <CardTitle className="text-xl">Meus Leads</CardTitle>
+              <Badge variant="secondary" className="text-sm">{leads.length} cadastrados</Badge>
+            </CardHeader>
+            <CardContent className="p-0">
             {leads.length === 0 ? <p className="p-6 text-muted-foreground text-center">Nenhum lead ainda.</p> : (
               <div className="divide-y">
                 {leads.map(l => (
@@ -265,7 +270,12 @@ export default function AffiliateDashboardPage() {
         </TabsContent>
 
         <TabsContent value="contratos" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Card><CardContent className="p-0">
+          <Card>
+            <CardHeader className="border-b pb-4 mb-4 flex flex-row items-center justify-between">
+              <CardTitle className="text-xl">Meus Contratos</CardTitle>
+              <Badge variant="secondary" className="text-sm">{contracts.length} no total</Badge>
+            </CardHeader>
+            <CardContent className="p-0">
             {contracts.length === 0 ? <p className="p-6 text-muted-foreground text-center">Nenhum contrato ainda.</p> : (
               <div className="divide-y">
                 {contracts.map(c => (
@@ -283,7 +293,12 @@ export default function AffiliateDashboardPage() {
         </TabsContent>
 
         <TabsContent value="comissoes" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Card><CardContent className="p-0">
+          <Card>
+            <CardHeader className="border-b pb-4 mb-4 flex flex-row items-center justify-between">
+              <CardTitle className="text-xl">Minhas Comissões</CardTitle>
+              <Badge variant="secondary" className="text-sm">{commissions.length} registros</Badge>
+            </CardHeader>
+            <CardContent className="p-0">
             {commissions.length === 0 ? <p className="p-6 text-muted-foreground text-center">Nenhuma comissão ainda.</p> : (
               <div className="divide-y">
                 {commissions.map(c => (
