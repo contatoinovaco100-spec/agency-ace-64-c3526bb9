@@ -69,6 +69,7 @@ const NotFound             = lazy(() => import("./pages/NotFound"));
 const BriefingFormPage     = lazy(() => import("./pages/BriefingFormPage"));
 const BriefingsPage        = lazy(() => import("./pages/BriefingsPage"));
 const NotificationsPage    = lazy(() => import("./pages/NotificationsPage"));
+const ChangePasswordPage   = lazy(() => import("./pages/ChangePasswordPage"));
 
 // Quiz Builder
 const QuizBuilderClientsPage  = lazy(() => import("./pages/QuizBuilderClientsPage"));
@@ -206,6 +207,7 @@ function AppRoutes() {
                     <Route path="/diagnostico/editar"  element={<DiagnosticEditorPage />} />
                     <Route path="/diagnostico/editar/:editSlug"  element={<DiagnosticEditorPage />} />
                     <Route path="/notificacoes"        element={<NotificationsPage />} />
+                    <Route path="/alterar-senha"       element={<ChangePasswordPage />} />
                     {/* New routes */}
                     <Route path="/calendario"          element={<CalendarPage />} />
                     <Route path="/chat"                element={<ChatPage />} />
