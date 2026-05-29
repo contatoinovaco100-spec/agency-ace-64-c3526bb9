@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, MessageCircle, Loader2, Clock, AlertCircle, Users, Film, Play, Megaphone, TrendingUp } from 'lucide-react';
+import { Copy, MessageCircle, Loader2, Clock, AlertCircle, Users, Film, Play, Megaphone, TrendingUp, DollarSign, CheckCircle2, FileText } from 'lucide-react';
 import type { Affiliate, AffiliateLead, AffiliateContract, AffiliateCommission } from '@/types/affiliates';
 import logoInova from '@/assets/logo-inova.png';
 
@@ -294,26 +294,104 @@ export default function AffiliateDashboardPage() {
         </TabsContent>
 
         <TabsContent value="comissoes" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Card>
-            <CardHeader className="border-b pb-4 mb-4 flex flex-row items-center justify-between">
-              <CardTitle className="text-xl">Minhas Comissões</CardTitle>
-              <Badge variant="secondary" className="text-sm">{commissions.length} registros</Badge>
+          {/* Resumo */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <Card className="border-zinc-800 bg-zinc-900/40">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">A Receber</p>
+                  <p className="text-2xl font-extrabold text-amber-400 mt-1 tabular-nums">
+                    R$ {pendingTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20">
+                  <Clock className="h-5 w-5 text-amber-400" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-zinc-800 bg-zinc-900/40">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Já Recebido</p>
+                  <p className="text-2xl font-extrabold text-[#BFF720] mt-1 tabular-nums">
+                    R$ {paidTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#BFF720]/10 border border-[#BFF720]/20">
+                  <DollarSign className="h-5 w-5 text-[#BFF720]" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="border-zinc-800 bg-zinc-900/40">
+            <CardHeader className="border-b border-zinc-800 pb-4 mb-0 flex flex-row items-center justify-between">
+              <CardTitle className="text-xl text-zinc-100">Minhas Comissões</CardTitle>
+              <Badge variant="secondary" className="text-sm bg-zinc-800 text-zinc-300">{commissions.length} registro(s)</Badge>
             </CardHeader>
-            <CardContent className="p-0">
-            {commissions.length === 0 ? <p className="p-6 text-muted-foreground text-center">Nenhuma comissão ainda.</p> : (
-              <div className="divide-y">
-                {commissions.map(c => (
-                  <div key={c.id} className="p-4 flex justify-between items-center">
-                    <div>
-                      <div className="font-semibold">R$ {Number(c.amount).toFixed(2)} <span className="text-xs text-muted-foreground">({c.type})</span></div>
-                      <div className="text-sm text-muted-foreground">Ref: {new Date(c.reference_month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</div>
+            <CardContent className="p-0 divide-y divide-zinc-800">
+              {(() => {
+                const pendentes = commissions.filter(c => c.status === 'pendente');
+                const pagas = commissions.filter(c => c.status === 'pago');
+                return (<>
+                  {pendentes.length > 0 && (
+                    <div className="px-5 pt-4 pb-2 bg-amber-500/5 border-b border-amber-500/10">
+                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5" /> Pendentes — {pendentes.length}
+                      </span>
                     </div>
-                    <Badge variant={c.status === 'pago' ? 'default' : 'secondary'}>{STATUS_LABEL[c.status]}</Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent></Card>
+                  )}
+                  {pendentes.map(c => {
+                    const contract = contracts.find(cc => cc.id === c.contract_id);
+                    return (
+                      <div key={c.id} className="p-4 flex items-center justify-between gap-3 hover:bg-amber-500/5 transition-all">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-amber-400 tabular-nums">R$ {Number(c.amount).toFixed(2)}</span>
+                            <span className="text-[11px] uppercase font-semibold text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded">{c.type === 'fechamento' ? 'Fechamento' : 'Recorrência'}</span>
+                          </div>
+                          <div className="text-xs text-zinc-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                            {contract && <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {contract.client_name}</span>}
+                            <span>Ref: {new Date(c.reference_month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className="shrink-0 bg-amber-500/20 text-amber-400 border-amber-500/30">Pendente</Badge>
+                      </div>
+                    );
+                  })}
+                  {pagas.length > 0 && (
+                    <div className="px-5 pt-4 pb-2 bg-[#BFF720]/5 border-b border-[#BFF720]/10">
+                      <span className="text-xs font-bold text-[#BFF720] uppercase tracking-wider flex items-center gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Pagas — {pagas.length}
+                      </span>
+                    </div>
+                  )}
+                  {pagas.map(c => {
+                    const contract = contracts.find(cc => cc.id === c.contract_id);
+                    return (
+                      <div key={c.id} className="p-4 flex items-center justify-between gap-3 hover:bg-zinc-800/30 transition-all opacity-70">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-zinc-400 tabular-nums line-through decoration-1">R$ {Number(c.amount).toFixed(2)}</span>
+                            <span className="text-[11px] uppercase font-semibold text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded">{c.type === 'fechamento' ? 'Fechamento' : 'Recorrência'}</span>
+                          </div>
+                          <div className="text-xs text-zinc-500 mt-0.5 flex items-center gap-2 flex-wrap">
+                            {contract && <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {contract.client_name}</span>}
+                            <span>Ref: {new Date(c.reference_month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
+                            {c.paid_at && <span className="text-[#BFF720]">Pago em {new Date(c.paid_at).toLocaleDateString('pt-BR')}</span>}
+                          </div>
+                        </div>
+                        <Badge variant="default" className="shrink-0 bg-[#BFF720]/20 text-[#BFF720] border-[#BFF720]/30">Pago</Badge>
+                      </div>
+                    );
+                  })}
+                  {commissions.length === 0 && (
+                    <div className="p-6 text-center text-zinc-500">Nenhuma comissão ainda.</div>
+                  )}
+                </>);
+              })()}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="info" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">

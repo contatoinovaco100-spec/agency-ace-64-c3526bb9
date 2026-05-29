@@ -241,6 +241,7 @@ export default function AffiliatesAdminPage() {
   }
 
   const affiliateName = (id: string) => affiliates.find(a => a.id === id)?.full_name || 'Afiliado desconhecido';
+  const contractClientName = (id: string) => contracts.find(c => c.id === id)?.client_name || '';
 
   if (roleLoading || loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   if (!isAdmin) return <Navigate to="/" replace />;
@@ -331,8 +332,13 @@ export default function AffiliatesAdminPage() {
           <TabsTrigger value="affiliates" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all">
             Afiliados ({affiliates.length})
           </TabsTrigger>
-          <TabsTrigger value="commissions" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all">
+          <TabsTrigger value="commissions" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all gap-2">
             Comissões
+            {commissions.filter(c => c.status === 'pendente').length > 0 && (
+              <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-amber-500/20 text-amber-400 text-[11px] font-bold leading-none">
+                {commissions.filter(c => c.status === 'pendente').length}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="settings" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all flex items-center justify-center gap-1.5">
             <Settings className="w-4 h-4" /> Configs da Página
@@ -556,7 +562,7 @@ export default function AffiliatesAdminPage() {
                 <RefreshCw className="w-5 h-5 text-primary animate-spin-slow" /> Geração Automática de Comissões Recorrentes
               </h3>
               <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-                O sistema calcula e gera automaticamente as comissões mensais (R$ 100,00 por cada contrato ativo) para todos os afiliados com base no mês atual.
+                Gera R$ {pageSettings.recurringCommission},00 por contrato ativo automaticamente para todos os afiliados com base no mês atual.
               </p>
             </div>
             <Button
@@ -568,6 +574,29 @@ export default function AffiliatesAdminPage() {
             </Button>
           </div>
 
+          {/* Mini-summary comissões */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { label: 'A Receber', value: pendingCommissions, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Clock },
+              { label: 'Já Pago', value: paidCommissions, color: 'text-[hsl(var(--success))]', bg: 'bg-[hsl(var(--success))]/10', border: 'border-[hsl(var(--success))/20', icon: DollarSign },
+              { label: 'Previsão Recorrência', value: contracts.filter(c => c.status === 'ativo').length * pageSettings.recurringCommission, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20', icon: TrendingUp },
+            ].map(kpi => (
+              <Card key={kpi.label} className="border-border/50 bg-card/40 backdrop-blur-xl">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{kpi.label}</p>
+                    <p className={`text-2xl font-extrabold tabular-nums ${kpi.color} mt-1`}>
+                      R$ {kpi.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${kpi.bg} ${kpi.border} border`}>
+                    <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
           <Card className="border-border/50 bg-card/40 backdrop-blur-xl overflow-hidden shadow-xl">
             <CardHeader className="border-b border-border/40 bg-card/20 px-6 py-4">
               <CardTitle className="text-lg font-bold flex items-center gap-2 text-foreground">
@@ -575,54 +604,98 @@ export default function AffiliatesAdminPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0 divide-y divide-border/40">
-              {commissions.map(c => (
-                <div key={c.id} className="p-6 flex flex-wrap items-center justify-between gap-4 group hover:bg-secondary/20 transition-all">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1.5">
-                      <span className="font-extrabold text-xl text-foreground tabular-nums tracking-tight">
-                        R$ {Number(c.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              {(() => {
+                const pendentes = commissions.filter(c => c.status === 'pendente');
+                const pagas = commissions.filter(c => c.status === 'pago');
+                return (<>
+                  {pendentes.length > 0 && (
+                    <div className="px-6 pt-5 pb-2 bg-amber-500/5 border-b border-amber-500/10">
+                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5" /> Pendentes — {pendentes.length} comissão(ns)
                       </span>
-                      <Badge variant="outline" className="bg-secondary/60 border-border text-foreground text-xs uppercase font-semibold">
-                        {c.type}
-                      </Badge>
-                      <Badge variant="outline" className={`px-2.5 py-0.5 text-xs font-semibold ${STATUS_COLORS[c.status] || 'bg-secondary text-foreground'}`}>
-                        {STATUS_LABEL[c.status] || c.status}
-                      </Badge>
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                      <span>Afiliado: <strong className="text-foreground">{affiliateName(c.affiliate_id)}</strong></span>
-                      <span>Mês de Referência: <strong className="text-foreground">{new Date(c.reference_month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</strong></span>
-                      {c.paid_at && <span>Pago em: {new Date(c.paid_at).toLocaleDateString('pt-BR')}</span>}
+                  )}
+                  {pendentes.map(c => (
+                    <div key={c.id} className="p-5 flex flex-wrap items-center justify-between gap-4 group hover:bg-amber-500/5 transition-all">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="font-extrabold text-xl text-amber-400 tabular-nums tracking-tight">
+                            R$ {Number(c.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                          <Badge variant="outline" className="bg-secondary/60 border-border text-foreground text-[10px] uppercase font-semibold">
+                            {c.type === 'fechamento' ? 'Fechamento' : 'Recorrência'}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> <strong className="text-foreground">{affiliateName(c.affiliate_id)}</strong></span>
+                          {contractClientName(c.contract_id) && <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> {contractClientName(c.contract_id)}</span>}
+                          <span>Ref: <strong className="text-foreground">{new Date(c.reference_month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</strong></span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <Button
+                          size="sm"
+                          onClick={() => markCommissionPaid(c.id)}
+                          className="bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white font-bold shadow-[0_0_20px_hsl(var(--success)/0.3)] gap-1.5"
+                        >
+                          <CheckCircle2 className="w-4 h-4" /> Marcar como pago
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteCommission(c.id)}
+                          className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          title="Excluir comissão"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    {c.status === 'pendente' && (
+                  ))}
+                  {pagas.length > 0 && (
+                    <div className="px-6 pt-5 pb-2 bg-[hsl(var(--success))]/5 border-b border-[hsl(var(--success))]/10">
+                      <span className="text-xs font-bold text-[hsl(var(--success))] uppercase tracking-wider flex items-center gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Pagas — {pagas.length} comissão(ns)
+                      </span>
+                    </div>
+                  )}
+                  {pagas.map(c => (
+                    <div key={c.id} className="p-5 flex flex-wrap items-center justify-between gap-4 group hover:bg-secondary/20 transition-all opacity-75">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="font-extrabold text-xl text-muted-foreground tabular-nums tracking-tight line-through decoration-2">
+                            R$ {Number(c.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                          <Badge variant="outline" className="bg-secondary/60 border-border text-foreground text-[10px] uppercase font-semibold">
+                            {c.type === 'fechamento' ? 'Fechamento' : 'Recorrência'}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> <strong className="text-foreground/70">{affiliateName(c.affiliate_id)}</strong></span>
+                          {contractClientName(c.contract_id) && <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> {contractClientName(c.contract_id)}</span>}
+                          <span>Ref: <strong className="text-foreground/70">{new Date(c.reference_month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</strong></span>
+                          {c.paid_at && <span>Pago em: {new Date(c.paid_at).toLocaleDateString('pt-BR')}</span>}
+                        </div>
+                      </div>
                       <Button
-                        size="sm"
-                        onClick={() => markCommissionPaid(c.id)}
-                        className="bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white font-bold shadow-[0_0_20px_hsl(var(--success)/0.3)] gap-1.5"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteCommission(c.id)}
+                        className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        title="Excluir comissão"
                       >
-                        <CheckCircle2 className="w-4 h-4" /> Marcar como pago
+                        <Trash2 className="w-4 h-4" />
                       </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteCommission(c.id)}
-                      className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                      title="Excluir comissão"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {commissions.length === 0 && (
-                <div className="p-12 text-center flex flex-col items-center">
-                  <DollarSign className="w-12 h-12 text-muted-foreground/40 mb-3" />
-                  <p className="text-muted-foreground font-medium text-base">Nenhuma comissão gerada ainda.</p>
-                </div>
-              )}
+                    </div>
+                  ))}
+                  {commissions.length === 0 && (
+                    <div className="p-12 text-center flex flex-col items-center">
+                      <DollarSign className="w-12 h-12 text-muted-foreground/40 mb-3" />
+                      <p className="text-muted-foreground font-medium text-base">Nenhuma comissão gerada ainda.</p>
+                    </div>
+                  )}
+                </>);
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
