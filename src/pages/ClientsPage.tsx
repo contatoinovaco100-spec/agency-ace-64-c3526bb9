@@ -123,9 +123,15 @@ export default function ClientsPage() {
           <h1 className="text-heading font-semibold text-foreground">Clientes</h1>
           <p className="text-body text-muted-foreground">{clients.length} clientes cadastrados</p>
         </div>
-        <Button onClick={openNew} className="gap-2 w-full sm:w-auto">
-          <Plus className="h-4 w-4" /> Novo Cliente
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center w-full sm:w-auto">
+          <Button onClick={syncFromContracts} variant="outline" disabled={syncing} className="gap-2 w-full sm:w-auto">
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Sincronizar contratos
+          </Button>
+          <Button onClick={openNew} className="gap-2 w-full sm:w-auto">
+            <Plus className="h-4 w-4" /> Novo Cliente
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
