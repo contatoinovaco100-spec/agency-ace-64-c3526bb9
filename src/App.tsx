@@ -207,6 +207,7 @@ function AppRoutes() {
                     <Route path="/diagnostico/editar"  element={<DiagnosticEditorPage />} />
                     <Route path="/diagnostico/editar/:editSlug"  element={<DiagnosticEditorPage />} />
                     <Route path="/notificacoes"        element={<NotificationsPage />} />
+                    <Route path="/alterar-senha"       element={<ChangePasswordPage />} />
                     {/* New routes */}
                     <Route path="/calendario"          element={<CalendarPage />} />
                     <Route path="/chat"                element={<ChatPage />} />
