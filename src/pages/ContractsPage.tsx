@@ -151,10 +151,11 @@ export default function ContractsPage() {
     setAffiliateSearchError('');
     setAffiliateFound(null);
     try {
+      const searchTerm = token.toUpperCase().startsWith('AF-') ? token.toUpperCase() : `%${token.toUpperCase()}%`;
       const { data: lead, error } = await supabase
         .from('affiliate_leads' as any)
         .select('*, affiliates!inner(full_name)')
-        .eq('id', token)
+        .ilike('notes', `%[TOKEN:${searchTerm.replace(/%/g, '')}]%`)
         .maybeSingle();
       if (error) throw error;
       if (lead) {
@@ -163,20 +164,7 @@ export default function ContractsPage() {
           leadName: lead.lead_name,
         });
       } else {
-        const { data: byName } = await supabase
-          .from('affiliate_leads' as any)
-          .select('*, affiliates!inner(full_name)')
-          .ilike('lead_name', `%${token}%`)
-          .limit(1)
-          .maybeSingle();
-        if (byName) {
-          setAffiliateFound({
-            affiliateName: (byName as any).affiliates?.full_name || 'Afiliado não encontrado',
-            leadName: byName.lead_name,
-          });
-        } else {
-          setAffiliateSearchError('Nenhum lead encontrado');
-        }
+        setAffiliateSearchError('Nenhum lead encontrado com este código');
       }
     } catch (err: any) {
       setAffiliateSearchError('Erro ao buscar: ' + (err?.message || ''));

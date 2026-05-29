@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle2, Loader2, User, Phone, Building2, Mail, ArrowRight, Video } from 'lucide-react';
+import { CheckCircle2, Loader2, User, Phone, Building2, Mail, ArrowRight, Video, Copy } from 'lucide-react';
 import type { Affiliate } from '@/types/affiliates';
 
 function generateToken(): string {
@@ -59,6 +59,7 @@ export default function AffiliateLandingPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
+  const [leadToken, setLeadToken] = useState('');
   const [form, setForm] = useState({ lead_name: '', whatsapp: '', company: '', email: '' });
   const [settings, setSettings] = useState({ whatsappNumber: DEFAULT_WHATSAPP, vslVideoUrl: DEFAULT_VSL });
 
@@ -97,6 +98,22 @@ export default function AffiliateLandingPage() {
     if (!affiliate) return;
     setSending(true);
     try {
+      // Gera token único e armazena no campo notes
+      let token = '';
+      let attempts = 0;
+      while (attempts < 10) {
+        token = generateToken();
+        const { data: existing } = await supabase
+          .from('affiliate_leads' as any)
+          .select('id')
+          .ilike('notes', `%[TOKEN:${token}]%`)
+          .maybeSingle();
+        if (!existing) break;
+        attempts++;
+      }
+
+      const notes = `[TOKEN:${token}]`;
+
       const { error } = await supabase.from('affiliate_leads' as any).insert({
         affiliate_id: affiliate.id,
         lead_name: form.lead_name.trim(),
@@ -104,8 +121,11 @@ export default function AffiliateLandingPage() {
         company: form.company.trim(),
         email: form.email.trim(),
         status: 'novo',
+        notes,
       });
       if (error) throw error;
+
+      setLeadToken(token);
       
       // Mensagem personalizada para o WhatsApp
       const msg = `Olá! Fui indicado(a) por ${affiliate.full_name} através da página exclusiva e acabei de preencher o formulário. Gostaria de falar com um especialista sobre as soluções da Inova!`;

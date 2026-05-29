@@ -394,7 +394,7 @@ export default function AffiliatesAdminPage() {
                       {l.email && <span>Email: <strong className="text-foreground">{l.email}</strong></span>}
                       <span>Afiliado: <strong className="text-foreground">{affiliateName(l.affiliate_id)}</strong></span>
                       <span>Data: {new Date(l.created_at).toLocaleDateString('pt-BR')}</span>
-                      {l.token && <span>Token: <strong className="text-foreground font-mono">{l.token}</strong></span>}
+                      {l.notes?.includes('[TOKEN:') && <span>Token: <strong className="text-foreground font-mono">{(l.notes as string).match(/\[TOKEN:(AF-\w+)\]/)?.[1] || ''}</strong></span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
