@@ -122,20 +122,9 @@ export default function AffiliatesAdminPage() {
 
   async function approve(aff: Affiliate) {
     const slug = await ensureSlug(aff);
-    
-    // Tenta atualizar incluindo codigo_interno; se a coluna não existir, faz só o básico
-    const payload: any = { status: 'aprovado', slug, approved_at: new Date().toISOString() };
-    
-    try {
-      const { data: all } = await supabase.from('affiliates' as any)
-        .select('codigo_interno').not('codigo_interno', 'is', null)
-        .order('codigo_interno', { ascending: false }).limit(1);
-      const last = (all as any)?.[0]?.codigo_interno || 'AF-000';
-      const num = parseInt(last.replace('AF-', ''), 10) + 1;
-      payload.codigo_interno = 'AF-' + String(num).padStart(3, '0');
-    } catch {}
-
-    const { error } = await supabase.from('affiliates' as any).update(payload).eq('id', aff.id);
+    const { error } = await supabase.from('affiliates' as any).update({
+      status: 'aprovado', slug, approved_at: new Date().toISOString(),
+    }).eq('id', aff.id);
     if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     else { toast({ title: 'Afiliado aprovado com sucesso!' }); load(); }
   }
@@ -470,7 +459,7 @@ export default function AffiliatesAdminPage() {
                       <p><strong className="text-foreground">Instagram:</strong> {a.instagram}</p>
                       <p><strong className="text-foreground">Como conheceu:</strong> {a.how_found || 'Não informado'}</p>
                       <p><strong className="text-foreground">Exp. Vendas:</strong> {a.sales_experience ? 'Sim' : 'Não'}</p>
-                      {(a as any).codigo_interno && <p><strong className="text-foreground">Código interno:</strong> <span className="text-foreground font-mono bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-lg text-xs">{(a as any).codigo_interno}</span></p>}
+
                     </div>
                     {a.slug && (
                       <div className="mt-4 flex items-center gap-2">
