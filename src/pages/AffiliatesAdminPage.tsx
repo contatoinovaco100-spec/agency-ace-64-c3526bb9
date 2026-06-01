@@ -734,7 +734,7 @@ export default function AffiliatesAdminPage() {
                   className="bg-background/50 border-border/60 focus:ring-primary h-11 text-base font-mono"
                 />
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Cole o link de embed direto do vídeo. Para o Wistia, use o formato <strong className="text-foreground font-mono">https://fast.wistia.net/embed/iframe/SEU_CODIGO</strong>. Para o YouTube, use <strong className="text-foreground font-mono">https://www.youtube.com/embed/SEU_CODIGO</strong>.
+                  Cole o link de embed direto ou o <strong className="text-foreground">código completo do Wistia</strong> (com <code>&lt;script&gt;</code> e <code>&lt;wistia-player&gt;</code>) — assim o player nativo é renderizado e o evento <strong className="text-foreground">ended</strong> rola automaticamente até o formulário. YouTube: <strong className="text-foreground font-mono">https://www.youtube.com/embed/SEU_CODIGO</strong>.
                 </p>
               </div>
 
