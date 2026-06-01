@@ -36,7 +36,7 @@ function cleanVideoUrl(url: string): string {
   if (!url) return `${FALLBACK_VSL}?autoplay=1&mute=1&loop=1&playlist=dQw4w9WgXcQ`;
   const trimmed = url.trim();
 
-  const ytId = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|(?:embed|v)\/))([a-zA-Z0-9_-]{11})/);
+  const ytId = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|(?:embed|v|shorts)\/))([a-zA-Z0-9_-]{11})/);
   if (ytId && ytId[1]) {
     return `https://www.youtube.com/embed/${ytId[1]}?autoplay=1&mute=1&loop=1&playlist=${ytId[1]}`;
   }
