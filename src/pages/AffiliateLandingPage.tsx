@@ -57,6 +57,9 @@ function WistiaPlayer({ mediaId, onEnded }: { mediaId: string; onEnded?: () => v
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!ref.current) return;
+
+    // Garante que os scripts globais do Wistia estão carregados (uma vez por sessão)
     const ensureScript = (src: string, type?: string) => {
       if (document.querySelector(`script[src="${src}"]`)) return;
       const s = document.createElement('script');
@@ -66,25 +69,38 @@ function WistiaPlayer({ mediaId, onEnded }: { mediaId: string; onEnded?: () => v
       document.head.appendChild(s);
     };
     ensureScript('https://fast.wistia.com/player.js');
-    ensureScript(`https://fast.wistia.com/embed/${mediaId}.js`, 'module');
+    // O script específico do media precisa ser (re)injetado a cada troca de id
+    const mediaScriptSrc = `https://fast.wistia.com/embed/${mediaId}.js`;
+    document.querySelectorAll(`script[src="${mediaScriptSrc}"]`).forEach(s => s.remove());
+    const mediaScript = document.createElement('script');
+    mediaScript.src = mediaScriptSrc;
+    mediaScript.async = true;
+    mediaScript.type = 'module';
+    document.head.appendChild(mediaScript);
 
-    const el = ref.current?.querySelector('wistia-player') as any;
-    if (!el || !onEnded) return;
-    const handler = () => onEnded();
-    el.addEventListener('end', handler);
-    el.addEventListener('ended', handler);
+    // Recria o elemento <wistia-player> do zero para forçar re-render
+    ref.current.innerHTML = '';
+    const player = document.createElement('wistia-player') as any;
+    player.setAttribute('media-id', mediaId);
+    player.setAttribute('aspect', '0.5625');
+    player.style.width = '100%';
+    player.style.height = '100%';
+    player.style.display = 'block';
+    ref.current.appendChild(player);
+
+    const handler = () => onEnded?.();
+    player.addEventListener('end', handler);
+    player.addEventListener('ended', handler);
+
     return () => {
-      el.removeEventListener('end', handler);
-      el.removeEventListener('ended', handler);
+      player.removeEventListener('end', handler);
+      player.removeEventListener('ended', handler);
     };
   }, [mediaId, onEnded]);
 
-  return (
-    <div ref={ref} className="w-full h-full absolute inset-0" dangerouslySetInnerHTML={{
-      __html: `<wistia-player media-id="${mediaId}" style="width:100%;height:100%;display:block"></wistia-player>`
-    }} />
-  );
+  return <div ref={ref} key={mediaId} className="w-full h-full absolute inset-0" />;
 }
+
 
 
 export default function AffiliateLandingPage() {
