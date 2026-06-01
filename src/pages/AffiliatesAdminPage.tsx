@@ -50,7 +50,7 @@ export default function AffiliatesAdminPage() {
   const [commissions, setCommissions] = useState<AffiliateCommission[]>([]);
   const [pageSettings, setPageSettings] = useState({
     whatsappNumber: '5588994463203',
-    vslVideoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    vslVideoUrl: 'https://www.youtube.com/embed/vIZz6iVfL18',
     closingCommission: 300,
     recurringCommission: 100,
   });

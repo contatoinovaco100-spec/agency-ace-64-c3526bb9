@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CheckCircle2, Loader2, User, Phone, Building2, Mail, ArrowRight } from 'lucide-react';
 import type { Affiliate } from '@/types/affiliates';
 
-const FALLBACK_VSL = import.meta.env.VITE_VSL_URL || 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+const FALLBACK_VSL = import.meta.env.VITE_VSL_URL || 'https://www.youtube.com/embed/vIZz6iVfL18';
 const FALLBACK_WHATSAPP = import.meta.env.VITE_WHATSAPP_NUMBER || '5588994463203';
 const CONFIG_URL = `${import.meta.env.VITE_SUPABASE_URL || 'https://cdzzewovtxotkghzeafr.supabase.co'}/storage/v1/object/public/app-config/config.json`;
 
