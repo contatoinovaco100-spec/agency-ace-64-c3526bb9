@@ -304,7 +304,7 @@ export default function AffiliateLandingPage() {
           </p>
         </div>
 
-        <div className="mb-8 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-900/40 relative" style={{ aspectRatio: '16 / 9' }}>
+        <div className="mb-8 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-900/40 relative mx-auto" style={{ aspectRatio: '9 / 16', maxHeight: '540px' }}>
           {isHtmlEmbed ? (
             <HtmlEmbed html={vslRaw} onEnded={handleVideoEnded} />
           ) : wistiaId ? (
