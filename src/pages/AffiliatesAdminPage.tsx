@@ -73,6 +73,7 @@ export default function AffiliatesAdminPage() {
       const { data: cfg, error: cfgErr } = await supabase
         .from('affiliate_settings' as any)
         .select('*')
+        .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -113,13 +114,8 @@ export default function AffiliatesAdminPage() {
   async function savePageSettings() {
     setSavingSettings(true);
     try {
-      const { data: existing } = await supabase
-        .from('affiliate_settings' as any)
-        .select('id')
-        .limit(1)
-        .maybeSingle();
-
       const payload = {
+        id: '00000000-0000-0000-0000-000000000001',
         whatsapp_number: pageSettings.whatsappNumber,
         vsl_video_url: pageSettings.vslVideoUrl,
         closing_commission: pageSettings.closingCommission,
@@ -127,32 +123,22 @@ export default function AffiliatesAdminPage() {
         updated_at: new Date().toISOString(),
       };
 
-      let dbError;
-      if (existing && (existing as any).id) {
-        const res = await supabase
-          .from('affiliate_settings' as any)
-          .update(payload)
-          .eq('id', (existing as any).id);
-        dbError = res.error;
-      } else {
-        const res = await supabase
-          .from('affiliate_settings' as any)
-          .insert(payload);
-        dbError = res.error;
-      }
+      const { error } = await supabase
+        .from('affiliate_settings' as any)
+        .upsert(payload);
 
-      if (dbError) throw dbError;
+      if (error) throw error;
 
       localStorage.setItem('affiliate_page_settings', JSON.stringify(pageSettings));
       toast({ title: 'Configurações salvas globalmente!' });
     } catch (err: any) {
-      console.error('[AffiliatesAdmin] Erro ao salvar no Supabase:', err.message || err);
+      console.error('[AffiliatesAdmin] Erro ao salvar:', err);
       localStorage.setItem('affiliate_page_settings', JSON.stringify(pageSettings));
       toast({
         title: 'Salvo apenas localmente',
-        description: 'Rode este SQL no Supabase SQL Editor (uma vez só): DROP POLICY IF EXISTS "Admins can insert settings" ON affiliate_settings; DROP POLICY IF EXISTS "Admins can update settings" ON affiliate_settings; CREATE POLICY "Admins can insert settings" ON affiliate_settings FOR INSERT WITH CHECK (true); CREATE POLICY "Admins can update settings" ON affiliate_settings FOR UPDATE USING (true);',
+        description: `Erro: ${err?.message || err?.error_description || JSON.stringify(err)}`,
         variant: 'destructive',
-        duration: 15000,
+        duration: 12000,
       });
     } finally {
       setSavingSettings(false);

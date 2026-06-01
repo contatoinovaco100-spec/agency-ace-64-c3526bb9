@@ -162,11 +162,12 @@ export default function AffiliateLandingPage() {
         console.error('[AffiliateLanding] Erro ao carregar afiliado:', err);
       }
 
-      // Carrega configurações: Supabase → localStorage → env → default
+      // Carrega configurações: Supabase table → localStorage → env → default
       try {
         const { data: cfg, error: cfgErr } = await supabase
           .from('affiliate_settings' as any)
           .select('whatsapp_number, vsl_video_url')
+          .order('updated_at', { ascending: false })
           .limit(1)
           .maybeSingle();
 
@@ -185,7 +186,7 @@ export default function AffiliateLandingPage() {
         console.warn('[AffiliateLanding] Sem acesso ao affiliate_settings:', err);
       }
 
-      // Fallback: localStorage do visitante (só funciona se o admin salvou no mesmo navegador)
+      // Fallback: localStorage do visitante
       const saved = localStorage.getItem('affiliate_page_settings');
       if (saved) {
         try {
