@@ -38,6 +38,8 @@ const STATUS_COLORS: Record<string, string> = {
   pago: 'bg-[hsl(var(--success))]/15 text-[hsl(var(--success))] border-[hsl(var(--success))]/30',
 };
 
+const CONFIG_URL = `${import.meta.env.VITE_SUPABASE_URL || 'https://cdzzewovtxotkghzeafr.supabase.co'}/storage/v1/object/public/app-config/config.json`;
+
 export default function AffiliatesAdminPage() {
   const { toast } = useToast();
   const { isAdmin, loading: roleLoading } = useUserRole();
@@ -67,39 +69,31 @@ export default function AffiliatesAdminPage() {
     setContracts((c.data as any) || []);
     setCommissions((cm.data as any) || []);
 
-    // Carrega configurações da página de captação (Supabase)
+    // Carrega configurações: Storage → localStorage → defaults
     const loadedCfg = { whatsappNumber: '5588994463203', vslVideoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', closingCommission: 300, recurringCommission: 100 };
     try {
-      const { data, error: rpcErr } = await supabase.rpc('get_affiliate_settings');
-
-      if (rpcErr) throw rpcErr;
-
-      if (data && data.length > 0) {
-        const c = data[0];
+      const res = await fetch(CONFIG_URL, { cache: 'no-cache' });
+      if (res.ok) {
+        const cfg = await res.json();
         setPageSettings({
-          whatsappNumber: c.whatsapp_number || loadedCfg.whatsappNumber,
-          vslVideoUrl: c.vsl_video_url || loadedCfg.vslVideoUrl,
-          closingCommission: Number(c.closing_commission ?? loadedCfg.closingCommission),
-          recurringCommission: Number(c.recurring_commission ?? loadedCfg.recurringCommission),
+          whatsappNumber: cfg.whatsapp_number || cfg.whatsappNumber || loadedCfg.whatsappNumber,
+          vslVideoUrl: cfg.vsl_video_url || cfg.vslVideoUrl || loadedCfg.vslVideoUrl,
+          closingCommission: Number(cfg.closing_commission ?? cfg.closingCommission ?? loadedCfg.closingCommission),
+          recurringCommission: Number(cfg.recurring_commission ?? cfg.recurringCommission ?? loadedCfg.recurringCommission),
         });
-      } else {
-        const saved = localStorage.getItem('affiliate_page_settings');
-        if (saved) {
-          try { const p = JSON.parse(saved); setPageSettings({ ...loadedCfg, ...p }); }
-          catch { setPageSettings(loadedCfg); }
-        } else {
-          setPageSettings(loadedCfg);
-        }
+        setLoading(false);
+        return;
       }
     } catch (err) {
-      console.warn('[AffiliatesAdmin] Erro ao carregar configs:', err);
-      const saved = localStorage.getItem('affiliate_page_settings');
-      if (saved) {
-        try { const p = JSON.parse(saved); setPageSettings({ ...loadedCfg, ...p }); }
-        catch { setPageSettings(loadedCfg); }
-      } else {
-        setPageSettings(loadedCfg);
-      }
+      console.warn('[AffiliatesAdmin] Storage falhou:', err);
+    }
+
+    const saved = localStorage.getItem('affiliate_page_settings');
+    if (saved) {
+      try { const p = JSON.parse(saved); setPageSettings({ ...loadedCfg, ...p }); }
+      catch { setPageSettings(loadedCfg); }
+    } else {
+      setPageSettings(loadedCfg);
     }
     setLoading(false);
   };
@@ -107,27 +101,41 @@ export default function AffiliatesAdminPage() {
 
   async function savePageSettings() {
     setSavingSettings(true);
+    const content = JSON.stringify(pageSettings);
+    localStorage.setItem('affiliate_page_settings', content);
+
     try {
-      const { error } = await supabase.rpc('upsert_affiliate_settings', {
-        p_whatsapp_number: pageSettings.whatsappNumber,
-        p_vsl_video_url: pageSettings.vslVideoUrl,
-        p_closing_commission: pageSettings.closingCommission,
-        p_recurring_commission: pageSettings.recurringCommission,
-      });
+      const { error } = await supabase.storage
+        .from('app-config')
+        .upload('config.json', content, {
+          contentType: 'application/json',
+          upsert: true,
+        });
 
       if (error) throw error;
-
-      localStorage.setItem('affiliate_page_settings', JSON.stringify(pageSettings));
       toast({ title: 'Configurações salvas globalmente!' });
     } catch (err: any) {
-      console.error('[AffiliatesAdmin] Erro ao salvar:', err);
-      localStorage.setItem('affiliate_page_settings', JSON.stringify(pageSettings));
-      toast({
-        title: 'Salvo apenas localmente',
-        description: `Erro: ${err?.message || err?.details || JSON.stringify(err)}`,
-        variant: 'destructive',
-        duration: 12000,
-      });
+      console.error('[AffiliatesAdmin] Storage falhou:', err);
+
+      // Fallback: tenta RPC function (se existir)
+      try {
+        const { error: rpcErr } = await supabase.rpc('upsert_affiliate_settings', {
+          p_whatsapp_number: pageSettings.whatsappNumber,
+          p_vsl_video_url: pageSettings.vslVideoUrl,
+          p_closing_commission: pageSettings.closingCommission,
+          p_recurring_commission: pageSettings.recurringCommission,
+        });
+        if (rpcErr) throw rpcErr;
+        toast({ title: 'Configurações salvas globalmente!' });
+      } catch (rpcErr: any) {
+        console.error('[AffiliatesAdmin] RPC também falhou:', rpcErr);
+        toast({
+          title: 'Salvo apenas localmente',
+          description: `Erro: ${err?.message || err?.error_description || JSON.stringify(err)}`,
+          variant: 'destructive',
+          duration: 12000,
+        });
+      }
     } finally {
       setSavingSettings(false);
     }

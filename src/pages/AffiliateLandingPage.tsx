@@ -11,6 +11,7 @@ import type { Affiliate } from '@/types/affiliates';
 
 const FALLBACK_VSL = import.meta.env.VITE_VSL_URL || 'https://www.youtube.com/embed/dQw4w9WgXcQ';
 const FALLBACK_WHATSAPP = import.meta.env.VITE_WHATSAPP_NUMBER || '5588994463203';
+const CONFIG_URL = `${import.meta.env.VITE_SUPABASE_URL || 'https://cdzzewovtxotkghzeafr.supabase.co'}/storage/v1/object/public/app-config/config.json`;
 
 function generateToken(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -162,23 +163,20 @@ export default function AffiliateLandingPage() {
         console.error('[AffiliateLanding] Erro ao carregar afiliado:', err);
       }
 
-      // Carrega configurações: RPC function → localStorage → env → default
+      // Carrega configurações: Storage público → localStorage → env → default
       try {
-        const { data, error: rpcErr } = await supabase.rpc('get_affiliate_settings');
-
-        if (rpcErr) throw rpcErr;
-
-        if (data && data.length > 0) {
-          const c = data[0];
+        const res = await fetch(CONFIG_URL, { cache: 'no-cache' });
+        if (res.ok) {
+          const cfg = await res.json();
           setSettings({
-            whatsappNumber: c.whatsapp_number || FALLBACK_WHATSAPP,
-            vslVideoUrl: c.vsl_video_url || FALLBACK_VSL,
+            whatsappNumber: cfg.whatsapp_number || cfg.whatsappNumber || FALLBACK_WHATSAPP,
+            vslVideoUrl: cfg.vsl_video_url || cfg.vslVideoUrl || FALLBACK_VSL,
           });
           setLoading(false);
           return;
         }
       } catch (err) {
-        console.warn('[AffiliateLanding] Erro ao carregar configs:', err);
+        console.warn('[AffiliateLanding] Storage falhou:', err);
       }
 
       // Fallback: localStorage do visitante
