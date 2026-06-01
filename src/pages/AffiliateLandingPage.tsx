@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -22,28 +22,28 @@ function generateToken(): string {
 const DEFAULT_WHATSAPP = '5588994463203';
 const DEFAULT_VSL = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
 
-// Função inteligente para extrair URL limpa de iframes a partir de códigos HTML colados (Wistia, YouTube, Vimeo, etc)
+// Detecta media-id do Wistia em códigos colados (script embed, iframe ou url)
+function extractWistiaId(url: string): string | null {
+  if (!url) return null;
+  const m =
+    url.match(/media-id=['"]([a-zA-Z0-9]+)['"]/) ||
+    url.match(/wistia\.(?:com|net)\/embed\/(?:iframe|medias)\/([a-zA-Z0-9]+)/) ||
+    url.match(/wistia\.com\/embed\/([a-zA-Z0-9]+)\.js/) ||
+    url.match(/wistia\.com\/medias\/([a-zA-Z0-9]+)/);
+  return m ? m[1] : null;
+}
+
+// Função inteligente para extrair URL limpa de iframes a partir de códigos HTML colados (YouTube, Vimeo, etc)
 function cleanVideoUrl(url: string): string {
   if (!url) return DEFAULT_VSL;
 
-  // 1. Se colou o código HTML completo do Wistia (com <script>, <wistia-player>, media-id, etc)
-  const wistiaMatch = url.match(/media-id=['"]([^'"]+)['"]/) || url.match(/embed\/([a-zA-Z0-9]+)\.js/);
-  if (wistiaMatch && wistiaMatch[1]) {
-    return `https://fast.wistia.net/embed/iframe/${wistiaMatch[1]}?autoplay=1`;
-  }
-
-  // 2. Se colou link direto do Wistia iframe
-  if (url.includes('wistia.net/embed/iframe')) {
-    return url;
-  }
-
-  // 3. Se colou link do YouTube watch?v=
+  // YouTube watch?v= / youtu.be / embed
   const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|(?:embed|v)\/))([a-zA-Z0-9_-]{11})/);
   if (ytMatch && ytMatch[1]) {
     return `https://www.youtube.com/embed/${ytMatch[1]}`;
   }
 
-  // 4. Se for um iframe ou script genérico, tenta extrair o atributo src
+  // iframe genérico → extrai src
   const srcMatch = url.match(/src=['"]([^'"]+)['"]/);
   if (srcMatch && srcMatch[1] && !srcMatch[1].endsWith('.js')) {
     return srcMatch[1];
@@ -51,6 +51,41 @@ function cleanVideoUrl(url: string): string {
 
   return url;
 }
+
+// Player do Wistia usando web component <wistia-player> (suporta evento 'ended')
+function WistiaPlayer({ mediaId, onEnded }: { mediaId: string; onEnded?: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const ensureScript = (src: string, type?: string) => {
+      if (document.querySelector(`script[src="${src}"]`)) return;
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      if (type) s.type = type;
+      document.head.appendChild(s);
+    };
+    ensureScript('https://fast.wistia.com/player.js');
+    ensureScript(`https://fast.wistia.com/embed/${mediaId}.js`, 'module');
+
+    const el = ref.current?.querySelector('wistia-player') as any;
+    if (!el || !onEnded) return;
+    const handler = () => onEnded();
+    el.addEventListener('end', handler);
+    el.addEventListener('ended', handler);
+    return () => {
+      el.removeEventListener('end', handler);
+      el.removeEventListener('ended', handler);
+    };
+  }, [mediaId, onEnded]);
+
+  return (
+    <div ref={ref} className="w-full h-full absolute inset-0" dangerouslySetInnerHTML={{
+      __html: `<wistia-player media-id="${mediaId}" style="width:100%;height:100%;display:block"></wistia-player>`
+    }} />
+  );
+}
+
 
 export default function AffiliateLandingPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -62,6 +97,7 @@ export default function AffiliateLandingPage() {
   const [leadToken, setLeadToken] = useState('');
   const [form, setForm] = useState({ lead_name: '', whatsapp: '', company: '', email: '' });
   const [settings, setSettings] = useState({ whatsappNumber: DEFAULT_WHATSAPP, vslVideoUrl: DEFAULT_VSL });
+  const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     (async () => {
@@ -195,16 +231,33 @@ export default function AffiliateLandingPage() {
         </div>
 
         {/* ================= VSL VIDEO NO TOPO ================= */}
-        <div className="mb-8 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-900/40 aspect-video relative animate-in fade-in zoom-in duration-700">
-          <iframe 
-            src={cleanVideoUrl(settings.vslVideoUrl)}
-            className="w-full h-full absolute inset-0"
-            allow="autoplay; fullscreen; picture-in-picture; accelerometer; clipboard-write; encrypted-media; gyroscope" 
-            allowFullScreen
-          />
-        </div>
+        {(() => {
+          const wistiaId = extractWistiaId(settings.vslVideoUrl);
+          return (
+            <div className="mb-8 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-900/40 aspect-video relative animate-in fade-in zoom-in duration-700">
+              {wistiaId ? (
+                <WistiaPlayer
+                  mediaId={wistiaId}
+                  onEnded={() => {
+                    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    formRef.current?.classList.add('ring-2', 'ring-[#BFF720]', 'ring-offset-2', 'ring-offset-black');
+                    setTimeout(() => formRef.current?.classList.remove('ring-2', 'ring-[#BFF720]', 'ring-offset-2', 'ring-offset-black'), 2500);
+                  }}
+                />
+              ) : (
+                <iframe
+                  src={cleanVideoUrl(settings.vslVideoUrl)}
+                  className="w-full h-full absolute inset-0"
+                  allow="autoplay; fullscreen; picture-in-picture; accelerometer; clipboard-write; encrypted-media; gyroscope"
+                  allowFullScreen
+                />
+              )}
+            </div>
+          );
+        })()}
 
-        <Card className="bg-zinc-900/60 backdrop-blur-xl border-zinc-800/60 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <Card ref={formRef} className="bg-zinc-900/60 backdrop-blur-xl border-zinc-800/60 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700 transition-all">
+
           <CardHeader className="pb-6 border-b border-zinc-800/60">
             <CardTitle className="text-xl font-bold text-center">Fale com um Especialista</CardTitle>
           </CardHeader>
