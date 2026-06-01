@@ -70,17 +70,12 @@ export default function AffiliatesAdminPage() {
     // Carrega configurações da página de captação (Supabase)
     const loadedCfg = { whatsappNumber: '5588994463203', vslVideoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', closingCommission: 300, recurringCommission: 100 };
     try {
-      const { data: cfg, error: cfgErr } = await supabase
-        .from('affiliate_settings' as any)
-        .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data, error: rpcErr } = await supabase.rpc('get_affiliate_settings');
 
-      if (cfgErr) throw cfgErr;
+      if (rpcErr) throw rpcErr;
 
-      if (cfg) {
-        const c = cfg as any;
+      if (data && data.length > 0) {
+        const c = data[0];
         setPageSettings({
           whatsappNumber: c.whatsapp_number || loadedCfg.whatsappNumber,
           vslVideoUrl: c.vsl_video_url || loadedCfg.vslVideoUrl,
@@ -88,7 +83,6 @@ export default function AffiliatesAdminPage() {
           recurringCommission: Number(c.recurring_commission ?? loadedCfg.recurringCommission),
         });
       } else {
-        // Sem linha nas configs — tenta localStorage como contingência
         const saved = localStorage.getItem('affiliate_page_settings');
         if (saved) {
           try { const p = JSON.parse(saved); setPageSettings({ ...loadedCfg, ...p }); }
@@ -98,7 +92,7 @@ export default function AffiliatesAdminPage() {
         }
       }
     } catch (err) {
-      // Tabela affiliate_settings não existe ainda — usa localStorage/env
+      console.warn('[AffiliatesAdmin] Erro ao carregar configs:', err);
       const saved = localStorage.getItem('affiliate_page_settings');
       if (saved) {
         try { const p = JSON.parse(saved); setPageSettings({ ...loadedCfg, ...p }); }
@@ -114,18 +108,12 @@ export default function AffiliatesAdminPage() {
   async function savePageSettings() {
     setSavingSettings(true);
     try {
-      const payload = {
-        id: '00000000-0000-0000-0000-000000000001',
-        whatsapp_number: pageSettings.whatsappNumber,
-        vsl_video_url: pageSettings.vslVideoUrl,
-        closing_commission: pageSettings.closingCommission,
-        recurring_commission: pageSettings.recurringCommission,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await supabase
-        .from('affiliate_settings' as any)
-        .upsert(payload);
+      const { error } = await supabase.rpc('upsert_affiliate_settings', {
+        p_whatsapp_number: pageSettings.whatsappNumber,
+        p_vsl_video_url: pageSettings.vslVideoUrl,
+        p_closing_commission: pageSettings.closingCommission,
+        p_recurring_commission: pageSettings.recurringCommission,
+      });
 
       if (error) throw error;
 
@@ -136,7 +124,7 @@ export default function AffiliatesAdminPage() {
       localStorage.setItem('affiliate_page_settings', JSON.stringify(pageSettings));
       toast({
         title: 'Salvo apenas localmente',
-        description: `Erro: ${err?.message || err?.error_description || JSON.stringify(err)}`,
+        description: `Erro: ${err?.message || err?.details || JSON.stringify(err)}`,
         variant: 'destructive',
         duration: 12000,
       });

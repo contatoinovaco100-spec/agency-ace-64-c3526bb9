@@ -162,19 +162,14 @@ export default function AffiliateLandingPage() {
         console.error('[AffiliateLanding] Erro ao carregar afiliado:', err);
       }
 
-      // Carrega configurações: Supabase table → localStorage → env → default
+      // Carrega configurações: RPC function → localStorage → env → default
       try {
-        const { data: cfg, error: cfgErr } = await supabase
-          .from('affiliate_settings' as any)
-          .select('whatsapp_number, vsl_video_url')
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const { data, error: rpcErr } = await supabase.rpc('get_affiliate_settings');
 
-        if (cfgErr) throw cfgErr;
+        if (rpcErr) throw rpcErr;
 
-        if (cfg) {
-          const c = cfg as any;
+        if (data && data.length > 0) {
+          const c = data[0];
           setSettings({
             whatsappNumber: c.whatsapp_number || FALLBACK_WHATSAPP,
             vslVideoUrl: c.vsl_video_url || FALLBACK_VSL,
@@ -183,7 +178,7 @@ export default function AffiliateLandingPage() {
           return;
         }
       } catch (err) {
-        console.warn('[AffiliateLanding] Sem acesso ao affiliate_settings:', err);
+        console.warn('[AffiliateLanding] Erro ao carregar configs:', err);
       }
 
       // Fallback: localStorage do visitante
