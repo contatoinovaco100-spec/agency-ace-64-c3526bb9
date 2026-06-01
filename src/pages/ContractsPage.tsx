@@ -161,7 +161,7 @@ export default function ContractsPage() {
       if (lead) {
         setAffiliateFound({
           affiliateName: (lead as any).affiliates?.full_name || 'Afiliado não encontrado',
-          leadName: lead.lead_name,
+          leadName: (lead as any).lead_name,
         });
       } else {
         setAffiliateSearchError('Nenhum lead encontrado com este código');
