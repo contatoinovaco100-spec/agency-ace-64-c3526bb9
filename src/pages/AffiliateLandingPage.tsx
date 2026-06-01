@@ -97,6 +97,49 @@ function WistiaPlayer({ mediaId, onEnded }: { mediaId: string; onEnded?: () => v
   return <div ref={ref} key={mediaId} className="w-full h-full absolute inset-0" />;
 }
 
+function HtmlEmbed({ html, onEnded }: { html: string; onEnded?: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.innerHTML = html;
+
+    // innerHTML não executa <script> — recriar cada <script> para rodar de verdade
+    const scripts = Array.from(ref.current.querySelectorAll('script'));
+    scripts.forEach((oldScript) => {
+      const newScript = document.createElement('script');
+      Array.from(oldScript.attributes).forEach((attr) => {
+        newScript.setAttribute(attr.name, attr.value);
+      });
+      if (oldScript.textContent) {
+        newScript.textContent = oldScript.textContent;
+      }
+      oldScript.parentNode?.replaceChild(newScript, oldScript);
+    });
+
+    // Se for Wistia, tenta bindar o evento de "ended" no player criado
+    if (onEnded) {
+      const tryBind = (attempt = 0) => {
+        const player = ref.current?.querySelector('wistia-player') as any;
+        if (player) {
+          player.addEventListener?.('end', onEnded);
+          player.addEventListener?.('ended', onEnded);
+        } else if (attempt < 30) {
+          setTimeout(() => tryBind(attempt + 1), 300);
+        }
+      };
+      tryBind();
+    }
+  }, [html, onEnded]);
+
+  return (
+    <div
+      ref={ref}
+      className="w-full h-full absolute inset-0 [&_iframe]:!w-full [&_iframe]:!h-full [&_iframe]:!absolute [&_iframe]:!inset-0 [&_wistia-player]:!w-full [&_wistia-player]:!h-full [&_wistia-player]:!absolute [&_wistia-player]:!inset-0 [&_video]:!w-full [&_video]:!h-full [&_video]:!absolute [&_video]:!inset-0"
+    />
+  );
+}
+
 export default function AffiliateLandingPage() {
   const { slug } = useParams<{ slug: string }>();
   const { toast } = useToast();
@@ -246,7 +289,14 @@ export default function AffiliateLandingPage() {
     );
   }
 
-  const wistiaId = extractWistiaId(settings.vslVideoUrl);
+  const vslRaw = (settings.vslVideoUrl || '').trim();
+  const wistiaId = extractWistiaId(vslRaw);
+  const isHtmlEmbed = /<\s*\w/.test(vslRaw);
+  const handleVideoEnded = () => {
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    formRef.current?.classList.add('ring-2', 'ring-[#BFF720]', 'ring-offset-2', 'ring-offset-black');
+    setTimeout(() => formRef.current?.classList.remove('ring-2', 'ring-[#BFF720]', 'ring-offset-2', 'ring-offset-black'), 2500);
+  };
 
   return (
     <div className="min-h-screen bg-black text-white py-12 px-4 relative overflow-hidden flex flex-col items-center justify-center selection:bg-[#BFF720] selection:text-black">
@@ -263,15 +313,13 @@ export default function AffiliateLandingPage() {
         </div>
 
         <div className="mb-8 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-900/40 relative" style={{ aspectRatio: '16 / 9' }}>
-          {wistiaId ? (
-            <WistiaPlayer mediaId={wistiaId} onEnded={() => {
-              formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              formRef.current?.classList.add('ring-2', 'ring-[#BFF720]', 'ring-offset-2', 'ring-offset-black');
-              setTimeout(() => formRef.current?.classList.remove('ring-2', 'ring-[#BFF720]', 'ring-offset-2', 'ring-offset-black'), 2500);
-            }} />
+          {isHtmlEmbed ? (
+            <HtmlEmbed html={vslRaw} onEnded={handleVideoEnded} />
+          ) : wistiaId ? (
+            <WistiaPlayer mediaId={wistiaId} onEnded={handleVideoEnded} />
           ) : (
             <iframe
-              src={cleanVideoUrl(settings.vslVideoUrl)}
+              src={cleanVideoUrl(vslRaw)}
               className="w-full h-full absolute inset-0"
               allow="autoplay; fullscreen; picture-in-picture; accelerometer; clipboard-write; encrypted-media; gyroscope"
               allowFullScreen
