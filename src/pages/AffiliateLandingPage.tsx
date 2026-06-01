@@ -6,8 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle2, Loader2, User, Phone, Building2, Mail, ArrowRight, Video, Copy } from 'lucide-react';
+import { CheckCircle2, Loader2, User, Phone, Building2, Mail, ArrowRight, Copy } from 'lucide-react';
 import type { Affiliate } from '@/types/affiliates';
+
+const FALLBACK_VSL = import.meta.env.VITE_VSL_URL || 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+const FALLBACK_WHATSAPP = import.meta.env.VITE_WHATSAPP_NUMBER || '5588994463203';
 
 function generateToken(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -18,38 +21,32 @@ function generateToken(): string {
   return result;
 }
 
-// Valores padrão de fallback
-const DEFAULT_WHATSAPP = '5588994463203';
-const DEFAULT_VSL = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
-
 // Função inteligente para extrair URL limpa de iframes a partir de códigos HTML colados (Wistia, YouTube, Vimeo, etc)
 function cleanVideoUrl(url: string): string {
-  if (!url) return DEFAULT_VSL;
+  if (!url || url === FALLBACK_VSL) {
+    return url && url !== FALLBACK_VSL ? url : 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playlist=dQw4w9WgXcQ';
+  }
+  const trimmed = url.trim();
 
-  // 1. Se colou o código HTML completo do Wistia (com <script>, <wistia-player>, media-id, etc)
-  const wistiaMatch = url.match(/media-id=['"]([^'"]+)['"]/) || url.match(/embed\/([a-zA-Z0-9]+)\.js/);
-  if (wistiaMatch && wistiaMatch[1]) {
-    return `https://fast.wistia.net/embed/iframe/${wistiaMatch[1]}?autoplay=1`;
+  const wistiaId = trimmed.match(/media-id=['"]([^'"]+)['"]/) || trimmed.match(/embed\/([a-zA-Z0-9]+)\.js/);
+  if (wistiaId && wistiaId[1]) {
+    return `https://fast.wistia.net/embed/iframe/${wistiaId[1]}?autoplay=1`;
+  }
+  if (trimmed.includes('wistia.net/embed/iframe')) {
+    return trimmed + (trimmed.includes('?') ? '&' : '?') + 'autoplay=1';
   }
 
-  // 2. Se colou link direto do Wistia iframe
-  if (url.includes('wistia.net/embed/iframe')) {
-    return url;
+  const ytId = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|(?:embed|v)\/))([a-zA-Z0-9_-]{11})/);
+  if (ytId && ytId[1]) {
+    return `https://www.youtube.com/embed/${ytId[1]}?autoplay=1&mute=1&loop=1&playlist=${ytId[1]}`;
   }
 
-  // 3. Se colou link do YouTube watch?v=
-  const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|(?:embed|v)\/))([a-zA-Z0-9_-]{11})/);
-  if (ytMatch && ytMatch[1]) {
-    return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  const srcAttr = trimmed.match(/src=['"]([^'"]+)['"]/);
+  if (srcAttr && srcAttr[1] && !srcAttr[1].endsWith('.js')) {
+    return srcAttr[1];
   }
 
-  // 4. Se for um iframe ou script genérico, tenta extrair o atributo src
-  const srcMatch = url.match(/src=['"]([^'"]+)['"]/);
-  if (srcMatch && srcMatch[1] && !srcMatch[1].endsWith('.js')) {
-    return srcMatch[1];
-  }
-
-  return url;
+  return trimmed;
 }
 
 export default function AffiliateLandingPage() {
@@ -61,34 +58,20 @@ export default function AffiliateLandingPage() {
   const [done, setDone] = useState(false);
   const [leadToken, setLeadToken] = useState('');
   const [form, setForm] = useState({ lead_name: '', whatsapp: '', company: '', email: '' });
-  const [settings, setSettings] = useState({ whatsappNumber: DEFAULT_WHATSAPP, vslVideoUrl: DEFAULT_VSL });
+  const [settings, setSettings] = useState({ whatsappNumber: FALLBACK_WHATSAPP, vslVideoUrl: FALLBACK_VSL });
 
   useEffect(() => {
     (async () => {
-      // 1. Carrega dados do afiliado
       const { data } = await supabase.from('affiliates' as any)
         .select('*').eq('slug', slug).eq('status', 'aprovado').maybeSingle();
       setAffiliate(data as any);
 
-      // 2. Carrega configurações da página (Supabase affiliate_settings com fallback para localStorage)
-      let loadedSettings = { whatsappNumber: DEFAULT_WHATSAPP, vslVideoUrl: DEFAULT_VSL };
-      try {
-        const { data: cfg } = await supabase.from('affiliate_settings' as any).select('*').limit(1).maybeSingle();
-        if (cfg) {
-          const c = cfg as any;
-          loadedSettings = {
-            whatsappNumber: c.whatsapp_number || DEFAULT_WHATSAPP,
-            vslVideoUrl: c.vsl_video_url || DEFAULT_VSL
-          };
-        } else {
-          const saved = localStorage.getItem('affiliate_page_settings');
-          if (saved) { try { loadedSettings = JSON.parse(saved); } catch {} }
-        }
-      } catch (err) {
-        const saved = localStorage.getItem('affiliate_page_settings');
-        if (saved) { try { loadedSettings = JSON.parse(saved); } catch {} }
+      // Tenta carregar settings: localStorage > env var > fallback
+      const saved = localStorage.getItem('affiliate_page_settings');
+      if (saved) {
+        try { const p = JSON.parse(saved); setSettings({ whatsappNumber: p.whatsappNumber || FALLBACK_WHATSAPP, vslVideoUrl: p.vslVideoUrl || FALLBACK_VSL }); }
+        catch {}
       }
-      setSettings(loadedSettings);
       setLoading(false);
     })();
   }, [slug]);
@@ -195,13 +178,19 @@ export default function AffiliateLandingPage() {
         </div>
 
         {/* ================= VSL VIDEO NO TOPO ================= */}
-        <div className="mb-8 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-900/40 aspect-video relative animate-in fade-in zoom-in duration-700">
-          <iframe 
-            src={cleanVideoUrl(settings.vslVideoUrl)}
-            className="w-full h-full absolute inset-0"
-            allow="autoplay; fullscreen; picture-in-picture; accelerometer; clipboard-write; encrypted-media; gyroscope" 
-            allowFullScreen
-          />
+        <div className="mb-8 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-900/40 relative" style={{ aspectRatio: '16 / 9' }}>
+          {settings.vslVideoUrl ? (
+            <iframe 
+              src={cleanVideoUrl(settings.vslVideoUrl)}
+              className="w-full h-full absolute inset-0"
+              allow="autoplay; fullscreen; picture-in-picture; accelerometer; clipboard-write; encrypted-media; gyroscope" 
+              allowFullScreen
+            />
+          ) : (
+            <div className="w-full h-full absolute inset-0 flex items-center justify-center text-zinc-500 text-sm">
+              Carregando vídeo...
+            </div>
+          )}
         </div>
 
         <Card className="bg-zinc-900/60 backdrop-blur-xl border-zinc-800/60 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">

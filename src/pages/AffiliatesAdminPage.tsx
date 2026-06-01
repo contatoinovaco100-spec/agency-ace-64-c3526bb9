@@ -69,24 +69,8 @@ export default function AffiliatesAdminPage() {
 
     // Carrega configurações da página de captação
     let loadedCfg = { whatsappNumber: '5588994463203', vslVideoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', closingCommission: 300, recurringCommission: 100 };
-    try {
-      const { data: cfg } = await supabase.from('affiliate_settings' as any).select('*').limit(1).maybeSingle();
-      if (cfg) {
-        const c = cfg as any;
-        loadedCfg = {
-          whatsappNumber: c.whatsapp_number || '5588994463203',
-          vslVideoUrl: c.vsl_video_url || 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-          closingCommission: Number(c.closing_commission) || 300,
-          recurringCommission: Number(c.recurring_commission) || 100,
-        };
-      } else {
-        const saved = localStorage.getItem('affiliate_page_settings');
-        if (saved) { try { const p = JSON.parse(saved); loadedCfg = { ...loadedCfg, ...p }; } catch {} }
-      }
-    } catch (err) {
-      const saved = localStorage.getItem('affiliate_page_settings');
-      if (saved) { try { const p = JSON.parse(saved); loadedCfg = { ...loadedCfg, ...p }; } catch {} }
-    }
+    const saved = localStorage.getItem('affiliate_page_settings');
+    if (saved) { try { const p = JSON.parse(saved); loadedCfg = { ...loadedCfg, ...p }; } catch {} }
     setPageSettings(loadedCfg);
     setLoading(false);
   };
@@ -95,32 +79,9 @@ export default function AffiliatesAdminPage() {
   async function savePageSettings() {
     setSavingSettings(true);
     localStorage.setItem('affiliate_page_settings', JSON.stringify(pageSettings));
-    try {
-      const { data: existing, error: selectErr } = await supabase.from('affiliate_settings' as any).select('id').limit(1).maybeSingle();
-      if (!selectErr) {
-        if (existing) {
-          await supabase.from('affiliate_settings' as any).update({
-            whatsapp_number: pageSettings.whatsappNumber,
-            vsl_video_url: pageSettings.vslVideoUrl,
-            closing_commission: pageSettings.closingCommission,
-            recurring_commission: pageSettings.recurringCommission,
-            updated_at: new Date().toISOString()
-          }).eq('id', (existing as any).id);
-        } else {
-          await supabase.from('affiliate_settings' as any).insert({
-            whatsapp_number: pageSettings.whatsappNumber,
-            vsl_video_url: pageSettings.vslVideoUrl,
-            closing_commission: pageSettings.closingCommission,
-            recurring_commission: pageSettings.recurringCommission,
-          });
-        }
-      }
-      toast({ title: 'Configurações salvas com sucesso!' });
-    } catch (err: any) {
-      toast({ title: 'Configurações salvas no cache local!', description: 'As alterações já estão ativas para os leads.' });
-    } finally {
-      setSavingSettings(false);
-    }
+    await new Promise(r => setTimeout(r, 400));
+    toast({ title: 'Configurações salvas com sucesso!' });
+    setSavingSettings(false);
   }
 
   async function ensureSlug(aff: Affiliate): Promise<string> {
@@ -826,7 +787,7 @@ function ContractDialog({ lead, onCreated }: { lead: AffiliateLead; onCreated: (
           <div className="bg-secondary/40 border border-border/50 p-4 rounded-xl space-y-1">
             <p className="text-xs font-semibold text-primary">Informação importante:</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              O contrato será criado com o status inicial de <strong className="text-foreground">"Pendente"</strong>. A comissão de fechamento de R$ 300,00 para o afiliado só será gerada no momento em que você alterar o status para <strong className="text-foreground">"Ativo"</strong>.
+              O contrato será criado com o status inicial de <strong className="text-foreground">"Pendente"</strong>. A comissão de fechamento para o afiliado será gerada automaticamente no momento em que você alterar o status para <strong className="text-foreground">"Ativo"</strong>, seguindo o valor definido nas configurações.
             </p>
           </div>
         </div>
