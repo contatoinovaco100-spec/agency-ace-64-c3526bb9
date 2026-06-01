@@ -230,16 +230,33 @@ export default function AffiliateLandingPage() {
         </div>
 
         {/* ================= VSL VIDEO NO TOPO ================= */}
-        <div className="mb-8 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-900/40 aspect-video relative animate-in fade-in zoom-in duration-700">
-          <iframe 
-            src={cleanVideoUrl(settings.vslVideoUrl)}
-            className="w-full h-full absolute inset-0"
-            allow="autoplay; fullscreen; picture-in-picture; accelerometer; clipboard-write; encrypted-media; gyroscope" 
-            allowFullScreen
-          />
-        </div>
+        {(() => {
+          const wistiaId = extractWistiaId(settings.vslVideoUrl);
+          return (
+            <div className="mb-8 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-900/40 aspect-video relative animate-in fade-in zoom-in duration-700">
+              {wistiaId ? (
+                <WistiaPlayer
+                  mediaId={wistiaId}
+                  onEnded={() => {
+                    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    formRef.current?.classList.add('ring-2', 'ring-[#BFF720]', 'ring-offset-2', 'ring-offset-black');
+                    setTimeout(() => formRef.current?.classList.remove('ring-2', 'ring-[#BFF720]', 'ring-offset-2', 'ring-offset-black'), 2500);
+                  }}
+                />
+              ) : (
+                <iframe
+                  src={cleanVideoUrl(settings.vslVideoUrl)}
+                  className="w-full h-full absolute inset-0"
+                  allow="autoplay; fullscreen; picture-in-picture; accelerometer; clipboard-write; encrypted-media; gyroscope"
+                  allowFullScreen
+                />
+              )}
+            </div>
+          );
+        })()}
 
-        <Card className="bg-zinc-900/60 backdrop-blur-xl border-zinc-800/60 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <Card ref={formRef} className="bg-zinc-900/60 backdrop-blur-xl border-zinc-800/60 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700 transition-all">
+
           <CardHeader className="pb-6 border-b border-zinc-800/60">
             <CardTitle className="text-xl font-bold text-center">Fale com um Especialista</CardTitle>
           </CardHeader>
