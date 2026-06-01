@@ -97,6 +97,7 @@ export default function AffiliateLandingPage() {
   const [leadToken, setLeadToken] = useState('');
   const [form, setForm] = useState({ lead_name: '', whatsapp: '', company: '', email: '' });
   const [settings, setSettings] = useState({ whatsappNumber: DEFAULT_WHATSAPP, vslVideoUrl: DEFAULT_VSL });
+  const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     (async () => {
