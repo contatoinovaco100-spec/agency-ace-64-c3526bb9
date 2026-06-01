@@ -161,7 +161,7 @@ export default function ContractsPage() {
       if (lead) {
         setAffiliateFound({
           affiliateName: (lead as any).affiliates?.full_name || 'Afiliado não encontrado',
-          leadName: lead.lead_name,
+          leadName: (lead as any).lead_name,
         });
       } else {
         setAffiliateSearchError('Nenhum lead encontrado com este código');
@@ -188,7 +188,7 @@ export default function ContractsPage() {
       await supabase.from('contracts').update(updatePayload).eq('id', editingId);
       toast.success('Contrato atualizado');
     } else {
-      await supabase.from('contracts').insert({ ...payload, status: 'rascunho' });
+      await supabase.from('contracts').insert({ ...payload, status: 'rascunho' } as any);
       toast.success('Contrato criado');
     }
     setSaving(false);
