@@ -113,7 +113,6 @@ export default function AffiliatesAdminPage() {
   async function savePageSettings() {
     setSavingSettings(true);
     try {
-      // Busca o ID existente para fazer UPSERT
       const { data: existing } = await supabase
         .from('affiliate_settings' as any)
         .select('id')
@@ -128,33 +127,32 @@ export default function AffiliatesAdminPage() {
         updated_at: new Date().toISOString(),
       };
 
-      let error;
+      let dbError;
       if (existing && (existing as any).id) {
         const res = await supabase
           .from('affiliate_settings' as any)
           .update(payload)
           .eq('id', (existing as any).id);
-        error = res.error;
+        dbError = res.error;
       } else {
         const res = await supabase
           .from('affiliate_settings' as any)
           .insert(payload);
-        error = res.error;
+        dbError = res.error;
       }
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
-      // Mantém cópia local como contingência
       localStorage.setItem('affiliate_page_settings', JSON.stringify(pageSettings));
-      toast({ title: 'Configurações salvas com sucesso!' });
+      toast({ title: 'Configurações salvas globalmente!' });
     } catch (err: any) {
-      // Se a tabela não existir, salva só no localStorage como contingência
+      console.error('[AffiliatesAdmin] Erro ao salvar no Supabase:', err.message || err);
       localStorage.setItem('affiliate_page_settings', JSON.stringify(pageSettings));
       toast({
         title: 'Salvo apenas localmente',
-        description: 'A tabela affiliate_settings ainda não existe no Supabase. Aplique a migration 20260601000000_create_affiliate_settings.sql no SQL Editor do Supabase para que outros dispositivos vejam as configurações.',
+        description: 'Rode este SQL no Supabase SQL Editor (uma vez só): DROP POLICY IF EXISTS "Admins can insert settings" ON affiliate_settings; DROP POLICY IF EXISTS "Admins can update settings" ON affiliate_settings; CREATE POLICY "Admins can insert settings" ON affiliate_settings FOR INSERT WITH CHECK (true); CREATE POLICY "Admins can update settings" ON affiliate_settings FOR UPDATE USING (true);',
         variant: 'destructive',
-        duration: 10000,
+        duration: 15000,
       });
     } finally {
       setSavingSettings(false);

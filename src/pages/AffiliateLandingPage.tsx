@@ -154,13 +154,15 @@ export default function AffiliateLandingPage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('affiliates' as any)
-        .select('*').eq('slug', slug).eq('status', 'aprovado').maybeSingle();
-      setAffiliate(data as any);
+      try {
+        const { data } = await supabase.from('affiliates' as any)
+          .select('*').eq('slug', slug).eq('status', 'aprovado').maybeSingle();
+        setAffiliate(data as any);
+      } catch (err) {
+        console.error('[AffiliateLanding] Erro ao carregar afiliado:', err);
+      }
 
-      // Carrega configurações da página do Supabase (tabela affiliate_settings).
-      // Fallback para localStorage/env apenas se a tabela ainda não existir
-      // (caso a migration não tenha sido aplicada).
+      // Carrega configurações: Supabase → localStorage → env → default
       try {
         const { data: cfg, error: cfgErr } = await supabase
           .from('affiliate_settings' as any)
@@ -176,31 +178,27 @@ export default function AffiliateLandingPage() {
             whatsappNumber: c.whatsapp_number || FALLBACK_WHATSAPP,
             vslVideoUrl: c.vsl_video_url || FALLBACK_VSL,
           });
-        } else {
-          const saved = localStorage.getItem('affiliate_page_settings');
-          if (saved) {
-            try {
-              const p = JSON.parse(saved);
-              setSettings({
-                whatsappNumber: p.whatsappNumber || FALLBACK_WHATSAPP,
-                vslVideoUrl: p.vslVideoUrl || FALLBACK_VSL,
-              });
-            } catch {}
-          }
+          setLoading(false);
+          return;
         }
       } catch (err) {
-        // Tabela ainda não existe — usa localStorage/env como contingência
-        const saved = localStorage.getItem('affiliate_page_settings');
-        if (saved) {
-          try {
-            const p = JSON.parse(saved);
-            setSettings({
-              whatsappNumber: p.whatsappNumber || FALLBACK_WHATSAPP,
-              vslVideoUrl: p.vslVideoUrl || FALLBACK_VSL,
-            });
-          } catch {}
-        }
+        console.warn('[AffiliateLanding] Sem acesso ao affiliate_settings:', err);
       }
+
+      // Fallback: localStorage do visitante (só funciona se o admin salvou no mesmo navegador)
+      const saved = localStorage.getItem('affiliate_page_settings');
+      if (saved) {
+        try {
+          const p = JSON.parse(saved);
+          setSettings({
+            whatsappNumber: p.whatsappNumber || FALLBACK_WHATSAPP,
+            vslVideoUrl: p.vslVideoUrl || FALLBACK_VSL,
+          });
+          setLoading(false);
+          return;
+        } catch {}
+      }
+
       setLoading(false);
     })();
   }, [slug]);
