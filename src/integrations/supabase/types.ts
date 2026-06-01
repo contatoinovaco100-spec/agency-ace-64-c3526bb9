@@ -178,7 +178,6 @@ export type Database = {
           lead_name: string
           notes: string
           status: string
-          token: string | null
           updated_at: string
           whatsapp: string
         }
@@ -192,7 +191,6 @@ export type Database = {
           lead_name: string
           notes?: string
           status?: string
-          token?: string | null
           updated_at?: string
           whatsapp?: string
         }
@@ -206,7 +204,6 @@ export type Database = {
           lead_name?: string
           notes?: string
           status?: string
-          token?: string | null
           updated_at?: string
           whatsapp?: string
         }
@@ -225,7 +222,6 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           city_state: string
-          codigo_interno: string | null
           cpf_cnpj: string
           created_at: string
           email: string
@@ -244,7 +240,6 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           city_state?: string
-          codigo_interno?: string | null
           cpf_cnpj?: string
           created_at?: string
           email: string
@@ -263,7 +258,6 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           city_state?: string
-          codigo_interno?: string | null
           cpf_cnpj?: string
           created_at?: string
           email?: string
@@ -938,7 +932,6 @@ export type Database = {
       contracts: {
         Row: {
           additional_clauses: string
-          affiliate_token: string | null
           client_address: string
           client_cpf_cnpj: string
           client_email: string
@@ -964,7 +957,6 @@ export type Database = {
         }
         Insert: {
           additional_clauses?: string
-          affiliate_token?: string | null
           client_address?: string
           client_cpf_cnpj?: string
           client_email?: string
@@ -990,7 +982,6 @@ export type Database = {
         }
         Update: {
           additional_clauses?: string
-          affiliate_token?: string | null
           client_address?: string
           client_cpf_cnpj?: string
           client_email?: string
