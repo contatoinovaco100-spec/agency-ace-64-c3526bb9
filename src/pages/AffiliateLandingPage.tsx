@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle2, Loader2, User, Phone, Building2, Mail, ArrowRight, Copy } from 'lucide-react';
+import { CheckCircle2, Loader2, User, Phone, Building2, Mail, ArrowRight } from 'lucide-react';
 import type { Affiliate } from '@/types/affiliates';
 
 const FALLBACK_VSL = import.meta.env.VITE_VSL_URL || 'https://www.youtube.com/embed/dQw4w9WgXcQ';
@@ -21,14 +21,6 @@ function generateToken(): string {
   return result;
 }
 
-<<<<<<< HEAD
-// Função inteligente para extrair URL limpa de iframes a partir de códigos HTML colados (Wistia, YouTube, Vimeo, etc)
-=======
-// Valores padrão de fallback
-const DEFAULT_WHATSAPP = '5588994463203';
-const DEFAULT_VSL = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
-
-// Detecta media-id do Wistia em códigos colados (script embed, iframe ou url)
 function extractWistiaId(url: string): string | null {
   if (!url) return null;
   const m =
@@ -39,26 +31,17 @@ function extractWistiaId(url: string): string | null {
   return m ? m[1] : null;
 }
 
-// Função inteligente para extrair URL limpa de iframes a partir de códigos HTML colados (YouTube, Vimeo, etc)
->>>>>>> 3873e3f38096dc270addb9e4f681abefdd201bd7
 function cleanVideoUrl(url: string): string {
-  if (!url || url === FALLBACK_VSL) {
-    return url && url !== FALLBACK_VSL ? url : 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playlist=dQw4w9WgXcQ';
-  }
+  if (!url) return `${FALLBACK_VSL}?autoplay=1&mute=1&loop=1&playlist=dQw4w9WgXcQ`;
   const trimmed = url.trim();
-
-<<<<<<< HEAD
-  const wistiaId = trimmed.match(/media-id=['"]([^'"]+)['"]/) || trimmed.match(/embed\/([a-zA-Z0-9]+)\.js/);
-  if (wistiaId && wistiaId[1]) {
-    return `https://fast.wistia.net/embed/iframe/${wistiaId[1]}?autoplay=1`;
-  }
-  if (trimmed.includes('wistia.net/embed/iframe')) {
-    return trimmed + (trimmed.includes('?') ? '&' : '?') + 'autoplay=1';
-  }
 
   const ytId = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|(?:embed|v)\/))([a-zA-Z0-9_-]{11})/);
   if (ytId && ytId[1]) {
     return `https://www.youtube.com/embed/${ytId[1]}?autoplay=1&mute=1&loop=1&playlist=${ytId[1]}`;
+  }
+
+  if (trimmed.includes('wistia.net/embed/iframe')) {
+    return trimmed + (trimmed.includes('?') ? '&' : '?') + 'autoplay=1';
   }
 
   const srcAttr = trimmed.match(/src=['"]([^'"]+)['"]/);
@@ -67,31 +50,14 @@ function cleanVideoUrl(url: string): string {
   }
 
   return trimmed;
-=======
-  // YouTube watch?v= / youtu.be / embed
-  const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|(?:embed|v)\/))([a-zA-Z0-9_-]{11})/);
-  if (ytMatch && ytMatch[1]) {
-    return `https://www.youtube.com/embed/${ytMatch[1]}`;
-  }
-
-  // iframe genérico → extrai src
-  const srcMatch = url.match(/src=['"]([^'"]+)['"]/);
-  if (srcMatch && srcMatch[1] && !srcMatch[1].endsWith('.js')) {
-    return srcMatch[1];
-  }
-
-  return url;
->>>>>>> 3873e3f38096dc270addb9e4f681abefdd201bd7
 }
 
-// Player do Wistia usando web component <wistia-player> (suporta evento 'ended')
 function WistiaPlayer({ mediaId, onEnded }: { mediaId: string; onEnded?: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!ref.current) return;
 
-    // Garante que os scripts globais do Wistia estão carregados (uma vez por sessão)
     const ensureScript = (src: string, type?: string) => {
       if (document.querySelector(`script[src="${src}"]`)) return;
       const s = document.createElement('script');
@@ -101,7 +67,6 @@ function WistiaPlayer({ mediaId, onEnded }: { mediaId: string; onEnded?: () => v
       document.head.appendChild(s);
     };
     ensureScript('https://fast.wistia.com/player.js');
-    // O script específico do media precisa ser (re)injetado a cada troca de id
     const mediaScriptSrc = `https://fast.wistia.com/embed/${mediaId}.js`;
     document.querySelectorAll(`script[src="${mediaScriptSrc}"]`).forEach(s => s.remove());
     const mediaScript = document.createElement('script');
@@ -110,7 +75,6 @@ function WistiaPlayer({ mediaId, onEnded }: { mediaId: string; onEnded?: () => v
     mediaScript.type = 'module';
     document.head.appendChild(mediaScript);
 
-    // Recria o elemento <wistia-player> do zero para forçar re-render
     ref.current.innerHTML = '';
     const player = document.createElement('wistia-player') as any;
     player.setAttribute('media-id', mediaId);
@@ -133,8 +97,6 @@ function WistiaPlayer({ mediaId, onEnded }: { mediaId: string; onEnded?: () => v
   return <div ref={ref} key={mediaId} className="w-full h-full absolute inset-0" />;
 }
 
-
-
 export default function AffiliateLandingPage() {
   const { slug } = useParams<{ slug: string }>();
   const { toast } = useToast();
@@ -144,12 +106,8 @@ export default function AffiliateLandingPage() {
   const [done, setDone] = useState(false);
   const [leadToken, setLeadToken] = useState('');
   const [form, setForm] = useState({ lead_name: '', whatsapp: '', company: '', email: '' });
-<<<<<<< HEAD
   const [settings, setSettings] = useState({ whatsappNumber: FALLBACK_WHATSAPP, vslVideoUrl: FALLBACK_VSL });
-=======
-  const [settings, setSettings] = useState({ whatsappNumber: DEFAULT_WHATSAPP, vslVideoUrl: DEFAULT_VSL });
   const formRef = useRef<HTMLDivElement>(null);
->>>>>>> 3873e3f38096dc270addb9e4f681abefdd201bd7
 
   useEffect(() => {
     (async () => {
@@ -157,7 +115,6 @@ export default function AffiliateLandingPage() {
         .select('*').eq('slug', slug).eq('status', 'aprovado').maybeSingle();
       setAffiliate(data as any);
 
-      // Tenta carregar settings: localStorage > env var > fallback
       const saved = localStorage.getItem('affiliate_page_settings');
       if (saved) {
         try { const p = JSON.parse(saved); setSettings({ whatsappNumber: p.whatsappNumber || FALLBACK_WHATSAPP, vslVideoUrl: p.vslVideoUrl || FALLBACK_VSL }); }
@@ -172,7 +129,6 @@ export default function AffiliateLandingPage() {
     if (!affiliate) return;
     setSending(true);
     try {
-      // Gera token único e armazena no campo notes
       let token = '';
       let attempts = 0;
       while (attempts < 10) {
@@ -200,12 +156,11 @@ export default function AffiliateLandingPage() {
       if (error) throw error;
 
       setLeadToken(token);
-      
-      // Mensagem personalizada para o WhatsApp
+
       const msg = `Olá! Fui indicado(a) por ${affiliate.full_name} através da página exclusiva e acabei de preencher o formulário. Gostaria de falar com um especialista sobre as soluções da Inova!`;
       const waUrl = `https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent(msg)}`;
       window.open(waUrl, '_blank');
-      
+
       setDone(true);
     } catch (err: any) {
       toast({ title: 'Erro ao enviar', description: err.message, variant: 'destructive' });
@@ -226,7 +181,7 @@ export default function AffiliateLandingPage() {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 relative overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#BFF720]/10 rounded-full blur-[120px]" />
-        
+
         <Card className="max-w-md w-full bg-zinc-900/70 backdrop-blur-xl border-zinc-800/50 relative z-10 animate-in fade-in zoom-in duration-500">
           <CardContent className="pt-10 pb-8 px-8 text-center space-y-6">
             <div className="w-20 h-20 bg-[#BFF720]/10 rounded-full flex items-center justify-center mx-auto mb-2 shadow-[0_0_30px_rgba(191,247,32,0.2)]">
@@ -235,13 +190,13 @@ export default function AffiliateLandingPage() {
             <div>
               <h2 className="text-3xl font-bold mb-3 tracking-tight">Contato Recebido!</h2>
               <p className="text-zinc-400 text-sm leading-relaxed mb-4">Nossa equipe de especialistas entrará em contato com você em breve pelo WhatsApp para agendar uma conversa.</p>
-              
-              
-              <Button 
+
+
+              <Button
                 onClick={() => {
                   const msg = `Olá! Fui indicado(a) por ${affiliate.full_name} através da página exclusiva e acabei de preencher o formulário. Gostaria de falar com um especialista sobre as soluções da Inova!`;
                   window.open(`https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent(msg)}`, '_blank');
-                }} 
+                }}
                 className="w-full bg-[#BFF720] text-black hover:bg-[#a8de15] hover:shadow-[0_0_20px_rgba(191,247,32,0.3)] transition-all font-bold h-12 text-md flex items-center justify-center gap-2"
               >
                 <Phone className="w-5 h-5" /> Abrir WhatsApp da Inova Agora
@@ -253,11 +208,12 @@ export default function AffiliateLandingPage() {
     );
   }
 
+  const wistiaId = extractWistiaId(settings.vslVideoUrl);
+
   return (
     <div className="min-h-screen bg-black text-white py-12 px-4 relative overflow-hidden flex flex-col items-center justify-center selection:bg-[#BFF720] selection:text-black">
-      {/* Background Lights */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-[500px] bg-[#BFF720]/10 rounded-full blur-[120px] pointer-events-none" />
-      
+
       <div className="max-w-md w-full mx-auto relative z-10">
         <div className="text-center mb-8 animate-in fade-in slide-in-from-top-8 duration-700">
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
@@ -268,51 +224,24 @@ export default function AffiliateLandingPage() {
           </p>
         </div>
 
-        {/* ================= VSL VIDEO NO TOPO ================= */}
-<<<<<<< HEAD
         <div className="mb-8 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-900/40 relative" style={{ aspectRatio: '16 / 9' }}>
-          {settings.vslVideoUrl ? (
-            <iframe 
+          {wistiaId ? (
+            <WistiaPlayer mediaId={wistiaId} onEnded={() => {
+              formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              formRef.current?.classList.add('ring-2', 'ring-[#BFF720]', 'ring-offset-2', 'ring-offset-black');
+              setTimeout(() => formRef.current?.classList.remove('ring-2', 'ring-[#BFF720]', 'ring-offset-2', 'ring-offset-black'), 2500);
+            }} />
+          ) : (
+            <iframe
               src={cleanVideoUrl(settings.vslVideoUrl)}
               className="w-full h-full absolute inset-0"
-              allow="autoplay; fullscreen; picture-in-picture; accelerometer; clipboard-write; encrypted-media; gyroscope" 
+              allow="autoplay; fullscreen; picture-in-picture; accelerometer; clipboard-write; encrypted-media; gyroscope"
               allowFullScreen
             />
-          ) : (
-            <div className="w-full h-full absolute inset-0 flex items-center justify-center text-zinc-500 text-sm">
-              Carregando vídeo...
-            </div>
           )}
         </div>
-=======
-        {(() => {
-          const wistiaId = extractWistiaId(settings.vslVideoUrl);
-          return (
-            <div className="mb-8 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-900/40 aspect-video relative animate-in fade-in zoom-in duration-700">
-              {wistiaId ? (
-                <WistiaPlayer
-                  mediaId={wistiaId}
-                  onEnded={() => {
-                    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    formRef.current?.classList.add('ring-2', 'ring-[#BFF720]', 'ring-offset-2', 'ring-offset-black');
-                    setTimeout(() => formRef.current?.classList.remove('ring-2', 'ring-[#BFF720]', 'ring-offset-2', 'ring-offset-black'), 2500);
-                  }}
-                />
-              ) : (
-                <iframe
-                  src={cleanVideoUrl(settings.vslVideoUrl)}
-                  className="w-full h-full absolute inset-0"
-                  allow="autoplay; fullscreen; picture-in-picture; accelerometer; clipboard-write; encrypted-media; gyroscope"
-                  allowFullScreen
-                />
-              )}
-            </div>
-          );
-        })()}
 
         <Card ref={formRef} className="bg-zinc-900/60 backdrop-blur-xl border-zinc-800/60 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700 transition-all">
->>>>>>> 3873e3f38096dc270addb9e4f681abefdd201bd7
-
           <CardHeader className="pb-6 border-b border-zinc-800/60">
             <CardTitle className="text-xl font-bold text-center">Fale com um Especialista</CardTitle>
           </CardHeader>
@@ -325,7 +254,7 @@ export default function AffiliateLandingPage() {
                   <Input required value={form.lead_name} onChange={e => setForm({ ...form, lead_name: e.target.value })} className="bg-zinc-950/50 border-zinc-800 pl-10 focus:border-[#BFF720] focus:ring-[#BFF720]/20 transition-colors h-11" placeholder="Como devemos te chamar?" />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-zinc-300">WhatsApp *</Label>
                 <div className="relative">
