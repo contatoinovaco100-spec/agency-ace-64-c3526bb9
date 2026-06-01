@@ -217,6 +217,36 @@ export type Database = {
           },
         ]
       }
+      affiliate_settings: {
+        Row: {
+          closing_commission: number
+          created_at: string
+          id: string
+          recurring_commission: number
+          updated_at: string
+          vsl_video_url: string
+          whatsapp_number: string
+        }
+        Insert: {
+          closing_commission?: number
+          created_at?: string
+          id?: string
+          recurring_commission?: number
+          updated_at?: string
+          vsl_video_url?: string
+          whatsapp_number?: string
+        }
+        Update: {
+          closing_commission?: number
+          created_at?: string
+          id?: string
+          recurring_commission?: number
+          updated_at?: string
+          vsl_video_url?: string
+          whatsapp_number?: string
+        }
+        Relationships: []
+      }
       affiliates: {
         Row: {
           approved_at: string | null

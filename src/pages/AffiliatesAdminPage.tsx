@@ -67,21 +67,98 @@ export default function AffiliatesAdminPage() {
     setContracts((c.data as any) || []);
     setCommissions((cm.data as any) || []);
 
-    // Carrega configurações da página de captação
-    let loadedCfg = { whatsappNumber: '5588994463203', vslVideoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', closingCommission: 300, recurringCommission: 100 };
-    const saved = localStorage.getItem('affiliate_page_settings');
-    if (saved) { try { const p = JSON.parse(saved); loadedCfg = { ...loadedCfg, ...p }; } catch {} }
-    setPageSettings(loadedCfg);
+    // Carrega configurações da página de captação (Supabase)
+    const loadedCfg = { whatsappNumber: '5588994463203', vslVideoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', closingCommission: 300, recurringCommission: 100 };
+    try {
+      const { data: cfg, error: cfgErr } = await supabase
+        .from('affiliate_settings' as any)
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+
+      if (cfgErr) throw cfgErr;
+
+      if (cfg) {
+        const c = cfg as any;
+        setPageSettings({
+          whatsappNumber: c.whatsapp_number || loadedCfg.whatsappNumber,
+          vslVideoUrl: c.vsl_video_url || loadedCfg.vslVideoUrl,
+          closingCommission: Number(c.closing_commission ?? loadedCfg.closingCommission),
+          recurringCommission: Number(c.recurring_commission ?? loadedCfg.recurringCommission),
+        });
+      } else {
+        // Sem linha nas configs — tenta localStorage como contingência
+        const saved = localStorage.getItem('affiliate_page_settings');
+        if (saved) {
+          try { const p = JSON.parse(saved); setPageSettings({ ...loadedCfg, ...p }); }
+          catch { setPageSettings(loadedCfg); }
+        } else {
+          setPageSettings(loadedCfg);
+        }
+      }
+    } catch (err) {
+      // Tabela affiliate_settings não existe ainda — usa localStorage/env
+      const saved = localStorage.getItem('affiliate_page_settings');
+      if (saved) {
+        try { const p = JSON.parse(saved); setPageSettings({ ...loadedCfg, ...p }); }
+        catch { setPageSettings(loadedCfg); }
+      } else {
+        setPageSettings(loadedCfg);
+      }
+    }
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
   async function savePageSettings() {
     setSavingSettings(true);
-    localStorage.setItem('affiliate_page_settings', JSON.stringify(pageSettings));
-    await new Promise(r => setTimeout(r, 400));
-    toast({ title: 'Configurações salvas com sucesso!' });
-    setSavingSettings(false);
+    try {
+      // Busca o ID existente para fazer UPSERT
+      const { data: existing } = await supabase
+        .from('affiliate_settings' as any)
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+
+      const payload = {
+        whatsapp_number: pageSettings.whatsappNumber,
+        vsl_video_url: pageSettings.vslVideoUrl,
+        closing_commission: pageSettings.closingCommission,
+        recurring_commission: pageSettings.recurringCommission,
+        updated_at: new Date().toISOString(),
+      };
+
+      let error;
+      if (existing && (existing as any).id) {
+        const res = await supabase
+          .from('affiliate_settings' as any)
+          .update(payload)
+          .eq('id', (existing as any).id);
+        error = res.error;
+      } else {
+        const res = await supabase
+          .from('affiliate_settings' as any)
+          .insert(payload);
+        error = res.error;
+      }
+
+      if (error) throw error;
+
+      // Mantém cópia local como contingência
+      localStorage.setItem('affiliate_page_settings', JSON.stringify(pageSettings));
+      toast({ title: 'Configurações salvas com sucesso!' });
+    } catch (err: any) {
+      // Se a tabela não existir, salva só no localStorage como contingência
+      localStorage.setItem('affiliate_page_settings', JSON.stringify(pageSettings));
+      toast({
+        title: 'Salvo apenas localmente',
+        description: 'A tabela affiliate_settings ainda não existe no Supabase. Aplique a migration 20260601000000_create_affiliate_settings.sql no SQL Editor do Supabase para que outros dispositivos vejam as configurações.',
+        variant: 'destructive',
+        duration: 10000,
+      });
+    } finally {
+      setSavingSettings(false);
+    }
   }
 
   async function ensureSlug(aff: Affiliate): Promise<string> {

@@ -115,10 +115,48 @@ export default function AffiliateLandingPage() {
         .select('*').eq('slug', slug).eq('status', 'aprovado').maybeSingle();
       setAffiliate(data as any);
 
-      const saved = localStorage.getItem('affiliate_page_settings');
-      if (saved) {
-        try { const p = JSON.parse(saved); setSettings({ whatsappNumber: p.whatsappNumber || FALLBACK_WHATSAPP, vslVideoUrl: p.vslVideoUrl || FALLBACK_VSL }); }
-        catch {}
+      // Carrega configurações da página do Supabase (tabela affiliate_settings).
+      // Fallback para localStorage/env apenas se a tabela ainda não existir
+      // (caso a migration não tenha sido aplicada).
+      try {
+        const { data: cfg, error: cfgErr } = await supabase
+          .from('affiliate_settings' as any)
+          .select('whatsapp_number, vsl_video_url')
+          .limit(1)
+          .maybeSingle();
+
+        if (cfgErr) throw cfgErr;
+
+        if (cfg) {
+          const c = cfg as any;
+          setSettings({
+            whatsappNumber: c.whatsapp_number || FALLBACK_WHATSAPP,
+            vslVideoUrl: c.vsl_video_url || FALLBACK_VSL,
+          });
+        } else {
+          const saved = localStorage.getItem('affiliate_page_settings');
+          if (saved) {
+            try {
+              const p = JSON.parse(saved);
+              setSettings({
+                whatsappNumber: p.whatsappNumber || FALLBACK_WHATSAPP,
+                vslVideoUrl: p.vslVideoUrl || FALLBACK_VSL,
+              });
+            } catch {}
+          }
+        }
+      } catch (err) {
+        // Tabela ainda não existe — usa localStorage/env como contingência
+        const saved = localStorage.getItem('affiliate_page_settings');
+        if (saved) {
+          try {
+            const p = JSON.parse(saved);
+            setSettings({
+              whatsappNumber: p.whatsappNumber || FALLBACK_WHATSAPP,
+              vslVideoUrl: p.vslVideoUrl || FALLBACK_VSL,
+            });
+          } catch {}
+        }
       }
       setLoading(false);
     })();
