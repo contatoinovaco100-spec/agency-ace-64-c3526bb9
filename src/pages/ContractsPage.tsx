@@ -188,7 +188,7 @@ export default function ContractsPage() {
       await supabase.from('contracts').update(updatePayload).eq('id', editingId);
       toast.success('Contrato atualizado');
     } else {
-      await supabase.from('contracts').insert({ ...payload, status: 'rascunho' });
+      await supabase.from('contracts').insert({ ...payload, status: 'rascunho' } as any);
       toast.success('Contrato criado');
     }
     setSaving(false);
