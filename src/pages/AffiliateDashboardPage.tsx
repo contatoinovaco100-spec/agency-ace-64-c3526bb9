@@ -33,6 +33,13 @@ export default function AffiliateDashboardPage() {
   const [contracts, setContracts] = useState<AffiliateContract[]>([]);
   const [commissions, setCommissions] = useState<AffiliateCommission[]>([]);
   const [portfolio, setPortfolio] = useState<any[]>([]);
+  const [videoLessons, setVideoLessons] = useState<any[]>([]);
+
+  useEffect(() => {
+    supabase.from('affiliate_video_lessons' as any)
+      .select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: true })
+      .then(({ data }) => setVideoLessons((data as any) || []));
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -513,67 +520,28 @@ export default function AffiliateDashboardPage() {
               <p className="text-zinc-400 text-sm mt-1">Aprenda a usar a plataforma e maximize seus resultados como afiliado.</p>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-3">
-                  <div className="rounded-xl overflow-hidden border border-zinc-800/60 bg-black relative" style={{ aspectRatio: '16 / 9' }}>
-                    <iframe
-                      src={import.meta.env.VITE_VSL_URL || 'https://www.youtube.com/embed/vIZz6iVfL18'}
-                      className="w-full h-full"
-                      allow="autoplay; fullscreen; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white text-lg">Como funciona o programa</h4>
-                    <p className="text-sm text-zinc-400">Entenda as regras, comissões e como ganhar dinheiro indicando clientes.</p>
-                  </div>
+              {videoLessons.length === 0 ? (
+                <p className="text-center text-zinc-400 py-12">Nenhuma vídeo aula disponível ainda.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {videoLessons.map(v => (
+                    <div key={v.id} className="space-y-3">
+                      <div className="rounded-xl overflow-hidden border border-zinc-800/60 bg-black relative" style={{ aspectRatio: '16 / 9' }}>
+                        <iframe
+                          src={v.video_url}
+                          className="w-full h-full"
+                          allow="autoplay; fullscreen; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-white text-lg">{v.title}</h4>
+                        {v.description && <p className="text-sm text-zinc-400">{v.description}</p>}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-
-                <div className="space-y-3">
-                  <div className="rounded-xl overflow-hidden border border-zinc-800/60 bg-black relative" style={{ aspectRatio: '16 / 9' }}>
-                    <iframe
-                      src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-                      className="w-full h-full"
-                      allow="autoplay; fullscreen; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white text-lg">Compartilhando seu link</h4>
-                    <p className="text-sm text-zinc-400">Saiba como divulgar seu link de afiliado e acompanhar seus leads.</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="rounded-xl overflow-hidden border border-zinc-800/60 bg-black relative" style={{ aspectRatio: '16 / 9' }}>
-                    <iframe
-                      src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-                      className="w-full h-full"
-                      allow="autoplay; fullscreen; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white text-lg">Dicas de vendas</h4>
-                    <p className="text-sm text-zinc-400">Estratégias para converter leads em clientes e aumentar suas comissões.</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="rounded-xl overflow-hidden border border-zinc-800/60 bg-black relative" style={{ aspectRatio: '16 / 9' }}>
-                    <iframe
-                      src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-                      className="w-full h-full"
-                      allow="autoplay; fullscreen; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white text-lg">Acompanhando resultados</h4>
-                    <p className="text-sm text-zinc-400">Veja como usar os relatórios para medir seu desempenho.</p>
-                  </div>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

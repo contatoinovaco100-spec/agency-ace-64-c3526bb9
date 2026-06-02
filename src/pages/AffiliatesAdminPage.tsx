@@ -11,7 +11,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useUserRole } from '@/hooks/useUserRole';
-import { Loader2, Check, X, Pause, RefreshCw, Plus, Copy, TrendingUp, Users, DollarSign, Clock, AlertCircle, Trash2, FileText, Gift, Award, CheckCircle2, Settings } from 'lucide-react';
+import { Loader2, Check, X, Pause, RefreshCw, Plus, Copy, TrendingUp, Users, DollarSign, Clock, AlertCircle, Trash2, FileText, Gift, Award, CheckCircle2, Settings, Play, Pencil } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+
+interface VideoLesson {
+  id: string;
+  title: string;
+  description: string;
+  video_url: string;
+  sort_order: number;
+}
 import { slugify } from '@/types/affiliates';
 import type { Affiliate, AffiliateLead, AffiliateContract, AffiliateCommission } from '@/types/affiliates';
 
@@ -55,6 +64,51 @@ export default function AffiliatesAdminPage() {
     recurringCommission: 100,
   });
   const [savingSettings, setSavingSettings] = useState(false);
+  const [videoLessons, setVideoLessons] = useState<VideoLesson[]>([]);
+  const [editingLesson, setEditingLesson] = useState<VideoLesson | null>(null);
+  const [lessonDialogOpen, setLessonDialogOpen] = useState(false);
+  const [savingLesson, setSavingLesson] = useState(false);
+
+  const loadLessons = async () => {
+    const { data } = await supabase.from('affiliate_video_lessons' as any)
+      .select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: true });
+    setVideoLessons((data as any) || []);
+  };
+
+  async function saveLesson(lesson: Partial<VideoLesson> & { id?: string }) {
+    setSavingLesson(true);
+    try {
+      const payload = {
+        title: lesson.title || '',
+        description: lesson.description || '',
+        video_url: lesson.video_url || '',
+        sort_order: lesson.sort_order ?? 0,
+      };
+      if (lesson.id) {
+        const { error } = await supabase.from('affiliate_video_lessons' as any).update(payload).eq('id', lesson.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('affiliate_video_lessons' as any).insert(payload);
+        if (error) throw error;
+      }
+      toast({ title: 'Vídeo aula salva!' });
+      setLessonDialogOpen(false);
+      setEditingLesson(null);
+      await loadLessons();
+    } catch (err: any) {
+      toast({ title: 'Erro ao salvar', description: err?.message, variant: 'destructive' });
+    } finally {
+      setSavingLesson(false);
+    }
+  }
+
+  async function deleteLesson(id: string) {
+    if (!confirm('Excluir esta vídeo aula?')) return;
+    const { error } = await supabase.from('affiliate_video_lessons' as any).delete().eq('id', id);
+    if (error) { toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Excluída' });
+    await loadLessons();
+  }
 
   const load = async () => {
     setLoading(true);
@@ -90,7 +144,7 @@ export default function AffiliatesAdminPage() {
     }
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadLessons(); }, []);
 
   async function savePageSettings() {
     setSavingSettings(true);
@@ -328,7 +382,7 @@ export default function AffiliatesAdminPage() {
 
       {/* Main Tabs */}
       <Tabs defaultValue="contracts" className="w-full space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 bg-card/60 backdrop-blur-xl border border-border/50 p-1.5 rounded-xl gap-1">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-6 bg-card/60 backdrop-blur-xl border border-border/50 p-1.5 rounded-xl gap-1">
           <TabsTrigger value="contracts" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all">
             Contratos ({contracts.length})
           </TabsTrigger>
@@ -348,6 +402,9 @@ export default function AffiliatesAdminPage() {
           </TabsTrigger>
           <TabsTrigger value="settings" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all flex items-center justify-center gap-1.5">
             <Settings className="w-4 h-4" /> Configs da Página
+          </TabsTrigger>
+          <TabsTrigger value="lessons" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all flex items-center justify-center gap-1.5">
+            <Play className="w-4 h-4" /> Vídeo Aulas ({videoLessons.length})
           </TabsTrigger>
         </TabsList>
 
@@ -781,6 +838,110 @@ export default function AffiliatesAdminPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ============ ABA VÍDEO AULAS ============ */}
+        <TabsContent value="lessons" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Card className="border-border/50 bg-card/40 backdrop-blur-xl">
+            <CardHeader className="flex flex-row items-center justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2"><Play className="w-5 h-5 text-primary" /> Vídeo Aulas para Afiliados</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Adicione vídeos por URL (YouTube, Vimeo, Wistia embed etc.) que aparecerão em /afiliado/video-aulas.
+                </p>
+              </div>
+              <Button
+                onClick={() => { setEditingLesson({ id: '', title: '', description: '', video_url: '', sort_order: videoLessons.length }); setLessonDialogOpen(true); }}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
+              >
+                <Plus className="w-4 h-4" /> Nova vídeo aula
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {videoLessons.length === 0 ? (
+                <p className="text-center text-muted-foreground py-12">Nenhuma vídeo aula cadastrada ainda.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {videoLessons.map(v => (
+                    <Card key={v.id} className="border-border/40 bg-background/40">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h4 className="font-bold truncate">{v.title || '(sem título)'}</h4>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{v.description}</p>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <Button size="icon" variant="ghost" onClick={() => { setEditingLesson(v); setLessonDialogOpen(true); }}>
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => deleteLesson(v.id)}>
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground break-all bg-muted/30 rounded p-2">{v.video_url}</p>
+                        <p className="text-[11px] text-muted-foreground">Ordem: {v.sort_order}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Dialog open={lessonDialogOpen} onOpenChange={(o) => { setLessonDialogOpen(o); if (!o) setEditingLesson(null); }}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>{editingLesson?.id ? 'Editar Vídeo Aula' : 'Nova Vídeo Aula'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3 py-2">
+                <div>
+                  <Label>Título</Label>
+                  <Input
+                    value={editingLesson?.title || ''}
+                    onChange={e => setEditingLesson(p => ({ ...(p || { id: '', title: '', description: '', video_url: '', sort_order: 0 }), title: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Descrição</Label>
+                  <Textarea
+                    rows={2}
+                    value={editingLesson?.description || ''}
+                    onChange={e => setEditingLesson(p => ({ ...(p || { id: '', title: '', description: '', video_url: '', sort_order: 0 }), description: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>URL do vídeo (embed do YouTube, Vimeo, Wistia etc.)</Label>
+                  <Input
+                    placeholder="https://www.youtube.com/embed/..."
+                    value={editingLesson?.video_url || ''}
+                    onChange={e => setEditingLesson(p => ({ ...(p || { id: '', title: '', description: '', video_url: '', sort_order: 0 }), video_url: e.target.value }))}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Dica YouTube: use o link no formato https://www.youtube.com/embed/ID
+                  </p>
+                </div>
+                <div>
+                  <Label>Ordem</Label>
+                  <Input
+                    type="number"
+                    value={editingLesson?.sort_order ?? 0}
+                    onChange={e => setEditingLesson(p => ({ ...(p || { id: '', title: '', description: '', video_url: '', sort_order: 0 }), sort_order: Number(e.target.value) }))}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setLessonDialogOpen(false)}>Cancelar</Button>
+                <Button
+                  onClick={() => editingLesson && saveLesson(editingLesson)}
+                  disabled={savingLesson || !editingLesson?.video_url}
+                  className="bg-primary text-primary-foreground"
+                >
+                  {savingLesson ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
     </div>
