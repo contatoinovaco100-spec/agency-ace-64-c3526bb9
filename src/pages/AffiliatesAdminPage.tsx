@@ -382,7 +382,7 @@ export default function AffiliatesAdminPage() {
 
       {/* Main Tabs */}
       <Tabs defaultValue="contracts" className="w-full space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 bg-card/60 backdrop-blur-xl border border-border/50 p-1.5 rounded-xl gap-1">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-6 bg-card/60 backdrop-blur-xl border border-border/50 p-1.5 rounded-xl gap-1">
           <TabsTrigger value="contracts" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all">
             Contratos ({contracts.length})
           </TabsTrigger>
