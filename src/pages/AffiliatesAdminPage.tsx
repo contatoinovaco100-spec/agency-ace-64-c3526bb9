@@ -38,7 +38,7 @@ const STATUS_COLORS: Record<string, string> = {
   pago: 'bg-[hsl(var(--success))]/15 text-[hsl(var(--success))] border-[hsl(var(--success))]/30',
 };
 
-const CONFIG_URL = `${import.meta.env.VITE_SUPABASE_URL || 'https://cdzzewovtxotkghzeafr.supabase.co'}/storage/v1/object/public/app-config/config.json`;
+
 
 export default function AffiliatesAdminPage() {
   const { toast } = useToast();

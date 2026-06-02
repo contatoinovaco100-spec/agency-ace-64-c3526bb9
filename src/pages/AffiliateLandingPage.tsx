@@ -11,7 +11,7 @@ import type { Affiliate } from '@/types/affiliates';
 
 const FALLBACK_VSL = import.meta.env.VITE_VSL_URL || 'https://www.youtube.com/embed/vIZz6iVfL18';
 const FALLBACK_WHATSAPP = import.meta.env.VITE_WHATSAPP_NUMBER || '5588994463203';
-const CONFIG_URL = `${import.meta.env.VITE_SUPABASE_URL || 'https://cdzzewovtxotkghzeafr.supabase.co'}/storage/v1/object/public/app-config/config.json`;
+
 
 function generateToken(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -163,36 +163,20 @@ export default function AffiliateLandingPage() {
         console.error('[AffiliateLanding] Erro ao carregar afiliado:', err);
       }
 
-      // Carrega configurações: Storage público → localStorage → env → default
+      // Carrega configurações da tabela affiliate_settings (leitura pública)
       try {
-        const res = await fetch(CONFIG_URL, { cache: 'no-cache' });
-        if (res.ok) {
-          const cfg = await res.json();
+        const { data: cfg } = await supabase.from('affiliate_settings' as any)
+          .select('*').limit(1).maybeSingle();
+        if (cfg) {
+          const c = cfg as any;
           setSettings({
-            whatsappNumber: cfg.whatsapp_number || cfg.whatsappNumber || FALLBACK_WHATSAPP,
-            vslVideoUrl: cfg.vsl_video_url || cfg.vslVideoUrl || FALLBACK_VSL,
+            whatsappNumber: c.whatsapp_number || FALLBACK_WHATSAPP,
+            vslVideoUrl: c.vsl_video_url || FALLBACK_VSL,
           });
-          setLoading(false);
-          return;
         }
       } catch (err) {
-        console.warn('[AffiliateLanding] Storage falhou:', err);
+        console.warn('[AffiliateLanding] Carregar config falhou:', err);
       }
-
-      // Fallback: localStorage do visitante
-      const saved = localStorage.getItem('affiliate_page_settings');
-      if (saved) {
-        try {
-          const p = JSON.parse(saved);
-          setSettings({
-            whatsappNumber: p.whatsappNumber || FALLBACK_WHATSAPP,
-            vslVideoUrl: p.vslVideoUrl || FALLBACK_VSL,
-          });
-          setLoading(false);
-          return;
-        } catch {}
-      }
-
       setLoading(false);
     })();
   }, [slug]);
