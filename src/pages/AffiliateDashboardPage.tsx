@@ -33,6 +33,13 @@ export default function AffiliateDashboardPage() {
   const [contracts, setContracts] = useState<AffiliateContract[]>([]);
   const [commissions, setCommissions] = useState<AffiliateCommission[]>([]);
   const [portfolio, setPortfolio] = useState<any[]>([]);
+  const [videoLessons, setVideoLessons] = useState<any[]>([]);
+
+  useEffect(() => {
+    supabase.from('affiliate_video_lessons' as any)
+      .select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: true })
+      .then(({ data }) => setVideoLessons((data as any) || []));
+  }, []);
 
   useEffect(() => {
     if (!user) return;
