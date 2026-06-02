@@ -11,7 +11,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useUserRole } from '@/hooks/useUserRole';
-import { Loader2, Check, X, Pause, RefreshCw, Plus, Copy, TrendingUp, Users, DollarSign, Clock, AlertCircle, Trash2, FileText, Gift, Award, CheckCircle2, Settings } from 'lucide-react';
+import { Loader2, Check, X, Pause, RefreshCw, Plus, Copy, TrendingUp, Users, DollarSign, Clock, AlertCircle, Trash2, FileText, Gift, Award, CheckCircle2, Settings, Play, Pencil } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+
+interface VideoLesson {
+  id: string;
+  title: string;
+  description: string;
+  video_url: string;
+  sort_order: number;
+}
 import { slugify } from '@/types/affiliates';
 import type { Affiliate, AffiliateLead, AffiliateContract, AffiliateCommission } from '@/types/affiliates';
 
