@@ -243,6 +243,7 @@ export default function AffiliateDashboardPage() {
           <TabsTrigger value="comissoes">Comissões</TabsTrigger>
           <TabsTrigger value="info">Informações</TabsTrigger>
           <TabsTrigger value="vitrine">Nossos Serviços</TabsTrigger>
+          <TabsTrigger value="video-aulas">Vídeo Aulas</TabsTrigger>
         </TabsList>
 
         <div className="flex-1 w-full min-w-0">
@@ -501,6 +502,78 @@ export default function AffiliateDashboardPage() {
               </div>
               
               {portfolio.length === 0 && <p className="text-center text-muted-foreground p-8">Nenhum projeto no portfólio ainda.</p>}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="video-aulas" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Card className="border-zinc-800/50 bg-zinc-900/30">
+            <CardHeader className="border-b border-zinc-800/50 mb-6 pb-6">
+              <CardTitle className="text-2xl font-bold">Vídeo Aulas</CardTitle>
+              <p className="text-zinc-400 text-sm mt-1">Aprenda a usar a plataforma e maximize seus resultados como afiliado.</p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <div className="rounded-xl overflow-hidden border border-zinc-800/60 bg-black relative" style={{ aspectRatio: '16 / 9' }}>
+                    <iframe
+                      src={import.meta.env.VITE_VSL_URL || 'https://www.youtube.com/embed/vIZz6iVfL18'}
+                      className="w-full h-full"
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-lg">Como funciona o programa</h4>
+                    <p className="text-sm text-zinc-400">Entenda as regras, comissões e como ganhar dinheiro indicando clientes.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="rounded-xl overflow-hidden border border-zinc-800/60 bg-black relative" style={{ aspectRatio: '16 / 9' }}>
+                    <iframe
+                      src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+                      className="w-full h-full"
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-lg">Compartilhando seu link</h4>
+                    <p className="text-sm text-zinc-400">Saiba como divulgar seu link de afiliado e acompanhar seus leads.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="rounded-xl overflow-hidden border border-zinc-800/60 bg-black relative" style={{ aspectRatio: '16 / 9' }}>
+                    <iframe
+                      src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+                      className="w-full h-full"
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-lg">Dicas de vendas</h4>
+                    <p className="text-sm text-zinc-400">Estratégias para converter leads em clientes e aumentar suas comissões.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="rounded-xl overflow-hidden border border-zinc-800/60 bg-black relative" style={{ aspectRatio: '16 / 9' }}>
+                    <iframe
+                      src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+                      className="w-full h-full"
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-lg">Acompanhando resultados</h4>
+                    <p className="text-sm text-zinc-400">Veja como usar os relatórios para medir seu desempenho.</p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

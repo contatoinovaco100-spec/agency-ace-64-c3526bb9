@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Target, CheckSquare, UserCog,
-  Shield, FileText, BarChart3, Film, Clapperboard, Palette,
+  Shield, FileText, BarChart3,   Film, Clapperboard, Palette, Play,
   LayoutList, Bot, Sparkles, Settings, Bell, Calendar,
   MessageSquare, TrendingUp, Images, BookOpen, CalculatorIcon,
   Gift, Link2, ListChecks, Wallet, Network, Layers, KeyRound,
@@ -90,6 +90,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/afiliado/comissoes',    label: 'Minhas Comissões',    icon: Wallet,          category: 'Geral', affiliateOnly: true },
   { path: '/afiliado/info',         label: 'Regras do Programa',  icon: BookOpen,        category: 'Geral', affiliateOnly: true },
   { path: '/afiliado/vitrine',      label: 'Nossos Serviços',     icon: Film,            category: 'Geral', affiliateOnly: true },
+  { path: '/afiliado/video-aulas',  label: 'Vídeo Aulas',         icon: Play,            category: 'Geral', affiliateOnly: true },
 ];
 
 export const PAGE_CATEGORIES: PageCategory[] = [
