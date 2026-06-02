@@ -144,7 +144,7 @@ export default function AffiliatesAdminPage() {
     }
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadLessons(); }, []);
 
   async function savePageSettings() {
     setSavingSettings(true);
