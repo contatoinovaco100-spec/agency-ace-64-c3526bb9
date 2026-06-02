@@ -403,6 +403,9 @@ export default function AffiliatesAdminPage() {
           <TabsTrigger value="settings" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all flex items-center justify-center gap-1.5">
             <Settings className="w-4 h-4" /> Configs da Página
           </TabsTrigger>
+          <TabsTrigger value="lessons" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all flex items-center justify-center gap-1.5">
+            <Play className="w-4 h-4" /> Vídeo Aulas ({videoLessons.length})
+          </TabsTrigger>
         </TabsList>
 
         {/* ============ ABA CONTRATOS ============ */}
