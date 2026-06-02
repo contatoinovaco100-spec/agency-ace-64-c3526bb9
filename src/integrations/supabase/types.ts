@@ -219,31 +219,31 @@ export type Database = {
       }
       affiliate_settings: {
         Row: {
-          closing_commission: number
+          closing_commission: number | null
           created_at: string
           id: string
-          recurring_commission: number
+          recurring_commission: number | null
           updated_at: string
-          vsl_video_url: string
-          whatsapp_number: string
+          vsl_video_url: string | null
+          whatsapp_number: string | null
         }
         Insert: {
-          closing_commission?: number
+          closing_commission?: number | null
           created_at?: string
           id?: string
-          recurring_commission?: number
+          recurring_commission?: number | null
           updated_at?: string
-          vsl_video_url?: string
-          whatsapp_number?: string
+          vsl_video_url?: string | null
+          whatsapp_number?: string | null
         }
         Update: {
-          closing_commission?: number
+          closing_commission?: number | null
           created_at?: string
           id?: string
-          recurring_commission?: number
+          recurring_commission?: number | null
           updated_at?: string
-          vsl_video_url?: string
-          whatsapp_number?: string
+          vsl_video_url?: string | null
+          whatsapp_number?: string | null
         }
         Relationships: []
       }
