@@ -94,41 +94,36 @@ export default function AffiliatesAdminPage() {
 
   async function savePageSettings() {
     setSavingSettings(true);
-    const content = JSON.stringify(pageSettings);
-    localStorage.setItem('affiliate_page_settings', content);
-
+    localStorage.setItem('affiliate_page_settings', JSON.stringify(pageSettings));
     try {
-      const { error } = await supabase.storage
-        .from('app-config')
-        .upload('config.json', content, {
-          contentType: 'application/json',
-          upsert: true,
-        });
+      const payload = {
+        whatsapp_number: pageSettings.whatsappNumber,
+        vsl_video_url: pageSettings.vslVideoUrl,
+        closing_commission: pageSettings.closingCommission,
+        recurring_commission: pageSettings.recurringCommission,
+        updated_at: new Date().toISOString(),
+      };
+      const { data: existing, error: selErr } = await supabase
+        .from('affiliate_settings' as any).select('id').limit(1).maybeSingle();
+      if (selErr) throw selErr;
 
-      if (error) throw error;
+      if (existing) {
+        const { error } = await supabase.from('affiliate_settings' as any)
+          .update(payload).eq('id', (existing as any).id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('affiliate_settings' as any).insert(payload);
+        if (error) throw error;
+      }
       toast({ title: 'Configurações salvas globalmente!' });
     } catch (err: any) {
-      console.error('[AffiliatesAdmin] Storage falhou:', err);
-
-      // Fallback: tenta RPC function (se existir)
-      try {
-        const { error: rpcErr } = await supabase.rpc('upsert_affiliate_settings', {
-          p_whatsapp_number: pageSettings.whatsappNumber,
-          p_vsl_video_url: pageSettings.vslVideoUrl,
-          p_closing_commission: pageSettings.closingCommission,
-          p_recurring_commission: pageSettings.recurringCommission,
-        });
-        if (rpcErr) throw rpcErr;
-        toast({ title: 'Configurações salvas globalmente!' });
-      } catch (rpcErr: any) {
-        console.error('[AffiliatesAdmin] RPC também falhou:', rpcErr);
-        toast({
-          title: 'Salvo apenas localmente',
-          description: `Erro: ${err?.message || err?.error_description || JSON.stringify(err)}`,
-          variant: 'destructive',
-          duration: 12000,
-        });
-      }
+      console.error('[AffiliatesAdmin] Erro ao salvar:', err);
+      toast({
+        title: 'Erro ao salvar',
+        description: err?.message || JSON.stringify(err),
+        variant: 'destructive',
+        duration: 10000,
+      });
     } finally {
       setSavingSettings(false);
     }
