@@ -64,6 +64,51 @@ export default function AffiliatesAdminPage() {
     recurringCommission: 100,
   });
   const [savingSettings, setSavingSettings] = useState(false);
+  const [videoLessons, setVideoLessons] = useState<VideoLesson[]>([]);
+  const [editingLesson, setEditingLesson] = useState<VideoLesson | null>(null);
+  const [lessonDialogOpen, setLessonDialogOpen] = useState(false);
+  const [savingLesson, setSavingLesson] = useState(false);
+
+  const loadLessons = async () => {
+    const { data } = await supabase.from('affiliate_video_lessons' as any)
+      .select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: true });
+    setVideoLessons((data as any) || []);
+  };
+
+  async function saveLesson(lesson: Partial<VideoLesson> & { id?: string }) {
+    setSavingLesson(true);
+    try {
+      const payload = {
+        title: lesson.title || '',
+        description: lesson.description || '',
+        video_url: lesson.video_url || '',
+        sort_order: lesson.sort_order ?? 0,
+      };
+      if (lesson.id) {
+        const { error } = await supabase.from('affiliate_video_lessons' as any).update(payload).eq('id', lesson.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('affiliate_video_lessons' as any).insert(payload);
+        if (error) throw error;
+      }
+      toast({ title: 'Vídeo aula salva!' });
+      setLessonDialogOpen(false);
+      setEditingLesson(null);
+      await loadLessons();
+    } catch (err: any) {
+      toast({ title: 'Erro ao salvar', description: err?.message, variant: 'destructive' });
+    } finally {
+      setSavingLesson(false);
+    }
+  }
+
+  async function deleteLesson(id: string) {
+    if (!confirm('Excluir esta vídeo aula?')) return;
+    const { error } = await supabase.from('affiliate_video_lessons' as any).delete().eq('id', id);
+    if (error) { toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Excluída' });
+    await loadLessons();
+  }
 
   const load = async () => {
     setLoading(true);
