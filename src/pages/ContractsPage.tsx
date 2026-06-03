@@ -176,26 +176,35 @@ export default function ContractsPage() {
   const handleSave = async () => {
     if (!form.title.trim()) { toast.error('Informe o título do contrato'); return; }
     setSaving(true);
-    const payload = {
-      ...form,
-      deliverables: form.deliverables as any,
-      client_id: null,
-      created_by: user?.id,
-    };
+    try {
+      const payload = {
+        ...form,
+        deliverables: form.deliverables as any,
+        client_id: null,
+        created_by: user?.id,
+      };
 
-    if (editingId) {
-      const { status, ...updatePayload } = payload as any;
-      await supabase.from('contracts').update(updatePayload).eq('id', editingId);
-      toast.success('Contrato atualizado');
-    } else {
-      await supabase.from('contracts').insert({ ...payload, status: 'rascunho' } as any);
-      toast.success('Contrato criado');
+      if (editingId) {
+        const { status, ...updatePayload } = payload as any;
+        const { error } = await supabase.from('contracts').update(updatePayload).eq('id', editingId);
+        if (error) throw error;
+        toast.success('Contrato atualizado');
+      } else {
+        const { error } = await supabase.from('contracts').insert({ ...payload, status: 'rascunho' } as any);
+        if (error) throw error;
+        toast.success('Contrato criado');
+      }
+
+      setDialogOpen(false);
+      setEditingId(null);
+      setForm(emptyContract);
+      await loadData();
+    } catch (error: any) {
+      toast.error(`Erro ao salvar contrato: ${error?.message || 'tente novamente.'}`);
+      console.error('Contract save error:', error);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setDialogOpen(false);
-    setEditingId(null);
-    setForm(emptyContract);
-    await loadData();
   };
 
   const shareWhatsApp = (c: Contract) => {
