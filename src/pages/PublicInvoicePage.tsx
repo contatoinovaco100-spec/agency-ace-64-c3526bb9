@@ -31,12 +31,10 @@ export default function PublicInvoicePage() {
   useEffect(() => {
     if (!id) return;
     (supabase as any)
-      .from('invoices')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle()
+      .rpc('get_public_invoice', { _id: id })
       .then(({ data }: any) => {
-        setInv(data as Invoice | null);
+        const row = Array.isArray(data) ? data[0] : data;
+        setInv((row as Invoice | null) || null);
         setLoading(false);
       });
   }, [id]);
