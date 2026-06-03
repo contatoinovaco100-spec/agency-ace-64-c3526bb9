@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Fonte Inter agora é carregada via <link> no index.html (não-bloqueante) */
 
 @tailwind base;
 @tailwind components;
