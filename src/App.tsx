@@ -47,7 +47,9 @@ const CRMPage              = lazy(() => import("./pages/CRMPage"));
 const TasksPage            = lazy(() => import("./pages/TasksPage"));
 const TeamPage             = lazy(() => import("./pages/TeamPage"));
 const ClientContentPage    = lazy(() => import("./pages/ClientContentPage"));
-const LoginPage            = lazy(() => import("./pages/LoginPage"));
+// LoginPage é importada de forma estática (eager) — é a rota mais acessada
+// e evitar o lazy elimina um round-trip de chunk antes do usuário ver o form.
+import LoginPage from "./pages/LoginPage";
 
 const ContractsPage        = lazy(() => import("./pages/ContractsPage"));
 const ContractSignPage     = lazy(() => import("./pages/ContractSignPage"));
