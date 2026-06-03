@@ -2936,6 +2936,139 @@ export type Database = {
         Args: { _month?: string }
         Returns: number
       }
+      get_contract_signature_minimal: {
+        Args: { _contract_id: string }
+        Returns: {
+          signature_hash: string
+          signed_at: string
+          signer_name: string
+        }[]
+      }
+      get_public_client_tasks: {
+        Args: { _anchor: string }
+        Returns: {
+          assignee: string
+          client_id: string | null
+          copywriter: string
+          created_at: string
+          creative_direction: string
+          current_stage_owner: string
+          description: string
+          director: string
+          due_date: string | null
+          editing_style: string
+          editor: string
+          editor_comments: string
+          format: string
+          full_script: string
+          id: string
+          observations: string
+          platform: string
+          post_date: string | null
+          post_time: string | null
+          priority: string
+          recording_notes: string
+          script_writer: string
+          status: string
+          strategic_notes: string
+          task_type: string
+          title: string
+          updated_at: string
+          video_idea: string
+          video_name: string
+          video_objective: string
+          video_references: string
+          video_url: string | null
+          videomaker: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "tasks"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_contract: {
+        Args: { _id: string }
+        Returns: {
+          additional_clauses: string
+          client_address: string
+          client_cpf_cnpj: string
+          client_email: string
+          client_id: string | null
+          client_name: string
+          contractor_address: string
+          contractor_cpf_cnpj: string
+          contractor_name: string
+          created_at: string
+          created_by: string | null
+          deliverables: Json
+          duration_months: number
+          id: string
+          monthly_value: number
+          payment_due_day: number
+          plan_name: string
+          scope_description: string
+          sent_at: string | null
+          services: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "contracts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_public_invoice: {
+        Args: { _id: string }
+        Returns: {
+          amount: number
+          client_contact: string
+          client_name: string
+          created_at: string
+          created_by: string | null
+          custom_message: string
+          description: string
+          due_date: string | null
+          id: string
+          is_recurring: boolean
+          month_ref: string
+          notes: string
+          paid_at: string | null
+          parent_invoice_id: string | null
+          pix_code: string
+          recurrence_day: number | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_public_pix_settings: {
+        Args: never
+        Returns: {
+          city: string
+          created_at: string
+          id: string
+          key_type: string
+          pix_key: string
+          receiver_name: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pix_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_page_access: {
         Args: { _path: string; _user_id: string }
         Returns: boolean
@@ -2951,7 +3084,12 @@ export type Database = {
         Args: { _field: string; _quiz_id: string }
         Returns: undefined
       }
+      mark_contract_signed: { Args: { _id: string }; Returns: undefined }
       renew_recurring_invoices: { Args: never; Returns: number }
+      update_public_task_status: {
+        Args: { _id: string; _status: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_module: "comercial" | "operacional"

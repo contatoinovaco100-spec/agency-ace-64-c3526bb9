@@ -83,32 +83,34 @@ export default function ContractSignPage() {
     setLoading(true);
     try {
       console.log('Fetching contract:', contractId);
-      const { data: c, error: cErr } = await supabase.from('contracts').select('*').eq('id', contractId).single();
-      
+      const { data: c, error: cErr } = await (supabase as any).rpc('get_public_contract', { _id: contractId });
+
       if (cErr) {
         console.error('Supabase error loading contract:', cErr);
         toast.error('Erro ao carregar contrato do servidor');
       }
 
-      if (c) {
-        console.log('Contract loaded:', c.title);
+      const contractRow = Array.isArray(c) ? c[0] : c;
+      if (contractRow) {
+        console.log('Contract loaded:', contractRow.title);
         setContract({
-          ...c,
-          deliverables: Array.isArray(c.deliverables) ? c.deliverables as unknown as Deliverable[] : [],
+          ...contractRow,
+          deliverables: Array.isArray(contractRow.deliverables) ? contractRow.deliverables as unknown as Deliverable[] : [],
         } as unknown as Contract);
-        setSignerName(c.client_name || '');
-        setSignerEmail(c.client_email || '');
+        setSignerName(contractRow.client_name || '');
+        setSignerEmail(contractRow.client_email || '');
       } else {
         console.warn('No contract data returned for ID:', contractId);
       }
-      
-      const { data: sigs, error: sErr } = await supabase.from('contract_signatures').select('*').eq('contract_id', contractId).eq('accepted', true);
+
+      const { data: sigs, error: sErr } = await (supabase as any).rpc('get_contract_signature_minimal', { _contract_id: contractId });
       if (sErr) console.error('Error checking signatures:', sErr);
-      
-      if (sigs && sigs.length > 0) {
+
+      const sigRow = Array.isArray(sigs) ? sigs[0] : sigs;
+      if (sigRow) {
         console.log('Contract already signed');
         setAlreadySigned(true);
-        setExistingSignature(sigs[0] as Signature);
+        setExistingSignature(sigRow as Signature);
       }
     } catch (err) {
       console.error('Crash in loadContract:', err);
@@ -164,9 +166,9 @@ export default function ContractSignPage() {
       // Optimistic update
       setContract(prev => prev ? { ...prev, status: 'assinado' } : null);
 
-      // Try update DB but ignore RLS errors since we updated locally
-      const { error: updateErr } = await supabase.from('contracts').update({ status: 'assinado' }).eq('id', contractId);
-      if (updateErr) console.warn('DB update failed (likely RLS):', updateErr);
+      // Update contract status via secure RPC
+      const { error: updateErr } = await (supabase as any).rpc('mark_contract_signed', { _id: contractId });
+      if (updateErr) console.warn('Status update failed:', updateErr);
 
       // Send WhatsApp notification
       try {

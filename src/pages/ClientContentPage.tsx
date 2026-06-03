@@ -183,107 +183,42 @@ export default function ClientContentPage() {
     loadContent(taskId);
   }, [taskId]);
 
-  const handleConfirmPost = async (taskIdToConfirm: string) => {
+  const updateStatusRpc = async (taskIdToConfirm: string, newStatus: 'Postado' | 'Programado') => {
     setConfirmingId(taskIdToConfirm);
-    // Optimistic update immediately
     setTasks(prev => prev.map(t =>
-      t.id === taskIdToConfirm ? { ...t, status: 'Postado' } : t
+      t.id === taskIdToConfirm ? { ...t, status: newStatus } : t
     ));
     try {
-      const { error, data } = await supabase
-        .from('tasks')
-        .update({ status: 'Postado' })
-        .eq('id', taskIdToConfirm)
-        .select();
-
-      if (error) {
-        console.error('Supabase error confirming post:', JSON.stringify(error));
-        // If it's an RLS permission error, the UI was already updated optimistically
-        // The admin can update this in the dashboard
-        if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('policy')) {
-          toast.success('Postagem confirmada! (atualização salva localmente)');
-        } else {
-          throw error;
-        }
-      } else {
-        toast.success('Postagem confirmada com sucesso!');
-      }
+      const { error } = await (supabase as any).rpc('update_public_task_status', { _id: taskIdToConfirm, _status: newStatus });
+      if (error) throw error;
+      toast.success(newStatus === 'Postado' ? 'Postagem confirmada com sucesso!' : 'Programação confirmada com sucesso!');
     } catch (err: any) {
-      console.error('Error confirming post:', err);
-      // Revert optimistic update on real error
-      setTasks(prev => prev.map(t =>
-        t.id === taskIdToConfirm ? { ...t, status: t.status } : t
-      ));
-      toast.error(`Erro ao confirmar postagem: ${err?.message || 'tente novamente'}`);
+      console.error('Error updating task status:', err);
+      toast.error(`Erro ao confirmar: ${err?.message || 'tente novamente'}`);
     } finally {
       setConfirmingId(null);
     }
   };
 
-  const handleConfirmProgram = async (taskIdToConfirm: string) => {
-    setConfirmingId(taskIdToConfirm);
-    // Optimistic update immediately
-    setTasks(prev => prev.map(t =>
-      t.id === taskIdToConfirm ? { ...t, status: 'Programado' } : t
-    ));
-    try {
-      const { error, data } = await supabase
-        .from('tasks')
-        .update({ status: 'Programado' })
-        .eq('id', taskIdToConfirm)
-        .select();
-
-      if (error) {
-        console.error('Supabase error confirming program:', JSON.stringify(error));
-        if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('policy')) {
-          toast.success('Programação confirmada! (atualização salva localmente)');
-        } else {
-          throw error;
-        }
-      } else {
-        toast.success('Programação confirmada com sucesso!');
-      }
-    } catch (err: any) {
-      console.error('Error confirming program:', err);
-      // Revert optimistic update on real error
-      setTasks(prev => prev.map(t =>
-        t.id === taskIdToConfirm ? { ...t, status: t.status } : t
-      ));
-      toast.error(`Erro ao confirmar programação: ${err?.message || 'tente novamente'}`);
-    } finally {
-      setConfirmingId(null);
-    }
-  };
+  const handleConfirmPost = (taskIdToConfirm: string) => updateStatusRpc(taskIdToConfirm, 'Postado');
+  const handleConfirmProgram = (taskIdToConfirm: string) => updateStatusRpc(taskIdToConfirm, 'Programado');
 
   const loadContent = async (id: string) => {
     setLoading(true);
 
-    const { data: singleTask } = await supabase.from('tasks').select('*').eq('id', id).maybeSingle();
+    const { data: tasksData, error } = await (supabase as any).rpc('get_public_client_tasks', { _anchor: id });
+    if (error) console.error('Error loading tasks:', error);
 
-    if (singleTask) {
-      const clientId = singleTask.client_id;
+    const list = (tasksData as TaskData[] | null) || [];
+    if (list.length > 0) {
+      const clientId = list[0].client_id;
       if (clientId) {
-        const { data: clientData } = await supabase.from('clients').select('company_name').eq('id', clientId).single();
+        const { data: clientData } = await supabase.from('clients').select('company_name').eq('id', clientId).maybeSingle();
         if (clientData) setClientName(clientData.company_name);
-
-        const { data: allTasks } = await supabase.from('tasks').select('*').eq('client_id', clientId).order('due_date', { ascending: true });
-        setTasks((allTasks || [singleTask]) as TaskData[]);
-      } else {
-        setTasks([singleTask as TaskData]);
       }
+      setTasks(list);
       setLoading(false);
       return;
-    }
-
-    const { data: clientData } = await supabase.from('clients').select('company_name').eq('id', id).maybeSingle();
-    if (clientData) {
-      setClientName(clientData.company_name);
-      const { data: allTasks } = await supabase.from('tasks').select('*').eq('client_id', id).order('due_date', { ascending: true });
-      if (allTasks && allTasks.length > 0) {
-        setTasks(allTasks as TaskData[]);
-        setLoading(false);
-        return;
-      }
     }
 
     setNotFound(true);
