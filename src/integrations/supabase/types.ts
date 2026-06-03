@@ -992,6 +992,7 @@ export type Database = {
       contracts: {
         Row: {
           additional_clauses: string
+          affiliate_token: string | null
           client_address: string
           client_cpf_cnpj: string
           client_email: string
@@ -1017,6 +1018,7 @@ export type Database = {
         }
         Insert: {
           additional_clauses?: string
+          affiliate_token?: string | null
           client_address?: string
           client_cpf_cnpj?: string
           client_email?: string
@@ -1042,6 +1044,7 @@ export type Database = {
         }
         Update: {
           additional_clauses?: string
+          affiliate_token?: string | null
           client_address?: string
           client_cpf_cnpj?: string
           client_email?: string
@@ -2992,6 +2995,7 @@ export type Database = {
         Args: { _id: string }
         Returns: {
           additional_clauses: string
+          affiliate_token: string | null
           client_address: string
           client_cpf_cnpj: string
           client_email: string
