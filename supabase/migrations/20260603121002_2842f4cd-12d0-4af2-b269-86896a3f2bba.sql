@@ -1,0 +1,10 @@
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, app_role) TO authenticated, anon, service_role;
+GRANT EXECUTE ON FUNCTION public.has_page_access(uuid, text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_public_contract(uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.mark_contract_signed(uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_contract_signature_minimal(uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_public_invoice(uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_public_pix_settings() TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_public_client_tasks(uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.update_public_task_status(uuid, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.increment_quiz_counter(uuid, text) TO anon, authenticated;
