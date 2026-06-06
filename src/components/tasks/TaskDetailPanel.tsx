@@ -211,6 +211,22 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Descrição</Label>
               <Textarea rows={2} value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Descreva a tarefa..." className="mt-1" />
             </div>
+            <div>
+              <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Tipo de entrega</Label>
+              <Select
+                value={form.taskType === 'Arte' ? 'Arte' : 'Produção de Vídeo'}
+                onValueChange={v => setForm({ ...form, taskType: v as any })}
+              >
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Produção de Vídeo">📹 Reels / Vídeo</SelectItem>
+                  <SelectItem value="Arte">🎨 Arte estática</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Tarefas marcadas como "Arte estática" aparecem na aba <span className="font-semibold text-foreground">Artes Estáticas</span> em vez do Kanban de Tarefas.
+              </p>
+            </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
               <div>
                 <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Cliente</Label>
