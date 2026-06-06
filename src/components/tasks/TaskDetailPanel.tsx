@@ -22,6 +22,7 @@ interface Props {
   clients: Client[];
   team: TeamMember[];
   defaultClientId?: string;
+  defaultTaskType?: 'Arte' | 'Produção de Vídeo';
   onSave: (task: Task) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onClose: () => void;
@@ -29,7 +30,7 @@ interface Props {
 
 const priorities = ['Alta', 'Média', 'Baixa'] as const;
 
-export default function TaskDetailPanel({ task, isNew, clients, team, defaultClientId, onSave, onDelete, onClose }: Props) {
+export default function TaskDetailPanel({ task, isNew, clients, team, defaultClientId, defaultTaskType, onSave, onDelete, onClose }: Props) {
   const { getChecklist, upsertChecklistItem, deleteChecklistItem, getComments, addComment, getAttachments, addAttachment, deleteAttachment } = useAgency();
 
   const [form, setForm] = useState<Partial<Task>>({});
