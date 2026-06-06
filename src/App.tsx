@@ -45,6 +45,7 @@ const Dashboard            = lazy(() => import("./pages/Dashboard"));
 const ClientsPage          = lazy(() => import("./pages/ClientsPage"));
 const CRMPage              = lazy(() => import("./pages/CRMPage"));
 const TasksPage            = lazy(() => import("./pages/TasksPage"));
+const ArtesPage            = lazy(() => import("./pages/ArtesPage"));
 const TeamPage             = lazy(() => import("./pages/TeamPage"));
 const ClientContentPage    = lazy(() => import("./pages/ClientContentPage"));
 // LoginPage é importada de forma estática (eager) — é a rota mais acessada
@@ -193,6 +194,7 @@ function AppRoutes() {
                     <Route path="/clientes"            element={<ClientsPage />} />
                     <Route path="/crm"                 element={<CRMPage />} />
                     <Route path="/tarefas"             element={<TasksPage />} />
+                    <Route path="/artes"               element={<ArtesPage />} />
                     <Route path="/equipe"              element={<TeamPage />} />
                     <Route path="/planejamento"        element={<ContentPlanningPage />} />
 

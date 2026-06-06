@@ -434,7 +434,16 @@ function ArchiveDropZone({
 }
 
 
-export default function TasksPage() {
+interface TasksPageProps {
+  /** When set, the board only shows tasks of this type and new tasks default to it. */
+  taskTypeFilter?: 'Arte' | 'Produção de Vídeo';
+  /** Header title override */
+  pageTitle?: string;
+  /** Header subtitle/description override */
+  pageHint?: string;
+}
+
+export default function TasksPage({ taskTypeFilter, pageTitle, pageHint }: TasksPageProps = {}) {
   const { tasks, clients, team, addTask, updateTask, deleteTask } = useAgency();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -455,6 +464,12 @@ export default function TasksPage() {
 
   const filteredTasks = useMemo(() => {
     return tasks.filter(t => {
+      // Task type scoping: Artes board only shows Arte tasks, default board hides them
+      if (taskTypeFilter) {
+        if (t.taskType !== taskTypeFilter) return false;
+      } else {
+        if (t.taskType === 'Arte') return false;
+      }
       // Client filter (main)
       if (selectedClient !== 'all' && t.clientId !== selectedClient) return false;
       if (search) {
@@ -465,7 +480,7 @@ export default function TasksPage() {
       if (filterAssignee !== 'all' && t.assignee !== filterAssignee) return false;
       return true;
     });
-  }, [tasks, selectedClient, search, filterAssignee]);
+  }, [tasks, taskTypeFilter, selectedClient, search, filterAssignee]);
 
   const tasksByColumn = useMemo(() => {
     const map: Record<ColumnId, Task[]> = {} as any;
@@ -538,10 +553,14 @@ export default function TasksPage() {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Tarefas</h1>
+            <h1 className="text-xl font-semibold text-foreground">{pageTitle ?? 'Tarefas'}</h1>
             <p className="text-sm text-muted-foreground">
-              {filteredTasks.filter(t => !['Finalizado', 'Concluído'].includes(mapStatusToColumn(t.status))).length} em andamento
-              {selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}
+              {pageHint
+                ? <>{pageHint}{selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}</>
+                : <>
+                    {filteredTasks.filter(t => !['Finalizado', 'Concluído'].includes(mapStatusToColumn(t.status))).length} em andamento
+                    {selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}
+                  </>}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -652,6 +671,7 @@ export default function TasksPage() {
             clients={clients}
             team={team}
             defaultClientId={selectedClient !== 'all' ? selectedClient : undefined}
+            defaultTaskType={taskTypeFilter}
             onSave={handleSave}
             onDelete={handleDelete}
             onClose={() => setDialogOpen(false)}

@@ -22,6 +22,7 @@ interface Props {
   clients: Client[];
   team: TeamMember[];
   defaultClientId?: string;
+  defaultTaskType?: 'Arte' | 'Produção de Vídeo';
   onSave: (task: Task) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onClose: () => void;
@@ -29,7 +30,7 @@ interface Props {
 
 const priorities = ['Alta', 'Média', 'Baixa'] as const;
 
-export default function TaskDetailPanel({ task, isNew, clients, team, defaultClientId, onSave, onDelete, onClose }: Props) {
+export default function TaskDetailPanel({ task, isNew, clients, team, defaultClientId, defaultTaskType, onSave, onDelete, onClose }: Props) {
   const { getChecklist, upsertChecklistItem, deleteChecklistItem, getComments, addComment, getAttachments, addAttachment, deleteAttachment } = useAgency();
 
   const [form, setForm] = useState<Partial<Task>>({});
@@ -49,7 +50,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
       loadData(task.id);
     } else {
       setForm({
-        taskType: 'Produção de Vídeo',
+        taskType: defaultTaskType || 'Produção de Vídeo',
         status: 'Ideias / Backlog' as any,
         priority: 'Média',
         clientId: defaultClientId || '',
@@ -64,7 +65,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
       setComments([]);
       setAttachments([]);
     }
-  }, [task, defaultClientId]);
+  }, [task, defaultClientId, defaultTaskType]);
 
   const loadData = async (id: string) => {
     const [ch, co, at] = await Promise.all([getChecklist(id), getComments(id), getAttachments(id)]);
@@ -210,6 +211,22 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Descrição</Label>
               <Textarea rows={2} value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Descreva a tarefa..." className="mt-1" />
             </div>
+            <div>
+              <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Tipo de entrega</Label>
+              <Select
+                value={form.taskType === 'Arte' ? 'Arte' : 'Produção de Vídeo'}
+                onValueChange={v => setForm({ ...form, taskType: v as any })}
+              >
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Produção de Vídeo">📹 Reels / Vídeo</SelectItem>
+                  <SelectItem value="Arte">🎨 Arte estática</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Tarefas marcadas como "Arte estática" aparecem na aba <span className="font-semibold text-foreground">Artes Estáticas</span> em vez do Kanban de Tarefas.
+              </p>
+            </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
               <div>
                 <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Cliente</Label>
@@ -251,6 +268,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
             </div>
           </div>
 
+          {form.taskType !== 'Arte' && (<>
           <Separator />
 
           {/* ── Video-specific fields ── */}
@@ -369,6 +387,9 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               </p>
             </div>
           </div>
+          </>)}
+
+
 
           {/* ── Tabs: Checklist / Comments / Attachments ── */}
           {!isNew && (
