@@ -268,6 +268,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
             </div>
           </div>
 
+          {form.taskType !== 'Arte' && (<>
           <Separator />
 
           {/* ── Video-specific fields ── */}
