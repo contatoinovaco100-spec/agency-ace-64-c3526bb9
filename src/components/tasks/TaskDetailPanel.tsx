@@ -387,6 +387,9 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               </p>
             </div>
           </div>
+          </>)}
+
+
 
           {/* ── Tabs: Checklist / Comments / Attachments ── */}
           {!isNew && (
