@@ -50,7 +50,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
       loadData(task.id);
     } else {
       setForm({
-        taskType: 'Produção de Vídeo',
+        taskType: defaultTaskType || 'Produção de Vídeo',
         status: 'Ideias / Backlog' as any,
         priority: 'Média',
         clientId: defaultClientId || '',
