@@ -3,7 +3,7 @@ export type ServiceType = 'Gestor de trafego' | 'Social Media' | 'Estrategista d
 export type TaskStatus = 'A fazer' | 'Em andamento' | 'Revisão' | 'Concluído';
 export type TaskPriority = 'Alta' | 'Média' | 'Baixa';
 export type LeadStage = 'Lead novo' | 'Contato iniciado' | 'Reunião agendada' | 'Proposta enviada' | 'Negociação' | 'Cliente fechado' | 'Perdido';
-export type TaskType = 'Geral' | 'Produção de Vídeo';
+export type TaskType = 'Geral' | 'Produção de Vídeo' | 'Arte';
 
 export type VideoStage = 'Em copy' | 'Em direção' | 'Em gravação' | 'Em edição' | 'Finalizado';
 
