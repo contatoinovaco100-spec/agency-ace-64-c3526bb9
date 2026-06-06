@@ -553,10 +553,14 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint }: Tasks
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Tarefas</h1>
+            <h1 className="text-xl font-semibold text-foreground">{pageTitle ?? 'Tarefas'}</h1>
             <p className="text-sm text-muted-foreground">
-              {filteredTasks.filter(t => !['Finalizado', 'Concluído'].includes(mapStatusToColumn(t.status))).length} em andamento
-              {selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}
+              {pageHint
+                ? <>{pageHint}{selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}</>
+                : <>
+                    {filteredTasks.filter(t => !['Finalizado', 'Concluído'].includes(mapStatusToColumn(t.status))).length} em andamento
+                    {selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}
+                  </>}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
