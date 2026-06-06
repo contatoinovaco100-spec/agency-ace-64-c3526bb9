@@ -194,6 +194,7 @@ function AppRoutes() {
                     <Route path="/clientes"            element={<ClientsPage />} />
                     <Route path="/crm"                 element={<CRMPage />} />
                     <Route path="/tarefas"             element={<TasksPage />} />
+                    <Route path="/artes"               element={<ArtesPage />} />
                     <Route path="/equipe"              element={<TeamPage />} />
                     <Route path="/planejamento"        element={<ContentPlanningPage />} />
 
