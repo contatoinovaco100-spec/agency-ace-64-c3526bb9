@@ -65,7 +65,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
       setComments([]);
       setAttachments([]);
     }
-  }, [task, defaultClientId]);
+  }, [task, defaultClientId, defaultTaskType]);
 
   const loadData = async (id: string) => {
     const [ch, co, at] = await Promise.all([getChecklist(id), getComments(id), getAttachments(id)]);
