@@ -671,6 +671,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint }: Tasks
             clients={clients}
             team={team}
             defaultClientId={selectedClient !== 'all' ? selectedClient : undefined}
+            defaultTaskType={taskTypeFilter}
             onSave={handleSave}
             onDelete={handleDelete}
             onClose={() => setDialogOpen(false)}
