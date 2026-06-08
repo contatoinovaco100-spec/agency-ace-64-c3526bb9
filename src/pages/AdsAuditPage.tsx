@@ -448,6 +448,52 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
                 </p>
               </div>
 
+              {/* Tone selector */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                  Tom da mensagem <span className="text-primary">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTone('positiva')}
+                    className={cn(
+                      'p-3 rounded-xl border-2 text-left transition-all',
+                      tone === 'positiva'
+                        ? 'border-emerald-500/60 bg-emerald-500/10'
+                        : 'border-border bg-background/40 hover:border-border/80'
+                    )}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <TrendingUp className="w-4 h-4 text-emerald-400" />
+                      <span className="text-sm font-black uppercase tracking-wider text-foreground">Positiva</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Encorajadora, foco em oportunidades e potencial de crescimento.
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTone('negativa')}
+                    className={cn(
+                      'p-3 rounded-xl border-2 text-left transition-all',
+                      tone === 'negativa'
+                        ? 'border-red-500/60 bg-red-500/10'
+                        : 'border-border bg-background/40 hover:border-border/80'
+                    )}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertTriangle className="w-4 h-4 text-red-400" />
+                      <span className="text-sm font-black uppercase tracking-wider text-foreground">Negativa / Alerta</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Crítica e urgente, destaca riscos e desperdício de verba.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+
               {!image ? (
                 <label
                   onDragOver={(e) => e.preventDefault()}
