@@ -70,7 +70,16 @@ interface Diagnosis {
   alertas: { tipo: Status; mensagem: string }[];
 }
 
-const WHATSAPP_NUMBER = '5588994463203';
+const DEFAULT_WHATSAPP_NUMBER = '5588994463203';
+const WHATSAPP_STORAGE_KEY = 'ads_audit_whatsapp_number';
+
+function sanitizeWhatsApp(raw: string): string {
+  const digits = (raw || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('0')) return '55' + digits.slice(1);
+  if (digits.length <= 11) return '55' + digits;
+  return digits;
+}
 
 const STATUS_STYLES: Record<Status, { bg: string; text: string; border: string; icon: any; label: string; ring: string }> = {
   good:    { bg: 'bg-emerald-500/10',  text: 'text-emerald-400',  border: 'border-emerald-500/30',  icon: CheckCircle2,   label: 'Boa',      ring: 'ring-emerald-500/40' },
