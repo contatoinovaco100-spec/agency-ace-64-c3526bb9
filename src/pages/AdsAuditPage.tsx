@@ -365,7 +365,8 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
     const msg = encodeURIComponent(
       'Olá INOVA! Acabei de fazer o diagnóstico dos meus anúncios e quero ajuda para melhorar os resultados.'
     );
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
+    const target = sanitizeWhatsApp(whatsappNumber) || DEFAULT_WHATSAPP_NUMBER;
+    window.open(`https://wa.me/${target}?text=${msg}`, '_blank');
   };
 
   const handlePrint = () => window.print();
