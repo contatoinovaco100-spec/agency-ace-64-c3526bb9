@@ -70,7 +70,16 @@ interface Diagnosis {
   alertas: { tipo: Status; mensagem: string }[];
 }
 
-const WHATSAPP_NUMBER = '5588994463203';
+const DEFAULT_WHATSAPP_NUMBER = '5588994463203';
+const WHATSAPP_STORAGE_KEY = 'ads_audit_whatsapp_number';
+
+function sanitizeWhatsApp(raw: string): string {
+  const digits = (raw || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('0')) return '55' + digits.slice(1);
+  if (digits.length <= 11) return '55' + digits;
+  return digits;
+}
 
 const STATUS_STYLES: Record<Status, { bg: string; text: string; border: string; icon: any; label: string; ring: string }> = {
   good:    { bg: 'bg-emerald-500/10',  text: 'text-emerald-400',  border: 'border-emerald-500/30',  icon: CheckCircle2,   label: 'Boa',      ring: 'ring-emerald-500/40' },
@@ -109,6 +118,10 @@ export default function AdsAuditPage() {
   const [savedClient, setSavedClient] = useState<string>('');
   const [history, setHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState<string>(() => {
+    if (typeof window === 'undefined') return DEFAULT_WHATSAPP_NUMBER;
+    return localStorage.getItem(WHATSAPP_STORAGE_KEY) || DEFAULT_WHATSAPP_NUMBER;
+  });
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
   const reportRef = useRef<HTMLDivElement>(null);
@@ -280,7 +293,7 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
       const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-copywriter', {
         body: {
           systemPrompt,
-          userMessage: 'Analise o print do gerenciador de anúncios e gere o relatório completo no formato JSON pedido.',
+          userMessage: `${toneInstruction}\n\nAnalise o print do gerenciador de anúncios e gere o relatório completo no formato JSON pedido. LEMBRE-SE: TODO o texto (resumo.titulo, resumo.explicacao, interpretacao de cada métrica, diagnosticoEstrategico, planoDeAcao, projecao, alertas) DEVE refletir o tom ${tone === 'positiva' ? 'POSITIVO e encorajador' : 'NEGATIVO, crítico e de alerta urgente'} escolhido. Não misture os dois tons.`,
           model: 'google/gemini-2.5-flash',
           imageBase64: base64Data,
           imageMimeType: file.type,
@@ -352,7 +365,8 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
     const msg = encodeURIComponent(
       'Olá INOVA! Acabei de fazer o diagnóstico dos meus anúncios e quero ajuda para melhorar os resultados.'
     );
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
+    const target = sanitizeWhatsApp(whatsappNumber) || DEFAULT_WHATSAPP_NUMBER;
+    window.open(`https://wa.me/${target}?text=${msg}`, '_blank');
   };
 
   const handlePrint = () => window.print();
@@ -492,6 +506,29 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
                   </button>
                 </div>
               </div>
+
+              {/* WhatsApp CTA number */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                  WhatsApp do botão final
+                </label>
+                <Input
+                  value={whatsappNumber}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setWhatsappNumber(v);
+                    try { localStorage.setItem(WHATSAPP_STORAGE_KEY, v); } catch {}
+                  }}
+                  placeholder="Ex: 5588994463203 (com DDI 55)"
+                  className="h-12 text-base"
+                  inputMode="tel"
+                />
+                <p className="text-[10px] text-muted-foreground/70 mt-1">
+                  Número usado no botão "Falar no WhatsApp" ao final do relatório. Salvo automaticamente neste navegador.
+                </p>
+              </div>
+
+
 
 
               {!image ? (
