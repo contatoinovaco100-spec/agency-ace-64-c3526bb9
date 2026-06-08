@@ -205,10 +205,15 @@ export default function AdsAuditPage() {
     try {
       const base64Data = image.split(',')[1];
 
+      const toneInstruction = tone === 'positiva'
+        ? `TOM DA MENSAGEM: POSITIVO E ENCORAJADOR. Mesmo apontando problemas, destaque oportunidades, conquistas e o potencial de crescimento. Use linguagem otimista ("ótima base", "com pequenos ajustes", "potencial enorme"). Suavize críticas. Foque no que pode melhorar e na evolução. Evite alarmar o cliente.`
+        : `TOM DA MENSAGEM: CRÍTICO E DIRETO (NEGATIVO/ALERTA). Seja franco, urgente e mostre os riscos reais de manter a campanha como está. Use linguagem de alerta ("perda de dinheiro", "campanha sangrando verba", "urgente", "crítico"). Destaque o quanto está sendo desperdiçado e a necessidade de agir AGORA. Não suavize problemas.`;
+
       const systemPrompt = `Você é um Consultor Sênior de Tráfego Pago (Meta Ads, Google Ads, TikTok Ads) com 10+ anos de experiência.
 Vai receber um PRINT de gerenciador de anúncios. Faça OCR mental, identifique TODAS as métricas visíveis (CTR, CPC, CPM, ROAS, frequência, conversões, gasto, alcance, impressões, leads, CPA) e gere um RELATÓRIO VISUAL COMPLETO de nível agência premium.
 
-REGRAS DE OURO:
+${toneInstruction}
+
 1. Capture os VALORES REAIS visíveis no print (ex: "CTR: 1.24%", "Gasto: R$ 1.847,50"). Use os valores exatos.
 2. Identifique a plataforma (Meta/Facebook, Google, TikTok) e o objetivo da campanha se visível.
 3. Para CADA métrica visível, dê: valor real, benchmark do mercado BR, classificação (Excelente/Boa/Média/Baixa/Crítica) e 1 frase prática do que significa.
