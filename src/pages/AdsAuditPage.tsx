@@ -101,6 +101,7 @@ export default function AdsAuditPage() {
   const [file, setFile] = useState<File | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
+  const [tone, setTone] = useState<'positiva' | 'negativa'>('positiva');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingSlug, setIsLoadingSlug] = useState(false);
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
