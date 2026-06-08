@@ -507,6 +507,29 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
                 </div>
               </div>
 
+              {/* WhatsApp CTA number */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                  WhatsApp do botão final
+                </label>
+                <Input
+                  value={whatsappNumber}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setWhatsappNumber(v);
+                    try { localStorage.setItem(WHATSAPP_STORAGE_KEY, v); } catch {}
+                  }}
+                  placeholder="Ex: 5588994463203 (com DDI 55)"
+                  className="h-12 text-base"
+                  inputMode="tel"
+                />
+                <p className="text-[10px] text-muted-foreground/70 mt-1">
+                  Número usado no botão "Falar no WhatsApp" ao final do relatório. Salvo automaticamente neste navegador.
+                </p>
+              </div>
+
+
+
 
               {!image ? (
                 <label
