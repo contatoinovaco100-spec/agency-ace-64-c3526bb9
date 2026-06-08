@@ -101,6 +101,7 @@ export default function AdsAuditPage() {
   const [file, setFile] = useState<File | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
+  const [tone, setTone] = useState<'positiva' | 'negativa'>('positiva');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingSlug, setIsLoadingSlug] = useState(false);
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
@@ -204,10 +205,18 @@ export default function AdsAuditPage() {
     try {
       const base64Data = image.split(',')[1];
 
+      const toneInstruction = tone === 'positiva'
+        ? `TOM DA MENSAGEM: POSITIVO E ENCORAJADOR. Mesmo apontando problemas, destaque oportunidades, conquistas e o potencial de crescimento. Use linguagem otimista ("ótima base", "com pequenos ajustes", "potencial enorme"). Suavize críticas. Foque no que pode melhorar e na evolução. Evite alarmar o cliente.`
+        : `TOM DA MENSAGEM: CRÍTICO E DIRETO (NEGATIVO/ALERTA). Seja franco, urgente e mostre os riscos reais de manter a campanha como está. Use linguagem de alerta ("perda de dinheiro", "campanha sangrando verba", "urgente", "crítico"). Destaque o quanto está sendo desperdiçado e a necessidade de agir AGORA. Não suavize problemas.`;
+
       const systemPrompt = `Você é um Consultor Sênior de Tráfego Pago (Meta Ads, Google Ads, TikTok Ads) com 10+ anos de experiência.
 Vai receber um PRINT de gerenciador de anúncios. Faça OCR mental, identifique TODAS as métricas visíveis (CTR, CPC, CPM, ROAS, frequência, conversões, gasto, alcance, impressões, leads, CPA) e gere um RELATÓRIO VISUAL COMPLETO de nível agência premium.
 
+${toneInstruction}
+
 REGRAS DE OURO:
+
+
 1. Capture os VALORES REAIS visíveis no print (ex: "CTR: 1.24%", "Gasto: R$ 1.847,50"). Use os valores exatos.
 2. Identifique a plataforma (Meta/Facebook, Google, TikTok) e o objetivo da campanha se visível.
 3. Para CADA métrica visível, dê: valor real, benchmark do mercado BR, classificação (Excelente/Boa/Média/Baixa/Crítica) e 1 frase prática do que significa.
@@ -438,6 +447,52 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
                   Usado para gerar o link único do relatório.
                 </p>
               </div>
+
+              {/* Tone selector */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                  Tom da mensagem <span className="text-primary">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTone('positiva')}
+                    className={cn(
+                      'p-3 rounded-xl border-2 text-left transition-all',
+                      tone === 'positiva'
+                        ? 'border-emerald-500/60 bg-emerald-500/10'
+                        : 'border-border bg-background/40 hover:border-border/80'
+                    )}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <TrendingUp className="w-4 h-4 text-emerald-400" />
+                      <span className="text-sm font-black uppercase tracking-wider text-foreground">Positiva</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Encorajadora, foco em oportunidades e potencial de crescimento.
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTone('negativa')}
+                    className={cn(
+                      'p-3 rounded-xl border-2 text-left transition-all',
+                      tone === 'negativa'
+                        ? 'border-red-500/60 bg-red-500/10'
+                        : 'border-border bg-background/40 hover:border-border/80'
+                    )}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertTriangle className="w-4 h-4 text-red-400" />
+                      <span className="text-sm font-black uppercase tracking-wider text-foreground">Negativa / Alerta</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Crítica e urgente, destaca riscos e desperdício de verba.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
 
               {!image ? (
                 <label
