@@ -118,6 +118,10 @@ export default function AdsAuditPage() {
   const [savedClient, setSavedClient] = useState<string>('');
   const [history, setHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState<string>(() => {
+    if (typeof window === 'undefined') return DEFAULT_WHATSAPP_NUMBER;
+    return localStorage.getItem(WHATSAPP_STORAGE_KEY) || DEFAULT_WHATSAPP_NUMBER;
+  });
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
   const reportRef = useRef<HTMLDivElement>(null);
