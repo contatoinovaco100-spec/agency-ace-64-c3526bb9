@@ -214,6 +214,9 @@ Vai receber um PRINT de gerenciador de anúncios. Faça OCR mental, identifique 
 
 ${toneInstruction}
 
+REGRAS DE OURO:
+
+
 1. Capture os VALORES REAIS visíveis no print (ex: "CTR: 1.24%", "Gasto: R$ 1.847,50"). Use os valores exatos.
 2. Identifique a plataforma (Meta/Facebook, Google, TikTok) e o objetivo da campanha se visível.
 3. Para CADA métrica visível, dê: valor real, benchmark do mercado BR, classificação (Excelente/Boa/Média/Baixa/Crítica) e 1 frase prática do que significa.
