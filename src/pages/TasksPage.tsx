@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { useAgency } from '@/contexts/AgencyContext';
 import { Task } from '@/types/agency';
-import { Plus, Filter, Search, X, Users, ChevronDown, ChevronRight, FolderCheck, CheckCircle2 } from 'lucide-react';
+import { Plus, Filter, Search, X, Users, ChevronDown, ChevronRight, FolderCheck, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -444,10 +444,11 @@ interface TasksPageProps {
 }
 
 export default function TasksPage({ taskTypeFilter, pageTitle, pageHint }: TasksPageProps = {}) {
-  const { tasks, clients, team, addTask, updateTask, deleteTask } = useAgency();
+  const { tasks, clients, team, addTask, updateTask, deleteTask, refresh } = useAgency();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   // Client selector (main feature)
@@ -574,6 +575,15 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint }: Tasks
               />
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 flex-1 sm:flex-none"
+                onClick={async () => { setRefreshing(true); await refresh(); setRefreshing(false); }}
+                disabled={refreshing}
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} /> Atualizar
+              </Button>
               <Button variant="outline" size="sm" className="gap-1 flex-1 sm:flex-none" onClick={() => setShowFilters(!showFilters)}>
                 <Filter className="h-3.5 w-3.5" /> Filtros
               </Button>
