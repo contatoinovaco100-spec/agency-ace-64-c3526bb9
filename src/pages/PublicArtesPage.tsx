@@ -64,8 +64,15 @@ export default function PublicArtesPage() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(() => load(false), 30000);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => load(false), 10000);
+    const channel = (supabase as any)
+      .channel('public-artes-tasks')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => load(false))
+      .subscribe();
+    return () => {
+      clearInterval(interval);
+      (supabase as any).removeChannel(channel);
+    };
   }, []);
 
   // Close modal with ESC
