@@ -575,6 +575,15 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint }: Tasks
               />
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 flex-1 sm:flex-none"
+                onClick={async () => { setRefreshing(true); await refresh(); setRefreshing(false); }}
+                disabled={refreshing}
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} /> Atualizar
+              </Button>
               <Button variant="outline" size="sm" className="gap-1 flex-1 sm:flex-none" onClick={() => setShowFilters(!showFilters)}>
                 <Filter className="h-3.5 w-3.5" /> Filtros
               </Button>
