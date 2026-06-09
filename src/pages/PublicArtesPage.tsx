@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Palette, Calendar, User, Building2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Loader2, Palette, Calendar, User, Building2, AlertCircle, RefreshCw, X, Clock, FileText, Flag } from 'lucide-react';
 import logoInova from '@/assets/logo-inova.png';
 
 interface ArteTask {
@@ -30,6 +30,12 @@ const PRIORITY_COLORS: Record<string, string> = {
   'Baixa': 'bg-emerald-100 text-emerald-700 border-emerald-300',
 };
 
+const PRIORITY_ACCENT: Record<string, string> = {
+  'Alta': 'border-l-red-500',
+  'Média': 'border-l-amber-500',
+  'Baixa': 'border-l-emerald-500',
+};
+
 function formatDate(d: string | null) {
   if (!d) return null;
   try {
@@ -44,6 +50,7 @@ export default function PublicArtesPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<ArteTask | null>(null);
 
   async function load(showSpinner = true) {
     if (showSpinner) setLoading(true);
@@ -61,6 +68,14 @@ export default function PublicArtesPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Close modal with ESC
+  useEffect(() => {
+    if (!selected) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelected(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selected]);
+
   // Group by status
   const grouped: Record<string, ArteTask[]> = { 'A fazer': [], 'Em andamento': [], 'Revisão': [] };
   tasks.forEach(t => {
@@ -70,7 +85,7 @@ export default function PublicArtesPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-5 sm:px-6">
           <div className="flex items-center gap-3">
             <img src={logoInova} alt="INOVA" className="h-9 w-auto" />
@@ -130,7 +145,7 @@ export default function PublicArtesPage() {
                     <span className="text-xs font-medium text-slate-400">({grouped[status].length})</span>
                   </h2>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {grouped[status].map(t => <TaskCard key={t.id} task={t} />)}
+                    {grouped[status].map(t => <TaskCard key={t.id} task={t} onOpen={() => setSelected(t)} />)}
                   </div>
                 </section>
               )
@@ -142,6 +157,8 @@ export default function PublicArtesPage() {
       <footer className="mt-10 border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
         INOVA Co. — Painel interno de produção
       </footer>
+
+      {selected && <TaskDetailModal task={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }
@@ -155,14 +172,21 @@ function StatCard({ label, value, highlight }: { label: string; value: number; h
   );
 }
 
-function TaskCard({ task }: { task: ArteTask }) {
+function TaskCard({ task, onOpen }: { task: ArteTask; onOpen: () => void }) {
   const due = formatDate(task.post_date || task.due_date);
   const isLate = (task.post_date || task.due_date) && new Date((task.post_date || task.due_date)!) < new Date(new Date().toDateString());
+  const accent = PRIORITY_ACCENT[task.priority || ''] || 'border-l-slate-300';
 
   return (
-    <article className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+    <button
+      type="button"
+      onClick={onOpen}
+      className={`group flex flex-col gap-3 rounded-xl border border-slate-200 border-l-4 ${accent} bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-fuchsia-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-fuchsia-400`}
+    >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-semibold leading-snug text-slate-900">{task.title || 'Sem título'}</h3>
+        <h3 className="text-sm font-semibold leading-snug text-slate-900 group-hover:text-fuchsia-700">
+          {task.title || 'Sem título'}
+        </h3>
         {task.priority && (
           <span className={`shrink-0 rounded border px-2 py-0.5 text-[10px] font-bold uppercase ${PRIORITY_COLORS[task.priority] || 'bg-slate-100 text-slate-700 border-slate-300'}`}>
             {task.priority}
@@ -196,7 +220,107 @@ function TaskCard({ task }: { task: ArteTask }) {
         <span className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${STATUS_COLORS[task.status] || 'bg-slate-100 text-slate-700 border-slate-300'}`}>
           {task.status}
         </span>
+        <span className="text-[10px] font-medium text-fuchsia-600 opacity-0 transition group-hover:opacity-100">
+          Ver detalhes →
+        </span>
       </div>
-    </article>
+    </button>
+  );
+}
+
+function TaskDetailModal({ task, onClose }: { task: ArteTask; onClose: () => void }) {
+  const due = formatDate(task.post_date || task.due_date);
+  const created = formatDate(task.created_at);
+  const accent = PRIORITY_ACCENT[task.priority || ''] || 'border-l-slate-300';
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className={`relative w-full max-w-2xl overflow-hidden rounded-t-2xl border-l-4 ${accent} bg-white shadow-2xl sm:rounded-2xl max-h-[90vh] flex flex-col`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute right-3 top-3 z-10 rounded-full bg-white/80 p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+          aria-label="Fechar"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="border-b border-slate-100 bg-gradient-to-br from-slate-50 to-white p-6">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className={`rounded border px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_COLORS[task.status] || 'bg-slate-100 text-slate-700 border-slate-300'}`}>
+              {task.status}
+            </span>
+            {task.priority && (
+              <span className={`rounded border px-2 py-0.5 text-[10px] font-bold uppercase ${PRIORITY_COLORS[task.priority] || 'bg-slate-100 text-slate-700 border-slate-300'}`}>
+                <Flag className="mr-1 inline h-3 w-3" />{task.priority}
+              </span>
+            )}
+          </div>
+          <h2 className="pr-8 text-xl font-bold leading-tight text-slate-900">
+            {task.title || 'Sem título'}
+          </h2>
+          {task.client_name && (
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-fuchsia-700">
+              <Building2 className="h-3.5 w-3.5" /> {task.client_name}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-5 overflow-y-auto p-6">
+          {task.description && (
+            <section>
+              <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
+                <FileText className="h-3.5 w-3.5" /> Briefing
+              </h3>
+              <p className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
+                {task.description}
+              </p>
+            </section>
+          )}
+
+          <section className="grid gap-3 sm:grid-cols-2">
+            {task.assignee && (
+              <InfoRow icon={<User className="h-4 w-4" />} label="Responsável" value={task.assignee} />
+            )}
+            {due && (
+              <InfoRow
+                icon={<Calendar className="h-4 w-4" />}
+                label={task.post_date ? 'Data de postagem' : 'Entrega'}
+                value={`${due}${task.post_time ? ` · ${task.post_time.slice(0, 5)}` : ''}`}
+              />
+            )}
+            {created && (
+              <InfoRow icon={<Clock className="h-4 w-4" />} label="Criada em" value={created} />
+            )}
+          </section>
+        </div>
+
+        <div className="border-t border-slate-100 bg-slate-50 px-6 py-3 text-right">
+          <button
+            onClick={onClose}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-white p-3">
+      <span className="mt-0.5 text-slate-400">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
+        <p className="truncate text-sm font-medium text-slate-800">{value}</p>
+      </div>
+    </div>
   );
 }
