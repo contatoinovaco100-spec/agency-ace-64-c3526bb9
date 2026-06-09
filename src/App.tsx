@@ -174,6 +174,7 @@ function AppRoutes() {
           <Route path="/afiliados/cadastro"  element={<AffiliateSignupPage />} />
           <Route path="/in/:slug"            element={<AffiliateLandingPage />} />
           <Route path="/quiz/:clientSlug/:quizSlug" element={<PublicQuizPage />} />
+          <Route path="/painel-artes"        element={<PublicArtesPage />} />
         </Routes>
       ) : (
         <Routes>
