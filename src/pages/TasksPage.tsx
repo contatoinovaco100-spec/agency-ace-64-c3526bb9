@@ -441,9 +441,11 @@ interface TasksPageProps {
   pageTitle?: string;
   /** Header subtitle/description override */
   pageHint?: string;
+  /** Extra element rendered in the header actions row (e.g. external link button). */
+  headerExtra?: React.ReactNode;
 }
 
-export default function TasksPage({ taskTypeFilter, pageTitle, pageHint }: TasksPageProps = {}) {
+export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerExtra }: TasksPageProps = {}) {
   const { tasks, clients, team, addTask, updateTask, deleteTask, refresh } = useAgency();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
