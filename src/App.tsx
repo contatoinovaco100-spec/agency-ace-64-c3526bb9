@@ -46,6 +46,7 @@ const ClientsPage          = lazy(() => import("./pages/ClientsPage"));
 const CRMPage              = lazy(() => import("./pages/CRMPage"));
 const TasksPage            = lazy(() => import("./pages/TasksPage"));
 const ArtesPage            = lazy(() => import("./pages/ArtesPage"));
+const PublicArtesPage      = lazy(() => import("./pages/PublicArtesPage"));
 const TeamPage             = lazy(() => import("./pages/TeamPage"));
 const ClientContentPage    = lazy(() => import("./pages/ClientContentPage"));
 // LoginPage é importada de forma estática (eager) — é a rota mais acessada
@@ -143,6 +144,7 @@ function AppRoutes() {
     location.pathname === '/rede/perfil' ||
     location.pathname === '/rede/novo' ||
     location.pathname.startsWith('/quiz/') ||
+    location.pathname === '/painel-artes' ||
     (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar'));
 
   return (
@@ -172,6 +174,7 @@ function AppRoutes() {
           <Route path="/afiliados/cadastro"  element={<AffiliateSignupPage />} />
           <Route path="/in/:slug"            element={<AffiliateLandingPage />} />
           <Route path="/quiz/:clientSlug/:quizSlug" element={<PublicQuizPage />} />
+          <Route path="/painel-artes"        element={<PublicArtesPage />} />
         </Routes>
       ) : (
         <Routes>

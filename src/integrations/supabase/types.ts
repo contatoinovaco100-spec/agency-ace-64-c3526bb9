@@ -2947,6 +2947,23 @@ export type Database = {
           signer_name: string
         }[]
       }
+      get_public_arte_tasks: {
+        Args: never
+        Returns: {
+          assignee: string
+          client_id: string
+          client_name: string
+          created_at: string
+          description: string
+          due_date: string
+          id: string
+          post_date: string
+          post_time: string
+          priority: string
+          status: string
+          title: string
+        }[]
+      }
       get_public_client_tasks: {
         Args: { _anchor: string }
         Returns: {
