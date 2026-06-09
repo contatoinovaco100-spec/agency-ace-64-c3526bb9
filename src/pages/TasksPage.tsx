@@ -577,6 +577,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
               />
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
+              {headerExtra}
               <Button
                 variant="outline"
                 size="sm"
