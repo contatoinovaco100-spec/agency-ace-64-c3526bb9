@@ -444,10 +444,11 @@ interface TasksPageProps {
 }
 
 export default function TasksPage({ taskTypeFilter, pageTitle, pageHint }: TasksPageProps = {}) {
-  const { tasks, clients, team, addTask, updateTask, deleteTask } = useAgency();
+  const { tasks, clients, team, addTask, updateTask, deleteTask, refresh } = useAgency();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   // Client selector (main feature)
