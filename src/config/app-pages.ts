@@ -55,6 +55,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/clientes',            label: 'Clientes',            icon: Users,           category: 'Operacional' },
   { path: '/tarefas',             label: 'Tarefas (Kanban)',    icon: CheckSquare,     category: 'Operacional' },
   { path: '/artes',               label: 'Artes Estáticas',     icon: Palette,         category: 'Operacional' },
+  { path: '/videos-finalizados',  label: 'Vídeos Finalizados',  icon: Play,            category: 'Operacional' },
   { path: '/escopos',             label: 'Escopo do Cliente',   icon: ListChecks,      category: 'Operacional' },
   { path: '/planejamento',        label: 'Planejamento',        icon: LayoutList,      category: 'Operacional' },
   { path: '/diagnostico/editar',  label: 'Diagnóstico',         icon: Target,          category: 'Operacional' },

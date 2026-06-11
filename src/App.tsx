@@ -46,6 +46,7 @@ const ClientsPage          = lazy(() => import("./pages/ClientsPage"));
 const CRMPage              = lazy(() => import("./pages/CRMPage"));
 const TasksPage            = lazy(() => import("./pages/TasksPage"));
 const ArtesPage            = lazy(() => import("./pages/ArtesPage"));
+const VideosFinalizadosPage = lazy(() => import("./pages/VideosFinalizadosPage"));
 const PublicArtesPage      = lazy(() => import("./pages/PublicArtesPage"));
 const TeamPage             = lazy(() => import("./pages/TeamPage"));
 const ClientContentPage    = lazy(() => import("./pages/ClientContentPage"));
@@ -198,6 +199,7 @@ function AppRoutes() {
                     <Route path="/crm"                 element={<CRMPage />} />
                     <Route path="/tarefas"             element={<TasksPage />} />
                     <Route path="/artes"               element={<ArtesPage />} />
+                    <Route path="/videos-finalizados"  element={<VideosFinalizadosPage />} />
                     <Route path="/equipe"              element={<TeamPage />} />
                     <Route path="/planejamento"        element={<ContentPlanningPage />} />
 
