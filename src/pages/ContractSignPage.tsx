@@ -170,13 +170,10 @@ export default function ContractSignPage() {
       const { error: updateErr } = await (supabase as any).rpc('mark_contract_signed', { _id: contractId });
       if (updateErr) console.warn('Status update failed:', updateErr);
 
-      // Send WhatsApp notification
+      // Send WhatsApp notification (client auto-creation is now guaranteed by DB trigger)
       try {
-        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'agency-ace-64'; // Fallback
-        await fetch(`https://${projectId}.supabase.co/functions/v1/notify-contract-signed`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contract_id: contractId, signer_name: signerName.trim() }),
+        await supabase.functions.invoke('notify-contract-signed', {
+          body: { contract_id: contractId, signer_name: signerName.trim() },
         });
       } catch (notifErr) {
         console.warn('WhatsApp notification failed:', notifErr);
