@@ -539,6 +539,9 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {lead.address || 'Goiânia, GO'}</span>
                       {lead.rating > 0 && <span className="flex items-center gap-1 text-amber-400"><Star className="w-3 h-3 fill-amber-400" /> {lead.rating}</span>}
                     </div>
+                    <Button variant="ghost" size="sm" onClick={() => removeLead(lead.id)} className="text-zinc-600 hover:text-red-500 mt-2 h-auto px-0">
+                      <Trash2 className="w-4 h-4 mr-1" /> Excluir
+                    </Button>
                   </div>
                 </div>
 
@@ -556,9 +559,6 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
                     <option value="interessado">Interessado</option>
                     <option value="fechado">Fechado</option>
                   </select>
-                  <Button variant="ghost" size="icon" onClick={() => removeLead(lead.id)} className="text-zinc-600 hover:text-red-500">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
                 </div>
               </div>
 
