@@ -1,0 +1,1 @@
+CREATE POLICY "Public read diagnostic images" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'task-attachments' AND (storage.foldername(name))[1] = 'diagnostics');
