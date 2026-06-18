@@ -17,13 +17,15 @@ import { cn } from '@/lib/utils';
 
 export default function CRMPage() {
   const { leads, team, addLead, updateLead, deleteLead } = useAgency();
+  const { stages: kanbanStages } = useKanbanStages('crm');
+  const stages = kanbanStages.map(s => s.name);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
   const [form, setForm] = useState<Partial<Lead>>({});
 
   const openNew = (stage?: LeadStage) => {
     setEditing(null);
-    setForm({ stage: stage || 'Lead novo' });
+    setForm({ stage: (stage || stages[0] || 'Lead novo') as LeadStage });
     setDialogOpen(true);
   };
   const openEdit = (l: Lead) => { setEditing(l); setForm(l); setDialogOpen(true); };
@@ -77,9 +79,12 @@ export default function CRMPage() {
 
       {/* Kanban */}
       <div className="flex gap-4 overflow-x-auto pb-4">
-        {stages.map(stage => (
-          <div key={stage} className="flex min-w-[280px] flex-col">
-            <div className={`mb-3 flex items-center justify-between rounded-lg border-l-2 ${stageColors[stage]} bg-card px-3 py-2`}>
+        {kanbanStages.map(s => {
+          const cc = colorClasses(s.color);
+          const stage = s.name;
+          return (
+          <div key={s.id} className="flex min-w-[280px] flex-col">
+            <div className={cn('mb-3 flex items-center justify-between rounded-lg border-l-2 bg-card px-3 py-2', cc.border)}>
               <span className="text-caption font-semibold text-foreground">{stage}</span>
               <span className="text-caption tabular-nums text-muted-foreground">{leadsPerStage[stage]?.length || 0}</span>
             </div>
