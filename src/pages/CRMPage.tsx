@@ -12,18 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WhatsAppPanel } from '@/components/crm/WhatsAppPanel';
 import { motion } from 'framer-motion';
-
-const stages: LeadStage[] = ['Lead novo', 'Contato iniciado', 'Reunião agendada', 'Proposta enviada', 'Negociação', 'Cliente fechado', 'Perdido'];
-
-const stageColors: Record<string, string> = {
-  'Lead novo': 'border-info/50',
-  'Contato iniciado': 'border-primary/50',
-  'Reunião agendada': 'border-warning/50',
-  'Proposta enviada': 'border-success/50',
-  'Negociação': 'border-primary/50',
-  'Cliente fechado': 'border-success',
-  'Perdido': 'border-destructive/50',
-};
+import { useKanbanStages, colorClasses } from '@/hooks/useKanbanStages';
+import { cn } from '@/lib/utils';
 
 export default function CRMPage() {
   const { leads, team, addLead, updateLead, deleteLead } = useAgency();
