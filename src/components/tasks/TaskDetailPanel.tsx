@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Paperclip, Send, Trash2, Link, Upload, MessageSquare, CheckSquare, FileText, X, Share2 } from 'lucide-react';
+import { Paperclip, Send, Trash2, Link, Upload, MessageSquare, CheckSquare, FileText, X, Share2, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import DOMPurify from 'dompurify';
