@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import TaskDetailPanel from '@/components/tasks/TaskDetailPanel';
+import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import {
   DndContext,
   DragOverlay,
@@ -140,6 +141,7 @@ function CardContent({ task, clientName }: { task: Task; clientName?: string }) 
           Baixar vídeo
         </a>
       )}
+      {task.taskType === 'Arte' && <ArteAttachmentsPreview taskId={task.id} />}
       <div className="mt-2.5 flex items-start justify-between gap-2">
         <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', PRIORITY_BADGE[task.priority])}>
           {task.priority}
