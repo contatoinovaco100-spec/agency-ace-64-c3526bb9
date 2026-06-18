@@ -1308,6 +1308,39 @@ export type Database = {
         }
         Relationships: []
       }
+      kanban_stages: {
+        Row: {
+          board: string
+          color: string
+          created_at: string
+          id: string
+          is_system: boolean
+          name: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          board: string
+          color?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          board?: string
+          color?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           assignee: string
@@ -3106,6 +3139,10 @@ export type Database = {
         Returns: undefined
       }
       mark_contract_signed: { Args: { _id: string }; Returns: undefined }
+      rename_kanban_stage: {
+        Args: { _board: string; _new_name: string; _old_name: string }
+        Returns: undefined
+      }
       renew_recurring_invoices: { Args: never; Returns: number }
       update_public_task_status: {
         Args: { _id: string; _status: string }
