@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Paperclip, Send, Trash2, Link, Upload, MessageSquare, CheckSquare, FileText, X, Share2 } from 'lucide-react';
+import { Paperclip, Send, Trash2, Link, Upload, MessageSquare, CheckSquare, FileText, X, Share2, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import DOMPurify from 'dompurify';
@@ -452,17 +452,47 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                 {/* Attachments */}
                 <TabsContent value="attachments" className="space-y-3 mt-3">
                   <div className="space-y-2">
-                    {attachments.map(a => (
-                      <div key={a.id} className="flex items-center justify-between rounded-md bg-secondary/30 px-3 py-2">
-                        <a href={a.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline truncate flex-1">
-                          {a.fileType === 'link' ? <Link className="h-4 w-4 shrink-0" /> : <Paperclip className="h-4 w-4 shrink-0" />}
-                          <span className="truncate">{a.fileName}</span>
-                        </a>
-                        <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => { deleteAttachment(a.id); setAttachments(prev => prev.filter(x => x.id !== a.id)); }}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
+                    {attachments.map(a => {
+                      const m = (a.fileUrl || '').match(/\/task-attachments\/(.+?)(\?|$)/);
+                      const storagePath = m ? decodeURIComponent(m[1]) : null;
+                      const isLink = a.fileType === 'link' || !storagePath;
+                      const handleDownload = async (e: React.MouseEvent) => {
+                        e.preventDefault();
+                        if (!storagePath) { window.open(a.fileUrl, '_blank'); return; }
+                        try {
+                          const { data, error } = await supabase.storage.from('task-attachments').download(storagePath);
+                          if (error || !data) throw error || new Error('Falha');
+                          const blobUrl = URL.createObjectURL(data);
+                          const link = document.createElement('a');
+                          link.href = blobUrl;
+                          link.download = a.fileName;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          URL.revokeObjectURL(blobUrl);
+                        } catch (err: any) {
+                          toast.error(err?.message || 'Erro ao baixar');
+                        }
+                      };
+                      return (
+                        <div key={a.id} className="flex items-center justify-between rounded-md bg-secondary/30 px-3 py-2">
+                          {isLink ? (
+                            <a href={a.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline truncate flex-1">
+                              <Link className="h-4 w-4 shrink-0" />
+                              <span className="truncate">{a.fileName}</span>
+                            </a>
+                          ) : (
+                            <button type="button" onClick={handleDownload} className="flex items-center gap-2 text-sm text-primary hover:underline truncate flex-1 text-left">
+                              <Download className="h-4 w-4 shrink-0" />
+                              <span className="truncate">{a.fileName}</span>
+                            </button>
+                          )}
+                          <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => { deleteAttachment(a.id); setAttachments(prev => prev.filter(x => x.id !== a.id)); }}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      );
+                    })}
                     {attachments.length === 0 && <p className="text-sm text-muted-foreground">Nenhum anexo.</p>}
                   </div>
                   <div className="flex gap-2">
