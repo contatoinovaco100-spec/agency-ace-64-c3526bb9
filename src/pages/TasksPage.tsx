@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import TaskDetailPanel from '@/components/tasks/TaskDetailPanel';
+import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import {
   DndContext,
   DragOverlay,
