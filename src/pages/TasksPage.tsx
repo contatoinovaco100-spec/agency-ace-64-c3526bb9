@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import TaskDetailPanel from '@/components/tasks/TaskDetailPanel';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
+import { useKanbanStages, colorClasses, KanbanStage } from '@/hooks/useKanbanStages';
 import {
   DndContext,
   DragOverlay,
@@ -23,57 +24,6 @@ import {
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
-// ── Constants ──────────────────────────────────────────────
-const KANBAN_COLUMNS = [
-  'Ideias / Backlog',
-  'Em Copy',
-  'Em Direção',
-  'Em Gravação',
-  'Em Edição',
-  'Revisão',
-  'Finalizado',
-] as const;
-
-const COLUMNS = [
-  ...KANBAN_COLUMNS,
-  'Concluído',
-] as const;
-
-type ColumnId = (typeof COLUMNS)[number];
-
-const COLUMN_COLORS: Record<string, string> = {
-  'Ideias / Backlog': 'bg-muted/60 border-muted-foreground/20',
-  'Em Copy': 'bg-primary/8 border-primary/30',
-  'Em Direção': 'bg-info/8 border-info/30',
-  'Em Gravação': 'bg-warning/8 border-warning/30',
-  'Em Edição': 'bg-accent border-accent-foreground/20',
-  'Revisão': 'bg-destructive/8 border-destructive/30',
-  'Finalizado': 'bg-success/8 border-success/30',
-  'Concluído': 'bg-muted/40 border-muted-foreground/30',
-};
-
-const COLUMN_DOT: Record<string, string> = {
-  'Ideias / Backlog': 'bg-muted-foreground',
-  'Em Copy': 'bg-primary',
-  'Em Direção': 'bg-info',
-  'Em Gravação': 'bg-warning',
-  'Em Edição': 'bg-accent-foreground',
-  'Revisão': 'bg-destructive',
-  'Finalizado': 'bg-success',
-  'Concluído': 'bg-muted-foreground',
-};
-
-const CARD_STAGE_COLOR: Record<string, string> = {
-  'Ideias / Backlog': 'border-l-muted-foreground/60',
-  'Em Copy': 'border-l-primary',
-  'Em Direção': 'border-l-info',
-  'Em Gravação': 'border-l-warning',
-  'Em Edição': 'border-l-accent-foreground',
-  'Revisão': 'border-l-destructive',
-  'Finalizado': 'border-l-success',
-  'Concluído': 'border-l-muted-foreground',
-};
-
 const PRIORITY_COLORS: Record<string, string> = {
   Alta: 'border-l-destructive',
   Média: 'border-l-warning',
@@ -86,25 +36,23 @@ const PRIORITY_BADGE: Record<string, string> = {
   Baixa: 'bg-muted text-muted-foreground',
 };
 
-// ── Helpers ────────────────────────────────────────────────
-function mapStatusToColumn(status: string): ColumnId {
-  const map: Record<string, ColumnId> = {
-    'A fazer': 'Ideias / Backlog',
-    'Em andamento': 'Em Copy',
-    'Em copy': 'Em Copy',
-    'Em direção': 'Em Direção',
-    'Em gravação': 'Em Gravação',
-    'Em edição': 'Em Edição',
-    'Revisão': 'Revisão',
-    'Concluído': 'Concluído',
-    'Finalizado': 'Finalizado',
-    'Ideias / Backlog': 'Ideias / Backlog',
-    'Em Copy': 'Em Copy',
-    'Em Direção': 'Em Direção',
-    'Em Gravação': 'Em Gravação',
-    'Em Edição': 'Em Edição',
+// Map raw DB statuses (some legacy) onto the closest UI column name.
+function buildStatusToColumn(columnNames: string[]) {
+  const set = new Set(columnNames);
+  return (status: string): string => {
+    if (set.has(status)) return status;
+    const legacy: Record<string, string> = {
+      'A fazer': 'Ideias / Backlog',
+      'Em andamento': 'Em Copy',
+      'Em copy': 'Em Copy',
+      'Em direção': 'Em Direção',
+      'Em gravação': 'Em Gravação',
+      'Em edição': 'Em Edição',
+    };
+    const mapped = legacy[status];
+    if (mapped && set.has(mapped)) return mapped;
+    return columnNames[0] || status;
   };
-  return map[status] || 'Ideias / Backlog';
 }
 
 // ── Card Content (shared between card and overlay) ─────────
@@ -174,7 +122,12 @@ function CardContent({ task, clientName }: { task: Task; clientName?: string }) 
 }
 
 // ── Draggable Card ─────────────────────────────────────────
-function DraggableCard({ task, onClick, clientName, column, onAdvance }: { task: Task; onClick: () => void; clientName?: string; column: string; onAdvance?: () => void }) {
+function DraggableCard({
+  task, onClick, clientName, borderClass, onAdvance, nextStageLabel,
+}: {
+  task: Task; onClick: () => void; clientName?: string; borderClass: string;
+  onAdvance?: () => void; nextStageLabel?: string | null;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
@@ -194,8 +147,6 @@ function DraggableCard({ task, onClick, clientName, column, onAdvance }: { task:
     pointerDownPos.current = null;
   };
 
-  const nextStageLabel = getNextStageLabel(column);
-
   return (
     <div
       ref={setNodeRef}
@@ -209,7 +160,7 @@ function DraggableCard({ task, onClick, clientName, column, onAdvance }: { task:
       onClick={handleClick}
       className={cn(
         'cursor-grab rounded-lg border-l-[3px] bg-card p-3 transition-shadow hover:shadow-md active:cursor-grabbing',
-        CARD_STAGE_COLOR[column] || 'border-l-muted',
+        borderClass,
         isDragging && 'opacity-40',
       )}
     >
@@ -221,51 +172,42 @@ function DraggableCard({ task, onClick, clientName, column, onAdvance }: { task:
           title={nextStageLabel}
           className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md bg-primary/10 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/20"
         >
-          <CheckCircle2 className="h-3 w-3" /> {nextStageLabel}
+          <CheckCircle2 className="h-3 w-3" /> → {nextStageLabel}
         </button>
       )}
     </div>
   );
 }
 
-function getNextStageLabel(column: string): string | null {
-  const order = ['Ideias / Backlog', 'Em Copy', 'Em Direção', 'Em Gravação', 'Em Edição', 'Revisão', 'Finalizado', 'Concluído'];
-  const idx = order.indexOf(column);
-  if (idx < 0 || idx >= order.length - 1) return null;
-  return `→ ${order[idx + 1]}`;
-}
-
-function getNextStage(column: string): string | null {
-  const order = ['Ideias / Backlog', 'Em Copy', 'Em Direção', 'Em Gravação', 'Em Edição', 'Revisão', 'Finalizado', 'Concluído'];
-  const idx = order.indexOf(column);
-  if (idx < 0 || idx >= order.length - 1) return null;
-  return order[idx + 1];
-}
-
 // ── Droppable Column ───────────────────────────────────────
 function KanbanColumn({
-  column,
+  stage,
   tasks,
   onCardClick,
   onAdd,
   getClientName,
   onAdvanceTask,
+  nextStageName,
+  showAddButton,
 }: {
-  column: ColumnId;
+  stage: KanbanStage;
   tasks: Task[];
   onCardClick: (t: Task) => void;
   onAdd: () => void;
   getClientName: (id: string) => string;
   onAdvanceTask: (task: Task, nextStage: string) => void;
+  nextStageName: string | null;
+  showAddButton: boolean;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: column });
+  const { setNodeRef, isOver } = useDroppable({ id: stage.name });
+  const cc = colorClasses(stage.color);
 
   return (
     <div className="flex min-w-0 flex-1 flex-col h-full">
-      <div className={cn('mb-2 flex items-center justify-between rounded-lg border px-3 py-2', COLUMN_COLORS[column])}>
+      <div className={cn('mb-2 flex items-center justify-between rounded-lg border px-3 py-2', cc.bg)}>
         <div className="flex items-center gap-2">
-          <div className={cn('h-2 w-2 rounded-full', COLUMN_DOT[column])} />
-          <span className="text-xs font-semibold text-foreground">{column}</span>
+          <div className={cn('h-2 w-2 rounded-full', cc.dot)} />
+          <span className="text-xs font-semibold text-foreground">{stage.name}</span>
         </div>
         <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-secondary text-[10px] font-bold tabular-nums text-muted-foreground">
           {tasks.length}
@@ -279,21 +221,19 @@ function KanbanColumn({
           isOver && 'bg-primary/5 ring-1 ring-primary/20',
         )}
       >
-        {tasks.map(task => {
-          const next = getNextStage(column);
-          return (
-            <DraggableCard
-              key={task.id}
-              task={task}
-              onClick={() => onCardClick(task)}
-              clientName={getClientName(task.clientId)}
-              column={column}
-              onAdvance={next ? () => onAdvanceTask(task, next) : undefined}
-            />
-          );
-        })}
+        {tasks.map(task => (
+          <DraggableCard
+            key={task.id}
+            task={task}
+            onClick={() => onCardClick(task)}
+            clientName={getClientName(task.clientId)}
+            borderClass={cc.border}
+            onAdvance={nextStageName ? () => onAdvanceTask(task, nextStageName) : undefined}
+            nextStageLabel={nextStageName}
+          />
+        ))}
 
-        {column === 'Ideias / Backlog' && (
+        {showAddButton && (
           <button
             onClick={onAdd}
             className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border py-2 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
@@ -356,8 +296,9 @@ function ArchiveDropZone({
   getClientName,
   accentClass,
   iconColorClass,
+  defaultOpen,
 }: {
-  id: 'Finalizado' | 'Concluído';
+  id: string;
   label: string;
   helperText: string;
   tasks: Task[];
@@ -365,10 +306,11 @@ function ArchiveDropZone({
   getClientName: (id: string) => string;
   accentClass: string;
   iconColorClass: string;
+  defaultOpen?: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});
-  const [open, setOpen] = useState(id === 'Finalizado');
+  const [open, setOpen] = useState(!!defaultOpen);
 
   const byClient = useMemo(() => {
     const map: Record<string, Task[]> = {};
@@ -437,28 +379,25 @@ function ArchiveDropZone({
 
 
 interface TasksPageProps {
-  /** When set, the board only shows tasks of this type and new tasks default to it. */
   taskTypeFilter?: 'Arte' | 'Produção de Vídeo';
-  /** Header title override */
   pageTitle?: string;
-  /** Header subtitle/description override */
   pageHint?: string;
-  /** Extra element rendered in the header actions row (e.g. external link button). */
   headerExtra?: React.ReactNode;
 }
 
 export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerExtra }: TasksPageProps = {}) {
   const { tasks, clients, team, addTask, updateTask, deleteTask, refresh } = useAgency();
+  const board = taskTypeFilter === 'Arte' ? 'artes' : 'tasks';
+  const { stages: dbStages } = useKanbanStages(board);
+
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Client selector (main feature)
   const [selectedClient, setSelectedClient] = useState<string>('all');
 
-  // Filters
   const [search, setSearch] = useState('');
   const [filterAssignee, setFilterAssignee] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
@@ -467,15 +406,32 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
+  // Stage groups: the "Concluído" stage (if present) is rendered as an archive zone,
+  // everything else as a regular kanban column.
+  const archiveStageNames = new Set(['Concluído']);
+  const kanbanStages = dbStages.filter(s => !archiveStageNames.has(s.name));
+  const archiveStages = dbStages.filter(s => archiveStageNames.has(s.name));
+  const allColumnNames = dbStages.map(s => s.name);
+
+  const mapStatusToColumn = useMemo(
+    () => buildStatusToColumn(allColumnNames),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allColumnNames.join('|')],
+  );
+
+  const getNextStageName = (currentName: string): string | null => {
+    const idx = dbStages.findIndex(s => s.name === currentName);
+    if (idx < 0 || idx >= dbStages.length - 1) return null;
+    return dbStages[idx + 1].name;
+  };
+
   const filteredTasks = useMemo(() => {
     return tasks.filter(t => {
-      // Task type scoping: Artes board only shows Arte tasks, default board hides them
       if (taskTypeFilter) {
         if (t.taskType !== taskTypeFilter) return false;
       } else {
         if (t.taskType === 'Arte') return false;
       }
-      // Client filter (main)
       if (selectedClient !== 'all' && t.clientId !== selectedClient) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -488,14 +444,16 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   }, [tasks, taskTypeFilter, selectedClient, search, filterAssignee]);
 
   const tasksByColumn = useMemo(() => {
-    const map: Record<ColumnId, Task[]> = {} as any;
-    COLUMNS.forEach(c => (map[c] = []));
+    const map: Record<string, Task[]> = {};
+    allColumnNames.forEach(c => (map[c] = []));
     filteredTasks.forEach(t => {
       const col = mapStatusToColumn(t.status);
+      if (!map[col]) map[col] = [];
       map[col].push(t);
     });
     return map;
-  }, [filteredTasks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredTasks, allColumnNames.join('|')]);
 
   const activeTask = activeId ? tasks.find(t => t.id === activeId) : null;
 
@@ -506,7 +464,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     const { active, over } = e;
     if (!over) return;
     const taskId = active.id as string;
-    const newColumn = over.id as ColumnId;
+    const newColumn = over.id as string;
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
     const currentColumn = mapStatusToColumn(task.status);
@@ -551,6 +509,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const assignees = useMemo(() => [...new Set(tasks.map(t => t.assignee).filter(Boolean))], [tasks]);
 
   const selectedClientName = selectedClient !== 'all' ? getClientName(selectedClient) : null;
+  const firstStageName = kanbanStages[0]?.name;
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -563,7 +522,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
               {pageHint
                 ? <>{pageHint}{selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}</>
                 : <>
-                    {filteredTasks.filter(t => !['Finalizado', 'Concluído'].includes(mapStatusToColumn(t.status))).length} em andamento
+                    {filteredTasks.filter(t => !archiveStageNames.has(mapStatusToColumn(t.status)) && mapStatusToColumn(t.status) !== 'Finalizado').length} em andamento
                     {selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}
                   </>}
             </p>
@@ -650,23 +609,39 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
 
       {/* Kanban board */}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4 lg:grid lg:grid-cols-7 lg:gap-2 min-h-0 flex-1 scroller-hide">
-          {KANBAN_COLUMNS.map(col => (
-            <div key={col} className="min-w-[280px] lg:min-w-0 flex flex-col h-full">
-              <KanbanColumn column={col} tasks={tasksByColumn[col]} onCardClick={openCard} onAdd={openNew} getClientName={getClientName} onAdvanceTask={(task, nextStage) => updateTask({ ...task, status: nextStage as any })} />
+        <div
+          className="flex gap-4 overflow-x-auto pb-4 lg:grid lg:gap-2 min-h-0 flex-1 scroller-hide"
+          style={{ gridTemplateColumns: `repeat(${Math.max(kanbanStages.length, 1)}, minmax(0, 1fr))` }}
+        >
+          {kanbanStages.map(stage => (
+            <div key={stage.id} className="min-w-[280px] lg:min-w-0 flex flex-col h-full">
+              <KanbanColumn
+                stage={stage}
+                tasks={tasksByColumn[stage.name] || []}
+                onCardClick={openCard}
+                onAdd={openNew}
+                getClientName={getClientName}
+                onAdvanceTask={(task, nextStage) => updateTask({ ...task, status: nextStage as any })}
+                nextStageName={getNextStageName(stage.name)}
+                showAddButton={stage.name === firstStageName}
+              />
             </div>
           ))}
         </div>
-        <ArchiveDropZone
-          id="Concluído"
-          label="Concluídos (arquivo interno)"
-          helperText="Ocultos do cliente"
-          tasks={tasksByColumn['Concluído']}
-          onCardClick={openCard}
-          getClientName={getClientName}
-          accentClass="border-muted-foreground bg-muted/30"
-          iconColorClass="text-muted-foreground"
-        />
+        {archiveStages.map(stage => (
+          <ArchiveDropZone
+            key={stage.id}
+            id={stage.name}
+            label={`${stage.name}s (arquivo interno)`}
+            helperText="Ocultos do cliente"
+            tasks={tasksByColumn[stage.name] || []}
+            onCardClick={openCard}
+            getClientName={getClientName}
+            accentClass="border-muted-foreground bg-muted/30"
+            iconColorClass="text-muted-foreground"
+            defaultOpen={false}
+          />
+        ))}
         <DragOverlay>
           {activeTask && (
             <div className={cn('w-[200px] rounded-lg border-l-[3px] bg-card p-3 shadow-lg', PRIORITY_COLORS[activeTask.priority])}>
