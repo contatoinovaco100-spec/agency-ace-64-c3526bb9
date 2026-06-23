@@ -125,10 +125,19 @@ export default function ProspectionPage() {
         body: {
           systemPrompt: 'Você é um extrator de dados. Responda APENAS com um array JSON válido, sem markdown, sem explicações.',
           userMessage: prompt,
+          model: 'google/gemini-2.5-flash',
         },
       });
 
-      if (fnError) throw new Error(fnError.message || 'Erro ao chamar IA');
+      if (fnError) {
+        let detail = fnError.message;
+        try {
+          const ctx: any = (fnError as any).context;
+          if (ctx?.json) detail = (await ctx.json()).error || detail;
+          else if (ctx?.text) detail = await ctx.text();
+        } catch {}
+        throw new Error(detail || 'Erro ao chamar IA');
+      }
       if (fnData?.error) throw new Error(fnData.error);
 
       let extractedLeads: any = fnData?.result;
