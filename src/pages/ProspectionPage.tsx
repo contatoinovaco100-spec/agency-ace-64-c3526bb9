@@ -261,10 +261,19 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
         body: {
           systemPrompt: 'Você é um copywriter especialista em prospecção via WhatsApp. Retorne APENAS o texto da mensagem em texto puro (sem JSON, sem markdown, sem aspas).',
           userMessage: prompt,
+          model: 'google/gemini-2.5-flash',
         },
       });
 
-      if (fnError) throw new Error(fnError.message || 'Erro ao gerar mensagem');
+      if (fnError) {
+        let detail = fnError.message;
+        try {
+          const ctx: any = (fnError as any).context;
+          if (ctx?.json) detail = (await ctx.json()).error || detail;
+          else if (ctx?.text) detail = await ctx.text();
+        } catch {}
+        throw new Error(detail || 'Erro ao gerar mensagem');
+      }
       if (fnData?.error) throw new Error(fnData.error);
 
       const raw = fnData?.result;
