@@ -152,24 +152,31 @@ export default function ProspectionPage() {
         return;
       }
 
-      const newLeads: Lead[] = extractedLeads.map(item => {
-        const filledMessage = messageTemplate
-          .replace(/{empresa}/gi, item.name)
-          .replace(/{agencia}/gi, agencyName);
-        return {
-          id: crypto.randomUUID(),
-          name: item.name,
-          address: '',
-          phone: item.phone,
-          rating: 0,
-          website: item.website || '',
-          instagram: item.instagram || '',
-          category: searchNiche || 'Geral',
-          aiMessage: filledMessage,
-          isGenerating: false,
-          status: 'novo' as const,
-        };
-      });
+      const newLeads: Lead[] = extractedLeads
+        .filter((item: any) => item && item.name && item.phone)
+        .map((item: any) => {
+          const filledMessage = messageTemplate
+            .replace(/{empresa}/gi, item.name)
+            .replace(/{agencia}/gi, agencyName);
+          return {
+            id: crypto.randomUUID(),
+            name: String(item.name),
+            address: '',
+            phone: String(item.phone),
+            rating: 0,
+            website: item.website || '',
+            instagram: item.instagram || '',
+            category: searchNiche || 'Geral',
+            aiMessage: filledMessage,
+            isGenerating: false,
+            status: 'novo' as const,
+          };
+        });
+
+      if (newLeads.length === 0) {
+        toast.error('Nenhum lead com telefone encontrado no texto.');
+        return;
+      }
 
       setLeads(prev => [...prev, ...newLeads]);
       toast.success(`✨ ${newLeads.length} leads extraídos com sucesso!`);
