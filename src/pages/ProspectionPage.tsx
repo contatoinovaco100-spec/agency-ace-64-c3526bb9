@@ -125,10 +125,19 @@ export default function ProspectionPage() {
         body: {
           systemPrompt: 'Você é um extrator de dados. Responda APENAS com um array JSON válido, sem markdown, sem explicações.',
           userMessage: prompt,
+          model: 'google/gemini-2.5-flash',
         },
       });
 
-      if (fnError) throw new Error(fnError.message || 'Erro ao chamar IA');
+      if (fnError) {
+        let detail = fnError.message;
+        try {
+          const ctx: any = (fnError as any).context;
+          if (ctx?.json) detail = (await ctx.json()).error || detail;
+          else if (ctx?.text) detail = await ctx.text();
+        } catch {}
+        throw new Error(detail || 'Erro ao chamar IA');
+      }
       if (fnData?.error) throw new Error(fnData.error);
 
       let extractedLeads: any = fnData?.result;
@@ -143,24 +152,31 @@ export default function ProspectionPage() {
         return;
       }
 
-      const newLeads: Lead[] = extractedLeads.map(item => {
-        const filledMessage = messageTemplate
-          .replace(/{empresa}/gi, item.name)
-          .replace(/{agencia}/gi, agencyName);
-        return {
-          id: crypto.randomUUID(),
-          name: item.name,
-          address: '',
-          phone: item.phone,
-          rating: 0,
-          website: item.website || '',
-          instagram: item.instagram || '',
-          category: searchNiche || 'Geral',
-          aiMessage: filledMessage,
-          isGenerating: false,
-          status: 'novo' as const,
-        };
-      });
+      const newLeads: Lead[] = extractedLeads
+        .filter((item: any) => item && item.name && item.phone)
+        .map((item: any) => {
+          const filledMessage = messageTemplate
+            .replace(/{empresa}/gi, item.name)
+            .replace(/{agencia}/gi, agencyName);
+          return {
+            id: crypto.randomUUID(),
+            name: String(item.name),
+            address: '',
+            phone: String(item.phone),
+            rating: 0,
+            website: item.website || '',
+            instagram: item.instagram || '',
+            category: searchNiche || 'Geral',
+            aiMessage: filledMessage,
+            isGenerating: false,
+            status: 'novo' as const,
+          };
+        });
+
+      if (newLeads.length === 0) {
+        toast.error('Nenhum lead com telefone encontrado no texto.');
+        return;
+      }
 
       setLeads(prev => [...prev, ...newLeads]);
       toast.success(`✨ ${newLeads.length} leads extraídos com sucesso!`);
@@ -245,10 +261,19 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
         body: {
           systemPrompt: 'Você é um copywriter especialista em prospecção via WhatsApp. Retorne APENAS o texto da mensagem em texto puro (sem JSON, sem markdown, sem aspas).',
           userMessage: prompt,
+          model: 'google/gemini-2.5-flash',
         },
       });
 
-      if (fnError) throw new Error(fnError.message || 'Erro ao gerar mensagem');
+      if (fnError) {
+        let detail = fnError.message;
+        try {
+          const ctx: any = (fnError as any).context;
+          if (ctx?.json) detail = (await ctx.json()).error || detail;
+          else if (ctx?.text) detail = await ctx.text();
+        } catch {}
+        throw new Error(detail || 'Erro ao gerar mensagem');
+      }
       if (fnData?.error) throw new Error(fnData.error);
 
       const raw = fnData?.result;
