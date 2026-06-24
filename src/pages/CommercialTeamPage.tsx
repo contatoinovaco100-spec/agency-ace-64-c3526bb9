@@ -46,6 +46,7 @@ interface Plan {
   notes: string | null;
 }
 interface TeamMember { id: string; name: string; role: string; }
+interface Employee { id: string; full_name: string; job_title: string | null; }
 
 const BRL = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
