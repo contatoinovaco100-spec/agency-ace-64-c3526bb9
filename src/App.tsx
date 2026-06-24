@@ -102,6 +102,7 @@ const MyTasksPage               = lazy(() => import("./pages/MyTasksPage"));
 const WhatsAppPage              = lazy(() => import("./pages/WhatsAppPage"));
 const WhatsAppConfigPage        = lazy(() => import("./pages/WhatsAppConfigPage"));
 const KanbanStagesPage          = lazy(() => import("./pages/KanbanStagesPage"));
+const CommercialTeamPage        = lazy(() => import("./pages/CommercialTeamPage"));
 
 // Finance & Rede
 const FinancePage               = lazy(() => import("./pages/FinancePage"));
@@ -235,6 +236,7 @@ function AppRoutes() {
                     <Route path="/whatsapp"            element={<WhatsAppPage />} />
                     <Route path="/whatsapp/config"     element={<WhatsAppConfigPage />} />
                     <Route path="/etapas-kanban"       element={<KanbanStagesPage />} />
+                    <Route path="/time-comercial"      element={<CommercialTeamPage />} />
                     <Route path="/financeiro"          element={<FinancePage />} />
                     <Route path="/financeiro-base"     element={<FinancialPage />} />
                     <Route path="/rede/admin"          element={<RedeAdminPage />} />
