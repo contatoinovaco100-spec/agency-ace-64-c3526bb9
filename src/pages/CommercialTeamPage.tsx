@@ -244,42 +244,65 @@ export default function CommercialTeamPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="calls" className="mt-4">
-          <Card>
-            <CardContent className="p-0">
-              {calls.length === 0 ? <EmptyState message="Nenhuma call registrada este mês." /> : (
-                <div className="divide-y divide-border">
-                  {calls.map(c => {
-                    const member = members.find(m => m.id === c.member_id);
-                    return (
-                      <div key={c.id} className="flex items-center justify-between gap-3 p-3 text-sm">
-                        <div className="flex items-center gap-3 min-w-0">
-                          {c.type === 'agendada'
-                            ? <PhoneCall className="h-4 w-4 text-blue-500 shrink-0" />
-                            : <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />}
-                          <div className="min-w-0">
-                            <div className="font-medium truncate">{c.client_name || 'Sem cliente'}</div>
-                            <div className="text-xs text-muted-foreground truncate">
-                              {member?.name || '—'} · {member?.role} · {format(new Date(c.occurred_at), 'dd/MM HH:mm')} · {c.source}
+        <TabsContent value="calls" className="mt-4 space-y-3">
+          {calls.length === 0 ? <EmptyState message="Nenhuma call registrada este mês." /> : (() => {
+            const groups = members
+              .map(m => ({ member: m, items: calls.filter(c => c.member_id === m.id) }))
+              .filter(g => g.items.length > 0)
+              .sort((a, b) => b.items.length - a.items.length);
+            const orphan = calls.filter(c => !members.find(m => m.id === c.member_id));
+            if (orphan.length) groups.push({ member: { id: 'orphan', name: 'Sem membro vinculado', role: '—' } as any, items: orphan });
+            return groups.map(g => {
+              const ag = g.items.filter(i => i.type === 'agendada').length;
+              const fe = g.items.filter(i => i.type === 'fechada').length;
+              const rev = g.items.filter(i => i.type === 'fechada').reduce((s,i)=>s+Number(i.deal_value||0),0);
+              return (
+                <Card key={g.member.id}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-base">{g.member.name}</CardTitle>
+                        <Badge variant="secondary">{g.member.role}</Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground flex gap-3">
+                        <span><PhoneCall className="h-3 w-3 inline mr-1" />{ag}</span>
+                        <span><CheckCircle2 className="h-3 w-3 inline mr-1" />{fe}</span>
+                        <span className="font-semibold text-foreground">{BRL(rev)}</span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="divide-y divide-border">
+                      {g.items.map(c => (
+                        <div key={c.id} className="flex items-center justify-between gap-3 p-3 text-sm">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {c.type === 'agendada'
+                              ? <PhoneCall className="h-4 w-4 text-blue-500 shrink-0" />
+                              : <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />}
+                            <div className="min-w-0">
+                              <div className="font-medium truncate">{c.client_name || 'Sem cliente'}</div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {format(new Date(c.occurred_at), 'dd/MM HH:mm')} · {c.source}
+                              </div>
                             </div>
                           </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {c.type === 'fechada' && <span className="font-semibold">{BRL(Number(c.deal_value))}</span>}
+                            {isAdmin && (
+                              <Button variant="ghost" size="icon" onClick={async () => {
+                                await supabase.from('commercial_calls' as any).delete().eq('id', c.id);
+                                load();
+                              }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {c.type === 'fechada' && <span className="font-semibold">{BRL(Number(c.deal_value))}</span>}
-                          {isAdmin && (
-                            <Button variant="ghost" size="icon" onClick={async () => {
-                              await supabase.from('commercial_calls' as any).delete().eq('id', c.id);
-                              load();
-                            }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            });
+          })()}
         </TabsContent>
 
         <TabsContent value="plano" className="mt-4 space-y-3">
