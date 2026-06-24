@@ -46,6 +46,7 @@ interface Plan {
   notes: string | null;
 }
 interface TeamMember { id: string; name: string; role: string; }
+interface Employee { id: string; full_name: string; job_title: string | null; }
 
 const BRL = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -55,7 +56,7 @@ export default function CommercialTeamPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [calls, setCalls] = useState<Call[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [openMember, setOpenMember] = useState(false);
   const [openCall, setOpenCall] = useState(false);
 
@@ -65,16 +66,16 @@ export default function CommercialTeamPage() {
 
   async function load() {
     setLoading(true);
-    const [m, c, p, t] = await Promise.all([
+    const [m, c, p, e] = await Promise.all([
       supabase.from('commercial_members' as any).select('*').order('created_at'),
       supabase.from('commercial_calls' as any).select('*').gte('occurred_at', monthStart.toISOString()).order('occurred_at', { ascending: false }),
       supabase.from('commission_plans' as any).select('*'),
-      supabase.from('team_members').select('id,name,role').order('name'),
+      supabase.from('profiles').select('id, full_name, job_title, is_active').not('username', 'is', null).eq('is_active', true).order('full_name'),
     ]);
     setMembers((m.data as any) || []);
     setCalls((c.data as any) || []);
     setPlans((p.data as any) || []);
-    setTeamMembers((t.data as any) || []);
+    setEmployees(((e.data as any) || []).map((x: any) => ({ id: x.id, full_name: x.full_name || 'Sem nome', job_title: x.job_title })));
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
@@ -255,7 +256,7 @@ export default function CommercialTeamPage() {
       </Tabs>
 
       {/* Adicionar membro */}
-      <MemberDialog open={openMember} onOpenChange={setOpenMember} teamMembers={teamMembers} onSaved={load} />
+      <MemberDialog open={openMember} onOpenChange={setOpenMember} employees={employees} existingMembers={members} onSaved={load} />
       {/* Lançar call */}
       <CallDialog open={openCall} onOpenChange={setOpenCall} members={members} onSaved={load} />
     </div>
@@ -277,21 +278,24 @@ function EmptyState({ message }: { message: string }) {
   return <div className="rounded-lg border border-dashed border-border p-10 text-center text-muted-foreground text-sm">{message}</div>;
 }
 
-function MemberDialog({ open, onOpenChange, teamMembers, onSaved }: any) {
-  const [teamId, setTeamId] = useState('');
-  const [name, setName] = useState('');
+function MemberDialog({ open, onOpenChange, employees, existingMembers, onSaved }: any) {
+  const [employeeId, setEmployeeId] = useState('');
   const [role, setRole] = useState<Role>('SDR');
   const [goalCalls, setGoalCalls] = useState('0');
   const [goalRevenue, setGoalRevenue] = useState('0');
   const [saving, setSaving] = useState(false);
 
-  const reset = () => { setTeamId(''); setName(''); setRole('SDR'); setGoalCalls('0'); setGoalRevenue('0'); };
+  const usedIds = new Set((existingMembers || []).map((m: Member) => m.team_member_id).filter(Boolean));
+  const available = (employees || []).filter((e: Employee) => !usedIds.has(e.id));
+
+  const reset = () => { setEmployeeId(''); setRole('SDR'); setGoalCalls('0'); setGoalRevenue('0'); };
 
   const save = async () => {
-    if (!name.trim()) return toast.error('Nome obrigatório');
+    const emp = (employees || []).find((e: Employee) => e.id === employeeId);
+    if (!emp) return toast.error('Selecione um funcionário');
     setSaving(true);
     const { error } = await supabase.from('commercial_members' as any).insert({
-      team_member_id: teamId || null, name, role,
+      team_member_id: emp.id, name: emp.full_name, role,
       monthly_goal_calls: Number(goalCalls) || 0,
       monthly_goal_revenue: Number(goalRevenue) || 0,
     });
@@ -303,16 +307,20 @@ function MemberDialog({ open, onOpenChange, teamMembers, onSaved }: any) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Adicionar membro</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Adicionar membro do time comercial</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label>Funcionário (opcional)</Label>
-            <Select value={teamId} onValueChange={(v) => { setTeamId(v); const tm = teamMembers.find((t: any) => t.id === v); if (tm) setName(tm.name); }}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>{teamMembers.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name} — {t.role}</SelectItem>)}</SelectContent>
+            <Label>Funcionário</Label>
+            <Select value={employeeId} onValueChange={setEmployeeId}>
+              <SelectTrigger><SelectValue placeholder={available.length ? 'Selecione um funcionário' : 'Nenhum funcionário disponível'} /></SelectTrigger>
+              <SelectContent>
+                {available.map((e: Employee) => (
+                  <SelectItem key={e.id} value={e.id}>{e.full_name}{e.job_title ? ` — ${e.job_title}` : ''}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1">Lista vem de Funcionários cadastrados ativos.</p>
           </div>
-          <div><Label>Nome exibido</Label><Input value={name} onChange={e => setName(e.target.value)} /></div>
           <div>
             <Label>Cargo comercial</Label>
             <Select value={role} onValueChange={(v) => setRole(v as Role)}>
@@ -331,7 +339,7 @@ function MemberDialog({ open, onOpenChange, teamMembers, onSaved }: any) {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={save} disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Salvar</Button>
+          <Button onClick={save} disabled={saving || !employeeId}>{saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
