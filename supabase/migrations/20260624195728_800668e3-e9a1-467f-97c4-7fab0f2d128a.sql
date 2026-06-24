@@ -1,0 +1,1 @@
+ALTER TABLE public.commercial_members DROP CONSTRAINT IF EXISTS commercial_members_team_member_id_fkey;
