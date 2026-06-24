@@ -256,7 +256,7 @@ export default function CommercialTeamPage() {
       </Tabs>
 
       {/* Adicionar membro */}
-      <MemberDialog open={openMember} onOpenChange={setOpenMember} teamMembers={teamMembers} onSaved={load} />
+      <MemberDialog open={openMember} onOpenChange={setOpenMember} employees={employees} existingMembers={members} onSaved={load} />
       {/* Lançar call */}
       <CallDialog open={openCall} onOpenChange={setOpenCall} members={members} onSaved={load} />
     </div>
