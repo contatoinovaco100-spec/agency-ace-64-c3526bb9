@@ -48,6 +48,7 @@ export const APP_PAGES: AppPage[] = [
   // { path: '/whatsapp',            label: 'WhatsApp',            icon: MessageSquare,   category: 'Comercial' },
   // { path: '/whatsapp/config',     label: 'Config. WhatsApp',    icon: Settings,        category: 'Comercial', adminOnly: true },
   { path: '/prospeccao',          label: 'Prospecção IA',       icon: Bot,             category: 'Comercial' },
+  { path: '/time-comercial',      label: 'Time Comercial',      icon: TrendingUp,      category: 'Comercial' },
   // { path: '/proposta',            label: 'Proposta Comercial',  icon: Sparkles,        category: 'Comercial' },
   // { path: '/proposta/editar',     label: 'Editar Proposta',     icon: Settings,        category: 'Comercial' },
 
