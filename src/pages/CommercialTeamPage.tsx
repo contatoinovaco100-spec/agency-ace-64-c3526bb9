@@ -56,7 +56,7 @@ export default function CommercialTeamPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [calls, setCalls] = useState<Call[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [openMember, setOpenMember] = useState(false);
   const [openCall, setOpenCall] = useState(false);
 
@@ -66,16 +66,16 @@ export default function CommercialTeamPage() {
 
   async function load() {
     setLoading(true);
-    const [m, c, p, t] = await Promise.all([
+    const [m, c, p, e] = await Promise.all([
       supabase.from('commercial_members' as any).select('*').order('created_at'),
       supabase.from('commercial_calls' as any).select('*').gte('occurred_at', monthStart.toISOString()).order('occurred_at', { ascending: false }),
       supabase.from('commission_plans' as any).select('*'),
-      supabase.from('team_members').select('id,name,role').order('name'),
+      supabase.from('profiles').select('id, full_name, job_title, is_active').not('username', 'is', null).eq('is_active', true).order('full_name'),
     ]);
     setMembers((m.data as any) || []);
     setCalls((c.data as any) || []);
     setPlans((p.data as any) || []);
-    setTeamMembers((t.data as any) || []);
+    setEmployees(((e.data as any) || []).map((x: any) => ({ id: x.id, full_name: x.full_name || 'Sem nome', job_title: x.job_title })));
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
