@@ -807,6 +807,143 @@ export type Database = {
         }
         Relationships: []
       }
+      commercial_calls: {
+        Row: {
+          client_name: string | null
+          created_at: string
+          deal_value: number
+          id: string
+          lead_id: string | null
+          member_id: string | null
+          notes: string | null
+          occurred_at: string
+          source: string
+          type: string
+        }
+        Insert: {
+          client_name?: string | null
+          created_at?: string
+          deal_value?: number
+          id?: string
+          lead_id?: string | null
+          member_id?: string | null
+          notes?: string | null
+          occurred_at?: string
+          source?: string
+          type: string
+        }
+        Update: {
+          client_name?: string | null
+          created_at?: string
+          deal_value?: number
+          id?: string
+          lead_id?: string | null
+          member_id?: string | null
+          notes?: string | null
+          occurred_at?: string
+          source?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_calls_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commercial_members: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          monthly_goal_calls: number
+          monthly_goal_revenue: number
+          name: string
+          role: string
+          team_member_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          monthly_goal_calls?: number
+          monthly_goal_revenue?: number
+          name: string
+          role: string
+          team_member_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          monthly_goal_calls?: number
+          monthly_goal_revenue?: number
+          name?: string
+          role?: string
+          team_member_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_members_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commission_plans: {
+        Row: {
+          bonus_percent: number
+          created_at: string
+          fixed_per_event: number
+          goal_target: number
+          goal_type: string
+          id: string
+          notes: string | null
+          percent_on_value: number
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          bonus_percent?: number
+          created_at?: string
+          fixed_per_event?: number
+          goal_target?: number
+          goal_type?: string
+          id?: string
+          notes?: string | null
+          percent_on_value?: number
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          bonus_percent?: number
+          created_at?: string
+          fixed_per_event?: number
+          goal_target?: number
+          goal_type?: string
+          id?: string
+          notes?: string | null
+          percent_on_value?: number
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       content_editorial_lines: {
         Row: {
           audience: string | null
