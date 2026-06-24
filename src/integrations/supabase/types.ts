@@ -895,15 +895,7 @@ export type Database = {
           team_member_id?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "commercial_members_team_member_id_fkey"
-            columns: ["team_member_id"]
-            isOneToOne: false
-            referencedRelation: "team_members"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       commission_plans: {
         Row: {
