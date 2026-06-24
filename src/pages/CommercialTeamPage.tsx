@@ -143,11 +143,43 @@ export default function CommercialTeamPage() {
         </TabsList>
 
         <TabsContent value="time" className="space-y-3 mt-4">
-          {members.length === 0 ? (
-            <EmptyState message="Nenhum membro cadastrado. Adicione um SDR ou Closer para começar." />
+          {employees.length === 0 ? (
+            <EmptyState message="Nenhum funcionário ativo. Cadastre em Funcionários." />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {members.map(m => {
+              {employees.map(emp => {
+                const m = members.find(x => x.team_member_id === emp.id);
+                if (!m) {
+                  return (
+                    <Card key={emp.id} className="border-dashed">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <CardTitle className="text-base">{emp.full_name}</CardTitle>
+                            {emp.job_title && <p className="text-xs text-muted-foreground mt-1">{emp.job_title}</p>}
+                          </div>
+                          <Badge variant="secondary">Sem cargo comercial</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground">
+                        {isAdmin ? (
+                          <div className="flex gap-2 flex-wrap">
+                            {(['SDR','Closer','Gestor'] as Role[]).map(r => (
+                              <Button key={r} size="sm" variant="outline" onClick={async () => {
+                                const { error } = await supabase.from('commercial_members' as any).insert({
+                                  team_member_id: emp.id, name: emp.full_name, role: r,
+                                  monthly_goal_calls: 0, monthly_goal_revenue: 0,
+                                });
+                                if (error) return toast.error(error.message);
+                                toast.success(`${emp.full_name} definido como ${r}`); load();
+                              }}>Tornar {r}</Button>
+                            ))}
+                          </div>
+                        ) : <span>Aguardando definição de cargo pelo admin.</span>}
+                      </CardContent>
+                    </Card>
+                  );
+                }
                 const s = memberStats(m.id);
                 const c = calcCommission(m);
                 const plan = plans.find(p => p.role === m.role);
@@ -155,16 +187,19 @@ export default function CommercialTeamPage() {
                 const goal = m.role === 'SDR' ? m.monthly_goal_calls : (plan?.goal_type === 'revenue' ? m.monthly_goal_revenue : m.monthly_goal_calls);
                 const pct = goal > 0 ? Math.min(100, (goalProgress/goal)*100) : 0;
                 return (
-                  <Card key={m.id}>
+                  <Card key={emp.id}>
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <CardTitle className="text-base">{m.name}</CardTitle>
-                          <Badge variant={m.active ? 'default' : 'secondary'} className="mt-1">{m.role}</Badge>
+                          <CardTitle className="text-base">{emp.full_name}</CardTitle>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant={m.active ? 'default' : 'secondary'}>{m.role}</Badge>
+                            {emp.job_title && <span className="text-xs text-muted-foreground">{emp.job_title}</span>}
+                          </div>
                         </div>
                         {isAdmin && (
                           <Button variant="ghost" size="icon" onClick={async () => {
-                            if (!confirm('Remover membro?')) return;
+                            if (!confirm('Remover do time comercial?')) return;
                             await supabase.from('commercial_members' as any).delete().eq('id', m.id);
                             toast.success('Removido'); load();
                           }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
