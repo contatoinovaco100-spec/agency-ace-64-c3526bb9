@@ -41,7 +41,21 @@ export default function CRMPage() {
   };
 
   const moveToStage = (lead: Lead, stage: LeadStage) => {
+    if (lead.stage === stage) return;
     updateLead({ ...lead, stage });
+  };
+
+  const [dragOverStage, setDragOverStage] = useState<string | null>(null);
+  const handleDragStart = (e: React.DragEvent, leadId: string) => {
+    e.dataTransfer.setData('text/plain', leadId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+  const handleDrop = (e: React.DragEvent, stage: string) => {
+    e.preventDefault();
+    setDragOverStage(null);
+    const id = e.dataTransfer.getData('text/plain');
+    const lead = leads.find(l => l.id === id);
+    if (lead) moveToStage(lead, stage as LeadStage);
   };
 
   const leadsPerStage = stages.reduce((acc, stage) => {
@@ -83,18 +97,26 @@ export default function CRMPage() {
           const cc = colorClasses(s.color);
           const stage = s.name;
           return (
-          <div key={s.id} className="flex min-w-[280px] flex-col">
+          <div
+            key={s.id}
+            className="flex min-w-[280px] flex-col"
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverStage(stage); }}
+            onDragLeave={() => setDragOverStage(prev => prev === stage ? null : prev)}
+            onDrop={(e) => handleDrop(e, stage)}
+          >
             <div className={cn('mb-3 flex items-center justify-between rounded-lg border-l-2 bg-card px-3 py-2', cc.border)}>
               <span className="text-caption font-semibold text-foreground">{stage}</span>
               <span className="text-caption tabular-nums text-muted-foreground">{leadsPerStage[stage]?.length || 0}</span>
             </div>
-            <div className="flex-1 space-y-2">
+            <div className={cn('flex-1 space-y-2 rounded-lg p-1 transition-colors', dragOverStage === stage && 'bg-primary/10 ring-2 ring-primary/40')}>
               {(leadsPerStage[stage] || []).map(lead => (
                 <motion.div
                   key={lead.id}
                   layout
                   whileHover={{ scale: 1.01 }}
-                  className="card-shadow cursor-pointer rounded-lg bg-card p-3 transition-default hover:bg-secondary/30"
+                  draggable
+                  onDragStart={(e: any) => handleDragStart(e, lead.id)}
+                  className="card-shadow cursor-grab active:cursor-grabbing rounded-lg bg-card p-3 transition-default hover:bg-secondary/30"
                   onClick={() => openEdit(lead)}
                 >
                   <p className="text-body font-medium text-foreground">{lead.company}</p>

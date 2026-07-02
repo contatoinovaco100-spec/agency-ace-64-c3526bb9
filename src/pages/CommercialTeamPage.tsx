@@ -80,6 +80,17 @@ export default function CommercialTeamPage() {
   }
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('commercial-team-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commercial_members' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commercial_calls' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commission_plans' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   const memberStats = (memberId: string) => {
     const mine = calls.filter(c => c.member_id === memberId);
     const agendadas = mine.filter(c => c.type === 'agendada').length;
