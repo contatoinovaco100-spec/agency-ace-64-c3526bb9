@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Loader2, Plus, Trash2, PhoneCall, CheckCircle2, Target, TrendingUp, Users } from 'lucide-react';
+import { Loader2, Plus, Trash2, PhoneCall, CheckCircle2, Target, TrendingUp, Users, Info, Lightbulb } from 'lucide-react';
 import { format } from 'date-fns';
 
 type Role = 'SDR' | 'Closer' | 'Gestor';
@@ -139,6 +139,21 @@ export default function CommercialTeamPage() {
         </div>
       </div>
 
+      {/* Guia didático */}
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="p-4 space-y-2 text-sm">
+          <div className="flex items-center gap-2 font-semibold text-foreground">
+            <Lightbulb className="h-4 w-4 text-primary" /> Como funciona esta página
+          </div>
+          <ul className="grid md:grid-cols-2 gap-x-6 gap-y-1 text-muted-foreground list-disc pl-5">
+            <li><b className="text-foreground">SDR</b> = agenda reuniões. Contamos como "call agendada" toda vez que um lead do CRM vai para a etapa <i>Reunião agendada</i> com o nome do SDR como responsável.</li>
+            <li><b className="text-foreground">Closer</b> = fecha a venda. Contamos como "call fechada" quando o lead vai para <i>Cliente fechado</i> com o nome do Closer como responsável.</li>
+            <li>Os cards do CRM só entram na comissão quando o campo <b className="text-foreground">Responsável</b> bate exatamente com o nome do membro cadastrado aqui.</li>
+            <li>Você também pode lançar calls manualmente em <b className="text-foreground">Lançar call</b> (para vendas fora do CRM).</li>
+          </ul>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard icon={<PhoneCall className="h-4 w-4" />} label="Calls agendadas" value={totals.agendadas.toString()} />
         <StatCard icon={<CheckCircle2 className="h-4 w-4" />} label="Calls fechadas" value={totals.fechadas.toString()} />
@@ -154,6 +169,10 @@ export default function CommercialTeamPage() {
         </TabsList>
 
         <TabsContent value="time" className="space-y-3 mt-4">
+          <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>Cada card mostra <b>Agendadas</b>, <b>Fechadas</b> e <b>Receita</b> do mês, a barra de progresso da meta e a comissão calculada. Para transformar um funcionário em SDR/Closer, clique no botão correspondente no card dele.</span>
+          </div>
           {employees.length === 0 ? (
             <EmptyState message="Nenhum funcionário ativo. Cadastre em Funcionários." />
           ) : (
