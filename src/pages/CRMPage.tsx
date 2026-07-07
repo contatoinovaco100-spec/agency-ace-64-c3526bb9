@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAgency } from '@/contexts/AgencyContext';
 import { Lead, LeadStage } from '@/types/agency';
-import { Plus } from 'lucide-react';
+import { Plus, Settings2 } from 'lucide-react';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,11 +14,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WhatsAppPanel } from '@/components/crm/WhatsAppPanel';
 import { motion } from 'framer-motion';
 import { useKanbanStages, colorClasses } from '@/hooks/useKanbanStages';
+import { useUserRole } from '@/hooks/useUserRole';
 import { cn } from '@/lib/utils';
 
 export default function CRMPage() {
   const { leads, team, addLead, updateLead, deleteLead } = useAgency();
   const { stages: kanbanStages } = useKanbanStages('crm');
+  const { isAdmin } = useUserRole();
   const stages = kanbanStages.map(s => s.name);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
@@ -85,7 +88,12 @@ export default function CRMPage() {
         </TabsList>
 
         <TabsContent value="pipeline">
-          <div className="flex items-center justify-end mb-4">
+          <div className="flex items-center justify-end gap-2 mb-4">
+            {isAdmin && (
+              <Button asChild variant="outline" className="gap-2">
+                <Link to="/etapas-kanban"><Settings2 className="h-4 w-4" /> Editar etapas</Link>
+              </Button>
+            )}
             <Button onClick={() => openNew()} className="gap-2">
               <Plus className="h-4 w-4" /> Novo Lead
             </Button>
