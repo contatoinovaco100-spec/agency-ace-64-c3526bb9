@@ -275,6 +275,10 @@ export default function CommercialTeamPage() {
         </TabsContent>
 
         <TabsContent value="calls" className="mt-4 space-y-3">
+          <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>As calls agrupadas por membro. As de origem <b>crm</b> foram criadas automaticamente ao mover cards no CRM; as <b>manual</b> vieram do botão "Lançar call".</span>
+          </div>
           {calls.length === 0 ? <EmptyState message="Nenhuma call registrada este mês." /> : (() => {
             const groups = members
               .map(m => ({ member: m, items: calls.filter(c => c.member_id === m.id) }))
@@ -336,6 +340,13 @@ export default function CommercialTeamPage() {
         </TabsContent>
 
         <TabsContent value="plano" className="mt-4 space-y-3">
+          <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>
+              Comissão = <b>Fixo por evento</b> × nº de eventos + <b>% sobre valor</b> × receita do mês.
+              Se a meta for atingida, aplica-se o <b>bônus %</b> em cima do valor total. SDR conta calls agendadas, Closer conta calls fechadas.
+            </span>
+          </div>
           {!isAdmin && <p className="text-sm text-muted-foreground">Somente admins podem editar o plano.</p>}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {plans.map(p => <PlanCard key={p.id} plan={p} editable={isAdmin} onSaved={load} />)}
