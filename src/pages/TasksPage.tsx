@@ -398,6 +398,13 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
 
   const [selectedClient, setSelectedClient] = useState<string>('all');
 
+  // If the selected client becomes inactive/removed, reset to "all"
+  const activeClientIds = useMemo(() => new Set(clients.filter(c => c.status === 'Ativo').map(c => c.id)), [clients]);
+  if (selectedClient !== 'all' && !activeClientIds.has(selectedClient)) {
+    // defer to avoid setState during render
+    setTimeout(() => setSelectedClient('all'), 0);
+  }
+
   const [search, setSearch] = useState('');
   const [filterAssignee, setFilterAssignee] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
