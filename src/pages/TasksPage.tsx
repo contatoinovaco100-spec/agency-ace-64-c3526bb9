@@ -558,35 +558,12 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
           </div>
         </div>
 
-        {/* Client selector bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <button
-            onClick={() => setSelectedClient('all')}
-            className={cn(
-              'shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-              selectedClient === 'all'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
-            )}
-          >
-            Todos
-          </button>
-          {clients.map(c => (
-            <button
-              key={c.id}
-              onClick={() => setSelectedClient(c.id)}
-              className={cn(
-                'shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-                selectedClient === c.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {c.companyName}
-            </button>
-          ))}
-        </div>
+        {/* Client selector accordion */}
+        <ClientAccordionSelector
+          clients={clients.filter(c => c.status === 'Ativo')}
+          selectedClient={selectedClient}
+          onSelect={setSelectedClient}
+        />
 
         {/* Extra filters */}
         {showFilters && (
