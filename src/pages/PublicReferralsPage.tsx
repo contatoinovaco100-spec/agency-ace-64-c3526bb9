@@ -65,7 +65,7 @@ export default function PublicReferralsPage() {
       setClient(clientData);
 
       const [refsRes, tiersRes] = await Promise.all([
-        supabase.from('referrals').select('*').eq('client_id', clientData.id).order('created_at', { ascending: false }),
+        (supabase as any).rpc('get_public_referrals_by_token', { _token: token }),
         supabase.from('referral_tiers').select('*').order('sort_order', { ascending: true }),
       ]);
       if (!alive) return;
@@ -83,7 +83,7 @@ export default function PublicReferralsPage() {
     const ch = supabase
       .channel(`referrals_${client.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'referrals', filter: `client_id=eq.${client.id}` }, async () => {
-        const { data } = await supabase.from('referrals').select('*').eq('client_id', client.id).order('created_at', { ascending: false });
+        const { data } = await (supabase as any).rpc('get_public_referrals_by_token', { _token: token });
         setReferrals((data ?? []) as Referral[]);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'referral_tiers' }, async () => {
