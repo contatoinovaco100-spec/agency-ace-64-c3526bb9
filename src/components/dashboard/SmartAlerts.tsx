@@ -178,7 +178,7 @@ export function SmartAlerts({ hideFinancial = false }: { hideFinancial?: boolean
     
     // Filter out dismissed alerts
     return sorted.filter(a => !dismissedIds.includes(a.id));
-  }, [clients, tasks, dismissedIds]);
+  }, [clients, tasks, dismissedIds, hideFinancial]);
 
   if (alerts.length === 0) return null;
 
