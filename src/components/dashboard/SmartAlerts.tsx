@@ -145,29 +145,31 @@ export function SmartAlerts({ hideFinancial = false }: { hideFinancial?: boolean
       }
     });
 
-    // 📉 Queda de receita - clientes pausados/cancelados recentemente
-    const pausedClients = clients.filter(c => c.status === 'Pausado');
-    const cancelledClients = clients.filter(c => c.status === 'Cancelado');
-    if (pausedClients.length > 0) {
-      const lostRevenue = pausedClients.reduce((s, c) => s + c.monthlyValue, 0);
-      result.push({
-        id: 'paused-revenue',
-        type: 'warning',
-        icon: TrendingDown,
-        title: `${pausedClients.length} cliente${pausedClients.length > 1 ? 's' : ''} pausado${pausedClients.length > 1 ? 's' : ''} — R$ ${lostRevenue.toLocaleString('pt-BR')} em risco`,
-        description: `Clientes: ${pausedClients.map(c => c.companyName).join(', ')}. Receita que pode ser recuperada.`,
-        action: 'Reativar',
-      });
-    }
-    if (cancelledClients.length > 0) {
-      const lostRevenue = cancelledClients.reduce((s, c) => s + c.monthlyValue, 0);
-      result.push({
-        id: 'cancelled-revenue',
-        type: 'danger',
-        icon: DollarSign,
-        title: `R$ ${lostRevenue.toLocaleString('pt-BR')}/mês perdidos — ${cancelledClients.length} cancelamento${cancelledClients.length > 1 ? 's' : ''}`,
-        description: `${cancelledClients.map(c => c.companyName).join(', ')}`,
-      });
+    // 📉 Queda de receita - clientes pausados/cancelados recentemente (apenas admin)
+    if (!hideFinancial) {
+      const pausedClients = clients.filter(c => c.status === 'Pausado');
+      const cancelledClients = clients.filter(c => c.status === 'Cancelado');
+      if (pausedClients.length > 0) {
+        const lostRevenue = pausedClients.reduce((s, c) => s + c.monthlyValue, 0);
+        result.push({
+          id: 'paused-revenue',
+          type: 'warning',
+          icon: TrendingDown,
+          title: `${pausedClients.length} cliente${pausedClients.length > 1 ? 's' : ''} pausado${pausedClients.length > 1 ? 's' : ''} — R$ ${lostRevenue.toLocaleString('pt-BR')} em risco`,
+          description: `Clientes: ${pausedClients.map(c => c.companyName).join(', ')}. Receita que pode ser recuperada.`,
+          action: 'Reativar',
+        });
+      }
+      if (cancelledClients.length > 0) {
+        const lostRevenue = cancelledClients.reduce((s, c) => s + c.monthlyValue, 0);
+        result.push({
+          id: 'cancelled-revenue',
+          type: 'danger',
+          icon: DollarSign,
+          title: `R$ ${lostRevenue.toLocaleString('pt-BR')}/mês perdidos — ${cancelledClients.length} cancelamento${cancelledClients.length > 1 ? 's' : ''}`,
+          description: `${cancelledClients.map(c => c.companyName).join(', ')}`,
+        });
+      }
     }
 
     // Sort: danger first, then warning, then info
