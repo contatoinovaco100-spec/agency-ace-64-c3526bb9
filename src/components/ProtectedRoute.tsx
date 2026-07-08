@@ -24,10 +24,12 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     if (isAffiliate) return <Navigate to="/afiliado/leads" replace />;
     if (isRedeCompanyUser) return <Navigate to="/negocios" replace />;
     if (isAdmin) return <Navigate to="/" replace />;
-    
-    // Find the first path the user actually has access to
-    const firstAllowed = Array.from(allowedPaths)[0];
-    if (firstAllowed && firstAllowed !== location.pathname) {
+
+    // Find the first path the user actually has access to (skip affiliate/admin-only)
+    const firstAllowed = Array.from(allowedPaths).find(
+      p => p !== location.pathname && hasPageAccess(p),
+    );
+    if (firstAllowed) {
       return <Navigate to={firstAllowed} replace />;
     }
 
