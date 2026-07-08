@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { CheckCircle2, XCircle, Clock, Users, Shield, MessageCircle, ArrowRight, Star, ChevronLeft, ChevronRight, AlertTriangle, Info, CheckCircle, AlertCircle, Check } from "lucide-react";
+import DOMPurify from "dompurify";
 import type { QuizTheme } from "@/lib/quizTheme";
 
 interface BlockProps {
@@ -882,10 +883,31 @@ export function SpacerBlock({ config, theme }: BlockProps) {
 /* ─── HTML EMBED ─── */
 export function HtmlBlock({ config, theme }: BlockProps) {
   if (!config.code) return null;
+  // Sanitize HTML before rendering to prevent stored XSS on public quiz pages.
+  // Allow common embed tags (iframe for video players) but strip <script>, event
+  // handlers, and other dangerous constructs.
+  const sanitized = useMemo(
+    () =>
+      DOMPurify.sanitize(String(config.code), {
+        ADD_TAGS: ["iframe"],
+        ADD_ATTR: [
+          "allow",
+          "allowfullscreen",
+          "frameborder",
+          "scrolling",
+          "referrerpolicy",
+          "loading",
+          "sandbox",
+        ],
+        FORBID_TAGS: ["script", "style", "object", "embed", "base", "form"],
+        FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur"],
+      }),
+    [config.code]
+  );
   return (
-    <div 
-      className="w-full relative [&_iframe]:w-full [&_iframe]:max-w-full" 
-      dangerouslySetInnerHTML={{ __html: config.code }} 
+    <div
+      className="w-full relative [&_iframe]:w-full [&_iframe]:max-w-full"
+      dangerouslySetInnerHTML={{ __html: sanitized }}
     />
   );
 }
