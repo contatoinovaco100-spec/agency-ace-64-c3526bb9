@@ -39,7 +39,7 @@ const typeStyles: Record<string, { border: string; bg: string; icon: string; bad
   },
 };
 
-export function SmartAlerts() {
+export function SmartAlerts({ hideFinancial = false }: { hideFinancial?: boolean } = {}) {
   const { clients, tasks } = useAgency();
   const [dismissedIds, setDismissedIds] = useState<string[]>(() => {
     try {
