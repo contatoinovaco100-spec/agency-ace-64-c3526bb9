@@ -655,3 +655,87 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     </div>
   );
 }
+
+// Accordion (sanfona) client selector - shows selected client, expands to list
+function ClientAccordionSelector({
+  clients,
+  selectedClient,
+  onSelect,
+}: {
+  clients: { id: string; companyName: string }[];
+  selectedClient: string;
+  onSelect: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const selectedName =
+    selectedClient === 'all'
+      ? 'Todos os clientes'
+      : clients.find(c => c.id === selectedClient)?.companyName || 'Todos os clientes';
+
+  const filtered = useMemo(
+    () => (q ? clients.filter(c => c.companyName.toLowerCase().includes(q.toLowerCase())) : clients),
+    [clients, q]
+  );
+
+  return (
+    <div className="rounded-md border border-border bg-card">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-muted/40 transition-colors"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">Cliente:</span>
+          <span className="text-sm font-medium truncate">{selectedName}</span>
+          <span className="text-[10px] text-muted-foreground shrink-0">({clients.length} ativos)</span>
+        </div>
+        <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="border-t border-border p-2 space-y-2">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder="Buscar cliente..."
+              className="h-8 pl-7 text-xs"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1.5 max-h-56 overflow-y-auto">
+            <button
+              onClick={() => { onSelect('all'); setOpen(false); }}
+              className={cn(
+                'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                selectedClient === 'all'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Todos
+            </button>
+            {filtered.map(c => (
+              <button
+                key={c.id}
+                onClick={() => { onSelect(c.id); setOpen(false); }}
+                className={cn(
+                  'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                  selectedClient === c.id
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {c.companyName}
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <span className="text-xs text-muted-foreground px-2 py-1">Nenhum cliente encontrado.</span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
