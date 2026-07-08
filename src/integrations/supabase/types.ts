@@ -3109,6 +3109,15 @@ export type Database = {
           signer_name: string
         }[]
       }
+      get_public_affiliate_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          full_name: string
+          id: string
+          instagram: string
+          slug: string
+        }[]
+      }
       get_public_arte_tasks: {
         Args: never
         Returns: {
@@ -3126,6 +3135,7 @@ export type Database = {
           title: string
         }[]
       }
+      get_public_client_name: { Args: { _id: string }; Returns: string }
       get_public_client_tasks: {
         Args: { _anchor: string }
         Returns: {
@@ -3250,6 +3260,24 @@ export type Database = {
           to: "pix_settings"
           isOneToOne: true
           isSetofReturn: false
+        }
+      }
+      get_public_referrals_by_token: {
+        Args: { _token: string }
+        Returns: {
+          client_id: string
+          created_at: string
+          id: string
+          referred_name: string
+          referred_whatsapp: string
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "referrals"
+          isOneToOne: false
+          isSetofReturn: true
         }
       }
       has_page_access: {
