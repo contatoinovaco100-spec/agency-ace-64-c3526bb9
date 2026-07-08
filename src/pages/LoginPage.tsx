@@ -64,8 +64,16 @@ export default function LoginPage() {
           .eq('owner_user_id', user.id).maybeSingle();
         if (companyRow) { navigate('/negocios'); return; }
 
-        // 4) Funcionário Inova → minhas tarefas
-        navigate('/minhas-tarefas');
+        // 4) Funcionário Inova → primeira página permitida (ou minhas-tarefas)
+        const { data: pageRows } = await supabase
+          .from('user_page_access').select('page_path')
+          .eq('user_id', user.id);
+        const paths = (pageRows ?? []).map(r => r.page_path);
+        const preferred = ['/minhas-tarefas', '/tarefas', '/calendario', '/clientes'];
+        const target = preferred.find(p => paths.includes(p))
+          ?? paths.find(p => !p.startsWith('/afiliado'))
+          ?? '/alterar-senha';
+        navigate(target);
       } else {
         navigate('/');
       }
