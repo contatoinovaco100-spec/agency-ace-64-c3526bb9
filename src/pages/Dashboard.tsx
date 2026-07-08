@@ -1154,7 +1154,8 @@ function SimpleDashboard({ clients, tasks, leads, mrr, activeClients, pendingTas
         <div className="absolute bottom-0 left-1/3 h-[350px] w-[350px] rounded-full bg-[hsl(var(--info))]/10 blur-[100px]" />
       </div>
 
-      <SmartAlerts />
+      <SmartAlerts hideFinancial />
+
 
       {/* Header — Futuristic */}
       <motion.div
