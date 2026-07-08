@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
         if (!existing) {
           const { error: insertErr } = await supabase.from('clients').insert({
             company_name: clientName,
-            contact_name: signer_name || clientName,
+            contact_name: trustedSignerName || clientName,
             email: contract.client_email || '',
             phone: '',
             contract_start_date: new Date().toISOString().split('T')[0],
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
     const message = `✅ *Contrato Assinado!*\n\n` +
       `📄 *${contract.title}*\n` +
       `👤 Cliente: ${contract.client_name}\n` +
-      `✍️ Assinado por: ${signer_name}\n` +
+      `✍️ Assinado por: ${trustedSignerName}\n` +
       `💰 Valor: ${value}/mês\n` +
       `📅 ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
 
