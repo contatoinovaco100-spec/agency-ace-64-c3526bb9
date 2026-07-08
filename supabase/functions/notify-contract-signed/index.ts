@@ -37,18 +37,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify signature exists
+    // Verify a real accepted signature exists for this contract before doing
+    // anything privileged (updating status, creating clients, sending notifications).
     const { data: signature } = await supabase
       .from('contract_signatures')
-      .select('id')
+      .select('id, accepted, signer_name')
       .eq('contract_id', contract_id)
+      .eq('accepted', true)
+      .order('signed_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (!signature) {
       return new Response(JSON.stringify({ error: 'Contract has not been signed yet' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Trust the signer_name recorded server-side rather than the request body.
+    const trustedSignerName = signature.signer_name || signer_name;
 
     // Update contract status to assinado since frontend might fail due to RLS
     if (contract.status !== 'assinado') {
