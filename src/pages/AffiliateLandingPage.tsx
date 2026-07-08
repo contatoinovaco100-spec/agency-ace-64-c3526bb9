@@ -156,9 +156,9 @@ export default function AffiliateLandingPage() {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await supabase.from('affiliates' as any)
-          .select('*').eq('slug', slug).eq('status', 'aprovado').maybeSingle();
-        setAffiliate(data as any);
+        const { data } = await (supabase as any).rpc('get_public_affiliate_by_slug', { _slug: slug });
+        const row = Array.isArray(data) ? data[0] : data;
+        setAffiliate(row as any);
       } catch (err) {
         console.error('[AffiliateLanding] Erro ao carregar afiliado:', err);
       }

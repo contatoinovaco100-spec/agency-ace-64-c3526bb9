@@ -213,9 +213,13 @@ export default function ClientContentPage() {
     if (list.length > 0) {
       const clientId = list[0].client_id;
       if (clientId) {
-        const { data: clientData } = await supabase.from('clients').select('company_name').eq('id', clientId).maybeSingle();
-        if (clientData) setClientName(clientData.company_name);
+        const { data: nameData } = await (supabase as any).rpc('get_public_client_name', { _id: clientId });
+        if (nameData) setClientName(nameData as string);
       }
+      setTasks(list);
+      setLoading(false);
+      return;
+    }
       setTasks(list);
       setLoading(false);
       return;
