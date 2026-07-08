@@ -3,8 +3,32 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-hub-signature-256',
 };
+
+// Verify Meta's X-Hub-Signature-256 header against the raw request body using
+// HMAC-SHA256 with META_APP_SECRET. Constant-time comparison.
+async function verifyMetaSignature(rawBody: string, signatureHeader: string | null, appSecret: string): Promise<boolean> {
+  if (!signatureHeader || !signatureHeader.startsWith('sha256=')) return false;
+  const providedHex = signatureHeader.slice('sha256='.length).trim().toLowerCase();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(appSecret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody));
+  const expectedHex = Array.from(new Uint8Array(sigBuf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  if (expectedHex.length !== providedHex.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expectedHex.length; i++) {
+    diff |= expectedHex.charCodeAt(i) ^ providedHex.charCodeAt(i);
+  }
+  return diff === 0;
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -30,7 +54,25 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
-    const body = await req.json();
+
+    // Read the raw body so we can HMAC-verify Meta's signature.
+    const rawBody = await req.text();
+    const appSecret = Deno.env.get('META_APP_SECRET');
+    if (!appSecret) {
+      console.error('META_APP_SECRET is not configured; rejecting webhook event');
+      return new Response('Forbidden', { status: 403 });
+    }
+    const isValid = await verifyMetaSignature(
+      rawBody,
+      req.headers.get('x-hub-signature-256'),
+      appSecret
+    );
+    if (!isValid) {
+      console.warn('Invalid Meta webhook signature');
+      return new Response('Forbidden', { status: 403 });
+    }
+
+    const body = JSON.parse(rawBody);
 
     const entry = body.entry?.[0];
     const change = entry?.changes?.[0]?.value;
