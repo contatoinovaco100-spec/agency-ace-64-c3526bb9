@@ -220,10 +220,6 @@ export default function ClientContentPage() {
       setLoading(false);
       return;
     }
-      setTasks(list);
-      setLoading(false);
-      return;
-    }
 
     setNotFound(true);
     setLoading(false);
