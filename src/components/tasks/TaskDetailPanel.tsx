@@ -355,63 +355,21 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               <Textarea rows={2} value={form.observations || ''} onChange={e => setForm({ ...form, observations: e.target.value })} placeholder="Notas adicionais..." className="mt-1" />
             </div>
             <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-3">
-              <div>
-                <Label className="text-[10px] sm:text-xs text-primary uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                  <Upload className="h-3 w-3" /> Vídeo finalizado (auto-hospedado)
-                </Label>
-                <div className="mt-2">
-                  <input
-                    id={`video-upload-${task?.id || 'new'}`}
-                    type="file"
-                    accept="video/*"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      if (!task) { toast.error('Salve a tarefa primeiro'); return; }
-                      if (file.size > 500 * 1024 * 1024) { toast.error('Vídeo excede 500MB'); return; }
-                      const toastId = toast.loading('Enviando vídeo...');
-                      try {
-                        const ext = file.name.split('.').pop() || 'mp4';
-                        const path = `${task.id}/${crypto.randomUUID()}.${ext}`;
-                        const { error: upErr } = await supabase.storage
-                          .from('task-videos')
-                          .upload(path, file, { contentType: file.type, upsert: false });
-                        if (upErr) throw upErr;
-                        // Signed URL válida por 10 anos (bucket privado)
-                        const { data: signed, error: sErr } = await supabase.storage
-                          .from('task-videos')
-                          .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-                        if (sErr || !signed?.signedUrl) throw sErr || new Error('sem URL');
-                        const url = signed.signedUrl;
-                        const { error: updErr } = await supabase.from('tasks')
-                          .update({ video_url: url }).eq('id', task.id);
-                        if (updErr) throw updErr;
-                        setForm(prev => ({ ...prev, videoUrl: url }));
-                        toast.success('Vídeo enviado e vinculado à tarefa!', { id: toastId });
-                      } catch (err: any) {
-                        console.error(err);
-                        toast.error(`Erro no upload: ${err?.message || 'tente novamente'}`, { id: toastId });
-                      } finally {
-                        e.target.value = '';
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="default"
-                    className="w-full gap-2"
-                    onClick={() => document.getElementById(`video-upload-${task?.id || 'new'}`)?.click()}
-                    disabled={!task}
-                  >
-                    <Upload className="h-4 w-4" />
-                    {form.videoUrl && form.videoUrl.includes('task-videos') ? 'Substituir vídeo enviado' : 'Enviar vídeo do computador'}
-                  </Button>
-                  <p className="text-[10px] text-muted-foreground mt-1.5">
-                    MP4, MOV ou WebM até 500MB. O cliente poderá assistir direto na página de aprovação — sem depender de Drive.
-                  </p>
-                </div>
-              </div>
+              <Label className="text-[10px] sm:text-xs text-primary uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                <Upload className="h-3 w-3" /> Vídeo finalizado (auto-hospedado)
+              </Label>
+
+              {task ? (
+                <VideoUploader
+                  taskId={task.id}
+                  currentUrl={form.videoUrl}
+                  onUploaded={(url) => setForm(prev => ({ ...prev, videoUrl: url }))}
+                />
+              ) : (
+                <p className="text-xs text-muted-foreground italic">
+                  Salve a tarefa primeiro para habilitar o upload de vídeo.
+                </p>
+              )}
 
               <div className="border-t border-primary/20 pt-3">
                 <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
@@ -446,6 +404,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                 </div>
               </div>
             </div>
+
 
           </div>
           </>)}
