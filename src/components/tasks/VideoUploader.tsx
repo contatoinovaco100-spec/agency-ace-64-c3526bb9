@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
-import { Upload, Film, X, CheckCircle2, Loader2 } from 'lucide-react';
+import { Upload, Film, X, CheckCircle2, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -9,7 +9,9 @@ interface Props {
   taskId: string;
   currentUrl?: string;
   onUploaded: (signedUrl: string) => void;
+  onDeleted?: () => void;
 }
+
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://cdzzewovtxotkghzeafr.supabase.co';
 const MAX_MB = 500;
