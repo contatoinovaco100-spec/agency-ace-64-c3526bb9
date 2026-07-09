@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
-import { Upload, Film, X, CheckCircle2, Loader2 } from 'lucide-react';
+import { Upload, Film, X, CheckCircle2, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -9,23 +9,38 @@ interface Props {
   taskId: string;
   currentUrl?: string;
   onUploaded: (signedUrl: string) => void;
+  onDeleted?: () => void;
 }
+
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://cdzzewovtxotkghzeafr.supabase.co';
 const MAX_MB = 500;
 
 const fmtSize = (b: number) => b > 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${(b / 1024).toFixed(0)} KB`;
 
-export default function VideoUploader({ taskId, currentUrl, onUploaded }: Props) {
+export default function VideoUploader({ taskId, currentUrl, onUploaded, onDeleted }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState<number>(0);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
 
   const hasVideo = !!currentUrl && currentUrl.includes('task-videos');
+
+  const extractStoragePath = (url: string) => {
+    try {
+      const u = new URL(url);
+      const parts = u.pathname.split('/');
+      const bucketIdx = parts.findIndex(p => p === 'task-videos');
+      if (bucketIdx === -1 || bucketIdx + 1 >= parts.length) return null;
+      return parts.slice(bucketIdx + 1).join('/');
+    } catch {
+      return null;
+    }
+  };
 
   const doUpload = useCallback(async (file: File) => {
     if (!file.type.startsWith('video/')) {
@@ -90,9 +105,32 @@ export default function VideoUploader({ taskId, currentUrl, onUploaded }: Props)
     }
   }, [taskId, onUploaded]);
 
+  const deleteVideo = async () => {
+    if (!currentUrl) return;
+    const path = extractStoragePath(currentUrl);
+    setDeleting(true);
+    try {
+      if (path) {
+        const { error: storageErr } = await supabase.storage.from('task-videos').remove([path]);
+        if (storageErr) console.warn('Erro ao remover arquivo do storage:', storageErr);
+      }
+      const { error: updErr } = await supabase.from('tasks').update({ video_url: null }).eq('id', taskId);
+      if (updErr) throw updErr;
+      onUploaded('');
+      onDeleted?.();
+      toast.success('Vídeo removido.');
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || 'Erro ao remover vídeo.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const cancel = () => {
     xhrRef.current?.abort();
   };
+
 
   return (
     <div className="space-y-2">
@@ -157,6 +195,17 @@ export default function VideoUploader({ taskId, currentUrl, onUploaded }: Props)
             <p className="text-[11px] text-muted-foreground">
               Arraste um novo arquivo ou clique para substituir
             </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={(e) => { e.stopPropagation(); deleteVideo(); }}
+              disabled={deleting}
+            >
+              {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+              {deleting ? 'Removendo...' : 'Excluir vídeo'}
+            </Button>
           </>
         ) : (
           <>

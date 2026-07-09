@@ -364,6 +364,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                   taskId={task.id}
                   currentUrl={form.videoUrl}
                   onUploaded={(url) => setForm(prev => ({ ...prev, videoUrl: url }))}
+                  onDeleted={() => setForm(prev => ({ ...prev, videoUrl: '' }))}
                 />
               ) : (
                 <p className="text-xs text-muted-foreground italic">
