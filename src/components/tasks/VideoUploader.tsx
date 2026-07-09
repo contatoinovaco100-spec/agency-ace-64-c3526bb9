@@ -195,6 +195,17 @@ export default function VideoUploader({ taskId, currentUrl, onUploaded, onDelete
             <p className="text-[11px] text-muted-foreground">
               Arraste um novo arquivo ou clique para substituir
             </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={(e) => { e.stopPropagation(); deleteVideo(); }}
+              disabled={deleting}
+            >
+              {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+              {deleting ? 'Removendo...' : 'Excluir vídeo'}
+            </Button>
           </>
         ) : (
           <>
