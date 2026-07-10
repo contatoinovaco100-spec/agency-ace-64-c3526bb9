@@ -304,16 +304,17 @@ export default function ClientContentPage() {
 
   const pendingTasks = tasks.filter(t => {
     if (taskId && t.id === taskId) return true;
-    
-    // Tarefas marcadas como "Concluído" são arquivadas internamente e não aparecem para o cliente
-    if (t.status === 'Concluído') return false;
+    const isArte = t.task_type === 'Arte';
+
+    // Artes concluídas/finalizadas devem aparecer para o cliente ver a arte pronta
+    if (!isArte && t.status === 'Concluído') return false;
     if (t.status === 'Postado') return false;
-    const taskDate = t.scheduled_date || t.due_date;
+    const taskDate = t.post_date || t.scheduled_date || t.due_date;
     if (!taskDate) return true;
     const date = new Date(taskDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    if (date < today && !isInternal) return false;
+    if (date < today && !isInternal && !isArte) return false;
     return true;
   });
   const pastDueTasks = tasks.filter(t => {
