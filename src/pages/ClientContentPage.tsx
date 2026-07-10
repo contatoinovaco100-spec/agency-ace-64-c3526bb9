@@ -67,8 +67,8 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
         onClick={() => setOpen(!open)}
         className="flex w-full items-center gap-4 p-5 text-left transition-colors hover:bg-secondary/20"
       >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <Clapperboard className="h-5 w-5 text-primary" />
+        <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", isArte ? "bg-pink-500/10" : "bg-primary/10")}>
+          {isArte ? <Palette className="h-5 w-5 text-pink-500" /> : <Clapperboard className="h-5 w-5 text-primary" />}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
