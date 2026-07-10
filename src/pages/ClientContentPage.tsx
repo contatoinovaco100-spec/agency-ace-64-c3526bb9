@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import logoInova from '@/assets/logo-inova.png';
 import { cn } from '@/lib/utils';
-import { Clapperboard, Calendar, Target, FileText, Link2, MessageSquare, Loader2, ChevronDown, ChevronRight, CheckCircle, Eye, EyeOff, Lock } from 'lucide-react';
+import { Clapperboard, Calendar, Target, FileText, Link2, MessageSquare, Loader2, ChevronDown, ChevronRight, CheckCircle, Eye, EyeOff, Lock, Palette } from 'lucide-react';
+import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import { toast } from 'sonner';
 
 interface TaskData {
@@ -31,11 +32,13 @@ interface TaskData {
   editing_style: string;
   strategic_notes: string;
   video_url?: string | null;
+  task_type?: string | null;
 }
 
 function TaskCard({ task, index }: { task: TaskData; index: number }) {
   const [open, setOpen] = useState(index === 0);
-  const videoName = task.video_name || task.title || 'Sem título';
+  const isArte = task.task_type === 'Arte';
+  const videoName = isArte ? (task.title || 'Arte sem título') : (task.video_name || task.title || 'Sem título');
   
   const isPosted = task.status === 'Postado';
   const isProgramado = task.status === 'Programado';
@@ -64,8 +67,8 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
         onClick={() => setOpen(!open)}
         className="flex w-full items-center gap-4 p-5 text-left transition-colors hover:bg-secondary/20"
       >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <Clapperboard className="h-5 w-5 text-primary" />
+        <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", isArte ? "bg-pink-500/10" : "bg-primary/10")}>
+          {isArte ? <Palette className="h-5 w-5 text-pink-500" /> : <Clapperboard className="h-5 w-5 text-primary" />}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -110,7 +113,16 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
           {task.description && (
             <p className="text-sm text-muted-foreground">{task.description}</p>
           )}
-          {task.video_url && (() => {
+          {isArte && (
+            <div className="rounded-lg border border-pink-500/30 bg-pink-500/5 p-3">
+              <div className="mb-2 flex items-center gap-2">
+                <Palette className="h-3.5 w-3.5 text-pink-500" />
+                <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide">Arte pronta</h4>
+              </div>
+              <ArteAttachmentsPreview taskId={task.id} compact={false} />
+            </div>
+          )}
+          {!isArte && task.video_url && (() => {
             const url = task.video_url;
             const isDrive = /drive\.google\.com/i.test(url);
             const isYouTube = /(youtube\.com|youtu\.be)/i.test(url);
@@ -292,16 +304,17 @@ export default function ClientContentPage() {
 
   const pendingTasks = tasks.filter(t => {
     if (taskId && t.id === taskId) return true;
-    
-    // Tarefas marcadas como "Concluído" são arquivadas internamente e não aparecem para o cliente
-    if (t.status === 'Concluído') return false;
+    const isArte = t.task_type === 'Arte';
+
+    // Artes concluídas/finalizadas devem aparecer para o cliente ver a arte pronta
+    if (!isArte && t.status === 'Concluído') return false;
     if (t.status === 'Postado') return false;
-    const taskDate = t.scheduled_date || t.due_date;
+    const taskDate = t.post_date || t.scheduled_date || t.due_date;
     if (!taskDate) return true;
     const date = new Date(taskDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    if (date < today && !isInternal) return false;
+    if (date < today && !isInternal && !isArte) return false;
     return true;
   });
   const pastDueTasks = tasks.filter(t => {
