@@ -306,9 +306,10 @@ export default function ClientContentPage() {
     if (taskId && t.id === taskId) return true;
     const isArte = t.task_type === 'Arte';
 
-    // Artes concluídas/finalizadas devem aparecer para o cliente ver a arte pronta
-    if (!isArte && t.status === 'Concluído') return false;
+    // Concluído nunca aparece para o cliente. Para artes, só aparece se estiver "Finalizado".
+    if (t.status === 'Concluído') return false;
     if (t.status === 'Postado') return false;
+    if (isArte && t.status !== 'Finalizado') return false;
     const taskDate = t.post_date || t.scheduled_date || t.due_date;
     if (!taskDate) return true;
     const date = new Date(taskDate);
