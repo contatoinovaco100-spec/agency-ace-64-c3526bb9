@@ -62,39 +62,8 @@ Deno.serve(async (req) => {
       await supabase.from('contracts').update({ status: 'assinado' }).eq('id', contract_id);
     }
 
-    // Auto-create client in CRM if not already existing
-    try {
-      const clientName = (contract.client_name || '').trim();
-      if (clientName) {
-        const { data: existing } = await supabase
-          .from('clients')
-          .select('id')
-          .ilike('company_name', clientName)
-          .maybeSingle();
-
-        if (!existing) {
-          const { error: insertErr } = await supabase.from('clients').insert({
-            company_name: clientName,
-            contact_name: trustedSignerName || clientName,
-            email: contract.client_email || '',
-            phone: '',
-            contract_start_date: new Date().toISOString().split('T')[0],
-            monthly_value: Number(contract.monthly_value) || 0,
-            scope: contract.scope_description || contract.services || (contract.plan_name ? `Plano ${contract.plan_name}` : ''),
-            service_type: [],
-            account_manager: '',
-            status: 'Ativo',
-            notes: `Cliente criado automaticamente ao assinar contrato "${contract.title}".`,
-          });
-          if (insertErr) console.error('Failed to auto-create client:', insertErr);
-          else console.log('Client auto-created:', clientName);
-        } else {
-          console.log('Client already exists, skipping:', clientName);
-        }
-      }
-    } catch (e) {
-      console.error('Auto-create client error:', e);
-    }
+    // Client auto-creation is handled by the DB trigger `auto_create_client_on_signature`
+    // to avoid duplicates. Do not create the client here.
 
     const INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
     const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
