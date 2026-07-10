@@ -37,7 +37,8 @@ interface TaskData {
 
 function TaskCard({ task, index }: { task: TaskData; index: number }) {
   const [open, setOpen] = useState(index === 0);
-  const videoName = task.video_name || task.title || 'Sem título';
+  const isArte = task.task_type === 'Arte';
+  const videoName = isArte ? (task.title || 'Arte sem título') : (task.video_name || task.title || 'Sem título');
   
   const isPosted = task.status === 'Postado';
   const isProgramado = task.status === 'Programado';
