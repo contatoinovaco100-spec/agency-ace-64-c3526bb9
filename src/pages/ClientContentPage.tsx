@@ -113,7 +113,16 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
           {task.description && (
             <p className="text-sm text-muted-foreground">{task.description}</p>
           )}
-          {task.video_url && (() => {
+          {isArte && (
+            <div className="rounded-lg border border-pink-500/30 bg-pink-500/5 p-3">
+              <div className="mb-2 flex items-center gap-2">
+                <Palette className="h-3.5 w-3.5 text-pink-500" />
+                <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide">Arte pronta</h4>
+              </div>
+              <ArteAttachmentsPreview taskId={task.id} compact={false} />
+            </div>
+          )}
+          {!isArte && task.video_url && (() => {
             const url = task.video_url;
             const isDrive = /drive\.google\.com/i.test(url);
             const isYouTube = /(youtube\.com|youtu\.be)/i.test(url);
