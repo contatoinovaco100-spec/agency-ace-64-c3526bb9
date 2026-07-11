@@ -58,83 +58,113 @@ function buildStatusToColumn(columnNames: string[]) {
 // ── Card Content (shared between card and overlay) ─────────
 function CardContent({ task, clientName, compact }: { task: Task; clientName?: string; compact?: boolean }) {
   const displayName = task.videoName || task.title || 'Sem título';
-  const hasMedia = task.videoUrl || task.taskType === 'Arte';
+  const isArte = task.taskType === 'Arte';
   const date = task.dueDate || task.postDate;
   const dateLabel = task.dueDate ? 'Entrega' : 'Post';
   const dateValue = date
     ? new Date(date.replace(/-/g, '/')).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
     : null;
 
-  return (
-    <>
-      <div className="flex items-center gap-2 min-w-0">
-        {hasMedia && (
+  if (!compact) {
+    return (
+      <>
+        <div className="flex items-center gap-2 min-w-0">
           <div className={cn(
-            'shrink-0 rounded flex items-center justify-center',
-            task.taskType === 'Arte' ? 'bg-pink-500/15 text-pink-400' : 'bg-primary/15 text-primary',
-            compact ? 'h-5 w-5' : 'h-6 w-6'
+            'shrink-0 rounded flex items-center justify-center h-6 w-6',
+            isArte ? 'bg-pink-500/15 text-pink-400' : 'bg-primary/15 text-primary'
           )}>
-            {task.taskType === 'Arte' ? (
-              <svg width={compact ? 10 : 12} height={compact ? 10 : 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            {isArte ? (
+              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
             ) : (
-              <svg width={compact ? 10 : 12} height={compact ? 10 : 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
+              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
             )}
           </div>
+          <p className="font-medium text-foreground leading-snug truncate flex-1 text-sm">
+            {displayName}
+          </p>
+        </div>
+        {clientName && (
+          <p className="mt-0.5 text-[10px] text-primary/70 font-medium truncate">{clientName}</p>
         )}
-        <p className={cn(
-          'font-medium text-foreground leading-snug truncate flex-1',
-          compact ? 'text-xs' : 'text-sm'
-        )}>
+        {task.description && (
+          <p className="mt-0.5 text-[10px] text-muted-foreground line-clamp-1">{task.description}</p>
+        )}
+        {task.videoUrl && (
+          <a
+            href={task.videoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="mt-1 inline-flex items-center gap-1 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary hover:bg-primary/20 transition-colors"
+            title="Baixar vídeo finalizado"
+          >
+            <svg width="10" height="10" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+              <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+              <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
+              <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+              <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+              <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+              <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+            </svg>
+            Baixar vídeo
+          </a>
+        )}
+        {isArte && <ArteAttachmentsPreview taskId={task.id} compact={false} />}
+        <div className="mt-1.5 flex items-center justify-between gap-2">
+          <span className={cn('rounded px-1 py-[1px] text-[9px] font-semibold leading-tight', PRIORITY_BADGE[task.priority])}>
+            {task.priority}
+          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            {task.assignee && (
+              <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[9px] font-bold text-primary" title={task.assignee}>
+                {task.assignee.charAt(0).toUpperCase()}
+              </div>
+            )}
+            {dateValue && (
+              <span className="text-[9px] tabular-nums text-muted-foreground truncate" title={dateLabel}>
+                {dateLabel}: {dateValue}
+                {task.postTime ? ` ${task.postTime.slice(0, 5)}` : ''}
+              </span>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Compact list-row style
+  return (
+    <div className="flex items-center gap-1.5 min-w-0">
+      <div className={cn(
+        'shrink-0 rounded flex items-center justify-center h-4 w-4',
+        isArte ? 'bg-pink-500/15 text-pink-400' : 'bg-primary/15 text-primary'
+      )}>
+        {isArte ? (
+          <svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+        ) : (
+          <svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] font-medium text-foreground leading-tight truncate">
           {displayName}
         </p>
-      </div>
-      {clientName && (
-        <p className="mt-0.5 text-[10px] text-primary/70 font-medium truncate">{clientName}</p>
-      )}
-      {task.description && (
-        <p className="mt-0.5 text-[10px] text-muted-foreground line-clamp-1">{task.description}</p>
-      )}
-      {task.videoUrl && (
-        <a
-          href={task.videoUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-          className="mt-1 inline-flex items-center gap-1 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary hover:bg-primary/20 transition-colors"
-          title="Baixar vídeo finalizado"
-        >
-          <svg width="10" height="10" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-            <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-            <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
-            <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
-            <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
-            <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-            <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-          </svg>
-          Baixar vídeo
-        </a>
-      )}
-      {task.taskType === 'Arte' && <ArteAttachmentsPreview taskId={task.id} compact />}
-      <div className="mt-1.5 flex items-center justify-between gap-2">
-        <span className={cn('rounded px-1 py-[1px] text-[9px] font-semibold leading-tight', PRIORITY_BADGE[task.priority])}>
-          {task.priority}
-        </span>
-        <div className="flex items-center gap-1.5 min-w-0">
-          {task.assignee && (
-            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[9px] font-bold text-primary" title={task.assignee}>
-              {task.assignee.charAt(0).toUpperCase()}
-            </div>
+        <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
+          {clientName && (
+            <span className="text-[9px] text-primary/70 truncate max-w-[90px]">{clientName}</span>
           )}
           {dateValue && (
             <span className="text-[9px] tabular-nums text-muted-foreground truncate" title={dateLabel}>
-              {dateLabel}: {dateValue}
-              {task.postTime ? ` ${task.postTime.slice(0, 5)}` : ''}
+              {dateValue}{task.postTime ? ` ${task.postTime.slice(0, 5)}` : ''}
             </span>
           )}
         </div>
       </div>
-    </>
+      <span className={cn('rounded px-1 py-[1px] text-[8px] font-semibold leading-tight', PRIORITY_BADGE[task.priority])}>
+        {task.priority}
+      </span>
+    </div>
   );
 }
 
@@ -176,7 +206,7 @@ function DraggableCard({
       }}
       onClick={handleClick}
       className={cn(
-        'cursor-grab rounded-md border-l-[3px] bg-card py-1.5 px-2 transition-shadow hover:shadow-sm active:cursor-grabbing',
+        'cursor-grab rounded-md border-l-[2px] bg-card py-1 px-1.5 transition-shadow hover:shadow-sm active:cursor-grabbing',
         borderClass,
         isDragging && 'opacity-40',
       )}
