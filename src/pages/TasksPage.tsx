@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { useAgency } from '@/contexts/AgencyContext';
 import { Task } from '@/types/agency';
-import { Plus, Filter, Search, X, Users, ChevronDown, ChevronRight, FolderCheck, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Plus, Filter, Search, X, Users, ChevronDown, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -170,10 +170,10 @@ function CardContent({ task, clientName, compact }: { task: Task; clientName?: s
 
 // ── Draggable Card ─────────────────────────────────────────
 function DraggableCard({
-  task, onClick, clientName, borderClass, onAdvance, nextStageLabel,
+  task, onClick, clientName, borderClass, onAdvance, nextStageLabel, onDuplicate,
 }: {
   task: Task; onClick: () => void; clientName?: string; borderClass: string;
-  onAdvance?: () => void; nextStageLabel?: string | null;
+  onAdvance?: () => void; nextStageLabel?: string | null; onDuplicate?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
@@ -206,11 +206,21 @@ function DraggableCard({
       }}
       onClick={handleClick}
       className={cn(
-        'cursor-grab rounded-md border-l-[2px] bg-card py-1 px-1.5 transition-shadow hover:shadow-sm active:cursor-grabbing',
+        'group relative cursor-grab rounded-md border-l-[2px] bg-card py-1 px-1.5 transition-shadow hover:shadow-sm active:cursor-grabbing',
         borderClass,
         isDragging && 'opacity-40',
       )}
     >
+      {onDuplicate && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          title="Duplicar tarefa"
+          className="absolute top-0.5 right-0.5 z-10 flex h-5 w-5 items-center justify-center rounded bg-secondary/70 text-muted-foreground opacity-0 transition-opacity hover:bg-primary/20 hover:text-primary group-hover:opacity-100"
+        >
+          <Copy className="h-3 w-3" />
+        </button>
+      )}
       <CardContent task={task} clientName={clientName} compact />
       {onAdvance && nextStageLabel && (
         <button
@@ -236,6 +246,7 @@ function KanbanColumn({
   onAdvanceTask,
   nextStageName,
   showAddButton,
+  onDuplicateTask,
 }: {
   stage: KanbanStage;
   tasks: Task[];
@@ -245,6 +256,7 @@ function KanbanColumn({
   onAdvanceTask: (task: Task, nextStage: string) => void;
   nextStageName: string | null;
   showAddButton: boolean;
+  onDuplicateTask?: (task: Task) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.name });
   const cc = colorClasses(stage.color);
@@ -277,6 +289,7 @@ function KanbanColumn({
             borderClass={cc.border}
             onAdvance={nextStageName ? () => onAdvanceTask(task, nextStageName) : undefined}
             nextStageLabel={nextStageName}
+            onDuplicate={onDuplicateTask ? () => onDuplicateTask(task) : undefined}
           />
         ))}
 
@@ -565,6 +578,22 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const selectedClientName = selectedClient !== 'all' ? getClientName(selectedClient) : null;
   const firstStageName = kanbanStages[0]?.name;
 
+  const handleDuplicateTask = async (task: Task) => {
+    const { id: _id, ...rest } = task;
+    const duplicated: Task = {
+      ...rest,
+      id: crypto.randomUUID(),
+      title: `${task.title || task.videoName || 'Tarefa'} (cópia)`,
+      videoName: task.videoName ? `${task.videoName} (cópia)` : '',
+      status: (firstStageName || task.status) as any,
+    };
+    try {
+      await addTask(duplicated);
+    } catch (err) {
+      console.error('Duplicate failed:', err);
+    }
+  };
+
   return (
     <div className="flex h-full flex-col gap-4">
       {/* Header */}
@@ -655,6 +684,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                 onAdvanceTask={(task, nextStage) => updateTask({ ...task, status: nextStage as any })}
                 nextStageName={getNextStageName(stage.name)}
                 showAddButton={stage.name === firstStageName}
+                onDuplicateTask={handleDuplicateTask}
               />
             </div>
           ))}
