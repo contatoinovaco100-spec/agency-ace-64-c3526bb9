@@ -124,11 +124,11 @@ export default function ArteAttachmentsPreview({
   return (
     <div className={cn("space-y-2", compact ? "mt-1" : "mt-2")} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
       {previewItem && (
-        <div className="relative overflow-hidden rounded-md border border-border bg-muted">
+        <div className={cn("relative overflow-hidden rounded-md border border-border bg-muted", compact && "h-10")}>
           <img
             src={previewItem.signedUrl}
             alt={previewItem.name}
-            className={compact ? 'h-16 w-full object-cover' : 'max-h-72 w-full object-contain bg-black/40'}
+            className={compact ? 'h-10 w-full object-cover' : 'max-h-72 w-full object-contain bg-black/40'}
             loading="lazy"
           />
           {!compact && (
@@ -151,24 +151,27 @@ export default function ArteAttachmentsPreview({
       )}
 
       {items.length > 1 && (
-        <div className="flex flex-wrap gap-1">
+        <div className={cn("flex flex-wrap gap-1", compact && "mt-1")}>
           {items.map((a) => (
             <button
               key={a.id}
               type="button"
               onClick={(e) => handleDownload(a, e)}
               disabled={downloadingId === a.id}
-              className="inline-flex max-w-full items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-foreground hover:bg-muted disabled:opacity-60"
+              className={cn(
+                "inline-flex max-w-full items-center gap-1 rounded border border-border bg-background text-foreground hover:bg-muted disabled:opacity-60",
+                compact ? "px-1 py-[1px] text-[8px]" : "px-1.5 py-0.5 text-[10px]"
+              )}
               title={`Baixar ${a.name}`}
             >
               {downloadingId === a.id ? (
-                <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+                <Loader2 className={cn("animate-spin shrink-0", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
               ) : a.isImage ? (
-                <ImageIcon className="h-3 w-3 shrink-0" />
+                <ImageIcon className={cn("shrink-0", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
               ) : (
-                <Download className="h-3 w-3 shrink-0" />
+                <Download className={cn("shrink-0", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
               )}
-              <span className="truncate max-w-[120px]">{a.name}</span>
+              <span className={cn("truncate", compact ? "max-w-[80px]" : "max-w-[120px]")}>{a.name}</span>
             </button>
           ))}
         </div>
