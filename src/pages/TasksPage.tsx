@@ -684,6 +684,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                 onAdvanceTask={(task, nextStage) => updateTask({ ...task, status: nextStage as any })}
                 nextStageName={getNextStageName(stage.name)}
                 showAddButton={stage.name === firstStageName}
+                onDuplicateTask={handleDuplicateTask}
               />
             </div>
           ))}
