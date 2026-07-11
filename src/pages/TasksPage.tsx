@@ -56,17 +56,43 @@ function buildStatusToColumn(columnNames: string[]) {
 }
 
 // ── Card Content (shared between card and overlay) ─────────
-function CardContent({ task, clientName }: { task: Task; clientName?: string }) {
+function CardContent({ task, clientName, compact }: { task: Task; clientName?: string; compact?: boolean }) {
+  const displayName = task.videoName || task.title || 'Sem título';
+  const hasMedia = task.videoUrl || task.taskType === 'Arte';
+  const date = task.dueDate || task.postDate;
+  const dateLabel = task.dueDate ? 'Entrega' : 'Post';
+  const dateValue = date
+    ? new Date(date.replace(/-/g, '/')).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+    : null;
+
   return (
     <>
-      <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
-        {task.videoName || task.title || 'Sem título'}
-      </p>
+      <div className="flex items-center gap-2 min-w-0">
+        {hasMedia && (
+          <div className={cn(
+            'shrink-0 rounded flex items-center justify-center',
+            task.taskType === 'Arte' ? 'bg-pink-500/15 text-pink-400' : 'bg-primary/15 text-primary',
+            compact ? 'h-5 w-5' : 'h-6 w-6'
+          )}>
+            {task.taskType === 'Arte' ? (
+              <svg width={compact ? 10 : 12} height={compact ? 10 : 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            ) : (
+              <svg width={compact ? 10 : 12} height={compact ? 10 : 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
+            )}
+          </div>
+        )}
+        <p className={cn(
+          'font-medium text-foreground leading-snug truncate flex-1',
+          compact ? 'text-xs' : 'text-sm'
+        )}>
+          {displayName}
+        </p>
+      </div>
       {clientName && (
-        <p className="mt-0.5 text-[11px] text-primary/70 font-medium">{clientName}</p>
+        <p className="mt-0.5 text-[10px] text-primary/70 font-medium truncate">{clientName}</p>
       )}
       {task.description && (
-        <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{task.description}</p>
+        <p className="mt-0.5 text-[10px] text-muted-foreground line-clamp-1">{task.description}</p>
       )}
       {task.videoUrl && (
         <a
@@ -75,10 +101,10 @@ function CardContent({ task, clientName }: { task: Task; clientName?: string }) 
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
-          className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/20 transition-colors"
+          className="mt-1 inline-flex items-center gap-1 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary hover:bg-primary/20 transition-colors"
           title="Baixar vídeo finalizado"
         >
-          <svg width="12" height="12" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+          <svg width="10" height="10" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
             <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
             <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
             <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
@@ -89,31 +115,22 @@ function CardContent({ task, clientName }: { task: Task; clientName?: string }) 
           Baixar vídeo
         </a>
       )}
-      {task.taskType === 'Arte' && <ArteAttachmentsPreview taskId={task.id} />}
-      <div className="mt-2.5 flex items-start justify-between gap-2">
-        <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', PRIORITY_BADGE[task.priority])}>
+      {task.taskType === 'Arte' && <ArteAttachmentsPreview taskId={task.id} compact />}
+      <div className="mt-1.5 flex items-center justify-between gap-2">
+        <span className={cn('rounded px-1 py-[1px] text-[9px] font-semibold leading-tight', PRIORITY_BADGE[task.priority])}>
           {task.priority}
         </span>
         <div className="flex items-center gap-1.5 min-w-0">
           {task.assignee && (
-            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary" title={task.assignee}>
+            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[9px] font-bold text-primary" title={task.assignee}>
               {task.assignee.charAt(0).toUpperCase()}
             </div>
           )}
-          {(task.dueDate || task.postDate) && (
-            <div className="flex flex-col items-end gap-0.5 min-w-0">
-              {task.dueDate && (
-                <span className="text-[10px] tabular-nums text-muted-foreground truncate" title="Data de entrega">
-                  Entrega: {new Date(task.dueDate.replace(/-/g, '/')).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                </span>
-              )}
-              {task.postDate && (
-                <span className="text-[10px] tabular-nums text-primary/80 truncate" title="Data de postagem">
-                  Post: {new Date(task.postDate.replace(/-/g, '/')).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                  {task.postTime ? ` ${task.postTime.slice(0, 5)}` : ''}
-                </span>
-              )}
-            </div>
+          {dateValue && (
+            <span className="text-[9px] tabular-nums text-muted-foreground truncate" title={dateLabel}>
+              {dateLabel}: {dateValue}
+              {task.postTime ? ` ${task.postTime.slice(0, 5)}` : ''}
+            </span>
           )}
         </div>
       </div>
@@ -159,18 +176,18 @@ function DraggableCard({
       }}
       onClick={handleClick}
       className={cn(
-        'cursor-grab rounded-lg border-l-[3px] bg-card p-3 transition-shadow hover:shadow-md active:cursor-grabbing',
+        'cursor-grab rounded-md border-l-[3px] bg-card py-1.5 px-2 transition-shadow hover:shadow-sm active:cursor-grabbing',
         borderClass,
         isDragging && 'opacity-40',
       )}
     >
-      <CardContent task={task} clientName={clientName} />
+      <CardContent task={task} clientName={clientName} compact />
       {onAdvance && nextStageLabel && (
         <button
           onClick={(e) => { e.stopPropagation(); onAdvance(); }}
           onPointerDown={(e) => e.stopPropagation()}
           title={nextStageLabel}
-          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md bg-primary/10 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/20"
+          className="mt-1 flex w-full items-center justify-center gap-1 rounded bg-primary/10 py-0.5 text-[9px] font-semibold text-primary transition-colors hover:bg-primary/20"
         >
           <CheckCircle2 className="h-3 w-3" /> → {nextStageLabel}
         </button>
