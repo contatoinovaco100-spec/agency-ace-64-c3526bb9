@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Download, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface AttachmentRow {
   id: string;
@@ -121,29 +122,31 @@ export default function ArteAttachmentsPreview({
   const previewItem = items.find((i) => i.isImage && i.signedUrl);
 
   return (
-    <div className="mt-2 space-y-2" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+    <div className={cn("space-y-2", compact ? "mt-1" : "mt-2")} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
       {previewItem && (
         <div className="relative overflow-hidden rounded-md border border-border bg-muted">
           <img
             src={previewItem.signedUrl}
             alt={previewItem.name}
-            className={compact ? 'h-32 w-full object-cover' : 'max-h-72 w-full object-contain bg-black/40'}
+            className={compact ? 'h-16 w-full object-cover' : 'max-h-72 w-full object-contain bg-black/40'}
             loading="lazy"
           />
-          <button
-            type="button"
-            onClick={(e) => handleDownload(previewItem, e)}
-            disabled={downloadingId === previewItem.id}
-            className="absolute right-1.5 top-1.5 inline-flex items-center gap-1 rounded bg-black/70 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur hover:bg-black/85 disabled:opacity-60"
-            title="Baixar em qualidade original"
-          >
-            {downloadingId === previewItem.id ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Download className="h-3 w-3" />
-            )}
-            Baixar
-          </button>
+          {!compact && (
+            <button
+              type="button"
+              onClick={(e) => handleDownload(previewItem, e)}
+              disabled={downloadingId === previewItem.id}
+              className="absolute right-1.5 top-1.5 inline-flex items-center gap-1 rounded bg-black/70 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur hover:bg-black/85 disabled:opacity-60"
+              title="Baixar em qualidade original"
+            >
+              {downloadingId === previewItem.id ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Download className="h-3 w-3" />
+              )}
+              Baixar
+            </button>
+          )}
         </div>
       )}
 
