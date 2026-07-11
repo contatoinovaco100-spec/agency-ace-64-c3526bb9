@@ -412,16 +412,45 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
 
 
 
-          {/* ── Tabs: Checklist / Comments / Attachments ── */}
+          {/* ── Tabs: Checklist / Comments / Attachments / References ── */}
           {!isNew && (
             <>
               <Separator />
-              <Tabs defaultValue="checklist" className="w-full">
+              <Tabs defaultValue={form.taskType === 'Arte' ? 'references' : 'checklist'} className="w-full">
                 <TabsList className="w-full">
+                  {form.taskType === 'Arte' && (
+                    <TabsTrigger value="references" className="flex-1 gap-1"><Link className="h-3.5 w-3.5" /> Referências</TabsTrigger>
+                  )}
                   <TabsTrigger value="checklist" className="flex-1 gap-1"><CheckSquare className="h-3.5 w-3.5" /> Checklist</TabsTrigger>
                   <TabsTrigger value="comments" className="flex-1 gap-1"><MessageSquare className="h-3.5 w-3.5" /> Comentários ({comments.length})</TabsTrigger>
                   <TabsTrigger value="attachments" className="flex-1 gap-1"><FileText className="h-3.5 w-3.5" /> Anexos ({attachments.length})</TabsTrigger>
                 </TabsList>
+
+                {/* Referências (Arte) */}
+                {form.taskType === 'Arte' && (
+                  <TabsContent value="references" className="space-y-3 mt-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Referências (links, inspirações, briefings)</Label>
+                      <Textarea rows={4} value={form.videoReferences || ''} onChange={e => setForm({ ...form, videoReferences: e.target.value })} placeholder="Cole links de referência ou inspiração para a arte..." className="mt-1" />
+                    </div>
+                    {form.videoReferences && (
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Links</p>
+                        {form.videoReferences.split('\n').filter(Boolean).map((line, i) => (
+                          <a
+                            key={i}
+                            href={line.trim().startsWith('http') ? line.trim() : `https://${line.trim()}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-sm text-primary underline underline-offset-2 hover:text-primary/80 break-all"
+                          >
+                            {line.trim()}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                )}
 
                 {/* Checklist */}
                 <TabsContent value="checklist" className="space-y-2 mt-3">
