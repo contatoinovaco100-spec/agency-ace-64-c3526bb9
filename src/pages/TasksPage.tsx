@@ -641,11 +641,11 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
       {/* Kanban board */}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div
-          className="flex gap-4 overflow-x-auto pb-4 lg:grid lg:gap-2 min-h-0 flex-1 scroller-hide"
+          className="flex gap-2 overflow-x-auto pb-3 lg:grid lg:gap-1.5 min-h-0 flex-1 scroller-hide"
           style={{ gridTemplateColumns: `repeat(${Math.max(kanbanStages.length, 1)}, minmax(0, 1fr))` }}
         >
           {kanbanStages.map(stage => (
-            <div key={stage.id} className="min-w-[280px] lg:min-w-0 flex flex-col h-full">
+            <div key={stage.id} className="min-w-[220px] lg:min-w-0 flex flex-col h-full">
               <KanbanColumn
                 stage={stage}
                 tasks={tasksByColumn[stage.name] || []}
