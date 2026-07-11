@@ -296,6 +296,7 @@ function QuizRouter() {
         <Sonner />
         <AuthProvider>
           <RealtimeNotifications />
+          <TaskMoveNotifications />
           <AgencyProvider>
             <AppRoutes />
           </AgencyProvider>
