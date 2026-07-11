@@ -251,12 +251,12 @@ function KanbanColumn({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col h-full">
-      <div className={cn('mb-2 flex items-center justify-between rounded-lg border px-3 py-2', cc.bg)}>
-        <div className="flex items-center gap-2">
-          <div className={cn('h-2 w-2 rounded-full', cc.dot)} />
+      <div className={cn('mb-1.5 flex items-center justify-between rounded-lg border px-2 py-1.5', cc.bg)}>
+        <div className="flex items-center gap-1.5">
+          <div className={cn('h-1.5 w-1.5 rounded-full', cc.dot)} />
           <span className="text-xs font-semibold text-foreground">{stage.name}</span>
         </div>
-        <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-secondary text-[10px] font-bold tabular-nums text-muted-foreground">
+        <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-secondary text-[9px] font-bold tabular-nums text-muted-foreground">
           {tasks.length}
         </span>
       </div>
@@ -264,7 +264,7 @@ function KanbanColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          'flex-1 space-y-2 rounded-lg p-1.5 transition-colors min-h-[120px]',
+          'flex-1 space-y-1 rounded-lg p-1 transition-colors min-h-[120px]',
           isOver && 'bg-primary/5 ring-1 ring-primary/20',
         )}
       >
@@ -283,7 +283,7 @@ function KanbanColumn({
         {showAddButton && (
           <button
             onClick={onAdd}
-            className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border py-2 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+            className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
           >
             <Plus className="h-3.5 w-3.5" /> Nova tarefa
           </button>
