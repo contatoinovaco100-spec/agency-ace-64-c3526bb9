@@ -170,10 +170,10 @@ function CardContent({ task, clientName, compact }: { task: Task; clientName?: s
 
 // ── Draggable Card ─────────────────────────────────────────
 function DraggableCard({
-  task, onClick, clientName, borderClass, onAdvance, nextStageLabel,
+  task, onClick, clientName, borderClass, onAdvance, nextStageLabel, onDuplicate,
 }: {
   task: Task; onClick: () => void; clientName?: string; borderClass: string;
-  onAdvance?: () => void; nextStageLabel?: string | null;
+  onAdvance?: () => void; nextStageLabel?: string | null; onDuplicate?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
@@ -206,11 +206,21 @@ function DraggableCard({
       }}
       onClick={handleClick}
       className={cn(
-        'cursor-grab rounded-md border-l-[2px] bg-card py-1 px-1.5 transition-shadow hover:shadow-sm active:cursor-grabbing',
+        'group relative cursor-grab rounded-md border-l-[2px] bg-card py-1 px-1.5 transition-shadow hover:shadow-sm active:cursor-grabbing',
         borderClass,
         isDragging && 'opacity-40',
       )}
     >
+      {onDuplicate && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          title="Duplicar tarefa"
+          className="absolute top-0.5 right-0.5 z-10 flex h-5 w-5 items-center justify-center rounded bg-secondary/70 text-muted-foreground opacity-0 transition-opacity hover:bg-primary/20 hover:text-primary group-hover:opacity-100"
+        >
+          <Copy className="h-3 w-3" />
+        </button>
+      )}
       <CardContent task={task} clientName={clientName} compact />
       {onAdvance && nextStageLabel && (
         <button
