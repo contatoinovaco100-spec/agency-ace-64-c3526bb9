@@ -246,6 +246,7 @@ function KanbanColumn({
   onAdvanceTask,
   nextStageName,
   showAddButton,
+  onDuplicateTask,
 }: {
   stage: KanbanStage;
   tasks: Task[];
