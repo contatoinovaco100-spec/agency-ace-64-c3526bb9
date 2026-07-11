@@ -10,6 +10,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/AppLayout";
 import { RealtimeNotifications } from "@/components/RealtimeNotifications";
+import { TaskMoveNotifications } from "@/components/TaskMoveNotifications";
 import { Loader2 } from "lucide-react";
 
 // CAPTURA PRECOCE do OAuth code do Google Calendar.
