@@ -255,6 +255,7 @@ function KanbanColumn({
   onAdvanceTask: (task: Task, nextStage: string) => void;
   nextStageName: string | null;
   showAddButton: boolean;
+  onDuplicateTask?: (task: Task) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.name });
   const cc = colorClasses(stage.color);
@@ -287,6 +288,7 @@ function KanbanColumn({
             borderClass={cc.border}
             onAdvance={nextStageName ? () => onAdvanceTask(task, nextStageName) : undefined}
             nextStageLabel={nextStageName}
+            onDuplicate={onDuplicateTask ? () => onDuplicateTask(task) : undefined}
           />
         ))}
 
