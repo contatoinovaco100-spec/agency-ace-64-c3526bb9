@@ -675,7 +675,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
         ))}
         <DragOverlay>
           {activeTask && (
-            <div className={cn('w-[200px] rounded-md border-l-[3px] bg-card py-1.5 px-2 shadow-lg', PRIORITY_COLORS[activeTask.priority])}>
+            <div className={cn('w-[180px] rounded-md border-l-[2px] bg-card py-1 px-1.5 shadow-lg', PRIORITY_COLORS[activeTask.priority])}>
               <CardContent task={activeTask} clientName={getClientName(activeTask.clientId)} compact />
             </div>
           )}
