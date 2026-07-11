@@ -578,6 +578,22 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const selectedClientName = selectedClient !== 'all' ? getClientName(selectedClient) : null;
   const firstStageName = kanbanStages[0]?.name;
 
+  const handleDuplicateTask = async (task: Task) => {
+    const { id: _id, ...rest } = task;
+    const duplicated: Task = {
+      ...rest,
+      id: crypto.randomUUID(),
+      title: `${task.title || task.videoName || 'Tarefa'} (cópia)`,
+      videoName: task.videoName ? `${task.videoName} (cópia)` : '',
+      status: (firstStageName || task.status) as any,
+    };
+    try {
+      await addTask(duplicated);
+    } catch (err) {
+      console.error('Duplicate failed:', err);
+    }
+  };
+
   return (
     <div className="flex h-full flex-col gap-4">
       {/* Header */}
