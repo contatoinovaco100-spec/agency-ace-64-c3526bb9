@@ -57,7 +57,25 @@ type SignedContract = {
 };
 
 export default function Dashboard() {
-  const { clients, tasks, leads } = useAgency();
+  const { clients: allClients, tasks: allTasks, leads } = useAgency();
+  const cancelledIds = useMemo(
+    () => new Set(allClients.filter(c => c.status === 'Cancelado').map(c => c.id)),
+    [allClients],
+  );
+  // Cancelled clients are excluded from every dashboard stat, list and chart.
+  // They only appear on the dedicated "Churn" section below.
+  const clients = useMemo(
+    () => allClients.filter(c => c.status !== 'Cancelado'),
+    [allClients],
+  );
+  const churnedClients = useMemo(
+    () => allClients.filter(c => c.status === 'Cancelado'),
+    [allClients],
+  );
+  const tasks = useMemo(
+    () => allTasks.filter(t => !t.clientId || !cancelledIds.has(t.clientId)),
+    [allTasks, cancelledIds],
+  );
   const { isAdmin } = useModuleAccess();
   const { triggerNotification, requestPermission } = usePushNotification();
 
