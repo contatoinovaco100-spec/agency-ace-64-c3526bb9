@@ -85,6 +85,7 @@ export const APP_PAGES: AppPage[] = [
 
   // Administração (só admin)
   { path: '/funcionarios',        label: 'Funcionários',        icon: UserCog,         category: 'Administração', adminOnly: true },
+  { path: '/squads',              label: 'Squads',              icon: UsersRound,      category: 'Administração', adminOnly: true },
   { path: '/etapas-kanban',       label: 'Etapas do Kanban',    icon: Layers,          category: 'Administração', adminOnly: true },
 
   { path: '/equipe',              label: 'Equipe (legado)',     icon: UserCog,         category: 'Administração', adminOnly: true },
