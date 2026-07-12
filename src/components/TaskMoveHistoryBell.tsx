@@ -109,7 +109,19 @@ export function TaskMoveHistoryBell() {
             </ul>
           )}
         </ScrollArea>
+        <div className="border-t border-border">
+          <button
+            onClick={() => {
+              setOpen(false);
+              navigate('/historico-kanban');
+            }}
+            className="w-full px-3 py-2 text-xs font-medium text-primary hover:bg-primary/10 transition-colors text-center"
+          >
+            Ver histórico completo →
+          </button>
+        </div>
       </PopoverContent>
     </Popover>
   );
 }
+

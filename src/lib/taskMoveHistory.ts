@@ -9,12 +9,14 @@ export interface TaskMoveHistoryEntry {
   fromStatus: string;
   toStatus: string;
   taskType?: string | null;
+  clientId?: string | null;
   at: number; // epoch ms
   read?: boolean;
 }
 
-const MAX_ENTRIES = 50;
+const MAX_ENTRIES = 1000;
 const EVT = 'task-move-history-updated';
+
 
 const keyFor = (userId: string) => `taskMoveHistory:${userId}`;
 
