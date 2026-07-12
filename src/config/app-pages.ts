@@ -25,6 +25,9 @@ export interface AppPage {
   affiliateOnly?: boolean;
   /** Only admins can ever access */
   adminOnly?: boolean;
+  /** Do not render in sidebar (still routable) */
+  hidden?: boolean;
+
 }
 
 /**
@@ -39,7 +42,9 @@ export const APP_PAGES: AppPage[] = [
   { path: '/calendario',          label: 'Calendário',          icon: Calendar,        category: 'Geral' },
   { path: '/notificacoes',        label: 'Notificações',        icon: Bell,            category: 'Geral' },
   { path: '/alterar-senha',       label: 'Alterar Senha',       icon: KeyRound,        category: 'Geral', alwaysAllowed: true },
+  { path: '/historico-kanban',    label: 'Histórico Kanban',    icon: Bell,            category: 'Geral', alwaysAllowed: true, hidden: true },
   { path: '/chat',                label: 'Chat Interno',        icon: MessageSquare,   category: 'Geral' },
+
   { path: '/roleta',              label: 'Roleta de Prêmios',   icon: Gift,            category: 'Geral' },
   // { path: '/negocios',            label: 'Rede de Negócios',    icon: Network,         category: 'Geral' },
 
