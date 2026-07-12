@@ -95,8 +95,15 @@ export default function MyTasksPage() {
   const isOverdue = (t: Task) =>
     !!t.due_date && t.status !== 'Concluído' && isPast(parseISO(t.due_date)) && !isToday(parseISO(t.due_date));
 
+  const cancelledClientIds = useMemo(
+    () => new Set(clients.filter(c => c.status === 'Cancelado').map(c => c.id)),
+    [clients],
+  );
+
   const filtered = useMemo(() => {
     let list = tasks.filter(t => {
+      // Hide tasks whose client has been cancelled
+      if (t.client_id && cancelledClientIds.has(t.client_id)) return false;
       if (filterPriority !== 'all' && t.priority !== filterPriority) return false;
       if (filterClient !== 'all' && t.client_id !== filterClient) return false;
       if (filterType !== 'all' && t.task_type !== filterType) return false;
