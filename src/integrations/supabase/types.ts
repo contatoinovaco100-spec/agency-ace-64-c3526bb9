@@ -2621,6 +2621,50 @@ export type Database = {
           },
         ]
       }
+      squad_viral_posts: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          post_url: string
+          posted_at: string | null
+          squad_id: string
+          thumbnail_url: string | null
+          updated_at: string
+          views_count: number
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          post_url: string
+          posted_at?: string | null
+          squad_id: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          views_count?: number
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          post_url?: string
+          posted_at?: string | null
+          squad_id?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          views_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "squad_viral_posts_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       squads: {
         Row: {
           color: string | null
@@ -3020,6 +3064,27 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      viral_settings: {
+        Row: {
+          created_at: string
+          id: string
+          min_views: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          min_views?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          min_views?: number
+          updated_at?: string
         }
         Relationships: []
       }
