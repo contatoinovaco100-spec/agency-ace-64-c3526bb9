@@ -243,6 +243,7 @@ function AppRoutes() {
                     <Route path="/whatsapp/config"     element={<WhatsAppConfigPage />} />
                     <Route path="/etapas-kanban"       element={<KanbanStagesPage />} />
                     <Route path="/time-comercial"      element={<CommercialTeamPage />} />
+                    <Route path="/squads"              element={<SquadsPage />} />
                     <Route path="/financeiro"          element={<FinancePage />} />
                     <Route path="/financeiro-base"     element={<FinancialPage />} />
                     <Route path="/rede/admin"          element={<RedeAdminPage />} />
