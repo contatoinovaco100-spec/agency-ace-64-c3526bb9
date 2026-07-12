@@ -44,8 +44,9 @@ export default function FigmaToLpPage() {
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [figmaJsonText, setFigmaJsonText] = useState("");
-  const [figmaUrl, setFigmaUrl] = useState("");
-  const [figmaToken, setFigmaToken] = useState("");
+  const [figmaUrl, setFigmaUrl] = useState(() => localStorage.getItem("figma_url") || "");
+  const [figmaToken, setFigmaToken] = useState(() => localStorage.getItem("figma_token") || "");
+  const [rememberToken, setRememberToken] = useState(() => !!localStorage.getItem("figma_token"));
   const [generating, setGenerating] = useState(false);
 
   const [editHtml, setEditHtml] = useState("");
@@ -88,6 +89,13 @@ export default function FigmaToLpPage() {
         payload = { ...payload, mode: "upload", figmaJson: json };
       } else {
         if (!figmaUrl.trim() || !figmaToken.trim()) throw new Error("URL e token são obrigatórios");
+        if (rememberToken) {
+          localStorage.setItem("figma_token", figmaToken);
+          localStorage.setItem("figma_url", figmaUrl);
+        } else {
+          localStorage.removeItem("figma_token");
+          localStorage.removeItem("figma_url");
+        }
         payload = { ...payload, mode: "api", figmaUrl, figmaToken };
       }
 
@@ -115,7 +123,8 @@ export default function FigmaToLpPage() {
       const traceMsg = trace ? ` (${trace.total} elementos rastreados)` : "";
       toast({ title: "Landing page criada!", description: `/lp/${finalSlug}${traceMsg}` });
       setDialogOpen(false);
-      setTitle(""); setSlug(""); setFigmaJsonText(""); setFigmaUrl(""); setFigmaToken("");
+      setTitle(""); setSlug(""); setFigmaJsonText("");
+      if (!rememberToken) { setFigmaUrl(""); setFigmaToken(""); }
       load();
     } catch (e: any) {
       toast({ title: "Erro ao gerar", description: e.message || String(e), variant: "destructive" });
@@ -261,8 +270,22 @@ export default function FigmaToLpPage() {
                       placeholder="figd_..."
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Gere em Figma → Settings → Personal access tokens. O token não é armazenado.
+                      Gere em Figma → Settings → Personal access tokens.
                     </p>
+                    <label className="flex items-center gap-2 mt-2 text-xs cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={rememberToken}
+                        onChange={(e) => {
+                          setRememberToken(e.target.checked);
+                          if (!e.target.checked) {
+                            localStorage.removeItem("figma_token");
+                            localStorage.removeItem("figma_url");
+                          }
+                        }}
+                      />
+                      Lembrar token e URL neste navegador
+                    </label>
                   </div>
                 </TabsContent>
               </Tabs>
