@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Trash2, ExternalLink, Palette, Sparkles, Copy, Upload, Link as LinkIcon } from "lucide-react";
+import { Loader2, Trash2, ExternalLink, Palette, Sparkles, Copy, Upload, Link as LinkIcon, Download } from "lucide-react";
 
 type LP = {
   id: string;
