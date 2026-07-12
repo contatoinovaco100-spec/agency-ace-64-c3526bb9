@@ -6,8 +6,10 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageAccess } from '@/hooks/useUserRole';
 import { usePushNotification } from '@/hooks/usePushNotification';
+import { TaskMoveHistoryBell } from '@/components/TaskMoveHistoryBell';
 import { APP_PAGES, PAGE_CATEGORIES } from '@/config/app-pages';
 import logoInova from '@/assets/logo-inova.png';
+
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
