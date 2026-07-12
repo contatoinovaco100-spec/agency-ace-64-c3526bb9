@@ -235,7 +235,7 @@ Responda em JSON:
     }
 
     return new Response(
-      JSON.stringify({ html: finalHtml, faithful_html: faithfulHtml, ai_notes: aiNotes, frames_count: targetFrames.length }),
+      JSON.stringify({ html: finalHtml, faithful_html: faithfulHtml, ai_notes: aiNotes, frames_count: targetFrames.length, figma_json: mode === "api" ? { document: figmaDoc } : null }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
     );
   } catch (error: unknown) {
