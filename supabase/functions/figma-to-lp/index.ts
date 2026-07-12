@@ -334,17 +334,21 @@ Responda em JSON puro:
 }`;
 
       try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 45000);
         const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
+          signal: controller.signal,
           body: JSON.stringify({
-            model: "google/gemini-2.5-pro",
+            model: "google/gemini-2.5-flash",
             messages: [
               { role: "system", content: "Você é um web designer que retorna HTML+Tailwind completo em JSON válido. Reproduza CADA elemento do inventário rastreado." },
               { role: "user", content: prompt },
             ],
           }),
         });
+        clearTimeout(timer);
 
         if (aiResp.ok) {
           const aiData = await aiResp.json();
