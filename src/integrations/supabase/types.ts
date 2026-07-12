@@ -1326,6 +1326,48 @@ export type Database = {
         }
         Relationships: []
       }
+      figma_landing_pages: {
+        Row: {
+          ai_notes: Json | null
+          created_at: string
+          created_by: string | null
+          figma_json: Json | null
+          generated_html: string | null
+          id: string
+          published: boolean
+          slug: string
+          source_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ai_notes?: Json | null
+          created_at?: string
+          created_by?: string | null
+          figma_json?: Json | null
+          generated_html?: string | null
+          id?: string
+          published?: boolean
+          slug: string
+          source_type?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ai_notes?: Json | null
+          created_at?: string
+          created_by?: string | null
+          figma_json?: Json | null
+          generated_html?: string | null
+          id?: string
+          published?: boolean
+          slug?: string
+          source_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       gamification_settings: {
         Row: {
           id: number
@@ -3403,6 +3445,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_public_landing_page: {
+        Args: { _slug: string }
+        Returns: {
+          generated_html: string
+          id: string
+          slug: string
+          title: string
+        }[]
       }
       get_public_pix_settings: {
         Args: never
