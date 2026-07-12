@@ -155,6 +155,7 @@ function AppRoutes() {
     location.pathname === '/rede/novo' ||
     location.pathname.startsWith('/quiz/') ||
     location.pathname === '/painel-artes' ||
+    location.pathname.startsWith('/lp/') ||
     (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar'));
 
   return (
