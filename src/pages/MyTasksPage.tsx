@@ -31,7 +31,7 @@ interface Task {
   task_type: string;
 }
 
-interface Client { id: string; company_name: string; }
+interface Client { id: string; company_name: string; status?: string | null; }
 
 const STATUSES = ['A fazer', 'Em andamento', 'Em revisão', 'Concluído'];
 const PRIORITY_ORDER: Record<string, number> = { Alta: 0, Média: 1, Baixa: 2 };
@@ -69,7 +69,7 @@ export default function MyTasksPage() {
 
       const [{ data: t }, { data: c }] = await Promise.all([
         supabase.from('tasks').select('*'),
-        supabase.from('clients').select('id, company_name'),
+        supabase.from('clients').select('id, company_name, status'),
       ]);
 
       const mine = (t ?? []).filter((task: any) =>
@@ -95,8 +95,15 @@ export default function MyTasksPage() {
   const isOverdue = (t: Task) =>
     !!t.due_date && t.status !== 'Concluído' && isPast(parseISO(t.due_date)) && !isToday(parseISO(t.due_date));
 
+  const cancelledClientIds = useMemo(
+    () => new Set(clients.filter(c => c.status === 'Cancelado').map(c => c.id)),
+    [clients],
+  );
+
   const filtered = useMemo(() => {
     let list = tasks.filter(t => {
+      // Hide tasks whose client has been cancelled
+      if (t.client_id && cancelledClientIds.has(t.client_id)) return false;
       if (filterPriority !== 'all' && t.priority !== filterPriority) return false;
       if (filterClient !== 'all' && t.client_id !== filterClient) return false;
       if (filterType !== 'all' && t.task_type !== filterType) return false;
@@ -138,15 +145,16 @@ export default function MyTasksPage() {
     });
 
     return list;
-  }, [tasks, filterPriority, filterClient, filterType, filterStatus, search, quick, sortBy]);
+  }, [tasks, filterPriority, filterClient, filterType, filterStatus, search, quick, sortBy, cancelledClientIds]);
 
   const stats = useMemo(() => {
-    const pendentes = tasks.filter(t => t.status !== 'Concluído').length;
-    const atrasadas = tasks.filter(isOverdue).length;
-    const hoje = tasks.filter(t => t.due_date && isToday(parseISO(t.due_date)) && t.status !== 'Concluído').length;
-    const semana = tasks.filter(t => t.due_date && isThisWeek(parseISO(t.due_date), { weekStartsOn: 1 }) && t.status !== 'Concluído').length;
+    const active = tasks.filter(t => !t.client_id || !cancelledClientIds.has(t.client_id));
+    const pendentes = active.filter(t => t.status !== 'Concluído').length;
+    const atrasadas = active.filter(isOverdue).length;
+    const hoje = active.filter(t => t.due_date && isToday(parseISO(t.due_date)) && t.status !== 'Concluído').length;
+    const semana = active.filter(t => t.due_date && isThisWeek(parseISO(t.due_date), { weekStartsOn: 1 }) && t.status !== 'Concluído').length;
     return { pendentes, atrasadas, hoje, semana };
-  }, [tasks]);
+  }, [tasks, cancelledClientIds]);
 
   const clientName = (id: string | null) => clients.find(c => c.id === id)?.company_name ?? 'Sem cliente';
 

@@ -57,7 +57,25 @@ type SignedContract = {
 };
 
 export default function Dashboard() {
-  const { clients, tasks, leads } = useAgency();
+  const { clients: allClients, tasks: allTasks, leads } = useAgency();
+  const cancelledIds = useMemo(
+    () => new Set(allClients.filter(c => c.status === 'Cancelado').map(c => c.id)),
+    [allClients],
+  );
+  // Cancelled clients are excluded from every dashboard stat, list and chart.
+  // They only appear on the dedicated "Churn" section below.
+  const clients = useMemo(
+    () => allClients.filter(c => c.status !== 'Cancelado'),
+    [allClients],
+  );
+  const churnedClients = useMemo(
+    () => allClients.filter(c => c.status === 'Cancelado'),
+    [allClients],
+  );
+  const tasks = useMemo(
+    () => allTasks.filter(t => !t.clientId || !cancelledIds.has(t.clientId)),
+    [allTasks, cancelledIds],
+  );
   const { isAdmin } = useModuleAccess();
   const { triggerNotification, requestPermission } = usePushNotification();
 
@@ -185,11 +203,10 @@ export default function Dashboard() {
   const totalLtv = ltvByClient.reduce((sum, c) => sum + c.ltv, 0);
   const avgLtv = ltvByClient.length > 0 ? totalLtv / ltvByClient.length : 0;
 
-  // Client status distribution
+  // Client status distribution (cancelled clients live in the Churn section)
   const clientStatusData = [
     { name: 'Ativos', value: activeClients.length, color: CHART_COLORS[1] },
     { name: 'Pausados', value: pausedClients.length, color: CHART_COLORS[3] },
-    { name: 'Cancelados', value: clients.filter(c => c.status === 'Cancelado').length, color: 'hsl(0, 62%, 50%)' },
   ].filter(d => d.value > 0);
 
   // Task status distribution
@@ -862,6 +879,48 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </motion.div>
+
+          {/* Churn — clientes cancelados */}
+          {churnedClients.length > 0 && (
+            <motion.div {...anim(10)}>
+              <Card className="border-destructive/30 rounded-[2rem] bg-card">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <ArrowDownRight className="h-4 w-4 text-destructive" />
+                    Churn — Clientes Cancelados
+                    <Badge variant="destructive" className="ml-2">{churnedClients.length}</Badge>
+                    <span className="ml-auto text-xs font-normal text-muted-foreground tabular-nums">
+                      Receita perdida: {formatCurrency(churnedClients.reduce((s, c) => s + (c.monthlyValue || 0), 0))}/mês
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+                    {churnedClients.map(c => (
+                      <div key={c.id} className="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-destructive/15 text-destructive font-bold">
+                            {c.companyName.charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground truncate">{c.companyName}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {c.contactName || '—'}{c.accountManager ? ` · ${c.accountManager}` : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-semibold tabular-nums text-destructive">{formatCurrency(c.monthlyValue || 0)}</p>
+                          <p className="text-[10px] text-muted-foreground">valor cancelado</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
           {/* Expenses & Investments */}
           <ExpensesPanel mrr={mrr} clients={clients} />
         </TabsContent>
