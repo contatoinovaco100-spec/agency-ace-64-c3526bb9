@@ -446,24 +446,6 @@ serve(async (req) => {
     const faithfulHtml = targetFrames.map((f) => renderFrameToHtml(f, imageUrls, nodeImageUrls)).join("\n");
     const exactHtml = wrapExactHtml(title || "Landing Page", faithfulHtml);
 
-    // Compact inventory for AI (only useful fields)
-    const compactInventory = inventory.map((f) => ({
-      frame: f.frame,
-      elements: f.elements.map((e) => ({
-        role: e.role,
-        name: e.name,
-        text: e.text?.slice(0, 200),
-        x: e.x, y: e.y, w: e.w, h: e.h,
-        fontSize: e.fontSize,
-        fontWeight: e.fontWeight,
-        color: e.color,
-        bg: e.bg?.startsWith("rgba") ? e.bg : undefined,
-        radius: e.radius,
-        hasImage: !!e.imageRef,
-        imageUrl: e.imageRef ? imageUrls[e.imageRef] : undefined,
-      })),
-    }));
-
     // ---------- Metadata ----------
     let aiNotes: any = {
       suggestions: [],
