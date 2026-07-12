@@ -270,8 +270,22 @@ export default function FigmaToLpPage() {
                       placeholder="figd_..."
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Gere em Figma → Settings → Personal access tokens. O token não é armazenado.
+                      Gere em Figma → Settings → Personal access tokens.
                     </p>
+                    <label className="flex items-center gap-2 mt-2 text-xs cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={rememberToken}
+                        onChange={(e) => {
+                          setRememberToken(e.target.checked);
+                          if (!e.target.checked) {
+                            localStorage.removeItem("figma_token");
+                            localStorage.removeItem("figma_url");
+                          }
+                        }}
+                      />
+                      Lembrar token e URL neste navegador
+                    </label>
                   </div>
                 </TabsContent>
               </Tabs>
