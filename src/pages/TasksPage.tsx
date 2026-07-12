@@ -1,4 +1,6 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
 import { useAgency } from '@/contexts/AgencyContext';
 import { Task } from '@/types/agency';
 import { Plus, Filter, Search, X, Users, ChevronDown, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy } from 'lucide-react';
