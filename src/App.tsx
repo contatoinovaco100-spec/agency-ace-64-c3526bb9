@@ -107,6 +107,7 @@ const WhatsAppConfigPage        = lazy(() => import("./pages/WhatsAppConfigPage"
 const KanbanStagesPage          = lazy(() => import("./pages/KanbanStagesPage"));
 const CommercialTeamPage        = lazy(() => import("./pages/CommercialTeamPage"));
 const SquadsPage                = lazy(() => import("./pages/SquadsPage"));
+const ViralRankingPage          = lazy(() => import("./pages/ViralRankingPage"));
 
 // Finance & Rede
 const FinancePage               = lazy(() => import("./pages/FinancePage"));
