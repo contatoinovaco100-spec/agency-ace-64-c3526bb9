@@ -69,7 +69,7 @@ export default function MyTasksPage() {
 
       const [{ data: t }, { data: c }] = await Promise.all([
         supabase.from('tasks').select('*'),
-        supabase.from('clients').select('id, company_name'),
+        supabase.from('clients').select('id, company_name, status'),
       ]);
 
       const mine = (t ?? []).filter((task: any) =>
