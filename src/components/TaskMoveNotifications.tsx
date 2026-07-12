@@ -54,6 +54,14 @@ export function TaskMoveNotifications() {
               ? 'sale'
               : 'agenda';
 
+          addHistoryEntry(user.id, {
+            taskId: newRow.id,
+            title: newRow.title || newRow.video_name || 'Tarefa',
+            fromStatus: oldRow.status,
+            toStatus: newRow.status,
+            taskType: newRow.task_type ?? null,
+          });
+
           triggerNotification(
             'Tarefa movida no Kanban 📋',
             `"${newRow.title}" agora está em "${newRow.status}"`,
@@ -61,6 +69,7 @@ export function TaskMoveNotifications() {
             soundType
           );
         }
+
       )
       .subscribe();
 
