@@ -6,8 +6,10 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageAccess } from '@/hooks/useUserRole';
 import { usePushNotification } from '@/hooks/usePushNotification';
+import { TaskMoveHistoryBell } from '@/components/TaskMoveHistoryBell';
 import { APP_PAGES, PAGE_CATEGORIES } from '@/config/app-pages';
 import logoInova from '@/assets/logo-inova.png';
+
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -133,8 +135,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {(!collapsed || mobileMenuOpen) && <span>Sair</span>}
             </button>
             <div className="flex items-center gap-1">
+              <TaskMoveHistoryBell />
               <AudioActivator collapsed={collapsed && !mobileMenuOpen} />
               <button
+
                 onClick={() => setCollapsed(!collapsed)}
                 className="hidden lg:flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground"
               >

@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePushNotification } from '@/hooks/usePushNotification';
+import { addHistoryEntry } from '@/lib/taskMoveHistory';
+
 
 const ROLE_FIELDS = ['assignee', 'copywriter', 'editor', 'director', 'videomaker', 'script_writer'] as const;
 
@@ -52,6 +54,14 @@ export function TaskMoveNotifications() {
               ? 'sale'
               : 'agenda';
 
+          addHistoryEntry(user.id, {
+            taskId: newRow.id,
+            title: newRow.title || newRow.video_name || 'Tarefa',
+            fromStatus: oldRow.status,
+            toStatus: newRow.status,
+            taskType: newRow.task_type ?? null,
+          });
+
           triggerNotification(
             'Tarefa movida no Kanban 📋',
             `"${newRow.title}" agora está em "${newRow.status}"`,
@@ -59,6 +69,7 @@ export function TaskMoveNotifications() {
             soundType
           );
         }
+
       )
       .subscribe();
 

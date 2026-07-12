@@ -1,4 +1,6 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
 import { useAgency } from '@/contexts/AgencyContext';
 import { Task } from '@/types/agency';
 import { Plus, Filter, Search, X, Users, ChevronDown, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy } from 'lucide-react';
@@ -455,6 +457,22 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const [creating, setCreating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Open a specific task when navigated with ?taskId=xxx (e.g. from history bell)
+  useEffect(() => {
+    const tid = searchParams.get('taskId');
+    if (!tid) return;
+    const t = tasks.find(x => x.id === tid);
+    if (t) {
+      setSelectedTask(t);
+      setCreating(false);
+      setDialogOpen(true);
+      searchParams.delete('taskId');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, tasks, setSearchParams]);
+
 
   const [selectedClient, setSelectedClient] = useState<string>('all');
 
