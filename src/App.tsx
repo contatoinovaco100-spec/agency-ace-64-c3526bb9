@@ -108,6 +108,8 @@ const KanbanStagesPage          = lazy(() => import("./pages/KanbanStagesPage"))
 const CommercialTeamPage        = lazy(() => import("./pages/CommercialTeamPage"));
 const SquadsPage                = lazy(() => import("./pages/SquadsPage"));
 const ViralRankingPage          = lazy(() => import("./pages/ViralRankingPage"));
+const FigmaToLpPage             = lazy(() => import("./pages/FigmaToLpPage"));
+const PublicLandingPage         = lazy(() => import("./pages/PublicLandingPage"));
 
 // Finance & Rede
 const FinancePage               = lazy(() => import("./pages/FinancePage"));
@@ -153,6 +155,7 @@ function AppRoutes() {
     location.pathname === '/rede/novo' ||
     location.pathname.startsWith('/quiz/') ||
     location.pathname === '/painel-artes' ||
+    location.pathname.startsWith('/lp/') ||
     (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar'));
 
   return (
@@ -183,6 +186,7 @@ function AppRoutes() {
           <Route path="/in/:slug"            element={<AffiliateLandingPage />} />
           <Route path="/quiz/:clientSlug/:quizSlug" element={<PublicQuizPage />} />
           <Route path="/painel-artes"        element={<PublicArtesPage />} />
+          <Route path="/lp/:slug"            element={<PublicLandingPage />} />
         </Routes>
       ) : (
         <Routes>
@@ -246,6 +250,7 @@ function AppRoutes() {
                     <Route path="/time-comercial"      element={<CommercialTeamPage />} />
                     <Route path="/squads"              element={<SquadsPage />} />
                     <Route path="/ranking-viral"       element={<ViralRankingPage />} />
+                    <Route path="/figma-to-lp"         element={<FigmaToLpPage />} />
                     <Route path="/financeiro"          element={<FinancePage />} />
                     <Route path="/financeiro-base"     element={<FinancialPage />} />
                     <Route path="/rede/admin"          element={<RedeAdminPage />} />

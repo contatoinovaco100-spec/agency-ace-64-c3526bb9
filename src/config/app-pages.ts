@@ -82,6 +82,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/nova',                label: 'Nova Assistente',     icon: Bot,             category: 'Ferramentas' },
   { path: '/diagnostico-anuncios', label: 'Diagnóstico de Anúncios', icon: BarChart3,    category: 'Ferramentas' },
   { path: '/quiz-builder',        label: 'Quiz Builder',        icon: Layers,          category: 'Ferramentas', adminOnly: true },
+  { path: '/figma-to-lp',         label: 'Figma → LP',          icon: Palette,         category: 'Ferramentas', adminOnly: true },
 
   // Administração (só admin)
   { path: '/funcionarios',        label: 'Funcionários',        icon: UserCog,         category: 'Administração', adminOnly: true },
