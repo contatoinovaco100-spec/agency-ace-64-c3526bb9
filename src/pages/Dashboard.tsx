@@ -1192,22 +1192,8 @@ function SimpleDashboard({ clients, tasks, leads, mrr, activeClients, pendingTas
             >
               Habilitar Push
             </Button>
-            <Button
-              size="sm"
-              onClick={() => triggerNotification("Lembrete da Agenda 📅", "Sua próxima gravação é em breve.", "info", "agenda")}
-              className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_20px_hsl(73,93%,55%/0.3)]"
-            >
-              <BellRing className="h-4 w-4" /> Testar Agenda
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => triggerNotification("Tarefa Atrasada 🚨", "O roteiro do cliente atrasou.", "error", "overdue")}
-              className="gap-2"
-            >
-              <AlertTriangle className="h-4 w-4" /> Testar Atraso
-            </Button>
           </div>
+
         </div>
       </motion.div>
 
