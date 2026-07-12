@@ -60,7 +60,9 @@ export function TaskMoveNotifications() {
             fromStatus: oldRow.status,
             toStatus: newRow.status,
             taskType: newRow.task_type ?? null,
+            clientId: newRow.client_id ?? null,
           });
+
 
           triggerNotification(
             'Tarefa movida no Kanban 📋',
