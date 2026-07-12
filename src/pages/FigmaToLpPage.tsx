@@ -365,6 +365,9 @@ export default function FigmaToLpPage() {
                     {selected.ai_notes.trace.rendered_by_ai && (
                       <span> · <strong>{selected.ai_notes.trace.rendered_by_ai}</strong> reproduzidos pela IA</span>
                     )}
+                    {selected.ai_notes.images && (
+                      <span> · <strong>{selected.ai_notes.images.downloaded || 0}</strong> imagens baixadas</span>
+                    )}
                   </p>
                   <div className="flex flex-wrap gap-1 text-xs">
                     {Object.entries(selected.ai_notes.trace.roles || {}).map(([role, count]) => (
