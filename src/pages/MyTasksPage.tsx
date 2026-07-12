@@ -148,12 +148,13 @@ export default function MyTasksPage() {
   }, [tasks, filterPriority, filterClient, filterType, filterStatus, search, quick, sortBy, cancelledClientIds]);
 
   const stats = useMemo(() => {
-    const pendentes = tasks.filter(t => t.status !== 'Concluído').length;
-    const atrasadas = tasks.filter(isOverdue).length;
-    const hoje = tasks.filter(t => t.due_date && isToday(parseISO(t.due_date)) && t.status !== 'Concluído').length;
-    const semana = tasks.filter(t => t.due_date && isThisWeek(parseISO(t.due_date), { weekStartsOn: 1 }) && t.status !== 'Concluído').length;
+    const active = tasks.filter(t => !t.client_id || !cancelledClientIds.has(t.client_id));
+    const pendentes = active.filter(t => t.status !== 'Concluído').length;
+    const atrasadas = active.filter(isOverdue).length;
+    const hoje = active.filter(t => t.due_date && isToday(parseISO(t.due_date)) && t.status !== 'Concluído').length;
+    const semana = active.filter(t => t.due_date && isThisWeek(parseISO(t.due_date), { weekStartsOn: 1 }) && t.status !== 'Concluído').length;
     return { pendentes, atrasadas, hoje, semana };
-  }, [tasks]);
+  }, [tasks, cancelledClientIds]);
 
   const clientName = (id: string | null) => clients.find(c => c.id === id)?.company_name ?? 'Sem cliente';
 
