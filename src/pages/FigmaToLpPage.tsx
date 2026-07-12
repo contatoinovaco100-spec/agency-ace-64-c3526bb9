@@ -160,6 +160,36 @@ export default function FigmaToLpPage() {
     toast({ title: "Link copiado", description: url });
   }
 
+  async function downloadJson(lp: LP) {
+    const { data, error } = await (supabase as any)
+      .from("figma_landing_pages").select("figma_json,title,slug").eq("id", lp.id).single();
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    if (!data?.figma_json) { toast({ title: "Sem JSON", description: "Esta LP não tem JSON do Figma salvo (importada via API sem cache).", variant: "destructive" }); return; }
+    const blob = new Blob([JSON.stringify(data.figma_json, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${data.slug || "figma"}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "JSON baixado" });
+  }
+
+  async function downloadHtml(lp: LP) {
+    const { data, error } = await (supabase as any)
+      .from("figma_landing_pages").select("generated_html,slug").eq("id", lp.id).single();
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    if (!data?.generated_html) { toast({ title: "Sem HTML", variant: "destructive" }); return; }
+    const blob = new Blob([data.generated_html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${data.slug || "lp"}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "HTML baixado" });
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
