@@ -44,8 +44,9 @@ export default function FigmaToLpPage() {
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [figmaJsonText, setFigmaJsonText] = useState("");
-  const [figmaUrl, setFigmaUrl] = useState("");
-  const [figmaToken, setFigmaToken] = useState("");
+  const [figmaUrl, setFigmaUrl] = useState(() => localStorage.getItem("figma_url") || "");
+  const [figmaToken, setFigmaToken] = useState(() => localStorage.getItem("figma_token") || "");
+  const [rememberToken, setRememberToken] = useState(() => !!localStorage.getItem("figma_token"));
   const [generating, setGenerating] = useState(false);
 
   const [editHtml, setEditHtml] = useState("");
