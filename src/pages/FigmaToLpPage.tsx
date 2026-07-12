@@ -102,7 +102,7 @@ export default function FigmaToLpPage() {
         slug: finalSlug,
         title,
         source_type: tab === "api" ? "api" : "upload",
-        figma_json: tab === "upload" ? JSON.parse(figmaJsonText) : null,
+        figma_json: tab === "upload" ? JSON.parse(figmaJsonText) : ((data as any).figma_json ?? null),
         generated_html: (data as any).html,
         ai_notes: (data as any).ai_notes || {},
         created_by: userData.user?.id,
