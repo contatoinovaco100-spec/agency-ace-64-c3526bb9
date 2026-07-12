@@ -145,7 +145,7 @@ export default function MyTasksPage() {
     });
 
     return list;
-  }, [tasks, filterPriority, filterClient, filterType, filterStatus, search, quick, sortBy]);
+  }, [tasks, filterPriority, filterClient, filterType, filterStatus, search, quick, sortBy, cancelledClientIds]);
 
   const stats = useMemo(() => {
     const pendentes = tasks.filter(t => t.status !== 'Concluído').length;
