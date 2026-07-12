@@ -298,6 +298,12 @@ export default function FigmaToLpPage() {
                   <Copy className="h-3 w-3 mr-1" /> Link
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => openEdit(lp)}>Editar</Button>
+                <Button size="sm" variant="outline" onClick={() => downloadJson(lp)}>
+                  <Download className="h-3 w-3 mr-1" /> JSON
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => downloadHtml(lp)}>
+                  <Download className="h-3 w-3 mr-1" /> HTML
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => togglePublished(lp)}>
                   {lp.published ? "Despublicar" : "Publicar"}
                 </Button>
