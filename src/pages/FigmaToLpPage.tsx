@@ -109,7 +109,11 @@ export default function FigmaToLpPage() {
       });
       if (insErr) throw insErr;
 
-      toast({ title: "Landing page criada!", description: `/lp/${finalSlug}` });
+      if (insErr) throw insErr;
+
+      const trace = (data as any).ai_notes?.trace;
+      const traceMsg = trace ? ` (${trace.total} elementos rastreados)` : "";
+      toast({ title: "Landing page criada!", description: `/lp/${finalSlug}${traceMsg}` });
       setDialogOpen(false);
       setTitle(""); setSlug(""); setFigmaJsonText(""); setFigmaUrl(""); setFigmaToken("");
       load();
