@@ -510,6 +510,11 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     return dbStages[idx + 1].name;
   };
 
+  const cancelledClientIds = useMemo(
+    () => new Set(clients.filter(c => c.status === 'Cancelado').map(c => c.id)),
+    [clients],
+  );
+
   const filteredTasks = useMemo(() => {
     return tasks.filter(t => {
       if (taskTypeFilter) {
@@ -517,6 +522,8 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
       } else {
         if (t.taskType === 'Arte') return false;
       }
+      // Hide tasks belonging to cancelled clients from the kanban
+      if (t.clientId && cancelledClientIds.has(t.clientId)) return false;
       if (selectedClient !== 'all' && t.clientId !== selectedClient) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -526,7 +533,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
       if (filterAssignee !== 'all' && t.assignee !== filterAssignee) return false;
       return true;
     });
-  }, [tasks, taskTypeFilter, selectedClient, search, filterAssignee]);
+  }, [tasks, taskTypeFilter, selectedClient, search, filterAssignee, cancelledClientIds]);
 
   const tasksByColumn = useMemo(() => {
     const map: Record<string, Task[]> = {};
