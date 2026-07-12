@@ -31,7 +31,7 @@ interface Task {
   task_type: string;
 }
 
-interface Client { id: string; company_name: string; }
+interface Client { id: string; company_name: string; status?: string | null; }
 
 const STATUSES = ['A fazer', 'Em andamento', 'Em revisão', 'Concluído'];
 const PRIORITY_ORDER: Record<string, number> = { Alta: 0, Média: 1, Baixa: 2 };
