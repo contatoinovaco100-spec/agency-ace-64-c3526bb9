@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Trash2, ExternalLink, Palette, Sparkles, Copy, Upload, Link as LinkIcon } from "lucide-react";
+import { Loader2, Trash2, ExternalLink, Palette, Sparkles, Copy, Upload, Link as LinkIcon, Download } from "lucide-react";
 
 type LP = {
   id: string;
@@ -102,7 +102,7 @@ export default function FigmaToLpPage() {
         slug: finalSlug,
         title,
         source_type: tab === "api" ? "api" : "upload",
-        figma_json: tab === "upload" ? JSON.parse(figmaJsonText) : null,
+        figma_json: tab === "upload" ? JSON.parse(figmaJsonText) : ((data as any).figma_json ?? null),
         generated_html: (data as any).html,
         ai_notes: (data as any).ai_notes || {},
         created_by: userData.user?.id,
@@ -158,6 +158,36 @@ export default function FigmaToLpPage() {
     const url = `${window.location.origin}/lp/${slug}`;
     navigator.clipboard.writeText(url);
     toast({ title: "Link copiado", description: url });
+  }
+
+  async function downloadJson(lp: LP) {
+    const { data, error } = await (supabase as any)
+      .from("figma_landing_pages").select("figma_json,title,slug").eq("id", lp.id).single();
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    if (!data?.figma_json) { toast({ title: "Sem JSON", description: "Esta LP não tem JSON do Figma salvo (importada via API sem cache).", variant: "destructive" }); return; }
+    const blob = new Blob([JSON.stringify(data.figma_json, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${data.slug || "figma"}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "JSON baixado" });
+  }
+
+  async function downloadHtml(lp: LP) {
+    const { data, error } = await (supabase as any)
+      .from("figma_landing_pages").select("generated_html,slug").eq("id", lp.id).single();
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    if (!data?.generated_html) { toast({ title: "Sem HTML", variant: "destructive" }); return; }
+    const blob = new Blob([data.generated_html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${data.slug || "lp"}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "HTML baixado" });
   }
 
   return (
@@ -268,6 +298,12 @@ export default function FigmaToLpPage() {
                   <Copy className="h-3 w-3 mr-1" /> Link
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => openEdit(lp)}>Editar</Button>
+                <Button size="sm" variant="outline" onClick={() => downloadJson(lp)}>
+                  <Download className="h-3 w-3 mr-1" /> JSON
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => downloadHtml(lp)}>
+                  <Download className="h-3 w-3 mr-1" /> HTML
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => togglePublished(lp)}>
                   {lp.published ? "Despublicar" : "Publicar"}
                 </Button>
