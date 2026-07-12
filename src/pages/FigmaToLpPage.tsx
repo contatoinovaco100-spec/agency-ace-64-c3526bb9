@@ -123,7 +123,8 @@ export default function FigmaToLpPage() {
       const traceMsg = trace ? ` (${trace.total} elementos rastreados)` : "";
       toast({ title: "Landing page criada!", description: `/lp/${finalSlug}${traceMsg}` });
       setDialogOpen(false);
-      setTitle(""); setSlug(""); setFigmaJsonText(""); setFigmaUrl(""); setFigmaToken("");
+      setTitle(""); setSlug(""); setFigmaJsonText("");
+      if (!rememberToken) { setFigmaUrl(""); setFigmaToken(""); }
       load();
     } catch (e: any) {
       toast({ title: "Erro ao gerar", description: e.message || String(e), variant: "destructive" });
