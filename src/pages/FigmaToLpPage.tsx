@@ -109,7 +109,11 @@ export default function FigmaToLpPage() {
       });
       if (insErr) throw insErr;
 
-      toast({ title: "Landing page criada!", description: `/lp/${finalSlug}` });
+      if (insErr) throw insErr;
+
+      const trace = (data as any).ai_notes?.trace;
+      const traceMsg = trace ? ` (${trace.total} elementos rastreados)` : "";
+      toast({ title: "Landing page criada!", description: `/lp/${finalSlug}${traceMsg}` });
       setDialogOpen(false);
       setTitle(""); setSlug(""); setFigmaJsonText(""); setFigmaUrl(""); setFigmaToken("");
       load();
@@ -329,6 +333,25 @@ export default function FigmaToLpPage() {
                   title="preview"
                 />
               </div>
+
+              {selected.ai_notes?.trace && (
+                <div className="p-3 bg-muted rounded space-y-1">
+                  <Label>Rastreio de elementos</Label>
+                  <p className="text-sm">
+                    <strong>{selected.ai_notes.trace.total}</strong> elementos detectados
+                    {selected.ai_notes.trace.rendered_by_ai && (
+                      <span> · <strong>{selected.ai_notes.trace.rendered_by_ai}</strong> reproduzidos pela IA</span>
+                    )}
+                  </p>
+                  <div className="flex flex-wrap gap-1 text-xs">
+                    {Object.entries(selected.ai_notes.trace.roles || {}).map(([role, count]) => (
+                      <span key={role} className="px-2 py-0.5 bg-background rounded border">
+                        {role}: {count as number}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {selected.ai_notes?.suggestions?.length > 0 && (
                 <div>

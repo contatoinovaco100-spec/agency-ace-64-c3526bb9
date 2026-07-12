@@ -9,13 +9,25 @@ interface FigmaNode {
   id: string;
   name: string;
   type: string;
+  visible?: boolean;
   absoluteBoundingBox?: { x: number; y: number; width: number; height: number };
   fills?: any[];
+  strokes?: any[];
+  strokeWeight?: number;
   characters?: string;
   style?: any;
   children?: FigmaNode[];
   cornerRadius?: number;
+  rectangleCornerRadii?: number[];
   backgroundColor?: any;
+  effects?: any[];
+  opacity?: number;
+  layoutMode?: string;
+  itemSpacing?: number;
+  paddingLeft?: number;
+  paddingRight?: number;
+  paddingTop?: number;
+  paddingBottom?: number;
 }
 
 function rgbaToCss(color: any, opacity = 1): string {
@@ -27,11 +39,38 @@ function rgbaToCss(color: any, opacity = 1): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+function rgbaToHex(color: any): string {
+  if (!color) return "#000000";
+  const toHex = (v: number) => Math.round((v ?? 0) * 255).toString(16).padStart(2, "0");
+  return `#${toHex(color.r)}${toHex(color.g)}${toHex(color.b)}`;
+}
+
 function fillsToCss(fills?: any[]): string {
   if (!fills || fills.length === 0) return "";
   const solid = fills.find((f) => f.type === "SOLID" && f.visible !== false);
   if (solid) return rgbaToCss(solid.color, solid.opacity ?? 1);
+  const gradient = fills.find((f) => f.type?.startsWith("GRADIENT") && f.visible !== false);
+  if (gradient?.gradientStops) {
+    const stops = gradient.gradientStops
+      .map((s: any) => `${rgbaToCss(s.color)} ${Math.round(s.position * 100)}%`)
+      .join(", ");
+    return `linear-gradient(180deg, ${stops})`;
+  }
   return "";
+}
+
+function getImageRef(fills?: any[]): string | null {
+  if (!fills) return null;
+  const img = fills.find((f) => f.type === "IMAGE" && f.imageRef);
+  return img?.imageRef || null;
+}
+
+function shadowCss(effects?: any[]): string {
+  if (!effects) return "";
+  const drops = effects
+    .filter((e) => e.type === "DROP_SHADOW" && e.visible !== false)
+    .map((e) => `${e.offset?.x || 0}px ${e.offset?.y || 0}px ${e.radius || 0}px ${rgbaToCss(e.color)}`);
+  return drops.length ? drops.join(", ") : "";
 }
 
 function findFirstFrame(node: FigmaNode): FigmaNode | null {
@@ -60,26 +99,101 @@ function collectPageFrames(doc: any): FigmaNode[] {
 }
 
 function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-function renderNode(node: FigmaNode, originX: number, originY: number, depth = 0): string {
+// ---------- Element inventory ----------
+interface ElementTrace {
+  id: string;
+  name: string;
+  type: string;
+  role: string; // heading | body | button | image | icon | container | divider | logo
+  x: number; y: number; w: number; h: number;
+  text?: string;
+  fontSize?: number;
+  fontWeight?: number;
+  fontFamily?: string;
+  color?: string;
+  bg?: string;
+  radius?: number;
+  imageRef?: string;
+  shadow?: string;
+  opacity?: number;
+  children_count?: number;
+  depth: number;
+}
+
+function classifyRole(n: FigmaNode): string {
+  const name = (n.name || "").toLowerCase();
+  if (n.type === "TEXT") {
+    const fs = n.style?.fontSize || 16;
+    if (name.includes("button") || name.includes("btn") || name.includes("cta")) return "button-text";
+    if (fs >= 32) return "heading";
+    if (fs >= 20) return "subheading";
+    return "body";
+  }
+  if (getImageRef(n.fills)) {
+    if (name.includes("logo")) return "logo";
+    if (n.absoluteBoundingBox && n.absoluteBoundingBox.width <= 64 && n.absoluteBoundingBox.height <= 64) return "icon";
+    return "image";
+  }
+  if (n.type === "VECTOR" || n.type === "BOOLEAN_OPERATION" || n.type === "STAR" || n.type === "LINE") {
+    return "icon";
+  }
+  if (name.includes("button") || name.includes("btn") || name.includes("cta")) return "button";
+  if (name.includes("divider") || (n.absoluteBoundingBox && (n.absoluteBoundingBox.height <= 2 || n.absoluteBoundingBox.width <= 2))) return "divider";
+  if (n.type === "FRAME" || n.type === "GROUP" || n.type === "COMPONENT" || n.type === "INSTANCE") return "container";
+  return "shape";
+}
+
+function traceNodes(node: FigmaNode, originX: number, originY: number, depth: number, out: ElementTrace[]) {
+  if (!node || node.visible === false) return;
+  const bb = node.absoluteBoundingBox;
+  if (!bb) return;
+  const trace: ElementTrace = {
+    id: node.id,
+    name: node.name,
+    type: node.type,
+    role: classifyRole(node),
+    x: Math.round(bb.x - originX),
+    y: Math.round(bb.y - originY),
+    w: Math.round(bb.width),
+    h: Math.round(bb.height),
+    depth,
+    opacity: node.opacity,
+    children_count: node.children?.length || 0,
+  };
+  if (node.type === "TEXT") {
+    trace.text = node.characters || "";
+    trace.fontSize = node.style?.fontSize;
+    trace.fontWeight = node.style?.fontWeight;
+    trace.fontFamily = node.style?.fontFamily;
+    if (node.fills?.[0]?.color) trace.color = rgbaToHex(node.fills[0].color);
+  }
+  const bg = fillsToCss(node.fills);
+  if (bg) trace.bg = bg;
+  const imgRef = getImageRef(node.fills);
+  if (imgRef) trace.imageRef = imgRef;
+  if (node.cornerRadius) trace.radius = node.cornerRadius;
+  const sh = shadowCss(node.effects);
+  if (sh) trace.shadow = sh;
+
+  out.push(trace);
+  (node.children || []).forEach((c) => traceNodes(c, originX, originY, depth + 1, out));
+}
+
+// ---------- Faithful renderer ----------
+function renderNode(node: FigmaNode, originX: number, originY: number, imageUrls: Record<string, string>): string {
   if (!node || node.visible === false) return "";
   const bb = node.absoluteBoundingBox;
   if (!bb) return "";
-  const left = bb.x - originX;
-  const top = bb.y - originY;
-  const w = bb.width;
-  const h = bb.height;
-
+  const left = bb.x - originX, top = bb.y - originY, w = bb.width, h = bb.height;
   const bg = fillsToCss(node.fills);
   const radius = node.cornerRadius ? `border-radius:${node.cornerRadius}px;` : "";
-
-  const baseStyle = `position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;${radius}`;
+  const shadow = shadowCss(node.effects);
+  const shadowStyle = shadow ? `box-shadow:${shadow};` : "";
+  const opacity = node.opacity != null && node.opacity < 1 ? `opacity:${node.opacity};` : "";
+  const baseStyle = `position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;${radius}${shadowStyle}${opacity}`;
 
   if (node.type === "TEXT") {
     const st = node.style || {};
@@ -89,38 +203,39 @@ function renderNode(node: FigmaNode, originX: number, originY: number, depth = 0
     const family = st.fontFamily ? `${st.fontFamily}, Inter, sans-serif` : "Inter, sans-serif";
     const align = (st.textAlignHorizontal || "LEFT").toLowerCase();
     const lineHeight = st.lineHeightPx ? `${st.lineHeightPx}px` : "1.4";
-    return `<div style="${baseStyle}color:${color};font-size:${fontSize};font-weight:${fontWeight};font-family:${family};text-align:${align};line-height:${lineHeight};display:flex;align-items:center;justify-content:${align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start"};white-space:pre-wrap;">${escapeHtml(node.characters || "")}</div>`;
+    return `<div style="${baseStyle}color:${color};font-size:${fontSize};font-weight:${fontWeight};font-family:${family};text-align:${align};line-height:${lineHeight};white-space:pre-wrap;">${escapeHtml(node.characters || "")}</div>`;
   }
 
-  const inner = (node.children || [])
-    .map((c) => renderNode(c, originX, originY, depth + 1))
-    .join("");
+  const imgRef = getImageRef(node.fills);
+  if (imgRef && imageUrls[imgRef]) {
+    return `<img src="${imageUrls[imgRef]}" alt="${escapeHtml(node.name)}" style="${baseStyle}object-fit:cover;" />`;
+  }
 
+  const inner = (node.children || []).map((c) => renderNode(c, originX, originY, imageUrls)).join("");
   return `<div data-name="${escapeHtml(node.name)}" data-type="${node.type}" style="${baseStyle}background:${bg || "transparent"};overflow:hidden;">${inner}</div>`;
 }
 
-function renderFrameToHtml(frame: FigmaNode): string {
+function renderFrameToHtml(frame: FigmaNode, imageUrls: Record<string, string>): string {
   const bb = frame.absoluteBoundingBox!;
   const bg = fillsToCss(frame.fills) || rgbaToCss(frame.backgroundColor);
-  const inner = (frame.children || [])
-    .map((c) => renderNode(c, bb.x, bb.y))
-    .join("");
+  const inner = (frame.children || []).map((c) => renderNode(c, bb.x, bb.y, imageUrls)).join("");
   return `<section style="position:relative;width:100%;max-width:${bb.width}px;margin:0 auto;aspect-ratio:${bb.width}/${bb.height};background:${bg || "#fff"};overflow:hidden;">${inner}</section>`;
-}
-
-function summarizeFrame(frame: FigmaNode): string {
-  const texts: string[] = [];
-  const walk = (n: FigmaNode) => {
-    if (n.type === "TEXT" && n.characters) texts.push(n.characters);
-    (n.children || []).forEach(walk);
-  };
-  walk(frame);
-  return texts.slice(0, 40).join(" | ");
 }
 
 async function extractFigmaKey(url: string): Promise<string | null> {
   const m = url.match(/figma\.com\/(?:file|design|proto)\/([a-zA-Z0-9]+)/);
   return m ? m[1] : null;
+}
+
+async function fetchImageUrls(key: string, token: string, imageRefs: string[]): Promise<Record<string, string>> {
+  try {
+    const resp = await fetch(`https://api.figma.com/v1/files/${key}/images`, {
+      headers: { "X-Figma-Token": token },
+    });
+    if (!resp.ok) return {};
+    const data = await resp.json();
+    return data.meta?.images || {};
+  } catch { return {}; }
 }
 
 serve(async (req) => {
@@ -131,6 +246,7 @@ serve(async (req) => {
     const { mode, figmaJson: providedJson, figmaUrl, figmaToken, title } = body;
 
     let figmaDoc: any = null;
+    let imageUrls: Record<string, string> = {};
 
     if (mode === "api") {
       if (!figmaUrl || !figmaToken) throw new Error("URL do Figma e token são obrigatórios.");
@@ -145,59 +261,86 @@ serve(async (req) => {
       }
       const data = await resp.json();
       figmaDoc = data.document;
+      imageUrls = await fetchImageUrls(key, figmaToken, []);
     } else {
       figmaDoc = providedJson?.document || providedJson;
       if (!figmaDoc) throw new Error("JSON do Figma inválido — envie o arquivo completo exportado.");
     }
 
-    // Get frames (up to first 5 to keep response manageable)
     const frames = collectPageFrames(figmaDoc);
     const targetFrames = frames.length > 0 ? frames.slice(0, 5) : [findFirstFrame(figmaDoc)].filter(Boolean) as FigmaNode[];
-
     if (targetFrames.length === 0) throw new Error("Nenhum frame encontrado no arquivo Figma.");
 
-    const faithfulHtml = targetFrames.map(renderFrameToHtml).join("\n");
-    const summary = targetFrames.map((f, i) => `Frame ${i + 1} (${f.name}): ${summarizeFrame(f)}`).join("\n\n");
+    // ---------- Trace every element ----------
+    const inventory: { frame: string; elements: ElementTrace[] }[] = [];
+    for (const f of targetFrames) {
+      const bb = f.absoluteBoundingBox!;
+      const list: ElementTrace[] = [];
+      (f.children || []).forEach((c) => traceNodes(c, bb.x, bb.y, 0, list));
+      inventory.push({ frame: f.name, elements: list });
+    }
 
-    // AI enhancement layer
+    const totalElements = inventory.reduce((a, b) => a + b.elements.length, 0);
+    const roleCounts: Record<string, number> = {};
+    inventory.forEach((f) => f.elements.forEach((e) => { roleCounts[e.role] = (roleCounts[e.role] || 0) + 1; }));
+
+    const faithfulHtml = targetFrames.map((f) => renderFrameToHtml(f, imageUrls)).join("\n");
+
+    // Compact inventory for AI (only useful fields)
+    const compactInventory = inventory.map((f) => ({
+      frame: f.frame,
+      elements: f.elements.map((e) => ({
+        role: e.role,
+        name: e.name,
+        text: e.text?.slice(0, 200),
+        x: e.x, y: e.y, w: e.w, h: e.h,
+        fontSize: e.fontSize,
+        fontWeight: e.fontWeight,
+        color: e.color,
+        bg: e.bg?.startsWith("rgba") ? e.bg : undefined,
+        radius: e.radius,
+        hasImage: !!e.imageRef,
+        imageUrl: e.imageRef ? imageUrls[e.imageRef] : undefined,
+      })),
+    }));
+
+    // ---------- AI enhancement ----------
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     let aiHtml = faithfulHtml;
-    let aiNotes: any = { suggestions: [], applied: false };
+    let aiNotes: any = { suggestions: [], applied: false, trace: { total: totalElements, roles: roleCounts } };
 
     if (LOVABLE_API_KEY) {
-      const prompt = `Você é um web designer sênior. Recebi HTML gerado por um renderer fiel de um arquivo Figma (posições absolutas). Sua tarefa:
+      const prompt = `Você é um web designer sênior. Recebi o INVENTÁRIO COMPLETO de elementos rastreados de um arquivo Figma. Cada elemento tem posição, papel (heading/body/button/image/icon/logo/container/divider), cores, fontes e conteúdo.
 
-1. Reinterpretar em HTML semântico + Tailwind CSS, RESPONSIVO (mobile-first, breakpoints sm/md/lg).
-2. Preservar hierarquia visual, cores, textos e proporções.
-3. Usar <header>, <section>, <footer> apropriados.
-4. Identificar CTA principal e destacar.
-5. Manter a identidade do design original.
+Sua tarefa: construir uma LP responsiva (HTML + Tailwind via CDN) que reproduza CADA elemento do inventário, respeitando:
+- Hierarquia visual (headings antes de body, CTAs em destaque)
+- Cores exatas (use os hex fornecidos)
+- Textos exatos (não invente copy nova, use o que está no inventário)
+- Imagens quando fornecidas (use imageUrl)
+- Ícones e dividers como decoração
+- Layout mobile-first com breakpoints sm/md/lg
+- Semântica correta: <header>, <section>, <footer>, <button>, <img>
 
-Título da LP: "${title || 'Landing Page'}"
+Título: "${title || 'Landing Page'}"
 
-Resumo dos textos do design:
-${summary}
+INVENTÁRIO RASTREADO (${totalElements} elementos, papéis: ${JSON.stringify(roleCounts)}):
+${JSON.stringify(compactInventory).slice(0, 40000)}
 
-HTML fiel (posições absolutas — use como referência de conteúdo/cor/hierarquia):
-${faithfulHtml.slice(0, 15000)}
-
-Responda em JSON:
+Responda em JSON puro:
 {
-  "html": "<!DOCTYPE html>...com Tailwind via CDN e estilo completo, LP responsiva pronta para servir",
-  "suggestions": ["sugestão de copy 1", "sugestão de melhoria 2", ...]
+  "html": "<!DOCTYPE html>... LP completa e responsiva com Tailwind CDN",
+  "suggestions": ["sugestão 1", "sugestão 2"],
+  "elements_rendered": <número de elementos que você incluiu>
 }`;
 
       try {
         const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
           body: JSON.stringify({
             model: "google/gemini-2.5-pro",
             messages: [
-              { role: "system", content: "Você é um web designer que retorna HTML+Tailwind completo em JSON válido." },
+              { role: "system", content: "Você é um web designer que retorna HTML+Tailwind completo em JSON válido. Reproduza CADA elemento do inventário rastreado." },
               { role: "user", content: prompt },
             ],
           }),
@@ -211,31 +354,37 @@ Responda em JSON:
             const parsed = JSON.parse(cleaned);
             if (parsed.html) {
               aiHtml = parsed.html;
-              aiNotes = { suggestions: parsed.suggestions || [], applied: true };
+              aiNotes = {
+                suggestions: parsed.suggestions || [],
+                applied: true,
+                trace: { total: totalElements, roles: roleCounts, rendered_by_ai: parsed.elements_rendered },
+              };
             }
           } catch {
-            aiNotes = { suggestions: [], applied: false, raw: content.slice(0, 500) };
+            aiNotes.raw = content.slice(0, 500);
           }
-        } else if (aiResp.status === 429) {
-          aiNotes = { suggestions: [], applied: false, error: "Rate limit — usando renderer fiel." };
-        } else if (aiResp.status === 402) {
-          aiNotes = { suggestions: [], applied: false, error: "Créditos IA esgotados — usando renderer fiel." };
-        } else {
-          aiNotes = { suggestions: [], applied: false, error: `AI ${aiResp.status}` };
-        }
+        } else if (aiResp.status === 429) aiNotes.error = "Rate limit — usando renderer fiel.";
+        else if (aiResp.status === 402) aiNotes.error = "Créditos IA esgotados — usando renderer fiel.";
+        else aiNotes.error = `AI ${aiResp.status}`;
       } catch (e) {
-        aiNotes = { suggestions: [], applied: false, error: String(e) };
+        aiNotes.error = String(e);
       }
     }
 
-    // Wrap faithful HTML if AI didn't produce a full doc
     let finalHtml = aiHtml;
     if (!/<!DOCTYPE|<html/i.test(finalHtml)) {
       finalHtml = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escapeHtml(title || "Landing Page")}</title><script src="https://cdn.tailwindcss.com"></script><style>body{margin:0;font-family:Inter,sans-serif;background:#fff;color:#111}</style></head><body>${finalHtml}</body></html>`;
     }
 
     return new Response(
-      JSON.stringify({ html: finalHtml, faithful_html: faithfulHtml, ai_notes: aiNotes, frames_count: targetFrames.length, figma_json: mode === "api" ? { document: figmaDoc } : null }),
+      JSON.stringify({
+        html: finalHtml,
+        faithful_html: faithfulHtml,
+        ai_notes: aiNotes,
+        frames_count: targetFrames.length,
+        elements_trace: inventory,
+        figma_json: mode === "api" ? { document: figmaDoc } : null,
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
     );
   } catch (error: unknown) {
