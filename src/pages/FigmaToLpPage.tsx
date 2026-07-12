@@ -89,6 +89,13 @@ export default function FigmaToLpPage() {
         payload = { ...payload, mode: "upload", figmaJson: json };
       } else {
         if (!figmaUrl.trim() || !figmaToken.trim()) throw new Error("URL e token são obrigatórios");
+        if (rememberToken) {
+          localStorage.setItem("figma_token", figmaToken);
+          localStorage.setItem("figma_url", figmaUrl);
+        } else {
+          localStorage.removeItem("figma_token");
+          localStorage.removeItem("figma_url");
+        }
         payload = { ...payload, mode: "api", figmaUrl, figmaToken };
       }
 
