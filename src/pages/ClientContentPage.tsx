@@ -317,18 +317,8 @@ export default function ClientContentPage() {
     if (date < today && !isInternal && !isArte) return false;
     return true;
   });
-  const pastDueTasks = tasks.filter(t => {
-    if (t.status === 'Concluído') return false;
-    if (t.status === 'Postado') return false;
-    const taskDate = t.scheduled_date || t.due_date;
-    if (!taskDate) return false;
-    const date = new Date(taskDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return date < today && isInternal;
-  });
   const postedTasks = tasks.filter(t => t.status === 'Postado');
-  const displayedTasks = showPosted ? tasks.filter(t => t.status !== 'Concluído') : [...pendingTasks, ...(isInternal && showPastDue ? pastDueTasks : [])];
+  const displayedTasks = showPosted ? tasks.filter(t => t.status !== 'Concluído') : pendingTasks;
 
   return (
     <div className="min-h-screen bg-background">
@@ -354,15 +344,6 @@ export default function ClientContentPage() {
               className="text-sm text-primary hover:underline"
             >
               {showPosted ? 'Ocultar publicados' : `Ver ${postedTasks.length} publicados`}
-            </button>
-          )}
-          {isInternal && pastDueTasks.length > 0 && (
-            <button
-              onClick={() => setShowPastDue(!showPastDue)}
-              className="text-sm text-red-500 hover:underline flex items-center gap-1"
-            >
-              <Lock className="h-3 w-3" />
-              {showPastDue ? 'Ocultar atrasadas' : `Ver ${pastDueTasks.length} atrasadas`}
             </button>
           )}
         </div>
