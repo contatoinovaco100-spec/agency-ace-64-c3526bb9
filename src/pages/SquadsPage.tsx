@@ -38,7 +38,7 @@ export default function SquadsPage() {
       supabase.from('squads').select('*').order('created_at', { ascending: false }),
       supabase.from('squad_members').select('*'),
       supabase.from('squad_clients').select('*'),
-      supabase.from('profiles').select('id, full_name, username, job_title').eq('is_active', true),
+      supabase.from('profiles').select('id, full_name, username, job_title').eq('is_active', true).not('username', 'is', null),
       supabase.from('clients').select('id, company_name').order('company_name'),
     ]);
     setSquads((s.data ?? []) as Squad[]);
