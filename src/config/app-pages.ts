@@ -25,6 +25,9 @@ export interface AppPage {
   affiliateOnly?: boolean;
   /** Only admins can ever access */
   adminOnly?: boolean;
+  /** Do not render in sidebar (still routable) */
+  hidden?: boolean;
+
 }
 
 /**
