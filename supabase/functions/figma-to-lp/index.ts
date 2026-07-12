@@ -464,8 +464,7 @@ serve(async (req) => {
       })),
     }));
 
-    // ---------- AI enhancement ----------
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    // ---------- Metadata ----------
     let aiNotes: any = {
       suggestions: [],
       applied: false,
@@ -473,74 +472,6 @@ serve(async (req) => {
       images: imageStats,
       exact_renderer: true,
     };
-
-    if (LOVABLE_API_KEY) {
-      const prompt = `Você é um web designer sênior. Recebi o INVENTÁRIO COMPLETO de elementos rastreados de um arquivo Figma. Cada elemento tem posição, papel (heading/body/button/image/icon/logo/container/divider), cores, fontes e conteúdo.
-
-Sua tarefa: construir uma LP responsiva (HTML + Tailwind via CDN) que reproduza CADA elemento do inventário, respeitando:
-- Hierarquia visual (headings antes de body, CTAs em destaque)
-- Cores exatas (use os hex fornecidos)
-- Textos exatos (não invente copy nova, use o que está no inventário)
-- Imagens quando fornecidas (use imageUrl)
-- Ícones e dividers como decoração
-- Layout mobile-first com breakpoints sm/md/lg
-- Semântica correta: <header>, <section>, <footer>, <button>, <img>
-
-Título: "${title || 'Landing Page'}"
-
-INVENTÁRIO RASTREADO (${totalElements} elementos, papéis: ${JSON.stringify(roleCounts)}):
-${JSON.stringify(compactInventory).slice(0, 40000)}
-
-Responda em JSON puro:
-{
-  "html": "<!DOCTYPE html>... LP completa e responsiva com Tailwind CDN",
-  "suggestions": ["sugestão 1", "sugestão 2"],
-  "elements_rendered": <número de elementos que você incluiu>
-}`;
-
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 45000);
-        const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
-          signal: controller.signal,
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              { role: "system", content: "Você é um web designer que retorna HTML+Tailwind completo em JSON válido. Reproduza CADA elemento do inventário rastreado." },
-              { role: "user", content: prompt },
-            ],
-          }),
-        });
-        clearTimeout(timer);
-
-        if (aiResp.ok) {
-          const aiData = await aiResp.json();
-          const content = aiData.choices?.[0]?.message?.content || "";
-          const cleaned = String(content).replace(/```json/g, '').replace(/```/g, '').trim();
-          try {
-            const parsed = JSON.parse(cleaned);
-            if (parsed.html) {
-              aiNotes = {
-                suggestions: parsed.suggestions || [],
-                applied: false,
-                trace: { total: totalElements, roles: roleCounts, rendered_by_ai: parsed.elements_rendered },
-                images: imageStats,
-                exact_renderer: true,
-                ai_reference_generated: true,
-              };
-            }
-          } catch {
-            aiNotes.raw = content.slice(0, 500);
-          }
-        } else if (aiResp.status === 429) aiNotes.error = "Rate limit — usando renderer fiel.";
-        else if (aiResp.status === 402) aiNotes.error = "Créditos IA esgotados — usando renderer fiel.";
-        else aiNotes.error = `AI ${aiResp.status}`;
-      } catch (e) {
-        aiNotes.error = String(e);
-      }
-    }
 
     let finalHtml = exactHtml;
     if (!/<!DOCTYPE|<html/i.test(finalHtml)) {

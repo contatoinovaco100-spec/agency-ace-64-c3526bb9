@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import DOMPurify from "dompurify";
 import { Loader2 } from "lucide-react";
 
 export default function PublicLandingPage() {
@@ -49,21 +48,13 @@ export default function PublicLandingPage() {
     );
   }
 
-  // Sanitize; allow style tags/attrs and script only from tailwind CDN.
-  const clean = DOMPurify.sanitize(html || "", {
-    WHOLE_DOCUMENT: true,
-    ADD_TAGS: ["script", "style", "link", "meta"],
-    ADD_ATTR: ["src", "href", "rel", "target", "style", "class"],
-    FORBID_TAGS: ["iframe"],
-  });
-
-  // Render inside iframe to fully isolate styles
+  // Render inside a sandboxed iframe so the exported Figma HTML keeps its exact SVG/CSS structure.
   return (
     <iframe
       title={title}
-      srcDoc={clean}
+      srcDoc={html || ""}
       className="w-full h-screen border-0"
-      sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+      sandbox="allow-scripts allow-popups allow-forms"
     />
   );
 }
