@@ -252,13 +252,16 @@ function renderNode(node: FigmaNode, originX: number, originY: number, imageUrls
 
   const stroke = node.strokes?.[0]?.color ? `border:${node.strokeWeight || 1}px solid ${rgbaToCss(node.strokes[0].color, node.strokes[0].opacity ?? 1)};` : "";
   const inner = (node.children || []).map((c) => renderNode(c, originX, originY, imageUrls, nodeImageUrls)).join("");
-  return `<div data-name="${escapeHtml(node.name)}" data-type="${node.type}" style="${baseStyle}background:${bg || "transparent"};overflow:hidden;">${inner}</div>`;
+  return `<div data-name="${escapeHtml(node.name)}" data-type="${node.type}" style="${baseStyle}${stroke}background:${bg || "transparent"};overflow:hidden;">${inner}</div>`;
 }
 
 function renderFrameToHtml(frame: FigmaNode, imageUrls: Record<string, string>, nodeImageUrls: Record<string, string>): string {
   const bb = frame.absoluteBoundingBox!;
   const bg = fillsToCss(frame.fills) || rgbaToCss(frame.backgroundColor);
-  const inner = (frame.children || []).map((c) => renderNode(c, bb.x, bb.y, imageUrls, nodeImageUrls)).join("");
+  const children = frame.children || [];
+  const inner = children.length > 0
+    ? children.map((c) => renderNode(c, bb.x, bb.y, imageUrls, nodeImageUrls)).join("")
+    : renderNode(frame, bb.x, bb.y, imageUrls, nodeImageUrls);
   return `<section class="figma-frame" aria-label="${escapeHtml(frame.name)}" style="width:100%;max-width:${bb.width}px;margin:0 auto;background:${bg || "#fff"};overflow:hidden;">
   <svg viewBox="0 0 ${bb.width} ${bb.height}" width="100%" style="display:block;background:${bg || "#fff"}" xmlns="http://www.w3.org/2000/svg">
     <foreignObject x="0" y="0" width="${bb.width}" height="${bb.height}">
@@ -379,6 +382,7 @@ serve(async (req) => {
     let figmaDoc: any = null;
     let imageUrls: Record<string, string> = {};
     let nodeImageUrls: Record<string, string> = {};
+    let imageStats = { traced: 0, downloaded: 0, fallback: 0, embedded_bytes_budget_left: 0 };
     let selectedNodeId: string | undefined;
 
     if (mode === "api") {
@@ -411,14 +415,14 @@ serve(async (req) => {
     if (mode === "api") {
       const ref = await extractFigmaReference(figmaUrl);
       const renderIds = new Set<string>();
-      targetFrames.forEach((frame) => (frame.children || []).forEach((child) => collectRenderableNodeIds(child, renderIds)));
+      targetFrames.forEach((frame) => collectRenderableNodeIds(frame, renderIds));
       const renderedUrls = ref?.key ? await fetchRenderedNodeUrls(ref.key, figmaToken, [...renderIds]) : {};
       const budget = { remaining: 12 * 1024 * 1024 };
       const persistedNodeImages = await persistImageMap(renderedUrls, budget);
       const persistedFillImages = await persistImageMap(imageUrls, budget);
       nodeImageUrls = persistedNodeImages.persisted;
       imageUrls = persistedFillImages.persisted;
-      (globalThis as any).__imageStats = {
+      imageStats = {
         traced: renderIds.size + Object.keys(imageUrls).length,
         downloaded: persistedNodeImages.downloaded + persistedFillImages.downloaded,
         fallback: persistedNodeImages.fallback + persistedFillImages.fallback,
@@ -466,7 +470,7 @@ serve(async (req) => {
       suggestions: [],
       applied: false,
       trace: { total: totalElements, roles: roleCounts },
-      images: (globalThis as any).__imageStats || { traced: 0, downloaded: 0, fallback: 0 },
+      images: imageStats,
       exact_renderer: true,
     };
 
@@ -522,7 +526,7 @@ Responda em JSON puro:
                 suggestions: parsed.suggestions || [],
                 applied: false,
                 trace: { total: totalElements, roles: roleCounts, rendered_by_ai: parsed.elements_rendered },
-                images: (globalThis as any).__imageStats || { traced: 0, downloaded: 0, fallback: 0 },
+                images: imageStats,
                 exact_renderer: true,
                 ai_reference_generated: true,
               };
