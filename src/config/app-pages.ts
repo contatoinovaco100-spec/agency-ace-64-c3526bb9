@@ -3,7 +3,7 @@ import {
   Shield, FileText, BarChart3,   Film, Clapperboard, Palette, Play,
   LayoutList, Bot, Sparkles, Settings, Bell, Calendar,
   MessageSquare, TrendingUp, Images, BookOpen, CalculatorIcon,
-  Gift, Link2, ListChecks, Wallet, Network, Layers, KeyRound,
+  Gift, Link2, ListChecks, Wallet, Network, Layers, KeyRound, UsersRound,
 } from 'lucide-react';
 
 export type PageCategory =
@@ -85,6 +85,7 @@ export const APP_PAGES: AppPage[] = [
 
   // Administração (só admin)
   { path: '/funcionarios',        label: 'Funcionários',        icon: UserCog,         category: 'Administração', adminOnly: true },
+  { path: '/squads',              label: 'Squads',              icon: UsersRound,      category: 'Administração', adminOnly: true },
   { path: '/etapas-kanban',       label: 'Etapas do Kanban',    icon: Layers,          category: 'Administração', adminOnly: true },
 
   { path: '/equipe',              label: 'Equipe (legado)',     icon: UserCog,         category: 'Administração', adminOnly: true },

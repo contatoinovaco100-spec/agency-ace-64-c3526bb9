@@ -2553,6 +2553,101 @@ export type Database = {
           },
         ]
       }
+      squad_clients: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          squad_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          squad_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          squad_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "squad_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "squad_clients_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      squad_members: {
+        Row: {
+          created_at: string
+          id: string
+          role_label: string | null
+          squad_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role_label?: string | null
+          squad_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role_label?: string | null
+          squad_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "squad_members_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      squads: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       task_attachments: {
         Row: {
           created_at: string
