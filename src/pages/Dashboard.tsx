@@ -203,11 +203,10 @@ export default function Dashboard() {
   const totalLtv = ltvByClient.reduce((sum, c) => sum + c.ltv, 0);
   const avgLtv = ltvByClient.length > 0 ? totalLtv / ltvByClient.length : 0;
 
-  // Client status distribution
+  // Client status distribution (cancelled clients live in the Churn section)
   const clientStatusData = [
     { name: 'Ativos', value: activeClients.length, color: CHART_COLORS[1] },
     { name: 'Pausados', value: pausedClients.length, color: CHART_COLORS[3] },
-    { name: 'Cancelados', value: clients.filter(c => c.status === 'Cancelado').length, color: 'hsl(0, 62%, 50%)' },
   ].filter(d => d.value > 0);
 
   // Task status distribution
