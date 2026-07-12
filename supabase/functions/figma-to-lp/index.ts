@@ -223,8 +223,10 @@ function renderFrameToHtml(frame: FigmaNode, imageUrls: Record<string, string>):
 }
 
 async function extractFigmaKey(url: string): Promise<string | null> {
-  const m = url.match(/figma\.com\/(?:file|design|proto)\/([a-zA-Z0-9]+)/);
-  return m ? m[1] : null;
+  const m = url.match(/figma\.com\/(?:file|design|proto|board|slides)\/([a-zA-Z0-9]+)/);
+  if (m) return m[1];
+  const bare = url.trim().match(/^([a-zA-Z0-9]{15,})$/);
+  return bare ? bare[1] : null;
 }
 
 async function fetchImageUrls(key: string, token: string, imageRefs: string[]): Promise<Record<string, string>> {
