@@ -71,7 +71,40 @@ export function TaskMoveNotifications() {
             soundType
           );
         }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'tasks' },
+        (payload) => {
+          const row: any = payload.new;
+          if (!row) return;
 
+          const me = fullNameRef.current;
+          if (!me) return;
+
+          const isMine = ROLE_FIELDS.some(
+            (f) => (row[f] || '').trim().toLowerCase() === me
+          );
+          if (!isMine) return;
+
+          const title = row.title || row.video_name || 'Tarefa';
+
+          addHistoryEntry(user.id, {
+            taskId: row.id,
+            title,
+            fromStatus: '—',
+            toStatus: row.status || 'A fazer',
+            taskType: row.task_type ?? null,
+            clientId: row.client_id ?? null,
+          });
+
+          triggerNotification(
+            'Nova tarefa atribuída 🆕',
+            `"${title}" foi criada para você`,
+            'info',
+            'agenda'
+          );
+        }
       )
       .subscribe();
 
