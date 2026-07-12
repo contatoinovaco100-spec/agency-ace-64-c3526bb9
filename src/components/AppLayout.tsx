@@ -20,9 +20,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   // Build nav from registry filtered by permissions, grouped by category
   const visiblePages = APP_PAGES.filter(p => {
+    if (p.hidden) return false;
     if (p.adminOnly) return isAdmin;
     return hasPageAccess(p.path);
   });
+
 
   const grouped = PAGE_CATEGORIES
     .map(cat => ({ category: cat, items: visiblePages.filter(p => p.category === cat) }))
