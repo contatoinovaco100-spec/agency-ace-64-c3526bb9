@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAgency } from '@/contexts/AgencyContext';
-import { Task, TaskChecklistItem, TaskComment, TaskAttachment, Client, TeamMember } from '@/types/agency';
+import { Task, TaskChecklistItem, TaskComment, TaskAttachment, Client, TeamMember, TaskStageHistory } from '@/types/agency';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
