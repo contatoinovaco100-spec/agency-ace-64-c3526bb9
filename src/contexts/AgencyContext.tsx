@@ -224,8 +224,15 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
   const updateTask = async (t: Task) => {
     const { id, ...rest } = taskToRow(t);
     const prevTask = tasks.find(x => x.id === t.id);
-    await supabase.from('tasks').update(rest as any).eq('id', t.id);
+    // Optimistic update: reflect the change in UI immediately.
     setTasks(prev => prev.map(x => x.id === t.id ? t : x));
+    const { error } = await supabase.from('tasks').update(rest as any).eq('id', t.id);
+    if (error) {
+      // Rollback if the database update fails.
+      if (prevTask) setTasks(prev => prev.map(x => x.id === t.id ? prevTask : x));
+      console.error('Failed to update task', error);
+      throw error;
+    }
     if (prevTask && prevTask.status !== t.status && user) {
       try {
         const { data: prof } = await supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle();
@@ -241,6 +248,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
       }
     }
   };
+
 
   const deleteTask = async (id: string) => {
     await supabase.from('tasks').delete().eq('id', id);
