@@ -426,6 +426,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                   <TabsTrigger value="checklist" className="flex-1 gap-1"><CheckSquare className="h-3.5 w-3.5" /> Checklist</TabsTrigger>
                   <TabsTrigger value="comments" className="flex-1 gap-1"><MessageSquare className="h-3.5 w-3.5" /> Comentários ({comments.length})</TabsTrigger>
                   <TabsTrigger value="attachments" className="flex-1 gap-1"><FileText className="h-3.5 w-3.5" /> Anexos ({attachments.length})</TabsTrigger>
+                  <TabsTrigger value="history" className="flex-1 gap-1"><History className="h-3.5 w-3.5" /> Histórico ({stageHistory.length})</TabsTrigger>
                 </TabsList>
 
                 {/* Referências (Arte) */}
