@@ -149,9 +149,16 @@ function CardContent({ task, clientName, compact }: { task: Task; clientName?: s
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-medium text-foreground leading-tight truncate">
-          {displayName}
-        </p>
+        <div className="flex items-center gap-1 min-w-0">
+          <p className="text-[11px] font-medium text-foreground leading-tight truncate">
+            {displayName}
+          </p>
+          {task.videoUrl && (
+            <span title="Vídeo enviado para aprovação" aria-label="Vídeo enviado para aprovação">
+              <Film className="h-3 w-3 shrink-0 text-primary" />
+            </span>
+          )}
+        </div>
         <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
           {clientName && (
             <span className="text-[9px] text-primary/70 truncate max-w-[90px]">{clientName}</span>
