@@ -562,6 +562,29 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                     </div>
                   )}
                 </TabsContent>
+
+                {/* History */}
+                <TabsContent value="history" className="space-y-2 mt-3">
+                  {stageHistory.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhuma movimentação registrada ainda.</p>
+                  ) : (
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                      {[...stageHistory].reverse().map(h => (
+                        <div key={h.id} className="rounded-md border border-border bg-secondary/30 px-3 py-2 text-sm">
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="text-muted-foreground truncate">{h.fromStage || '—'}</span>
+                            <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                            <span className="font-medium text-foreground truncate">{h.toStage}</span>
+                          </div>
+                          <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+                            <span>por <span className="font-medium text-foreground">{h.changedBy || 'Desconhecido'}</span></span>
+                            <span className="tabular-nums">{new Date(h.createdAt).toLocaleString('pt-BR')}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
               </Tabs>
             </>
           )}
