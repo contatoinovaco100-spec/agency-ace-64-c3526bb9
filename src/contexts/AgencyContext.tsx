@@ -223,8 +223,23 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
 
   const updateTask = async (t: Task) => {
     const { id, ...rest } = taskToRow(t);
+    const prevTask = tasks.find(x => x.id === t.id);
     await supabase.from('tasks').update(rest as any).eq('id', t.id);
     setTasks(prev => prev.map(x => x.id === t.id ? t : x));
+    if (prevTask && prevTask.status !== t.status && user) {
+      try {
+        const { data: prof } = await supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle();
+        const changedBy = (prof?.full_name || user.email || 'Desconhecido').toString();
+        await supabase.from('task_stage_history').insert({
+          task_id: t.id,
+          from_stage: prevTask.status,
+          to_stage: t.status,
+          changed_by: changedBy,
+        } as any);
+      } catch (e) {
+        console.error('Failed to log stage change', e);
+      }
+    }
   };
 
   const deleteTask = async (id: string) => {

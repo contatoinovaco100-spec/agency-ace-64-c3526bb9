@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAgency } from '@/contexts/AgencyContext';
-import { Task, TaskChecklistItem, TaskComment, TaskAttachment, Client, TeamMember } from '@/types/agency';
+import { Task, TaskChecklistItem, TaskComment, TaskAttachment, Client, TeamMember, TaskStageHistory } from '@/types/agency';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Paperclip, Send, Trash2, Link, Upload, MessageSquare, CheckSquare, FileText, X, Share2, Download } from 'lucide-react';
+import { Paperclip, Send, Trash2, Link, Upload, MessageSquare, CheckSquare, FileText, X, Share2, Download, History, ArrowRight } from 'lucide-react';
 import VideoUploader from './VideoUploader';
 
 import { cn } from '@/lib/utils';
@@ -33,12 +33,13 @@ interface Props {
 const priorities = ['Alta', 'Média', 'Baixa'] as const;
 
 export default function TaskDetailPanel({ task, isNew, clients, team, defaultClientId, defaultTaskType, onSave, onDelete, onClose }: Props) {
-  const { getChecklist, upsertChecklistItem, deleteChecklistItem, getComments, addComment, getAttachments, addAttachment, deleteAttachment } = useAgency();
+  const { getChecklist, upsertChecklistItem, deleteChecklistItem, getComments, addComment, getAttachments, addAttachment, deleteAttachment, getStageHistory } = useAgency();
 
   const [form, setForm] = useState<Partial<Task>>({});
   const [checklist, setChecklist] = useState<TaskChecklistItem[]>([]);
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const [stageHistory, setStageHistory] = useState<TaskStageHistory[]>([]);
   const [newComment, setNewComment] = useState('');
   const [commentAuthor, setCommentAuthor] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
@@ -70,10 +71,11 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   }, [task, defaultClientId, defaultTaskType]);
 
   const loadData = async (id: string) => {
-    const [ch, co, at] = await Promise.all([getChecklist(id), getComments(id), getAttachments(id)]);
+    const [ch, co, at, hi] = await Promise.all([getChecklist(id), getComments(id), getAttachments(id), getStageHistory(id)]);
     setChecklist(ch);
     setComments(co);
     setAttachments(at);
+    setStageHistory(hi);
   };
 
   const handleSave = async () => {
@@ -424,6 +426,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                   <TabsTrigger value="checklist" className="flex-1 gap-1"><CheckSquare className="h-3.5 w-3.5" /> Checklist</TabsTrigger>
                   <TabsTrigger value="comments" className="flex-1 gap-1"><MessageSquare className="h-3.5 w-3.5" /> Comentários ({comments.length})</TabsTrigger>
                   <TabsTrigger value="attachments" className="flex-1 gap-1"><FileText className="h-3.5 w-3.5" /> Anexos ({attachments.length})</TabsTrigger>
+                  <TabsTrigger value="history" className="flex-1 gap-1"><History className="h-3.5 w-3.5" /> Histórico ({stageHistory.length})</TabsTrigger>
                 </TabsList>
 
                 {/* Referências (Arte) */}
@@ -556,6 +559,29 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                     <div className="flex gap-2">
                       <Input placeholder="Cole o link aqui..." value={linkUrl} onChange={e => setLinkUrl(e.target.value)} />
                       <Button onClick={handleAddLink}>Adicionar</Button>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* History */}
+                <TabsContent value="history" className="space-y-2 mt-3">
+                  {stageHistory.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhuma movimentação registrada ainda.</p>
+                  ) : (
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                      {[...stageHistory].reverse().map(h => (
+                        <div key={h.id} className="rounded-md border border-border bg-secondary/30 px-3 py-2 text-sm">
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="text-muted-foreground truncate">{h.fromStage || '—'}</span>
+                            <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                            <span className="font-medium text-foreground truncate">{h.toStage}</span>
+                          </div>
+                          <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+                            <span>por <span className="font-medium text-foreground">{h.changedBy || 'Desconhecido'}</span></span>
+                            <span className="tabular-nums">{new Date(h.createdAt).toLocaleString('pt-BR')}</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </TabsContent>
