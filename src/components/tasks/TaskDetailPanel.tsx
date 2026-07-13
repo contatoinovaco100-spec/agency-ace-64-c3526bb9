@@ -71,10 +71,11 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   }, [task, defaultClientId, defaultTaskType]);
 
   const loadData = async (id: string) => {
-    const [ch, co, at] = await Promise.all([getChecklist(id), getComments(id), getAttachments(id)]);
+    const [ch, co, at, hi] = await Promise.all([getChecklist(id), getComments(id), getAttachments(id), getStageHistory(id)]);
     setChecklist(ch);
     setComments(co);
     setAttachments(at);
+    setStageHistory(hi);
   };
 
   const handleSave = async () => {
