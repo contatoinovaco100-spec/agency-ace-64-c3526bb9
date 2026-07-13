@@ -33,7 +33,7 @@ interface Props {
 const priorities = ['Alta', 'Média', 'Baixa'] as const;
 
 export default function TaskDetailPanel({ task, isNew, clients, team, defaultClientId, defaultTaskType, onSave, onDelete, onClose }: Props) {
-  const { getChecklist, upsertChecklistItem, deleteChecklistItem, getComments, addComment, getAttachments, addAttachment, deleteAttachment } = useAgency();
+  const { getChecklist, upsertChecklistItem, deleteChecklistItem, getComments, addComment, getAttachments, addAttachment, deleteAttachment, getStageHistory } = useAgency();
 
   const [form, setForm] = useState<Partial<Task>>({});
   const [checklist, setChecklist] = useState<TaskChecklistItem[]>([]);
