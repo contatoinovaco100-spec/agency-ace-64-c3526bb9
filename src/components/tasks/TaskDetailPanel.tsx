@@ -39,6 +39,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   const [checklist, setChecklist] = useState<TaskChecklistItem[]>([]);
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const [stageHistory, setStageHistory] = useState<TaskStageHistory[]>([]);
   const [newComment, setNewComment] = useState('');
   const [commentAuthor, setCommentAuthor] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
