@@ -543,9 +543,27 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
       if (!map[col]) map[col] = [];
       map[col].push(t);
     });
+
+    // No kanban de arte, ordena por data (hoje → amanhã → sem data)
+    if (taskTypeFilter === 'Arte') {
+      const sortByDate = (a: Task, b: Task) => {
+        const dateA = a.dueDate || a.postDate;
+        const dateB = b.dueDate || b.postDate;
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        const dA = new Date(dateA.replace(/-/g, '/')).setHours(0, 0, 0, 0);
+        const dB = new Date(dateB.replace(/-/g, '/')).setHours(0, 0, 0, 0);
+        return dA - dB;
+      };
+      Object.keys(map).forEach(col => {
+        map[col] = [...map[col]].sort(sortByDate);
+      });
+    }
+
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredTasks, allColumnNames.join('|')]);
+  }, [filteredTasks, allColumnNames.join('|'), taskTypeFilter]);
 
   const activeTask = activeId ? tasks.find(t => t.id === activeId) : null;
 
