@@ -212,6 +212,7 @@ function AppRoutes() {
                     <Route path="/tarefas"             element={<TasksPage />} />
                     <Route path="/artes"               element={<ArtesPage />} />
                     <Route path="/videos-finalizados"  element={<VideosFinalizadosPage />} />
+                    <Route path="/agenda-videos"       element={<VideoSchedulePage />} />
                     <Route path="/equipe"              element={<TeamPage />} />
                     <Route path="/planejamento"        element={<ContentPlanningPage />} />
 
