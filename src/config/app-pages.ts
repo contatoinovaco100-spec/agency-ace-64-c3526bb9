@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, Target, CheckSquare, UserCog,
   Shield, FileText, BarChart3,   Film, Clapperboard, Palette, Play,
-  LayoutList, Bot, Sparkles, Settings, Bell, Calendar,
+  LayoutList, Bot, Sparkles, Settings, Bell, Calendar, CalendarDays,
   MessageSquare, TrendingUp, Images, BookOpen, CalculatorIcon,
   Gift, Link2, ListChecks, Wallet, Network, Layers, KeyRound, UsersRound, Trophy,
 } from 'lucide-react';
@@ -62,6 +62,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/tarefas',             label: 'Tarefas (Kanban)',    icon: CheckSquare,     category: 'Operacional' },
   { path: '/artes',               label: 'Artes Estáticas',     icon: Palette,         category: 'Operacional' },
   { path: '/videos-finalizados',  label: 'Vídeos Finalizados',  icon: Play,            category: 'Operacional' },
+  { path: '/agenda-videos',       label: 'Agenda de Vídeos',    icon: CalendarDays,    category: 'Operacional' },
   { path: '/escopos',             label: 'Escopo do Cliente',   icon: ListChecks,      category: 'Operacional' },
   { path: '/planejamento',        label: 'Planejamento',        icon: LayoutList,      category: 'Operacional' },
   { path: '/diagnostico/editar',  label: 'Diagnóstico',         icon: Target,          category: 'Operacional' },
