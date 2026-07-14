@@ -3109,6 +3109,53 @@ export type Database = {
         }
         Relationships: []
       }
+      video_schedule: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          custom_label: string | null
+          day_of_week: number
+          id: string
+          note: string | null
+          position: number
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          custom_label?: string | null
+          day_of_week: number
+          id?: string
+          note?: string | null
+          position?: number
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          custom_label?: string | null
+          day_of_week?: number
+          id?: string
+          note?: string | null
+          position?: number
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_schedule_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       viral_settings: {
         Row: {
           created_at: string
