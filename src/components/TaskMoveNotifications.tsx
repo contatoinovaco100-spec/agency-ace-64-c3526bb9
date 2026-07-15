@@ -13,6 +13,7 @@ const ROLE_FIELDS = ['assignee', 'copywriter', 'editor', 'director', 'videomaker
  */
 export function TaskMoveNotifications() {
   const { user } = useAuth();
+  const { playSound } = usePushNotification();
   const fullNameRef = useRef<string>('');
 
   useEffect(() => {
