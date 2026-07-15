@@ -1,7 +1,7 @@
 import { useAgency } from '@/contexts/AgencyContext';
 import { useModuleAccess } from '@/hooks/useUserRole';
 import { ExpensesPanel } from '@/components/dashboard/ExpensesPanel';
-import { SmartAlerts } from '@/components/dashboard/SmartAlerts';
+
 import { motion } from 'framer-motion';
 import { useState, useEffect, useMemo } from 'react';
 import {
@@ -92,17 +92,6 @@ export default function Dashboard() {
     })();
   }, [isAdmin]);
 
-  const [alertsHidden, setAlertsHidden] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('dashboard.smartAlertsHidden') === '1';
-  });
-  const toggleAlerts = () => {
-    setAlertsHidden(prev => {
-      const next = !prev;
-      try { localStorage.setItem('dashboard.smartAlertsHidden', next ? '1' : '0'); } catch {}
-      return next;
-    });
-  };
 
   const activeClients = clients.filter(c => c.status === 'Ativo');
   const pausedClients = clients.filter(c => c.status === 'Pausado');
