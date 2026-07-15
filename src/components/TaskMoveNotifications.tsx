@@ -85,6 +85,7 @@ export function TaskMoveNotifications() {
             taskType: row.task_type ?? null,
             clientId: row.client_id ?? null,
           });
+          playSound('default');
         }
       )
       .subscribe();
