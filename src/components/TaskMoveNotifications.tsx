@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { addHistoryEntry } from '@/lib/taskMoveHistory';
+import { usePushNotification } from '@/hooks/usePushNotification';
 
 
 const ROLE_FIELDS = ['assignee', 'copywriter', 'editor', 'director', 'videomaker', 'script_writer'] as const;
@@ -12,6 +13,7 @@ const ROLE_FIELDS = ['assignee', 'copywriter', 'editor', 'director', 'videomaker
  */
 export function TaskMoveNotifications() {
   const { user } = useAuth();
+  const { playSound } = usePushNotification();
   const fullNameRef = useRef<string>('');
 
   useEffect(() => {
@@ -55,6 +57,7 @@ export function TaskMoveNotifications() {
             taskType: newRow.task_type ?? null,
             clientId: newRow.client_id ?? null,
           });
+          playSound('default');
         }
       )
       .on(
@@ -82,6 +85,7 @@ export function TaskMoveNotifications() {
             taskType: row.task_type ?? null,
             clientId: row.client_id ?? null,
           });
+          playSound('default');
         }
       )
       .subscribe();

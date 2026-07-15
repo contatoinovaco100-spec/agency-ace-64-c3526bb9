@@ -3,10 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModuleAccess } from '@/hooks/useUserRole';
 import { addNotification } from '@/lib/notificationHistory';
+import { usePushNotification } from '@/hooks/usePushNotification';
 
 export function RealtimeNotifications() {
   const { user } = useAuth();
   const { isAdmin } = useModuleAccess();
+  const { playSound } = usePushNotification();
 
   useEffect(() => {
     if (!isAdmin || !user) return;
@@ -25,6 +27,7 @@ export function RealtimeNotifications() {
               description: `O contrato "${contract.title}" foi assinado por ${contract.client_name}.`,
               kind: 'sale',
             });
+            playSound('sale');
           }
         },
       )
@@ -38,6 +41,7 @@ export function RealtimeNotifications() {
             description: `${sig.signer_name} acabou de assinar um contrato.`,
             kind: 'signature',
           });
+          playSound('sale');
         },
       )
       .subscribe();
