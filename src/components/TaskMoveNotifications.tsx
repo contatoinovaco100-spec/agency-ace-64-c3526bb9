@@ -57,6 +57,7 @@ export function TaskMoveNotifications() {
             taskType: newRow.task_type ?? null,
             clientId: newRow.client_id ?? null,
           });
+          playSound('default');
         }
       )
       .on(
