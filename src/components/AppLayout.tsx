@@ -1,6 +1,6 @@
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
-import { ChevronLeft, LogOut, Palette, Bell, BellRing } from 'lucide-react';
+import { ChevronLeft, LogOut, Palette } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +9,7 @@ import { usePushNotification } from '@/hooks/usePushNotification';
 import { TaskMoveHistoryBell } from '@/components/TaskMoveHistoryBell';
 import { APP_PAGES, PAGE_CATEGORIES } from '@/config/app-pages';
 import logoInova from '@/assets/logo-inova.png';
+import notifIcon from '@/assets/notif-icon.png.asset.json';
 
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -169,12 +170,12 @@ function AudioActivator({ collapsed }: { collapsed: boolean }) {
       className={cn(
         "flex h-8 w-8 items-center justify-center rounded-md transition-all duration-300",
         isPrimed
-          ? "text-primary bg-primary/10"
-          : "text-amber-500 bg-amber-500/10 animate-pulse hover:bg-amber-500/20"
+          ? "bg-primary/10"
+          : "bg-amber-500/10 animate-pulse hover:bg-amber-500/20"
       )}
       title={isPrimed ? "Alertas Ativos" : "Clique para Ativar Alertas"}
     >
-      {isPrimed ? <Bell className="h-4 w-4" /> : <BellRing className="h-4 w-4" />}
+      <img src={notifIcon.url} alt="Notificações" className="h-4 w-4 object-contain" />
     </button>
   );
 }
