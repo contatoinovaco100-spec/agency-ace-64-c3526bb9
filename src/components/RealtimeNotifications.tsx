@@ -27,6 +27,7 @@ export function RealtimeNotifications() {
               description: `O contrato "${contract.title}" foi assinado por ${contract.client_name}.`,
               kind: 'sale',
             });
+            playSound('sale');
           }
         },
       )
@@ -40,6 +41,7 @@ export function RealtimeNotifications() {
             description: `${sig.signer_name} acabou de assinar um contrato.`,
             kind: 'signature',
           });
+          playSound('sale');
         },
       )
       .subscribe();
