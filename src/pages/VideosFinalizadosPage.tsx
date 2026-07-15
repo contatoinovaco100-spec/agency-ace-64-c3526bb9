@@ -42,7 +42,7 @@ export default function VideosFinalizadosPage() {
   const markPosted = async (task: Task) => {
     setPosting(task.id);
     try {
-      await updateTask({ ...task, status: 'Postado' as any });
+      await updateTask({ ...task, status: 'Concluído' as any });
       toast({ title: 'Marcado como postado', description: task.title });
     } catch (err: any) {
       toast({
