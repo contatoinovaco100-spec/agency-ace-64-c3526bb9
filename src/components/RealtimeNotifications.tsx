@@ -3,10 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModuleAccess } from '@/hooks/useUserRole';
 import { addNotification } from '@/lib/notificationHistory';
+import { usePushNotification } from '@/hooks/usePushNotification';
 
 export function RealtimeNotifications() {
   const { user } = useAuth();
   const { isAdmin } = useModuleAccess();
+  const { playSound } = usePushNotification();
 
   useEffect(() => {
     if (!isAdmin || !user) return;
