@@ -338,18 +338,6 @@ export default function Dashboard() {
         <div className="absolute top-1/3 -right-40 h-[400px] w-[400px] rounded-full bg-primary/[0.04] blur-[120px]" />
       </div>
 
-      {/* Smart Alerts toggle */}
-      <div className="flex items-center justify-end">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleAlerts}
-          className="gap-2 text-xs text-muted-foreground hover:text-foreground"
-        >
-          {alertsHidden ? <><Eye className="h-3.5 w-3.5" /> Mostrar Alertas Inteligentes</> : <><EyeOff className="h-3.5 w-3.5" /> Esconder Alertas Inteligentes</>}
-        </Button>
-      </div>
-      {!alertsHidden && <SmartAlerts />}
 
       {/* Header — Bento moderno */}
       <motion.div
@@ -1213,7 +1201,7 @@ function SimpleDashboard({ clients, tasks, leads, mrr, activeClients, pendingTas
         <div className="absolute bottom-0 left-1/3 h-[350px] w-[350px] rounded-full bg-[hsl(var(--info))]/10 blur-[100px]" />
       </div>
 
-      <SmartAlerts hideFinancial />
+      
 
 
       {/* Header — Futuristic */}
