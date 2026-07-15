@@ -1,61 +1,51 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { usePushNotification } from '@/hooks/usePushNotification';
+import { useAuth } from '@/contexts/AuthContext';
 import { useModuleAccess } from '@/hooks/useUserRole';
+import { addNotification } from '@/lib/notificationHistory';
 
 export function RealtimeNotifications() {
-  const { triggerNotification } = usePushNotification();
+  const { user } = useAuth();
   const { isAdmin } = useModuleAccess();
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin || !user) return;
 
     const channel = supabase
       .channel('schema-db-changes')
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'contracts',
-        },
+        { event: 'UPDATE', schema: 'public', table: 'contracts' },
         (payload) => {
-          const contract = payload.new;
-          
-          if (contract.status === 'assinado' && payload.old?.status !== 'assinado') {
-            triggerNotification(
-              "Venda Confirmada! 💰", 
-              `O contrato "${contract.title}" foi assinado por ${contract.client_name}.`, 
-              "success", 
-              "sale"
-            );
+          const contract: any = payload.new;
+          const old: any = payload.old;
+          if (contract.status === 'assinado' && old?.status !== 'assinado') {
+            addNotification(user.id, {
+              title: 'Venda Confirmada! 💰',
+              description: `O contrato "${contract.title}" foi assinado por ${contract.client_name}.`,
+              kind: 'sale',
+            });
           }
-        }
+        },
       )
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'contract_signatures',
-        },
+        { event: 'INSERT', schema: 'public', table: 'contract_signatures' },
         (payload) => {
-          const sig = payload.new;
-          
-          triggerNotification(
-            "Nova Assinatura! ✍️", 
-            `${sig.signer_name} acabou de assinar um contrato.`, 
-            "success", 
-            "sale"
-          );
-        }
+          const sig: any = payload.new;
+          addNotification(user.id, {
+            title: 'Nova Assinatura! ✍️',
+            description: `${sig.signer_name} acabou de assinar um contrato.`,
+            kind: 'signature',
+          });
+        },
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAdmin, triggerNotification]);
+  }, [isAdmin, user]);
 
-  return null; // This is a logic-only component
+  return null;
 }

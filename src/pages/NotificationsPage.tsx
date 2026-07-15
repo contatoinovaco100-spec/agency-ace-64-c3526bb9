@@ -1,111 +1,137 @@
-import { usePushNotification, type NotificationSoundType } from '@/hooks/usePushNotification';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { motion } from 'framer-motion';
-import { Bell, Music, Play, Volume2, Sparkles, Smile, PartyPopper } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { ArrowRight, Trash2, Inbox } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  clearHistory,
+  getHistory,
+  routeForEntry,
+  subscribeHistory,
+  type TaskMoveHistoryEntry,
+} from '@/lib/taskMoveHistory';
+import {
+  clearNotifications,
+  getNotifications,
+  subscribeNotifications,
+  type NotificationHistoryEntry,
+} from '@/lib/notificationHistory';
+import notifIcon from '@/assets/notif-icon.png.asset.json';
 
-interface SoundButtonProps {
-  title: string;
-  description: string;
-  soundType: NotificationSoundType;
-  icon: React.ReactNode;
-  color: string;
+type Item =
+  | { kind: 'kanban'; at: number; entry: TaskMoveHistoryEntry }
+  | { kind: 'event'; at: number; entry: NotificationHistoryEntry };
+
+function timeAgo(ts: number) {
+  const diff = Math.max(0, Date.now() - ts);
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'agora';
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d`;
 }
 
-const sounds: SoundButtonProps[] = [
-  {
-    title: "Venda! 💰",
-    description: "O som preferido da casa",
-    soundType: "sale",
-    icon: <PartyPopper className="h-6 w-6" />,
-    color: "bg-green-500/10 text-green-500 border-green-500/20"
-  },
-  {
-    title: "Agenda 📅",
-    description: "O plim amistoso",
-    soundType: "agenda",
-    icon: <Bell className="h-6 w-6" />,
-    color: "bg-primary/10 text-primary border-primary/20"
-  },
-  {
-    title: "Atraso 🚨",
-    description: "Alerta de estresse",
-    soundType: "overdue",
-    icon: <Volume2 className="h-6 w-6" />,
-    color: "bg-destructive/10 text-destructive border-destructive/20"
-  }
-];
-
 export default function NotificationsPage() {
-  const { triggerNotification, requestPermission, playSound } = usePushNotification();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [tick, setTick] = useState(0);
 
-  const handlePlaySound = (sound: SoundButtonProps) => {
-    playSound(sound.soundType);
-    triggerNotification(sound.title, sound.description, "default", sound.soundType);
+  useEffect(() => subscribeHistory(() => setTick(t => t + 1)), []);
+  useEffect(() => subscribeNotifications(() => setTick(t => t + 1)), []);
+
+  const items = useMemo<Item[]>(() => {
+    if (!user) return [];
+    const kanban = getHistory(user.id).map<Item>(e => ({ kind: 'kanban', at: e.at, entry: e }));
+    const events = getNotifications(user.id).map<Item>(e => ({ kind: 'event', at: e.at, entry: e }));
+    return [...kanban, ...events].sort((a, b) => b.at - a.at);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, tick]);
+
+  const handleClear = () => {
+    if (!user) return;
+    clearHistory(user.id);
+    clearNotifications(user.id);
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Central de Notificações</h1>
-          <p className="text-sm text-muted-foreground">
-            Painel de efeitos sonoros para animar o dia da equipe
-          </p>
-        </div>
-        <Button 
-          variant="outline" 
-          onClick={() => requestPermission()}
-          className="gap-2"
-        >
-          <Bell className="h-4 w-4" /> Habilitar Notificações
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sounds.map((sound, index) => (
-          <motion.div
-            key={sound.soundType}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Card 
-              className={`cursor-pointer border-2 transition-all hover:shadow-lg ${sound.color}`}
-              onClick={() => handlePlaySound(sound)}
-            >
-              <CardContent className="p-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-full bg-background/50`}>
-                    {sound.icon}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">{sound.title}</h3>
-                    <p className="text-sm opacity-80">{sound.description}</p>
-                  </div>
-                </div>
-                <div className="p-2 rounded-full bg-background/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Play className="h-5 w-5 fill-current" />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-
-      <Card className="bg-secondary/30 border-dashed">
-        <CardContent className="p-10 text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-background rounded-full flex items-center justify-center text-muted-foreground">
-            <Sparkles className="h-8 w-8" />
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-xl font-semibold">Tem uma sugestão de som?</h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Mande o link do MyInstants para o nosso suporte e vamos adicionar aqui para alegrar ainda mais o dia!
+        <div className="flex items-center gap-3">
+          <img src={notifIcon.url} alt="" className="h-10 w-10 object-contain" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Central de Notificações</h1>
+            <p className="text-sm text-muted-foreground">
+              Histórico salvo de movimentações e eventos importantes
             </p>
           </div>
+        </div>
+        {items.length > 0 && (
+          <Button variant="outline" onClick={handleClear} className="gap-2">
+            <Trash2 className="h-4 w-4" /> Limpar histórico
+          </Button>
+        )}
+      </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            Histórico
+            <Badge variant="secondary" className="text-xs">{items.length}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {items.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground">
+              <Inbox className="mx-auto h-10 w-10 opacity-40" />
+              <p className="mt-3 text-sm">Nenhuma notificação por aqui ainda.</p>
+            </div>
+          ) : (
+            <ScrollArea className="max-h-[70vh]">
+              <ul className="divide-y divide-border">
+                {items.map((item, i) => (
+                  <motion.li
+                    key={item.entry.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: Math.min(i * 0.02, 0.3) }}
+                  >
+                    {item.kind === 'kanban' ? (
+                      <button
+                        onClick={() => navigate(routeForEntry(item.entry))}
+                        className="w-full text-left px-4 py-3 hover:bg-muted transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-medium truncate">{item.entry.title}</span>
+                          <span className="shrink-0 text-xs text-muted-foreground">{timeAgo(item.at)}</span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                          <span className="truncate">{item.entry.fromStatus || '—'}</span>
+                          <ArrowRight className="h-3 w-3 shrink-0" />
+                          <span className="truncate text-foreground">{item.entry.toStatus}</span>
+                        </div>
+                      </button>
+                    ) : (
+                      <div className="w-full px-4 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-medium truncate">{item.entry.title}</span>
+                          <span className="shrink-0 text-xs text-muted-foreground">{timeAgo(item.at)}</span>
+                        </div>
+                        {item.entry.description && (
+                          <p className="mt-1 text-xs text-muted-foreground">{item.entry.description}</p>
+                        )}
+                      </div>
+                    )}
+                  </motion.li>
+                ))}
+              </ul>
+            </ScrollArea>
+          )}
         </CardContent>
       </Card>
     </div>

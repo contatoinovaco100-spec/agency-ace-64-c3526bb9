@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePushNotification } from '@/hooks/usePushNotification';
 import { addHistoryEntry } from '@/lib/taskMoveHistory';
 
 
@@ -13,7 +12,6 @@ const ROLE_FIELDS = ['assignee', 'copywriter', 'editor', 'director', 'videomaker
  */
 export function TaskMoveNotifications() {
   const { user } = useAuth();
-  const { triggerNotification } = usePushNotification();
   const fullNameRef = useRef<string>('');
 
   useEffect(() => {
@@ -49,11 +47,6 @@ export function TaskMoveNotifications() {
           );
           if (!isMine) return;
 
-          const soundType =
-            newRow.status === 'Concluído' || newRow.status === 'Finalizado'
-              ? 'sale'
-              : 'agenda';
-
           addHistoryEntry(user.id, {
             taskId: newRow.id,
             title: newRow.title || newRow.video_name || 'Tarefa',
@@ -62,14 +55,6 @@ export function TaskMoveNotifications() {
             taskType: newRow.task_type ?? null,
             clientId: newRow.client_id ?? null,
           });
-
-
-          triggerNotification(
-            'Tarefa movida no Kanban 📋',
-            `"${newRow.title}" agora está em "${newRow.status}"`,
-            'info',
-            soundType
-          );
         }
       )
       .on(
@@ -97,13 +82,6 @@ export function TaskMoveNotifications() {
             taskType: row.task_type ?? null,
             clientId: row.client_id ?? null,
           });
-
-          triggerNotification(
-            'Nova tarefa atribuída 🆕',
-            `"${title}" foi criada para você`,
-            'info',
-            'agenda'
-          );
         }
       )
       .subscribe();
@@ -112,7 +90,7 @@ export function TaskMoveNotifications() {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [user, triggerNotification]);
+  }, [user]);
 
   return null;
 }

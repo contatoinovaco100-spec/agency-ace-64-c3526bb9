@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Trash2, ArrowRight } from 'lucide-react';
+import { Trash2, ArrowRight } from 'lucide-react';
+import notifIcon from '@/assets/notif-icon.png.asset.json';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -59,7 +60,7 @@ export function TaskMoveHistoryBell() {
           className="relative flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           title="Histórico de movimentações"
         >
-          <History className="h-4 w-4" />
+          <img src={notifIcon.url} alt="Histórico" className="h-4 w-4 object-contain" />
           {unread > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
               {unread > 9 ? '9+' : unread}
