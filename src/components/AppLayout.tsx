@@ -9,7 +9,6 @@ import { usePushNotification } from '@/hooks/usePushNotification';
 import { TaskMoveHistoryBell } from '@/components/TaskMoveHistoryBell';
 import { APP_PAGES, PAGE_CATEGORIES } from '@/config/app-pages';
 import logoInova from '@/assets/logo-inova.png';
-import notifIcon from '@/assets/notif-icon.png.asset.json';
 
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -175,7 +174,7 @@ function AudioActivator({ collapsed }: { collapsed: boolean }) {
       )}
       title={isPrimed ? "Alertas Ativos" : "Clique para Ativar Alertas"}
     >
-      <img src={notifIcon.url} alt="Notificações" className="h-4 w-4 object-contain" />
+      <span className="text-base leading-none" aria-label="Ativar alertas">{isPrimed ? '🔔' : '🔕'}</span>
     </button>
   );
 }
