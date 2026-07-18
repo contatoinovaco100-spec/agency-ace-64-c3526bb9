@@ -194,6 +194,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     current_stage_owner: t.currentStageOwner, copywriter: t.copywriter,
     director: t.director, videomaker: t.videomaker,
     video_url: t.videoUrl || null,
+    raw_footage_url: t.rawFootageUrl || null,
     post_date: t.postDate || null, post_time: t.postTime || null,
   });
 
