@@ -84,6 +84,7 @@ function rowToTask(row: any): Task {
     editorComments: row.editor_comments || '', currentStageOwner: row.current_stage_owner || '',
     copywriter: row.copywriter || '', director: row.director || '', videomaker: row.videomaker || '',
     videoUrl: row.video_url || '',
+    rawFootageUrl: row.raw_footage_url || '',
     postDate: row.post_date || '', postTime: row.post_time || '',
   };
 }
@@ -193,6 +194,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     current_stage_owner: t.currentStageOwner, copywriter: t.copywriter,
     director: t.director, videomaker: t.videomaker,
     video_url: t.videoUrl || null,
+    raw_footage_url: t.rawFootageUrl || null,
     post_date: t.postDate || null, post_time: t.postTime || null,
   });
 

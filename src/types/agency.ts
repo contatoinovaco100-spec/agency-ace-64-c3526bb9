@@ -81,6 +81,8 @@ export interface Task {
   videomaker: string;
   // Final delivery
   videoUrl?: string;
+  // Raw footage (Drive folder link with material captured by filmmaker)
+  rawFootageUrl?: string;
   // Post scheduling
   postDate?: string;
   postTime?: string;

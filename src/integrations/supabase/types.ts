@@ -2893,6 +2893,7 @@ export type Database = {
           post_date: string | null
           post_time: string | null
           priority: string
+          raw_footage_url: string | null
           recording_notes: string
           script_writer: string
           status: string
@@ -2928,6 +2929,7 @@ export type Database = {
           post_date?: string | null
           post_time?: string | null
           priority?: string
+          raw_footage_url?: string | null
           recording_notes?: string
           script_writer?: string
           status?: string
@@ -2963,6 +2965,7 @@ export type Database = {
           post_date?: string | null
           post_time?: string | null
           priority?: string
+          raw_footage_url?: string | null
           recording_notes?: string
           script_writer?: string
           status?: string
@@ -3408,6 +3411,7 @@ export type Database = {
           post_date: string | null
           post_time: string | null
           priority: string
+          raw_footage_url: string | null
           recording_notes: string
           script_writer: string
           status: string

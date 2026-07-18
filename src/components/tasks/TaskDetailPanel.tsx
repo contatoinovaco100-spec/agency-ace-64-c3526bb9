@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Paperclip, Send, Trash2, Link, Upload, MessageSquare, CheckSquare, FileText, X, Share2, Download, History, ArrowRight } from 'lucide-react';
+import { Paperclip, Send, Trash2, Link, Upload, MessageSquare, CheckSquare, FileText, X, Share2, Download, History, ArrowRight, FolderOpen } from 'lucide-react';
 import VideoUploader from './VideoUploader';
 
 import { cn } from '@/lib/utils';
@@ -113,6 +113,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         director: form.director || '',
         videomaker: form.videomaker || '',
         videoUrl: form.videoUrl || '',
+        rawFootageUrl: form.rawFootageUrl || '',
         postDate: form.postDate || '',
         postTime: form.postTime || '',
       };
@@ -356,6 +357,52 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               <Label className="text-xs text-muted-foreground">Observações</Label>
               <Textarea rows={2} value={form.observations || ''} onChange={e => setForm({ ...form, observations: e.target.value })} placeholder="Notas adicionais..." className="mt-1" />
             </div>
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+              <Label className="text-[10px] sm:text-xs text-amber-500 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                <FolderOpen className="h-3 w-3" /> Material bruto (pasta do Drive)
+              </Label>
+              <p className="text-[10px] text-muted-foreground">
+                📹 Filmmaker: cole aqui o link da pasta do Drive com o material bruto gravado para o editor localizar com facilidade.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  value={form.rawFootageUrl || ''}
+                  onChange={e => setForm({ ...form, rawFootageUrl: e.target.value })}
+                  placeholder="https://drive.google.com/drive/folders/..."
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={async () => {
+                    if (!task) { toast.error('Salve a tarefa primeiro'); return; }
+                    const url = (form.rawFootageUrl || '').trim();
+                    try {
+                      const { error } = await supabase.from('tasks').update({ raw_footage_url: url || null } as any).eq('id', task.id);
+                      if (error) throw error;
+                      toast.success('Link do material bruto salvo!');
+                    } catch (err: any) {
+                      console.error(err);
+                      toast.error('Erro ao salvar link');
+                    }
+                  }}
+                  className="shrink-0"
+                >
+                  Salvar
+                </Button>
+              </div>
+              {form.rawFootageUrl && (
+                <a
+                  href={form.rawFootageUrl.startsWith('http') ? form.rawFootageUrl : `https://${form.rawFootageUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-amber-500 hover:text-amber-400 underline underline-offset-2 break-all"
+                >
+                  <FolderOpen className="h-3 w-3" /> Abrir pasta do material bruto
+                </a>
+              )}
+            </div>
+
             <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-3">
               <Label className="text-[10px] sm:text-xs text-primary uppercase tracking-wider font-semibold flex items-center gap-1.5">
                 <Upload className="h-3 w-3" /> Vídeo finalizado (auto-hospedado)

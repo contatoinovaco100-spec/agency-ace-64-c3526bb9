@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { useAgency } from '@/contexts/AgencyContext';
 import { Task } from '@/types/agency';
-import { Plus, Filter, Search, X, Users, ChevronDown, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film } from 'lucide-react';
+import { Plus, Filter, Search, X, Users, ChevronDown, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -156,6 +156,11 @@ function CardContent({ task, clientName, compact }: { task: Task; clientName?: s
           {task.videoUrl && (
             <span title="Vídeo enviado para aprovação" aria-label="Vídeo enviado para aprovação">
               <Film className="h-3 w-3 shrink-0 text-primary" />
+            </span>
+          )}
+          {task.rawFootageUrl && (
+            <span title="Material bruto disponível no Drive" aria-label="Material bruto disponível">
+              <FolderOpen className="h-3 w-3 shrink-0 text-amber-500" />
             </span>
           )}
         </div>
