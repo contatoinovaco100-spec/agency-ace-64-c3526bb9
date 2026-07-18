@@ -113,6 +113,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         director: form.director || '',
         videomaker: form.videomaker || '',
         videoUrl: form.videoUrl || '',
+        rawFootageUrl: form.rawFootageUrl || '',
         postDate: form.postDate || '',
         postTime: form.postTime || '',
       };
