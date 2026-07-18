@@ -158,6 +158,11 @@ function CardContent({ task, clientName, compact }: { task: Task; clientName?: s
               <Film className="h-3 w-3 shrink-0 text-primary" />
             </span>
           )}
+          {task.rawFootageUrl && (
+            <span title="Material bruto disponível no Drive" aria-label="Material bruto disponível">
+              <FolderOpen className="h-3 w-3 shrink-0 text-amber-500" />
+            </span>
+          )}
         </div>
         <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
           {clientName && (
