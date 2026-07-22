@@ -2671,33 +2671,45 @@ export type Database = {
       }
       squad_viral_posts: {
         Row: {
+          auto_refresh: boolean
           caption: string | null
           created_at: string
           id: string
+          last_scraped_at: string | null
           post_url: string
           posted_at: string | null
+          previous_views: number | null
+          scrape_error: string | null
           squad_id: string
           thumbnail_url: string | null
           updated_at: string
           views_count: number
         }
         Insert: {
+          auto_refresh?: boolean
           caption?: string | null
           created_at?: string
           id?: string
+          last_scraped_at?: string | null
           post_url: string
           posted_at?: string | null
+          previous_views?: number | null
+          scrape_error?: string | null
           squad_id: string
           thumbnail_url?: string | null
           updated_at?: string
           views_count?: number
         }
         Update: {
+          auto_refresh?: boolean
           caption?: string | null
           created_at?: string
           id?: string
+          last_scraped_at?: string | null
           post_url?: string
           posted_at?: string | null
+          previous_views?: number | null
+          scrape_error?: string | null
           squad_id?: string
           thumbnail_url?: string | null
           updated_at?: string
