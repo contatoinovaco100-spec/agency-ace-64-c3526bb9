@@ -276,11 +276,11 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addLead = async (l: Lead) => {
-    await supabase.from('leads').insert({ id: l.id, name: l.name, company: l.company, email: l.email, phone: l.phone, source: l.source, assignee: l.assignee, notes: l.notes, stage: l.stage, estimated_value: l.estimatedValue });
+    await supabase.from('leads').insert({ id: l.id, name: l.name, company: l.company, email: l.email, phone: l.phone, source: l.source, assignee: l.assignee, closer: l.closer, notes: l.notes, stage: l.stage, estimated_value: l.estimatedValue } as any);
     setLeads(prev => [...prev, l]);
   };
   const updateLead = async (l: Lead) => {
-    await supabase.from('leads').update({ name: l.name, company: l.company, email: l.email, phone: l.phone, source: l.source, assignee: l.assignee, notes: l.notes, stage: l.stage, estimated_value: l.estimatedValue }).eq('id', l.id);
+    await supabase.from('leads').update({ name: l.name, company: l.company, email: l.email, phone: l.phone, source: l.source, assignee: l.assignee, closer: l.closer, notes: l.notes, stage: l.stage, estimated_value: l.estimatedValue } as any).eq('id', l.id);
     setLeads(prev => prev.map(x => x.id === l.id ? l : x));
   };
   const deleteLead = async (id: string) => {
