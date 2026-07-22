@@ -92,7 +92,7 @@ function rowToTask(row: any): Task {
 function rowToLead(row: Tables<'leads'>): Lead {
   return {
     id: row.id, name: row.name, company: row.company, email: row.email, phone: row.phone,
-    source: row.source, assignee: row.assignee, notes: row.notes,
+    source: row.source, assignee: row.assignee, closer: (row as any).closer || '', notes: row.notes,
     stage: row.stage as Lead['stage'], estimatedValue: Number(row.estimated_value), createdAt: row.created_at,
   };
 }
