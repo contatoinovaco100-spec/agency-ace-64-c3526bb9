@@ -69,7 +69,7 @@ export default function CommercialTeamPage() {
     setLoading(true);
     const [m, c, p, e] = await Promise.all([
       supabase.from('commercial_members' as any).select('*').order('created_at'),
-      supabase.from('commercial_calls' as any).select('*').gte('occurred_at', monthStart.toISOString()).order('occurred_at', { ascending: false }),
+      supabase.from('commercial_calls' as any).select('*').is('paid_at', null).order('occurred_at', { ascending: false }),
       supabase.from('commission_plans' as any).select('*'),
       supabase.from('profiles').select('id, full_name, job_title, is_active').not('username', 'is', null).eq('is_active', true).order('full_name'),
     ]);
