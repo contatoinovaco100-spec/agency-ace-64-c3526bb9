@@ -19,7 +19,7 @@ CREATE TRIGGER update_squad_viral_posts_updated_at BEFORE UPDATE ON public.squad
 
 CREATE TABLE public.viral_settings (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  min_views BIGINT NOT NULL DEFAULT 100000,
+  min_views BIGINT NOT NULL DEFAULT 50000,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -30,4 +30,4 @@ CREATE POLICY "viral settings readable by authenticated" ON public.viral_setting
 CREATE POLICY "viral settings admin manage" ON public.viral_settings FOR ALL TO authenticated USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
 CREATE TRIGGER update_viral_settings_updated_at BEFORE UPDATE ON public.viral_settings FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
-INSERT INTO public.viral_settings (min_views) VALUES (100000);
+INSERT INTO public.viral_settings (min_views) VALUES (50000);

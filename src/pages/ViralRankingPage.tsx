@@ -32,7 +32,7 @@ interface ViralPost {
 export default function ViralRankingPage() {
   const [squads, setSquads] = useState<Squad[]>([]);
   const [posts, setPosts] = useState<ViralPost[]>([]);
-  const [minViews, setMinViews] = useState<number>(100000);
+  const [minViews, setMinViews] = useState<number>(50000);
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -41,20 +41,24 @@ export default function ViralRankingPage() {
   const [form, setForm] = useState({
     squad_id: '', post_url: '', caption: '', views_count: '', thumbnail_url: '', posted_at: '', auto_refresh: true,
   });
-  const [threshold, setThreshold] = useState('100000');
+  const [threshold, setThreshold] = useState('50000');
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
   const fetchAll = async () => {
     const [s, p, cfg] = await Promise.all([
       supabase.from('squads').select('id,name,color').order('name'),
-      supabase.from('squad_viral_posts' as any).select('*').order('views_count', { ascending: false }),
+      supabase.from('squad_viral_posts' as any).select('*').gte('posted_at', monthStart).lte('posted_at', monthEnd).order('views_count', { ascending: false }),
       supabase.from('viral_settings' as any).select('*').limit(1).maybeSingle(),
     ]);
     setSquads((s.data as Squad[]) || []);
     setPosts(((p.data as any[]) || []) as ViralPost[]);
     if (cfg.data) {
       const c: any = cfg.data;
-      setMinViews(Number(c.min_views) || 100000);
-      setThreshold(String(c.min_views ?? 100000));
+      setMinViews(Number(c.min_views) || 50000);
+      setThreshold(String(c.min_views ?? 50000));
       setSettingsId(c.id);
     }
     setLoading(false);
