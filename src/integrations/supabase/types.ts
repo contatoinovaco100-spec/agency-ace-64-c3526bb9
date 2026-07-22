@@ -817,6 +817,7 @@ export type Database = {
           member_id: string | null
           notes: string | null
           occurred_at: string
+          paid_at: string | null
           source: string
           type: string
         }
@@ -829,6 +830,7 @@ export type Database = {
           member_id?: string | null
           notes?: string | null
           occurred_at?: string
+          paid_at?: string | null
           source?: string
           type: string
         }
@@ -841,6 +843,7 @@ export type Database = {
           member_id?: string | null
           notes?: string | null
           occurred_at?: string
+          paid_at?: string | null
           source?: string
           type?: string
         }
