@@ -27,12 +27,14 @@ Deno.serve(async (req) => {
       .select("post_url");
     const existingUrls = new Set((existingPosts || []).map((p: any) => p.post_url));
 
-    const { data: squads } = await supabase.from("squads").select("id, name");
+    const { data: squads, error: sqErr } = await supabase.from("squads").select("id, name");
+    console.log("Squads found:", squads?.length, sqErr?.message);
+
     const firstSquadId = squads?.[0]?.id;
 
     if (!firstSquadId) {
-      return new Response(JSON.stringify({ error: "Nenhum squad cadastrado", success: false }), {
-        status: 400,
+      return new Response(JSON.stringify({ error: "Nenhum squad cadastrado", debug: { squads: squads, error: sqErr } }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
