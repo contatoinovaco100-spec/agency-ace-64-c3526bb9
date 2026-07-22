@@ -170,6 +170,7 @@ export default function CommercialTeamPage() {
         <TabsList>
           <TabsTrigger value="time">Time & metas</TabsTrigger>
           <TabsTrigger value="calls">Histórico de calls</TabsTrigger>
+          <TabsTrigger value="pagas">Calls pagas</TabsTrigger>
           <TabsTrigger value="plano">Plano de comissão</TabsTrigger>
         </TabsList>
 
