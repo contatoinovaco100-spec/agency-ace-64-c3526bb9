@@ -272,10 +272,19 @@ export default function CommercialTeamPage() {
                         <CardTitle className="text-base">{g.member.name}</CardTitle>
                         <Badge variant="secondary">{g.member.role}</Badge>
                       </div>
-                      <div className="text-xs text-muted-foreground flex gap-3">
+                      <div className="text-xs text-muted-foreground flex items-center gap-3">
                         <span><PhoneCall className="h-3 w-3 inline mr-1" />{ag}</span>
                         <span><CheckCircle2 className="h-3 w-3 inline mr-1" />{fe}</span>
                         <span className="font-semibold text-foreground">{BRL(rev)}</span>
+                        {isAdmin && g.member.id !== 'orphan' && (
+                          <Button size="sm" variant="outline" onClick={async () => {
+                            if (!confirm(`Dar baixa em todas as ${g.items.length} calls pendentes de ${g.member.name}?`)) return;
+                            const ids = g.items.map(i => i.id);
+                            const { error } = await supabase.from('commercial_calls' as any).update({ paid_at: new Date().toISOString() }).in('id', ids);
+                            if (error) return toast.error(error.message);
+                            toast.success('Baixa em massa registrada'); load();
+                          }}>Dar baixa em tudo</Button>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
