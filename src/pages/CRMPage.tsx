@@ -151,6 +151,9 @@ export default function CRMPage() {
                         <span className="text-caption text-muted-foreground">{lead.assignee}</span>
                       </div>
                     )}
+                    {lead.closer && (
+                      <span className="rounded bg-primary/10 px-1.5 py-0.5 text-caption font-medium text-primary">🎯 {lead.closer}</span>
+                    )}
                     {lead.phone && (
                       <WhatsAppButton phone={lead.phone} name={lead.name} size="sm" />
                     )}
@@ -247,9 +250,18 @@ export default function CRMPage() {
                 </Select>
               </div>
               <div>
-                <Label>Responsável</Label>
+                <Label>Responsável (SDR)</Label>
                 <Select value={form.assignee || ''} onValueChange={v => setForm({ ...form, assignee: v })}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{team.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Closer</Label>
+                <Select value={form.closer || ''} onValueChange={v => setForm({ ...form, closer: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o closer" /></SelectTrigger>
                   <SelectContent>{team.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>

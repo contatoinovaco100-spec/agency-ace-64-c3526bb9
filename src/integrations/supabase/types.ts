@@ -1518,6 +1518,7 @@ export type Database = {
       leads: {
         Row: {
           assignee: string
+          closer: string | null
           company: string
           created_at: string
           email: string
@@ -1532,6 +1533,7 @@ export type Database = {
         }
         Insert: {
           assignee?: string
+          closer?: string | null
           company?: string
           created_at?: string
           email?: string
@@ -1546,6 +1548,7 @@ export type Database = {
         }
         Update: {
           assignee?: string
+          closer?: string | null
           company?: string
           created_at?: string
           email?: string
