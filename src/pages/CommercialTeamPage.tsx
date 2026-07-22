@@ -174,43 +174,15 @@ export default function CommercialTeamPage() {
             <Info className="h-4 w-4 shrink-0 mt-0.5" />
             <span>Cada card mostra <b>Agendadas</b>, <b>Fechadas</b> e <b>Receita</b> do mês, a barra de progresso da meta e a comissão calculada. Para transformar um funcionário em SDR/Closer, clique no botão correspondente no card dele.</span>
           </div>
-          {employees.length === 0 ? (
-            <EmptyState message="Nenhum funcionário ativo. Cadastre em Funcionários." />
-          ) : (
+          {(() => {
+            const commissioned = employees.filter(emp => members.find(x => x.team_member_id === emp.id));
+            if (commissioned.length === 0) {
+              return <EmptyState message="Nenhum funcionário com cargo comercial ainda. Use 'Membro' para adicionar SDR, Closer ou Gestor." />;
+            }
+            return (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {employees.map(emp => {
-                const m = members.find(x => x.team_member_id === emp.id);
-                if (!m) {
-                  return (
-                    <Card key={emp.id} className="border-dashed">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <CardTitle className="text-base">{emp.full_name}</CardTitle>
-                            {emp.job_title && <p className="text-xs text-muted-foreground mt-1">{emp.job_title}</p>}
-                          </div>
-                          <Badge variant="secondary">Sem cargo comercial</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="text-sm text-muted-foreground">
-                        {isAdmin ? (
-                          <div className="flex gap-2 flex-wrap">
-                            {(['SDR','Closer','Gestor'] as Role[]).map(r => (
-                              <Button key={r} size="sm" variant="outline" onClick={async () => {
-                                const { error } = await supabase.from('commercial_members' as any).insert({
-                                  team_member_id: emp.id, name: emp.full_name, role: r,
-                                  monthly_goal_calls: 0, monthly_goal_revenue: 0,
-                                });
-                                if (error) return toast.error(error.message);
-                                toast.success(`${emp.full_name} definido como ${r}`); load();
-                              }}>Tornar {r}</Button>
-                            ))}
-                          </div>
-                        ) : <span>Aguardando definição de cargo pelo admin.</span>}
-                      </CardContent>
-                    </Card>
-                  );
-                }
+              {commissioned.map(emp => {
+                const m = members.find(x => x.team_member_id === emp.id)!;
                 const s = memberStats(m.id);
                 const c = calcCommission(m);
                 const plan = plans.find(p => p.role === m.role);
