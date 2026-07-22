@@ -70,6 +70,11 @@ export default function CRMPage() {
     .filter(l => l.stage !== 'Perdido' && l.stage !== 'Cliente fechado')
     .reduce((acc, l) => acc + l.estimatedValue, 0);
 
+  const visibleStages = kanbanStages.filter(s => s.name !== 'Perdido');
+  const lostStage = kanbanStages.find(s => s.name === 'Perdido');
+  const lostLeads = lostStage ? leadsPerStage[lostStage.name] || [] : [];
+  const [showLost, setShowLost] = useState(false);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -87,7 +92,7 @@ export default function CRMPage() {
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pipeline">
+        <TabsContent value="pipeline" className="space-y-4">
           <div className="flex items-center justify-end gap-2 mb-4">
             {isAdmin && (
               <Button asChild variant="outline" className="gap-2">
@@ -101,7 +106,7 @@ export default function CRMPage() {
 
       {/* Kanban */}
       <div className="flex gap-4 overflow-x-auto pb-4">
-        {kanbanStages.map(s => {
+        {visibleStages.map(s => {
           const cc = colorClasses(s.color);
           const stage = s.name;
           return (
@@ -157,6 +162,56 @@ export default function CRMPage() {
           );
         })}
       </div>
+
+          {/* Perdido — escondido abaixo do kanban */}
+          {lostStage && (
+            <div className="rounded-lg border border-border bg-card">
+              <button
+                type="button"
+                onClick={() => setShowLost(v => !v)}
+                className="flex w-full items-center justify-between px-4 py-3 text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-body font-semibold text-foreground">Perdidos</span>
+                  <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-caption font-medium text-destructive">
+                    {lostLeads.length}
+                  </span>
+                </div>
+                <span className="text-muted-foreground">{showLost ? '▲' : '▼'}</span>
+              </button>
+              {showLost && (
+                <div className="border-t border-border p-4">
+                  {lostLeads.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhum lead perdido.</p>
+                  ) : (
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {lostLeads.map(lead => (
+                        <div
+                          key={lead.id}
+                          className="cursor-pointer rounded-lg border border-border bg-secondary/20 p-3 hover:bg-secondary/40"
+                          onClick={() => openEdit(lead)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="text-body font-medium text-foreground">{lead.company}</p>
+                            {lead.phone && <WhatsAppButton phone={lead.phone} name={lead.name} size="sm" />}
+                          </div>
+                          <p className="text-caption text-muted-foreground">{lead.name}</p>
+                          <div className="mt-2 flex items-center justify-between">
+                            <span className="tabular-nums text-caption font-medium text-success">
+                              R$ {lead.estimatedValue.toLocaleString('pt-BR')}
+                            </span>
+                            {lead.source && (
+                              <span className="rounded bg-secondary px-1.5 py-0.5 text-caption text-muted-foreground">{lead.source}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="whatsapp">
