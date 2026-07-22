@@ -347,6 +347,89 @@ export default function CommercialTeamPage() {
           })()}
         </TabsContent>
 
+        <TabsContent value="pagas" className="mt-4 space-y-3">
+          <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>Histórico de calls que já receberam baixa. Agrupadas por mês de pagamento. Você pode reverter uma baixa se necessário.</span>
+          </div>
+          <Input
+            placeholder="Buscar por cliente ou membro..."
+            value={paidSearch}
+            onChange={(e) => setPaidSearch(e.target.value)}
+            className="max-w-sm"
+          />
+          {(() => {
+            const q = paidSearch.trim().toLowerCase();
+            const memberById = new Map(members.map(m => [m.id, m]));
+            const filtered = paidCalls.filter(c => {
+              if (!q) return true;
+              const mn = memberById.get(c.member_id)?.name || '';
+              return (c.client_name || '').toLowerCase().includes(q) || mn.toLowerCase().includes(q);
+            });
+            if (filtered.length === 0) return <EmptyState message="Nenhuma call paga encontrada." />;
+            const groups = new Map<string, Call[]>();
+            for (const c of filtered) {
+              const d = new Date(c.paid_at!);
+              const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+              if (!groups.has(key)) groups.set(key, []);
+              groups.get(key)!.push(c);
+            }
+            const monthLabel = (key: string) => {
+              const [y, mo] = key.split('-').map(Number);
+              return new Date(y, mo - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+            };
+            return Array.from(groups.entries()).map(([key, items]) => {
+              const rev = items.filter(i => i.type === 'fechada').reduce((s, i) => s + Number(i.deal_value || 0), 0);
+              return (
+                <Card key={key}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <CardTitle className="text-base capitalize">{monthLabel(key)}</CardTitle>
+                      <div className="text-xs text-muted-foreground flex items-center gap-3">
+                        <span>{items.length} calls pagas</span>
+                        <span className="font-semibold text-foreground">{BRL(rev)}</span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="divide-y divide-border">
+                      {items.map(c => {
+                        const mn = memberById.get(c.member_id)?.name || 'Sem membro';
+                        return (
+                          <div key={c.id} className="flex items-center justify-between gap-3 p-3 text-sm">
+                            <div className="flex items-center gap-3 min-w-0">
+                              {c.type === 'agendada'
+                                ? <PhoneCall className="h-4 w-4 text-blue-500 shrink-0" />
+                                : <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />}
+                              <div className="min-w-0">
+                                <div className="font-medium truncate">{c.client_name || 'Sem cliente'}</div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {mn} · pago em {format(new Date(c.paid_at!), 'dd/MM/yyyy')}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {c.type === 'fechada' && <span className="font-semibold">{BRL(Number(c.deal_value))}</span>}
+                              {isAdmin && (
+                                <Button size="sm" variant="ghost" onClick={async () => {
+                                  if (!confirm('Reverter baixa desta call?')) return;
+                                  const { error } = await supabase.from('commercial_calls' as any).update({ paid_at: null }).eq('id', c.id);
+                                  if (error) return toast.error(error.message);
+                                  toast.success('Baixa revertida'); load();
+                                }}>Reverter</Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            });
+          })()}
+        </TabsContent>
+
         <TabsContent value="plano" className="mt-4 space-y-3">
           <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
             <Info className="h-4 w-4 shrink-0 mt-0.5" />
