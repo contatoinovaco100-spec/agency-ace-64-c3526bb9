@@ -130,6 +130,7 @@ export interface Lead {
   phone: string;
   source: string;
   assignee: string;
+  closer: string;
   notes: string;
   stage: LeadStage;
   estimatedValue: number;
