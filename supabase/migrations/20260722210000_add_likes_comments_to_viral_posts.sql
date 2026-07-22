@@ -1,0 +1,4 @@
+ALTER TABLE public.squad_viral_posts
+  ADD COLUMN IF NOT EXISTS like_count BIGINT DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS comment_count BIGINT DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS media_type TEXT DEFAULT '';

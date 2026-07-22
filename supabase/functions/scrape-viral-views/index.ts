@@ -5,8 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Extrai o maior número plausível de views/plays a partir do HTML público do Instagram.
-// O IG muda o markup com frequência; tentamos várias chaves conhecidas e caímos em og:description.
 function extractViews(html: string): number | null {
   const patterns: RegExp[] = [
     /"video_view_count"\s*:\s*(\d+)/i,
@@ -22,7 +20,6 @@ function extractViews(html: string): number | null {
       if (n > 0) return n;
     }
   }
-  // fallback: og:description costuma vir "X likes, Y comments" ou "X views on ..."
   const og = html.match(/property=["']og:description["']\s+content=["']([^"']+)["']/i);
   if (og) {
     const viewsMatch = og[1].match(/([\d.,]+)\s*(views|visualizaç)/i);
@@ -35,7 +32,6 @@ function extractViews(html: string): number | null {
   return null;
 }
 
-// Converte "/p/CODE/" ou "/reel/CODE/" em URL de embed pública (não exige login e raramente é bloqueada)
 function toEmbedUrls(url: string): string[] {
   const m = url.match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/i);
   if (!m) return [url];
@@ -49,7 +45,6 @@ function toEmbedUrls(url: string): string[] {
 }
 
 function parseCompact(raw: string): number | null {
-  // "1.2M", "12,3 mil", "45K", "1 234"
   const s = raw.trim().toLowerCase().replace(/\s+/g, "");
   const m = s.match(/^([\d.,]+)\s*(k|m|mil|mi|b)?/i);
   if (!m) return null;
@@ -61,7 +56,6 @@ function parseCompact(raw: string): number | null {
 }
 
 function extractFromEmbed(html: string): number | null {
-  // Embed inclui "view_count":123 ou texto "1.2M views" / "1,2 mi visualizações"
   const jsonKeys = [/"view_count"\s*:\s*(\d+)/i, /"play_count"\s*:\s*(\d+)/i, /"video_view_count"\s*:\s*(\d+)/i];
   for (const re of jsonKeys) {
     const m = html.match(re);
@@ -83,7 +77,71 @@ function extractFromEmbed(html: string): number | null {
   return null;
 }
 
-async function scrapePost(url: string): Promise<{ views: number | null; error: string | null }> {
+function extractMediaId(html: string): string | null {
+  const m1 = html.match(/instagram:\/\/media\?id=(\d+)/i);
+  if (m1) return m1[1];
+  const m2 = html.match(/"media_id"\s*:\s*"?(\d+)"?/i);
+  if (m2) return m2[1];
+  return null;
+}
+
+interface GraphData {
+  views: number | null;
+  like_count: number;
+  comment_count: number;
+  media_type: string;
+  thumbnail_url: string | null;
+}
+
+async function fetchGraphStats(mediaId: string, tokens: string[]): Promise<GraphData | null> {
+  for (const token of tokens) {
+    try {
+      const mediaRes = await fetch(
+        `https://graph.facebook.com/v21.0/${mediaId}?fields=like_count,comments_count,media_type,media_url,thumbnail_url,permalink&access_token=${token}`
+      );
+      if (!mediaRes.ok) continue;
+      const mediaData = await mediaRes.json();
+      if (mediaData.error) continue;
+
+      let views: number | null = null;
+
+      if (mediaData.media_type === "VIDEO") {
+        const insightsRes = await fetch(
+          `https://graph.facebook.com/v21.0/${mediaId}/insights?metric=plays,video_views&access_token=${token}`
+        );
+        const insightsData = await insightsRes.json();
+
+        if (insightsData?.data) {
+          for (const metric of insightsData.data) {
+            const val = metric?.values?.[0]?.value;
+            if (val !== undefined && val > 0) {
+              views = val;
+              break;
+            }
+          }
+        }
+      } else {
+        views = null;
+      }
+
+      return {
+        views,
+        like_count: mediaData.like_count || 0,
+        comment_count: mediaData.comments_count || 0,
+        media_type: mediaData.media_type || "",
+        thumbnail_url: mediaData.thumbnail_url || mediaData.media_url || null,
+      };
+    } catch (e) {
+      console.error(`Erro ao consultar Graph API para mediaId ${mediaId}:`, e);
+    }
+  }
+  return null;
+}
+
+async function scrapePost(
+  url: string,
+  tokens: string[]
+): Promise<{ views: number | null; error: string | null; graphData: GraphData | null }> {
   const candidates = toEmbedUrls(url);
   let lastErr = "sem tentativas";
   for (const u of candidates) {
@@ -102,15 +160,30 @@ async function scrapePost(url: string): Promise<{ views: number | null; error: s
         continue;
       }
       const html = await res.text();
+
+      if (tokens.length > 0) {
+        const mediaId = extractMediaId(html);
+        if (mediaId) {
+          const graphData = await fetchGraphStats(mediaId, tokens);
+          if (graphData) {
+            return {
+              views: graphData.views,
+              error: null,
+              graphData,
+            };
+          }
+        }
+      }
+
       const views = u.includes("/embed") ? extractFromEmbed(html) ?? extractViews(html) : extractViews(html);
-      if (views !== null) return { views, error: null };
+      if (views !== null) return { views, error: null, graphData: null };
       lastErr = "views não encontradas";
     } catch (e) {
       lastErr = e instanceof Error ? e.message : "erro desconhecido";
     }
     await new Promise((r) => setTimeout(r, 250));
   }
-  return { views: null, error: lastErr };
+  return { views: null, error: lastErr, graphData: null };
 }
 
 Deno.serve(async (req) => {
@@ -137,22 +210,50 @@ Deno.serve(async (req) => {
     const { data: posts, error } = await query;
     if (error) throw error;
 
-    const results: Array<{ id: string; ok: boolean; views: number | null; error: string | null }> = [];
+    const globalToken = Deno.env.get("META_ACCESS_TOKEN");
+    const tokens: string[] = [];
+    if (globalToken) tokens.push(globalToken);
+
+    try {
+      const { data: accounts } = await supabase
+        .from("client_meta_accounts")
+        .select("access_token");
+      if (accounts) {
+        for (const a of accounts) {
+          if (a.access_token && !tokens.includes(a.access_token)) {
+            tokens.push(a.access_token);
+          }
+        }
+      }
+    } catch (dbErr) {
+      console.error("Erro ao carregar tokens do banco:", dbErr);
+    }
+
+    const results: Array<{
+      id: string;
+      ok: boolean;
+      views: number | null;
+      error: string | null;
+    }> = [];
 
     for (const p of posts || []) {
-      const { views, error: err } = await scrapePost(p.post_url);
+      const { views, error: err, graphData } = await scrapePost(p.post_url, tokens);
       const prev = Number(p.views_count) || 0;
 
       if (views !== null) {
-        await supabase
-          .from("squad_viral_posts")
-          .update({
-            previous_views: prev,
-            views_count: views,
-            last_scraped_at: new Date().toISOString(),
-            scrape_error: null,
-          })
-          .eq("id", p.id);
+        const update: Record<string, unknown> = {
+          previous_views: prev,
+          views_count: views,
+          last_scraped_at: new Date().toISOString(),
+          scrape_error: null,
+        };
+        if (graphData) {
+          if (graphData.like_count > 0) update.like_count = graphData.like_count;
+          if (graphData.comment_count > 0) update.comment_count = graphData.comment_count;
+          if (graphData.media_type) update.media_type = graphData.media_type;
+          if (graphData.thumbnail_url) update.thumbnail_url = graphData.thumbnail_url;
+        }
+        await supabase.from("squad_viral_posts").update(update).eq("id", p.id);
       } else {
         await supabase
           .from("squad_viral_posts")
@@ -164,7 +265,6 @@ Deno.serve(async (req) => {
       }
 
       results.push({ id: p.id, ok: views !== null, views, error: err });
-      // pequeno respiro entre requests pra não estressar o IG
       await new Promise((r) => setTimeout(r, 400));
     }
 
