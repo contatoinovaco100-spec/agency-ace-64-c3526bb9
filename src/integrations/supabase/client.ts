@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 // Public credentials - safe to hardcode (anon key, not service role key)
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://cdzzewovtxotkghzeafr.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkenpld292dHhvdGtnaHplYWZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MTY0OTAsImV4cCI6MjA4OTA5MjQ5MH0.vleBKxXwibG2H7SmJgzhQ_EGfi6MKJxItB-z4w0Uwvg';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://coblfehkclfjofrshlwl.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkenpld292dHhvdGtnaHplYWZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MTY0OTAsImV4cCI6MjA4OTA5MjQ5MH0.vleBKxXwibG2H7SmJgzhQ_EGfi6MKJxItB-z4w0Uwvg'; // NOTE: Update this key with the anon key from coblfehkclfjofrshlwl if not using VITE_SUPABASE_PUBLISHABLE_KEY environment variable
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";

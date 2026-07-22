@@ -75,8 +75,9 @@ Deno.serve(async (req) => {
         .eq("client_id", client_id)
         .single();
 
-      const token = metaAccount?.access_token || access_token;
-      if (!token) throw new Error("No access token available");
+      const globalToken = Deno.env.get("META_ACCESS_TOKEN");
+      const token = access_token || metaAccount?.access_token || globalToken;
+      if (!token) throw new Error("No access token available. Please configure META_ACCESS_TOKEN secret or provide a token.");
 
       // Get Facebook pages
       const pagesRes = await fetch(`https://graph.facebook.com/v21.0/me/accounts?fields=id,name,instagram_business_account{id,name,username}&access_token=${token}`);
@@ -96,15 +97,16 @@ Deno.serve(async (req) => {
         .eq("client_id", client_id)
         .single();
 
-      if (!metaAccount?.access_token || !metaAccount?.instagram_account_id) {
+      const globalToken = Deno.env.get("META_ACCESS_TOKEN");
+      const token = metaAccount?.access_token || globalToken;
+      const igId = metaAccount?.instagram_account_id;
+
+      if (!token || !igId) {
         return new Response(JSON.stringify({ error: "Meta account not configured for this client" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
-      const token = metaAccount.access_token;
-      const igId = metaAccount.instagram_account_id;
 
       // Fetch profile info
       const profileRes = await fetch(

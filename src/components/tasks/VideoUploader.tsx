@@ -13,7 +13,7 @@ interface Props {
 }
 
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://cdzzewovtxotkghzeafr.supabase.co';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://coblfehkclfjofrshlwl.supabase.co';
 const MAX_MB = 500;
 
 const fmtSize = (b: number) => b > 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${(b / 1024).toFixed(0)} KB`;

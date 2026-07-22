@@ -96,18 +96,20 @@ export function MetaInsightsPanel({ clientId }: { clientId: string }) {
   };
 
   const handleFetchAccounts = async () => {
-    if (!tokenInput.trim()) return;
     setLoadingPages(true);
     try {
-      // Exchange for long-lived token
-      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('meta-insights', {
-        body: { action: 'exchange_token', access_token: tokenInput.trim() },
-      });
-      if (tokenError) throw tokenError;
-      if (tokenData?.error) throw new Error(tokenData.error);
-      const longToken = tokenData.access_token;
+      let longToken = "";
+      if (tokenInput.trim()) {
+        // Exchange for long-lived token
+        const { data: tokenData, error: tokenError } = await supabase.functions.invoke('meta-insights', {
+          body: { action: 'exchange_token', access_token: tokenInput.trim() },
+        });
+        if (tokenError) throw tokenError;
+        if (tokenData?.error) throw new Error(tokenData.error);
+        longToken = tokenData.access_token;
+      }
 
-      // Get pages/accounts
+      // Get pages/accounts (if longToken is empty, function will fallback to global token)
       const { data: accountsData, error: accErr } = await supabase.functions.invoke('meta-insights', {
         body: { action: 'get_accounts', access_token: longToken, client_id: clientId },
       });
@@ -131,7 +133,7 @@ export function MetaInsightsPanel({ clientId }: { clientId: string }) {
         setStep('pick');
       }
     } catch (err: any) {
-      toast.error('Erro: ' + (err.message || 'Token inválido ou expirado'));
+      toast.error('Erro: ' + (err.message || 'Token inválido ou não configurado no servidor'));
     }
     setLoadingPages(false);
   };
@@ -237,7 +239,7 @@ export function MetaInsightsPanel({ clientId }: { clientId: string }) {
                 </div>
 
                 <div>
-                  <Label>Access Token</Label>
+                  <Label>Access Token (Opcional)</Label>
                   <Input
                     value={tokenInput}
                     onChange={e => setTokenInput(e.target.value)}
@@ -246,9 +248,9 @@ export function MetaInsightsPanel({ clientId }: { clientId: string }) {
                   />
                 </div>
 
-                <Button onClick={handleFetchAccounts} disabled={loadingPages || !tokenInput.trim()} className="w-full gap-2">
+                <Button onClick={handleFetchAccounts} disabled={loadingPages} className="w-full gap-2">
                   {loadingPages ? <Loader2 className="h-4 w-4 animate-spin" /> : <Instagram className="h-4 w-4" />}
-                  {loadingPages ? 'Buscando contas...' : 'Conectar'}
+                  {loadingPages ? 'Buscando contas...' : tokenInput.trim() ? 'Conectar com este token' : 'Conectar via Token Global'}
                 </Button>
               </div>
             )}

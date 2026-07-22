@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { CheckCircle2, XCircle, Loader2, Copy, ExternalLink } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-const WEBHOOK_URL = `https://cdzzewovtxotkghzeafr.supabase.co/functions/v1/wa-webhook`;
+const WEBHOOK_URL = `https://coblfehkclfjofrshlwl.supabase.co/functions/v1/wa-webhook`;
 
 export default function WhatsAppConfigPage() {
   const [testing, setTesting] = useState(false);

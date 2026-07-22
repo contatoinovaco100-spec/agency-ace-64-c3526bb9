@@ -51,7 +51,7 @@ fly volumes create wa_session --size 1 --region gru
 
 ```bash
 fly secrets set \
-  SUPABASE_URL="https://cdzzewovtxotkghzeafr.supabase.co" \
+  SUPABASE_URL="https://coblfehkclfjofrshlwl.supabase.co" \
   SUPABASE_SERVICE_KEY="COLE_AQUI_A_SERVICE_ROLE_KEY"
 ```
 

@@ -28,7 +28,7 @@ fly volume create whatsapp_data --size 1 --region gru || echo "Volume may alread
 
 # Set secrets
 echo "Setting environment variables..."
-fly secrets set SUPABASE_URL="https://cdzzewovtxotkghzeafr.supabase.co"
+fly secrets set SUPABASE_URL="https://coblfehkclfjofrshlwl.supabase.co"
 fly secrets set SUPABASE_KEY="your-supabase-key-here"
 
 # Deploy
