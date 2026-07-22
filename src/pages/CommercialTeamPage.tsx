@@ -34,6 +34,7 @@ interface Call {
   occurred_at: string;
   source: 'manual' | 'crm';
   notes: string | null;
+  paid_at: string | null;
 }
 interface Plan {
   id: string;
