@@ -244,7 +244,8 @@ export default function CommercialTeamPage() {
                 );
               })}
             </div>
-          )}
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="calls" className="mt-4 space-y-3">
