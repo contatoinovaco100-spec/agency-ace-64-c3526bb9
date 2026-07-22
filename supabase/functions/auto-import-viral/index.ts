@@ -15,127 +15,94 @@ Deno.serve(async (req) => {
 
   try {
     const globalToken = Deno.env.get("META_ACCESS_TOKEN");
-    const tokens: string[] = [];
-    if (globalToken) tokens.push(globalToken);
-
-    const { data: accounts } = await supabase
-      .from("client_meta_accounts")
-      .select("access_token, instagram_account_id, client_id, account_name");
-
-    if (accounts) {
-      for (const a of accounts) {
-        if (a.access_token && !tokens.includes(a.access_token)) {
-          tokens.push(a.access_token);
-        }
-      }
-    }
-
-    if (tokens.length === 0) {
-      return new Response(JSON.stringify({ error: "Nenhum token disponível" }), {
+    if (!globalToken) {
+      return new Response(JSON.stringify({ error: "META_ACCESS_TOKEN não configurado", success: false }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { data: squads } = await supabase.from("squads").select("id, name");
-    const { data: squadClients } = await supabase.from("squad_clients").select("squad_id, client_id");
-    const { data: existingPosts } = await supabase.from("squad_viral_posts" as any).select("post_url");
-
+    const { data: existingPosts } = await supabase
+      .from("squad_viral_posts" as any)
+      .select("post_url");
     const existingUrls = new Set((existingPosts || []).map((p: any) => p.post_url));
 
-    const clientSquadMap = new Map<string, string>();
-    if (squadClients) {
-      for (const sc of squadClients) {
-        clientSquadMap.set(sc.client_id, sc.squad_id);
-      }
+    const { data: squads } = await supabase.from("squads").select("id, name");
+    const firstSquadId = squads?.[0]?.id;
+
+    if (!firstSquadId) {
+      return new Response(JSON.stringify({ error: "Nenhum squad cadastrado", success: false }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const firstSquadId = squads?.[0]?.id;
+    const pagesRes = await fetch(
+      `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,instagram_business_account{id,username}&access_token=${globalToken}`
+    );
+    const pagesData = await pagesRes.json();
+
+    if (pagesData.error) {
+      return new Response(JSON.stringify({ error: `Graph API: ${pagesData.error.message}`, success: false }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!pagesData.data || pagesData.data.length === 0) {
+      return new Response(JSON.stringify({ error: "Nenhuma página Facebook encontrada", success: false, pages: [] }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const imported: Array<{ url: string; views: number; squad: string }> = [];
 
-    const igAccountIds = new Set<string>();
-    if (accounts) {
-      for (const a of accounts) {
-        if (a.instagram_account_id) igAccountIds.add(a.instagram_account_id);
-      }
-    }
+    for (const page of pagesData.data) {
+      const igId = page.instagram_business_account?.id;
+      if (!igId) continue;
 
-    for (const token of tokens) {
-      try {
-        const meRes = await fetch(
-          `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,instagram_business_account{id,name,username}&access_token=${token}`
-        );
-        const meData = await meRes.json();
-        if (!meData.data) continue;
+      const mediaRes = await fetch(
+        `https://graph.facebook.com/v21.0/${igId}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count,permalink&limit=10&access_token=${globalToken}`
+      );
+      const mediaData = await mediaRes.json();
+      if (!mediaData.data) continue;
 
-        for (const page of meData.data) {
-          const igId = page.instagram_business_account?.id;
-          if (!igId) continue;
+      for (const media of mediaData.data) {
+        const postUrl = media.permalink || `https://www.instagram.com/p/${media.id}/`;
+        if (existingUrls.has(postUrl)) continue;
 
-          const mediaRes = await fetch(
-            `https://graph.facebook.com/v21.0/${igId}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count,permalink&limit=25&access_token=${token}`
-          );
-          const mediaData = await mediaRes.json();
-          if (!mediaData.data) continue;
-
-          for (const media of mediaData.data) {
-            const postUrl = media.permalink || `https://www.instagram.com/p/${media.id}/`;
-            if (existingUrls.has(postUrl)) continue;
-
-            let views = 0;
-            if (media.media_type === "VIDEO") {
-              try {
-                const insightsRes = await fetch(
-                  `https://graph.facebook.com/v21.0/${media.id}/insights?metric=plays,video_views&access_token=${token}`
-                );
-                const insightsData = await insightsRes.json();
-                if (insightsData?.data) {
-                  for (const metric of insightsData.data) {
-                    const val = metric?.values?.[0]?.value;
-                    if (val !== undefined && val > 0) {
-                      views = val;
-                      break;
-                    }
-                  }
-                }
-              } catch (_) {}
-            }
-
-            let squadId = firstSquadId;
-            const clientMeta = accounts?.find((a: any) => a.instagram_account_id === igId);
-            if (clientMeta?.client_id) {
-              const mapped = clientSquadMap.get(clientMeta.client_id);
-              if (mapped) squadId = mapped;
-            }
-
-            if (!squadId) continue;
-
-            const postedAt = media.timestamp ? new Date(media.timestamp).toISOString().split("T")[0] : null;
-
-            const { error: insErr } = await supabase.from("squad_viral_posts" as any).insert({
-              squad_id: squadId,
-              post_url: postUrl,
-              caption: media.caption || null,
-              views_count: views,
-              like_count: media.like_count || 0,
-              comment_count: media.comments_count || 0,
-              media_type: media.media_type || "",
-              thumbnail_url: media.thumbnail_url || media.media_url || null,
-              posted_at: postedAt,
-              auto_refresh: true,
-            } as any);
-
-            if (!insErr) {
-              existingUrls.add(postUrl);
-              imported.push({ url: postUrl, views, squad: squads?.find((s) => s.id === squadId)?.name || "?" });
-            }
-
-            await new Promise((r) => setTimeout(r, 300));
-          }
+        let views = 0;
+        if (media.media_type === "VIDEO") {
+          try {
+            const insightsRes = await fetch(
+              `https://graph.facebook.com/v21.0/${media.id}/insights?metric=plays&access_token=${globalToken}`
+            );
+            const insightsData = await insightsRes.json();
+            const val = insightsData?.data?.[0]?.values?.[0]?.value;
+            if (val !== undefined && val > 0) views = val;
+          } catch (_) {}
         }
-      } catch (e) {
-        console.error("Erro ao buscar mídias:", e);
+
+        const postedAt = media.timestamp ? new Date(media.timestamp).toISOString().split("T")[0] : null;
+
+        const { error: insErr } = await supabase.from("squad_viral_posts" as any).insert({
+          squad_id: firstSquadId,
+          post_url: postUrl,
+          caption: media.caption || null,
+          views_count: views,
+          like_count: media.like_count || 0,
+          comment_count: media.comments_count || 0,
+          media_type: media.media_type || "",
+          thumbnail_url: media.thumbnail_url || media.media_url || null,
+          posted_at: postedAt,
+          auto_refresh: true,
+        } as any);
+
+        if (!insErr) {
+          existingUrls.add(postUrl);
+          imported.push({ url: postUrl, views, squad: squads?.find((s) => s.id === firstSquadId)?.name || "?" });
+        }
       }
     }
 
@@ -149,7 +116,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     const message = e instanceof Error ? e.message : "erro";
     console.error("auto-import error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: message, success: false }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

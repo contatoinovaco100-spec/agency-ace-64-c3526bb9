@@ -1,4 +1,4 @@
-project_id = "mklbrfjzfiyclkivkrae"
+project_id = "coblfehkclfjofrshlwl"
 
 [functions.wa-webhook]
 verify_jwt = false
@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.rede-create-company-user]
 verify_jwt = true
+
+[functions.auto-import-viral]
+verify_jwt = false
+
+[functions.scrape-viral-views]
+verify_jwt = false
