@@ -56,10 +56,12 @@ export default function CommercialTeamPage() {
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<Member[]>([]);
   const [calls, setCalls] = useState<Call[]>([]);
+  const [paidCalls, setPaidCalls] = useState<Call[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [openMember, setOpenMember] = useState(false);
   const [openCall, setOpenCall] = useState(false);
+  const [paidSearch, setPaidSearch] = useState('');
 
   const monthStart = useMemo(() => {
     const d = new Date(); d.setDate(1); d.setHours(0,0,0,0); return d;
@@ -67,14 +69,16 @@ export default function CommercialTeamPage() {
 
   async function load() {
     setLoading(true);
-    const [m, c, p, e] = await Promise.all([
+    const [m, c, cp, p, e] = await Promise.all([
       supabase.from('commercial_members' as any).select('*').order('created_at'),
       supabase.from('commercial_calls' as any).select('*').is('paid_at', null).order('occurred_at', { ascending: false }),
+      supabase.from('commercial_calls' as any).select('*').not('paid_at', 'is', null).order('paid_at', { ascending: false }).limit(500),
       supabase.from('commission_plans' as any).select('*'),
       supabase.from('profiles').select('id, full_name, job_title, is_active').not('username', 'is', null).eq('is_active', true).order('full_name'),
     ]);
     setMembers((m.data as any) || []);
     setCalls((c.data as any) || []);
+    setPaidCalls((cp.data as any) || []);
     setPlans((p.data as any) || []);
     setEmployees(((e.data as any) || []).map((x: any) => ({ id: x.id, full_name: x.full_name || 'Sem nome', job_title: x.job_title })));
     setLoading(false);
