@@ -297,10 +297,30 @@ export default function CommercialTeamPage() {
                           <div className="flex items-center gap-2 shrink-0">
                             {c.type === 'fechada' && <span className="font-semibold">{BRL(Number(c.deal_value))}</span>}
                             {isAdmin && (
-                              <Button variant="ghost" size="icon" onClick={async () => {
-                                await supabase.from('commercial_calls' as any).delete().eq('id', c.id);
-                                load();
-                              }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              <>
+                                <input
+                                  type="date"
+                                  className="h-8 rounded border border-border bg-background px-2 text-xs"
+                                  title="Data do pagamento (baixa)"
+                                  onChange={async (e) => {
+                                    const v = e.target.value;
+                                    if (!v) return;
+                                    const iso = new Date(v + 'T12:00:00').toISOString();
+                                    const { error } = await supabase.from('commercial_calls' as any).update({ paid_at: iso }).eq('id', c.id);
+                                    if (error) return toast.error(error.message);
+                                    toast.success('Baixa registrada'); load();
+                                  }}
+                                />
+                                <Button size="sm" variant="outline" onClick={async () => {
+                                  const { error } = await supabase.from('commercial_calls' as any).update({ paid_at: new Date().toISOString() }).eq('id', c.id);
+                                  if (error) return toast.error(error.message);
+                                  toast.success('Marcada como paga'); load();
+                                }}>Dar baixa</Button>
+                                <Button variant="ghost" size="icon" onClick={async () => {
+                                  await supabase.from('commercial_calls' as any).delete().eq('id', c.id);
+                                  load();
+                                }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              </>
                             )}
                           </div>
                         </div>
