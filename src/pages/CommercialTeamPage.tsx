@@ -34,6 +34,7 @@ interface Call {
   occurred_at: string;
   source: 'manual' | 'crm';
   notes: string | null;
+  paid_at: string | null;
 }
 interface Plan {
   id: string;
@@ -68,7 +69,7 @@ export default function CommercialTeamPage() {
     setLoading(true);
     const [m, c, p, e] = await Promise.all([
       supabase.from('commercial_members' as any).select('*').order('created_at'),
-      supabase.from('commercial_calls' as any).select('*').gte('occurred_at', monthStart.toISOString()).order('occurred_at', { ascending: false }),
+      supabase.from('commercial_calls' as any).select('*').is('paid_at', null).order('occurred_at', { ascending: false }),
       supabase.from('commission_plans' as any).select('*'),
       supabase.from('profiles').select('id, full_name, job_title, is_active').not('username', 'is', null).eq('is_active', true).order('full_name'),
     ]);
@@ -173,43 +174,15 @@ export default function CommercialTeamPage() {
             <Info className="h-4 w-4 shrink-0 mt-0.5" />
             <span>Cada card mostra <b>Agendadas</b>, <b>Fechadas</b> e <b>Receita</b> do mês, a barra de progresso da meta e a comissão calculada. Para transformar um funcionário em SDR/Closer, clique no botão correspondente no card dele.</span>
           </div>
-          {employees.length === 0 ? (
-            <EmptyState message="Nenhum funcionário ativo. Cadastre em Funcionários." />
-          ) : (
+          {(() => {
+            const commissioned = employees.filter(emp => members.find(x => x.team_member_id === emp.id));
+            if (commissioned.length === 0) {
+              return <EmptyState message="Nenhum funcionário com cargo comercial ainda. Use 'Membro' para adicionar SDR, Closer ou Gestor." />;
+            }
+            return (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {employees.map(emp => {
-                const m = members.find(x => x.team_member_id === emp.id);
-                if (!m) {
-                  return (
-                    <Card key={emp.id} className="border-dashed">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <CardTitle className="text-base">{emp.full_name}</CardTitle>
-                            {emp.job_title && <p className="text-xs text-muted-foreground mt-1">{emp.job_title}</p>}
-                          </div>
-                          <Badge variant="secondary">Sem cargo comercial</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="text-sm text-muted-foreground">
-                        {isAdmin ? (
-                          <div className="flex gap-2 flex-wrap">
-                            {(['SDR','Closer','Gestor'] as Role[]).map(r => (
-                              <Button key={r} size="sm" variant="outline" onClick={async () => {
-                                const { error } = await supabase.from('commercial_members' as any).insert({
-                                  team_member_id: emp.id, name: emp.full_name, role: r,
-                                  monthly_goal_calls: 0, monthly_goal_revenue: 0,
-                                });
-                                if (error) return toast.error(error.message);
-                                toast.success(`${emp.full_name} definido como ${r}`); load();
-                              }}>Tornar {r}</Button>
-                            ))}
-                          </div>
-                        ) : <span>Aguardando definição de cargo pelo admin.</span>}
-                      </CardContent>
-                    </Card>
-                  );
-                }
+              {commissioned.map(emp => {
+                const m = members.find(x => x.team_member_id === emp.id)!;
                 const s = memberStats(m.id);
                 const c = calcCommission(m);
                 const plan = plans.find(p => p.role === m.role);
@@ -271,7 +244,8 @@ export default function CommercialTeamPage() {
                 );
               })}
             </div>
-          )}
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="calls" className="mt-4 space-y-3">
@@ -298,10 +272,19 @@ export default function CommercialTeamPage() {
                         <CardTitle className="text-base">{g.member.name}</CardTitle>
                         <Badge variant="secondary">{g.member.role}</Badge>
                       </div>
-                      <div className="text-xs text-muted-foreground flex gap-3">
+                      <div className="text-xs text-muted-foreground flex items-center gap-3">
                         <span><PhoneCall className="h-3 w-3 inline mr-1" />{ag}</span>
                         <span><CheckCircle2 className="h-3 w-3 inline mr-1" />{fe}</span>
                         <span className="font-semibold text-foreground">{BRL(rev)}</span>
+                        {isAdmin && g.member.id !== 'orphan' && (
+                          <Button size="sm" variant="outline" onClick={async () => {
+                            if (!confirm(`Dar baixa em todas as ${g.items.length} calls pendentes de ${g.member.name}?`)) return;
+                            const ids = g.items.map(i => i.id);
+                            const { error } = await supabase.from('commercial_calls' as any).update({ paid_at: new Date().toISOString() }).in('id', ids);
+                            if (error) return toast.error(error.message);
+                            toast.success('Baixa em massa registrada'); load();
+                          }}>Dar baixa em tudo</Button>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
@@ -323,10 +306,30 @@ export default function CommercialTeamPage() {
                           <div className="flex items-center gap-2 shrink-0">
                             {c.type === 'fechada' && <span className="font-semibold">{BRL(Number(c.deal_value))}</span>}
                             {isAdmin && (
-                              <Button variant="ghost" size="icon" onClick={async () => {
-                                await supabase.from('commercial_calls' as any).delete().eq('id', c.id);
-                                load();
-                              }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              <>
+                                <input
+                                  type="date"
+                                  className="h-8 rounded border border-border bg-background px-2 text-xs"
+                                  title="Data do pagamento (baixa)"
+                                  onChange={async (e) => {
+                                    const v = e.target.value;
+                                    if (!v) return;
+                                    const iso = new Date(v + 'T12:00:00').toISOString();
+                                    const { error } = await supabase.from('commercial_calls' as any).update({ paid_at: iso }).eq('id', c.id);
+                                    if (error) return toast.error(error.message);
+                                    toast.success('Baixa registrada'); load();
+                                  }}
+                                />
+                                <Button size="sm" variant="outline" onClick={async () => {
+                                  const { error } = await supabase.from('commercial_calls' as any).update({ paid_at: new Date().toISOString() }).eq('id', c.id);
+                                  if (error) return toast.error(error.message);
+                                  toast.success('Marcada como paga'); load();
+                                }}>Dar baixa</Button>
+                                <Button variant="ghost" size="icon" onClick={async () => {
+                                  await supabase.from('commercial_calls' as any).delete().eq('id', c.id);
+                                  load();
+                                }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              </>
                             )}
                           </div>
                         </div>

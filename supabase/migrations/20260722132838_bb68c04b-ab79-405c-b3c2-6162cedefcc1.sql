@@ -1,0 +1,1 @@
+ALTER TABLE public.commercial_calls ADD COLUMN IF NOT EXISTS paid_at timestamptz;
