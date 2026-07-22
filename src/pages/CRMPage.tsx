@@ -151,6 +151,9 @@ export default function CRMPage() {
                         <span className="text-caption text-muted-foreground">{lead.assignee}</span>
                       </div>
                     )}
+                    {lead.closer && (
+                      <span className="rounded bg-primary/10 px-1.5 py-0.5 text-caption font-medium text-primary">🎯 {lead.closer}</span>
+                    )}
                     {lead.phone && (
                       <WhatsAppButton phone={lead.phone} name={lead.name} size="sm" />
                     )}
