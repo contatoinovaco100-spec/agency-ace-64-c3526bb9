@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const supabaseUrl = env.VITE_SUPABASE_URL || "https://cdzzewovtxotkghzeafr.supabase.co";
   const supabaseProjectId = env.VITE_SUPABASE_PROJECT_ID || "cdzzewovtxotkghzeafr";
-  const supabasePublishableKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXJhYmFzZSIsInJlZiI6ImNkenpld292dHhvdGtnaHplYWZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MTY0OTAsImV4cCI6MjA4OTA5MjQ5MH0.vleBKxXwibG2H7SmJgzhQ_EGfi6MKJxItB-z4w0Uwvg";
+  const supabasePublishableKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkenpld292dHhvdGtnaHplYWZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MTY0OTAsImV4cCI6MjA4OTA5MjQ5MH0.vleBKxXwibG2H7SmJgzhQ_EGfi6MKJxItB-z4w0Uwvg";
 
   return {
     define: {
