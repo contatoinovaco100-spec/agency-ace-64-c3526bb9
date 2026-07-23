@@ -3601,6 +3601,22 @@ export type Database = {
         Returns: undefined
       }
       renew_recurring_invoices: { Args: never; Returns: number }
+      start_public_quiz_response: {
+        Args: {
+          _quiz_id: string
+          _utm_campaign?: string
+          _utm_medium?: string
+          _utm_source?: string
+        }
+        Returns: {
+          id: string
+          update_token: string
+        }[]
+      }
+      submit_public_quiz_answers: {
+        Args: { _answers: Json; _response_id: string; _update_token: string }
+        Returns: number
+      }
       submit_public_referral: {
         Args: {
           _referred_name: string
