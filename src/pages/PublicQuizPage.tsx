@@ -60,6 +60,7 @@ export default function PublicQuizPage() {
   const [lead, setLead] = useState({ name: "", email: "", phone: "", cnpj: "", company_name: "" });
   const [leadError, setLeadError] = useState<string | null>(null);
   const [responseId, setResponseId] = useState<string | null>(null);
+  const [responseToken, setResponseToken] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [animDir, setAnimDir] = useState<"in" | "out">("in");
@@ -174,14 +175,21 @@ export default function PublicQuizPage() {
   const ensureStartedRef = { current: "" };
 
   const ensureStarted = async () => {
-    if (responseId || !quiz) return responseId;
-    const { data, error } = await supabase.from("quiz_responses").insert({
-      quiz_id: quiz.id, ...utm,
-    }).select("id").single();
+    if (responseId && responseToken) return { id: responseId, token: responseToken };
+    if (!quiz) return null;
+    const { data, error } = await (supabase as any).rpc("start_public_quiz_response", {
+      _quiz_id: quiz.id,
+      _utm_source: utm.utm_source,
+      _utm_medium: utm.utm_medium,
+      _utm_campaign: utm.utm_campaign,
+    });
     if (error) return null;
-    setResponseId(data.id);
+    const started = Array.isArray(data) ? data[0] : data;
+    if (!started?.id || !started?.update_token) return null;
+    setResponseId(started.id);
+    setResponseToken(started.update_token);
     await supabase.rpc("increment_quiz_counter", { _quiz_id: quiz.id, _field: "starts_count" });
-    return data.id;
+    return { id: started.id, token: started.update_token };
   };
 
   // Auto-start the response as soon as quiz loads
@@ -227,12 +235,10 @@ export default function PublicQuizPage() {
   const finish = async () => {
     if (!quiz) return;
     setSubmitting(true);
-    const rid = await ensureStarted();
-    if (!rid) { setSubmitting(false); return; }
-    await supabase.from("quiz_responses").update({
-      completed_at: new Date().toISOString(),
-      lead_name: lead.name, lead_email: lead.email, lead_phone: lead.phone,
-    }).eq("id", rid);
+    const started = await ensureStarted();
+    if (!started) { setSubmitting(false); return; }
+    const rid = started.id;
+    const token = started.token;
     
     const rows = Object.entries(answers).map(([qid, a]) => ({
       response_id: rid, question_id: qid,
@@ -249,7 +255,24 @@ export default function PublicQuizPage() {
       });
     }
 
-    if (rows.length) await supabase.from("quiz_answers").insert(rows);
+    if (rows.length) {
+      await (supabase as any).rpc("submit_public_quiz_answers", {
+        _response_id: rid,
+        _update_token: token,
+        _answers: rows.map(row => ({
+          question_id: row.question_id,
+          option_ids: row.option_ids,
+          text_answer: row.text_answer,
+        })),
+      });
+    }
+    await (supabase as any).rpc("complete_public_quiz_response", {
+      _response_id: rid,
+      _update_token: token,
+      _lead_name: lead.name,
+      _lead_email: lead.email,
+      _lead_phone: lead.phone,
+    });
     await supabase.rpc("increment_quiz_counter", { _quiz_id: quiz.id, _field: "completions_count" });
     localStorage.removeItem(STORAGE(`${clientSlug}_${quizSlug}`));
     setShowConfetti(true);

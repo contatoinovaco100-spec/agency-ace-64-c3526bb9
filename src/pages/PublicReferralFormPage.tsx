@@ -25,13 +25,10 @@ export default function PublicReferralFormPage() {
   useEffect(() => {
     if (!token) return;
     (async () => {
-      const { data } = await supabase
-        .from('referral_clients')
-        .select('id,name')
-        .eq('token', token)
-        .maybeSingle();
-      if (!data) setNotFound(true);
-      else { setClientId(data.id); setClientName(data.name); }
+      const { data } = await (supabase as any).rpc('get_public_referral_client_by_token', { _token: token });
+      const publicClient = Array.isArray(data) ? data[0] : data;
+      if (!publicClient) setNotFound(true);
+      else { setClientId(publicClient.id); setClientName(publicClient.name); }
       setLoading(false);
     })();
   }, [token]);
@@ -50,11 +47,10 @@ export default function PublicReferralFormPage() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from('referrals').insert({
-      client_id: clientId,
-      referred_name: trimmedName,
-      referred_whatsapp: trimmedWa,
-      status: 'enviada',
+    const { error } = await (supabase as any).rpc('submit_public_referral', {
+      _token: token,
+      _referred_name: trimmedName,
+      _referred_whatsapp: trimmedWa,
     });
     setSubmitting(false);
     if (error) {
