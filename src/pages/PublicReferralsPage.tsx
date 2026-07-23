@@ -54,15 +54,12 @@ export default function PublicReferralsPage() {
     let alive = true;
 
     (async () => {
-      const { data: clientData } = await supabase
-        .from('referral_clients')
-        .select('*')
-        .eq('token', token)
-        .maybeSingle();
+      const { data: clientData } = await (supabase as any).rpc('get_public_referral_client_by_token', { _token: token });
+      const publicClient = Array.isArray(clientData) ? clientData[0] : clientData;
 
       if (!alive) return;
-      if (!clientData) { setNotFound(true); setLoading(false); return; }
-      setClient(clientData);
+      if (!publicClient) { setNotFound(true); setLoading(false); return; }
+      setClient({ ...publicClient, token, created_at: '', client_id: null } as ReferralClient);
 
       const [refsRes, tiersRes] = await Promise.all([
         (supabase as any).rpc('get_public_referrals_by_token', { _token: token }),
