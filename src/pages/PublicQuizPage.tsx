@@ -175,7 +175,8 @@ export default function PublicQuizPage() {
   const ensureStartedRef = { current: "" };
 
   const ensureStarted = async () => {
-    if (responseId || !quiz) return responseId;
+    if (responseId && responseToken) return { id: responseId, token: responseToken };
+    if (!quiz) return null;
     const { data, error } = await (supabase as any).rpc("start_public_quiz_response", {
       _quiz_id: quiz.id,
       _utm_source: utm.utm_source,
@@ -188,7 +189,7 @@ export default function PublicQuizPage() {
     setResponseId(started.id);
     setResponseToken(started.update_token);
     await supabase.rpc("increment_quiz_counter", { _quiz_id: quiz.id, _field: "starts_count" });
-    return started.id;
+    return { id: started.id, token: started.update_token };
   };
 
   // Auto-start the response as soon as quiz loads
@@ -234,8 +235,10 @@ export default function PublicQuizPage() {
   const finish = async () => {
     if (!quiz) return;
     setSubmitting(true);
-    const rid = await ensureStarted();
-    if (!rid || !responseToken) { setSubmitting(false); return; }
+    const started = await ensureStarted();
+    if (!started) { setSubmitting(false); return; }
+    const rid = started.id;
+    const token = started.token;
     
     const rows = Object.entries(answers).map(([qid, a]) => ({
       response_id: rid, question_id: qid,
@@ -255,7 +258,7 @@ export default function PublicQuizPage() {
     if (rows.length) {
       await (supabase as any).rpc("submit_public_quiz_answers", {
         _response_id: rid,
-        _update_token: responseToken,
+        _update_token: token,
         _answers: rows.map(row => ({
           question_id: row.question_id,
           option_ids: row.option_ids,
@@ -265,7 +268,7 @@ export default function PublicQuizPage() {
     }
     await (supabase as any).rpc("complete_public_quiz_response", {
       _response_id: rid,
-      _update_token: responseToken,
+      _update_token: token,
       _lead_name: lead.name,
       _lead_email: lead.email,
       _lead_phone: lead.phone,
