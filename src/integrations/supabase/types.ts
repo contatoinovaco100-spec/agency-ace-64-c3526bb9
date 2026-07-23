@@ -2062,6 +2062,7 @@ export type Database = {
           lead_phone: string
           quiz_id: string
           started_at: string
+          update_token: string
           utm_campaign: string
           utm_medium: string
           utm_source: string
@@ -2074,6 +2075,7 @@ export type Database = {
           lead_phone?: string
           quiz_id: string
           started_at?: string
+          update_token?: string
           utm_campaign?: string
           utm_medium?: string
           utm_source?: string
@@ -2086,6 +2088,7 @@ export type Database = {
           lead_phone?: string
           quiz_id?: string
           started_at?: string
+          update_token?: string
           utm_campaign?: string
           utm_medium?: string
           utm_source?: string
@@ -3367,6 +3370,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      complete_public_quiz_response: {
+        Args: {
+          _lead_email?: string
+          _lead_name?: string
+          _lead_phone?: string
+          _response_id: string
+          _update_token: string
+        }
+        Returns: undefined
+      }
       generate_monthly_affiliate_commissions: {
         Args: { _month?: string }
         Returns: number
@@ -3542,6 +3555,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_public_referral_client_by_token: {
+        Args: { _token: string }
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
       get_public_referrals_by_token: {
         Args: { _token: string }
         Returns: {
@@ -3581,6 +3601,14 @@ export type Database = {
         Returns: undefined
       }
       renew_recurring_invoices: { Args: never; Returns: number }
+      submit_public_referral: {
+        Args: {
+          _referred_name: string
+          _referred_whatsapp: string
+          _token: string
+        }
+        Returns: string
+      }
       update_public_task_status: {
         Args: { _id: string; _status: string }
         Returns: undefined
