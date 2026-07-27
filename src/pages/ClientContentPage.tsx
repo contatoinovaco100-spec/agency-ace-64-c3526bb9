@@ -377,9 +377,19 @@ export default function ClientContentPage() {
       <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
           <img src={logoInova} alt="Inova" className="h-10" />
-          <div className="text-right">
-            {clientName && <p className="text-sm font-medium text-foreground">{clientName}</p>}
-            <p className="text-xs text-muted-foreground">{pendingTasks.length} {pendingTasks.length === 1 ? 'pendente' : 'pendentes'}</p>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+              title="Recarregar página"
+            >
+              <RefreshCw className="h-4 w-4" /> Recarregar
+            </button>
+            <div className="text-right">
+              {clientName && <p className="text-sm font-medium text-foreground">{clientName}</p>}
+              <p className="text-xs text-muted-foreground">{pendingTasks.length} {pendingTasks.length === 1 ? 'pendente' : 'pendentes'}</p>
+            </div>
           </div>
         </div>
       </header>
