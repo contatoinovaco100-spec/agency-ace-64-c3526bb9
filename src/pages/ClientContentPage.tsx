@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import logoInova from '@/assets/logo-inova.png';
 import { cn } from '@/lib/utils';
-import { Clapperboard, Calendar, Target, FileText, Link2, MessageSquare, Loader2, ChevronDown, ChevronRight, CheckCircle, Eye, EyeOff, Palette } from 'lucide-react';
+import { Clapperboard, Calendar, Target, FileText, Link2, MessageSquare, Loader2, ChevronDown, ChevronRight, CheckCircle, Eye, EyeOff, Palette, RefreshCw, Download } from 'lucide-react';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import { toast } from 'sonner';
 
