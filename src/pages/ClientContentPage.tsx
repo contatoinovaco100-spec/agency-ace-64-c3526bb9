@@ -155,13 +155,46 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
                       >
                         <RefreshCw className="w-3.5 h-3.5" /> Recarregar
                       </button>
-                      <a
-                        href={url}
-                        download={fileName}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const tid = toast.loading('Baixando vídeo...');
+                          try {
+                            const res = await fetch(url);
+                            if (!res.ok) throw new Error('Falha no download');
+                            const reader = res.body?.getReader();
+                            const total = Number(res.headers.get('content-length')) || 0;
+                            const chunks: Uint8Array[] = [];
+                            let received = 0;
+                            if (reader) {
+                              while (true) {
+                                const { done, value } = await reader.read();
+                                if (done) break;
+                                if (value) {
+                                  chunks.push(value);
+                                  received += value.length;
+                                  if (total) toast.loading(`Baixando... ${Math.round((received/total)*100)}%`, { id: tid });
+                                }
+                              }
+                            }
+                            const blob = new Blob(chunks, { type: res.headers.get('content-type') || 'video/mp4' });
+                            const objUrl = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = objUrl;
+                            a.download = fileName;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
+                            toast.success('Download concluído!', { id: tid });
+                          } catch (e: any) {
+                            toast.error(`Erro ao baixar: ${e?.message || 'tente novamente'}`, { id: tid });
+                          }
+                        }}
                         className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
                       >
                         <Download className="w-3.5 h-3.5" /> Baixar vídeo
-                      </a>
+                      </button>
                       <a
                         href={url}
                         target="_blank"
