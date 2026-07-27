@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import logoInova from '@/assets/logo-inova.png';
 import { cn } from '@/lib/utils';
-import { Clapperboard, Calendar, Target, FileText, Link2, MessageSquare, Loader2, ChevronDown, ChevronRight, CheckCircle, Eye, EyeOff, Palette } from 'lucide-react';
+import { Clapperboard, Calendar, Target, FileText, Link2, MessageSquare, Loader2, ChevronDown, ChevronRight, CheckCircle, Eye, EyeOff, Palette, RefreshCw, Download } from 'lucide-react';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import { toast } from 'sonner';
 
@@ -37,6 +37,7 @@ interface TaskData {
 
 function TaskCard({ task, index }: { task: TaskData; index: number }) {
   const [open, setOpen] = useState(index === 0);
+  const [videoReloadKey, setVideoReloadKey] = useState(0);
   const isArte = task.task_type === 'Arte';
   const videoName = isArte ? (task.title || 'Arte sem título') : (task.video_name || task.title || 'Sem título');
   
@@ -131,10 +132,12 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
             const isSelfHosted = !isDrive && !isYouTube && !isVimeo && (isDirectFile || /supabase\.co\/storage/i.test(url));
 
             if (isSelfHosted) {
+              const fileName = (task.video_name || task.title || 'video').replace(/[^\w.-]+/g, '_') + (url.match(/\.(mp4|webm|ogg|mov|m4v)(\?|$)/i)?.[0]?.split('?')[0] || '.mp4');
               return (
                 <div className="space-y-2">
                   <div className="rounded-lg overflow-hidden border border-primary/30 bg-black">
                     <video
+                      key={videoReloadKey}
                       src={url}
                       controls
                       playsInline
@@ -142,16 +145,32 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
                       className="w-full max-h-[70vh] bg-black"
                     />
                   </div>
-                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span>Vídeo finalizado — assista e aprove antes da publicação.</span>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-semibold text-primary hover:underline shrink-0"
-                    >
-                      Abrir em nova aba ↗
-                    </a>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setVideoReloadKey(k => k + 1)}
+                        className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" /> Recarregar
+                      </button>
+                      <a
+                        href={url}
+                        download={fileName}
+                        className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Baixar vídeo
+                      </a>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-primary hover:underline"
+                      >
+                        Abrir em nova aba ↗
+                      </a>
+                    </div>
                   </div>
                 </div>
               );
