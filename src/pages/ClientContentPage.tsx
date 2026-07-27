@@ -177,7 +177,7 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
                                 }
                               }
                             }
-                            const blob = new Blob(chunks, { type: res.headers.get('content-type') || 'video/mp4' });
+                            const blob = new Blob(chunks as BlobPart[], { type: res.headers.get('content-type') || 'video/mp4' });
                             const objUrl = URL.createObjectURL(blob);
                             const a = document.createElement('a');
                             a.href = objUrl;
