@@ -37,6 +37,7 @@ interface TaskData {
 
 function TaskCard({ task, index }: { task: TaskData; index: number }) {
   const [open, setOpen] = useState(index === 0);
+  const [videoReloadKey, setVideoReloadKey] = useState(0);
   const isArte = task.task_type === 'Arte';
   const videoName = isArte ? (task.title || 'Arte sem título') : (task.video_name || task.title || 'Sem título');
   
