@@ -472,6 +472,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
