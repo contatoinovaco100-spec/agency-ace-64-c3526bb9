@@ -214,11 +214,12 @@ export function BulkImportDialog({ open, onOpenChange, taskType, defaultStage, d
       const clientList = activeClients.map(c => c.companyName).join(', ');
       const teamList = team.map(m => m.name).join(', ');
       const systemPrompt = `Você extrai tarefas de um texto livre em português e devolve JSON PURO (sem markdown).
-Formato: { "tasks": [ { "title": string, "client": string|null, "assignee": string|null, "dueDate": "YYYY-MM-DD"|null, "priority": "Alta"|"Média"|"Baixa"|null, "description": string|null, "references": string|null, "postDate": "YYYY-MM-DD"|null, "postTime": "HH:MM"|null } ] }
+Formato: { "tasks": [ { "title": string, "client": string|null, "assignee": string|null, "dueDate": "YYYY-MM-DD"|null, "priority": "Alta"|"Média"|"Baixa"|null, "description": string|null, "references": string|null, "postDate": "YYYY-MM-DD"|null, "postTime": "HH:MM"|null, "platform": string|null, "format": string|null, "videoObjective": string|null, "videoIdea": string|null, "fullScript": string|null, "observations": string|null, "creativeDirection": string|null, "editingStyle": string|null, "strategicNotes": string|null, "recordingNotes": string|null, "copywriter": string|null, "director": string|null, "videomaker": string|null, "editor": string|null } ] }
 Regras:
 - Cada linha ou bloco separado por linhas em branco = 1 tarefa.
-- Campos podem vir com rótulos livres (nome, título, cliente, responsavel, referência, link, data, prioridade, etc). Use "|" ou ";" ou "," como separadores dentro da mesma linha.
+- Campos podem vir com rótulos livres (nome, título, cliente, responsavel, referência, link, data, prioridade, plataforma, formato, objetivo, ideia, roteiro, observações, direção criativa, estilo de edição, notas estratégicas, notas de gravação, copywriter, diretor, videomaker, editor, etc). Use "|" ou ";" ou "," como separadores dentro da mesma linha.
 - "references" recebe URLs (http/www...) ou nomes de referências visuais.
+- "platform" ex: Instagram, TikTok, YouTube. "format" ex: Reels, Story, Feed, Short.
 - Se não achar o campo, retorne null.
 - Clientes ativos disponíveis: ${clientList || '(nenhum)'}. Combine o nome mesmo se abreviado.
 - Equipe: ${teamList || '(nenhuma)'}.
@@ -248,6 +249,20 @@ Regras:
           references: it.references || undefined,
           postDate: parseDate(it.postDate || undefined),
           postTime: it.postTime || undefined,
+          platform: it.platform || undefined,
+          format: it.format || undefined,
+          videoObjective: it.videoObjective || undefined,
+          videoIdea: it.videoIdea || undefined,
+          fullScript: it.fullScript || undefined,
+          observations: it.observations || undefined,
+          creativeDirection: it.creativeDirection || undefined,
+          editingStyle: it.editingStyle || undefined,
+          strategicNotes: it.strategicNotes || undefined,
+          recordingNotes: it.recordingNotes || undefined,
+          copywriter: it.copywriter || undefined,
+          director: it.director || undefined,
+          videomaker: it.videomaker || undefined,
+          editor: it.editor || undefined,
         };
         if (!row.title) row.error = 'Título vazio';
         else if (!row.clientId) row.error = 'Cliente não encontrado (defina fallback)';
