@@ -334,9 +334,30 @@ Regras:
   };
 
   const downloadTemplate = () => {
-    const headers = ['titulo', 'cliente', 'responsavel', 'data', 'prioridade', 'descricao', 'referencia', 'data_post', 'hora_post'];
-    const example1 = ['Post lançamento', activeClients[0]?.companyName || 'Cliente X', team[0]?.name || 'Maria', '2026-08-01', 'Alta', 'Peça de anúncio', 'https://ref.com/inspiracao', '2026-08-05', '18:00'];
-    const example2 = ['Reels tutorial', activeClients[0]?.companyName || 'Cliente X', team[0]?.name || 'João', '2026-08-03', 'Media', '', 'https://instagram.com/p/xyz', '', ''];
+    const headers = [
+      'titulo', 'cliente', 'responsavel', 'data', 'prioridade', 'descricao',
+      'referencia', 'data_post', 'hora_post',
+      'plataforma', 'formato', 'objetivo', 'ideia', 'roteiro', 'observacoes',
+      'direcao_criativa', 'estilo_edicao', 'notas_estrategicas', 'notas_gravacao',
+      'copywriter', 'diretor', 'videomaker', 'editor',
+    ];
+    const cli = activeClients[0]?.companyName || 'Cliente X';
+    const t = (i: number) => team[i]?.name || '';
+    const example1 = [
+      'Reels lançamento produto', cli, t(0) || 'Maria', '2026-08-01', 'Alta',
+      'Reels de anúncio do novo produto', 'https://instagram.com/p/exemplo', '2026-08-05', '18:00',
+      'Instagram', 'Reels', 'Conversão', 'Mostrar produto em uso com CTA no fim',
+      'Cena 1: abertura com dor. Cena 2: solução. Cena 3: CTA.', 'Legendas grandes em amarelo',
+      'Cores da marca, ritmo acelerado', 'Cortes rápidos com zoom', 'Foco em conversão para stories salvos',
+      'Gravar em ambiente com boa luz natural',
+      t(1) || 'João', t(2) || 'Pedro', t(3) || 'Lucas', t(4) || 'Ana',
+    ];
+    const example2 = [
+      'Story enquete', cli, t(0) || 'Maria', '2026-08-03', 'Média',
+      'Enquete rápida para engajamento', 'https://instagram.com/p/xyz', '', '',
+      'Instagram', 'Story', 'Engajamento', 'Pergunta simples com 2 opções', '', '',
+      '', '', '', '', '', '', '', '',
+    ];
     const csv = [headers, example1, example2]
       .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
       .join('\n');
