@@ -137,47 +137,50 @@ function CardContent({ task, clientName, compact }: { task: Task; clientName?: s
 
   // Compact list-row style
   return (
-    <div className="flex items-center gap-1.5 min-w-0">
-      <div className={cn(
-        'shrink-0 rounded flex items-center justify-center h-4 w-4',
-        isArte ? 'bg-pink-500/15 text-pink-400' : 'bg-primary/15 text-primary'
-      )}>
-        {isArte ? (
-          <svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-        ) : (
-          <svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1 min-w-0">
-          <p className="text-[11px] font-medium text-foreground leading-tight truncate">
-            {displayName}
-          </p>
-          {task.videoUrl && (
-            <span title="Vídeo enviado para aprovação" aria-label="Vídeo enviado para aprovação">
-              <Film className="h-3 w-3 shrink-0 text-primary" />
-            </span>
-          )}
-          {task.rawFootageUrl && (
-            <span title="Material bruto disponível no Drive" aria-label="Material bruto disponível">
-              <FolderOpen className="h-3 w-3 shrink-0 text-amber-500" />
-            </span>
+    <div className="min-w-0">
+      <div className="flex items-center gap-1.5 min-w-0">
+        <div className={cn(
+          'shrink-0 rounded flex items-center justify-center h-4 w-4',
+          isArte ? 'bg-pink-500/15 text-pink-400' : 'bg-primary/15 text-primary'
+        )}>
+          {isArte ? (
+            <svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          ) : (
+            <svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
           )}
         </div>
-        <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
-          {clientName && (
-            <span className="text-[9px] text-primary/70 truncate max-w-[90px]">{clientName}</span>
-          )}
-          {dateValue && (
-            <span className="text-[9px] tabular-nums text-muted-foreground truncate" title={dateLabel}>
-              {dateValue}{task.postTime ? ` ${task.postTime.slice(0, 5)}` : ''}
-            </span>
-          )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 min-w-0">
+            <p className="text-[11px] font-medium text-foreground leading-tight truncate">
+              {displayName}
+            </p>
+            {task.videoUrl && (
+              <span title="Vídeo enviado para aprovação" aria-label="Vídeo enviado para aprovação">
+                <Film className="h-3 w-3 shrink-0 text-primary" />
+              </span>
+            )}
+            {task.rawFootageUrl && (
+              <span title="Material bruto disponível no Drive" aria-label="Material bruto disponível">
+                <FolderOpen className="h-3 w-3 shrink-0 text-amber-500" />
+              </span>
+            )}
+          </div>
+          <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
+            {clientName && (
+              <span className="text-[9px] text-primary/70 truncate max-w-[90px]">{clientName}</span>
+            )}
+            {dateValue && (
+              <span className="text-[9px] tabular-nums text-muted-foreground truncate" title={dateLabel}>
+                {dateValue}{task.postTime ? ` ${task.postTime.slice(0, 5)}` : ''}
+              </span>
+            )}
+          </div>
         </div>
+        <span className={cn('rounded px-1 py-[1px] text-[8px] font-semibold leading-tight', PRIORITY_BADGE[task.priority])}>
+          {task.priority}
+        </span>
       </div>
-      <span className={cn('rounded px-1 py-[1px] text-[8px] font-semibold leading-tight', PRIORITY_BADGE[task.priority])}>
-        {task.priority}
-      </span>
+      {isArte && <ArteAttachmentsPreview taskId={task.id} compact />}
     </div>
   );
 }
