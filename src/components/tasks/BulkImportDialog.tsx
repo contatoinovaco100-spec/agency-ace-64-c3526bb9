@@ -438,7 +438,7 @@ Regras:
             <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 p-3 text-xs">
               <div>
                 <p className="font-medium">Baixe o modelo, preencha e cole aqui</p>
-                <p className="text-muted-foreground text-[11px]">Colunas: titulo, cliente, responsavel, data, prioridade, descricao, referencia, data_post, hora_post</p>
+                <p className="text-muted-foreground text-[11px]">Colunas: titulo, cliente, responsavel, data, prioridade, descricao, referencia, data_post, hora_post, plataforma, formato, objetivo, ideia, roteiro, observacoes, direcao_criativa, estilo_edicao, notas_estrategicas, notas_gravacao, copywriter, diretor, videomaker, editor</p>
               </div>
               <Button variant="outline" size="sm" onClick={downloadTemplate} className="gap-1.5">
                 <Download className="h-3.5 w-3.5" /> Modelo CSV
