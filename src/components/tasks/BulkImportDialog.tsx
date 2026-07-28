@@ -150,6 +150,20 @@ export function BulkImportDialog({ open, onOpenChange, taskType, defaultStage, d
     const idxRefs = hasHeader ? findIdx(['referencia', 'referencias', 'references', 'ref']) : -1;
     const idxPostDate = hasHeader ? findIdx(['data_post', 'post_date', 'data_postagem']) : -1;
     const idxPostTime = hasHeader ? findIdx(['hora_post', 'post_time', 'hora']) : -1;
+    const idxPlatform = hasHeader ? findIdx(['plataforma', 'platform']) : -1;
+    const idxFormat = hasHeader ? findIdx(['formato', 'format']) : -1;
+    const idxObjective = hasHeader ? findIdx(['objetivo', 'video_objective', 'objective']) : -1;
+    const idxIdea = hasHeader ? findIdx(['ideia', 'video_idea', 'idea']) : -1;
+    const idxScript = hasHeader ? findIdx(['roteiro', 'script', 'full_script']) : -1;
+    const idxObs = hasHeader ? findIdx(['observacoes', 'observacao', 'observations', 'obs']) : -1;
+    const idxCreative = hasHeader ? findIdx(['direcao_criativa', 'creative_direction', 'criativo']) : -1;
+    const idxEditStyle = hasHeader ? findIdx(['estilo_edicao', 'editing_style', 'estilo']) : -1;
+    const idxStrategic = hasHeader ? findIdx(['notas_estrategicas', 'strategic_notes', 'estrategia']) : -1;
+    const idxRec = hasHeader ? findIdx(['notas_gravacao', 'recording_notes', 'gravacao']) : -1;
+    const idxCopy = hasHeader ? findIdx(['copywriter', 'copy']) : -1;
+    const idxDir = hasHeader ? findIdx(['diretor', 'director']) : -1;
+    const idxVm = hasHeader ? findIdx(['videomaker', 'filmmaker']) : -1;
+    const idxEditor = hasHeader ? findIdx(['editor']) : -1;
 
     return dataLines.map<ParsedRow>(line => {
       const cols = splitLine(line);
@@ -168,6 +182,20 @@ export function BulkImportDialog({ open, onOpenChange, taskType, defaultStage, d
         references: get(idxRefs) || undefined,
         postDate: parseDate(get(idxPostDate)),
         postTime: get(idxPostTime) || undefined,
+        platform: get(idxPlatform) || undefined,
+        format: get(idxFormat) || undefined,
+        videoObjective: get(idxObjective) || undefined,
+        videoIdea: get(idxIdea) || undefined,
+        fullScript: get(idxScript) || undefined,
+        observations: get(idxObs) || undefined,
+        creativeDirection: get(idxCreative) || undefined,
+        editingStyle: get(idxEditStyle) || undefined,
+        strategicNotes: get(idxStrategic) || undefined,
+        recordingNotes: get(idxRec) || undefined,
+        copywriter: get(idxCopy) || undefined,
+        director: get(idxDir) || undefined,
+        videomaker: get(idxVm) || undefined,
+        editor: get(idxEditor) || undefined,
       };
       if (!row.title) row.error = 'Título vazio';
       else if (!row.clientId) row.error = 'Cliente não encontrado (defina fallback)';
