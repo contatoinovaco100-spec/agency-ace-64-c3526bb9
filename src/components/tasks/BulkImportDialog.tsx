@@ -30,6 +30,20 @@ interface ParsedRow {
   postDate?: string;
   postTime?: string;
   references?: string;
+  platform?: string;
+  format?: string;
+  videoObjective?: string;
+  videoIdea?: string;
+  fullScript?: string;
+  observations?: string;
+  creativeDirection?: string;
+  editingStyle?: string;
+  strategicNotes?: string;
+  recordingNotes?: string;
+  copywriter?: string;
+  director?: string;
+  videomaker?: string;
+  editor?: string;
   error?: string;
 }
 
@@ -136,6 +150,20 @@ export function BulkImportDialog({ open, onOpenChange, taskType, defaultStage, d
     const idxRefs = hasHeader ? findIdx(['referencia', 'referencias', 'references', 'ref']) : -1;
     const idxPostDate = hasHeader ? findIdx(['data_post', 'post_date', 'data_postagem']) : -1;
     const idxPostTime = hasHeader ? findIdx(['hora_post', 'post_time', 'hora']) : -1;
+    const idxPlatform = hasHeader ? findIdx(['plataforma', 'platform']) : -1;
+    const idxFormat = hasHeader ? findIdx(['formato', 'format']) : -1;
+    const idxObjective = hasHeader ? findIdx(['objetivo', 'video_objective', 'objective']) : -1;
+    const idxIdea = hasHeader ? findIdx(['ideia', 'video_idea', 'idea']) : -1;
+    const idxScript = hasHeader ? findIdx(['roteiro', 'script', 'full_script']) : -1;
+    const idxObs = hasHeader ? findIdx(['observacoes', 'observacao', 'observations', 'obs']) : -1;
+    const idxCreative = hasHeader ? findIdx(['direcao_criativa', 'creative_direction', 'criativo']) : -1;
+    const idxEditStyle = hasHeader ? findIdx(['estilo_edicao', 'editing_style', 'estilo']) : -1;
+    const idxStrategic = hasHeader ? findIdx(['notas_estrategicas', 'strategic_notes', 'estrategia']) : -1;
+    const idxRec = hasHeader ? findIdx(['notas_gravacao', 'recording_notes', 'gravacao']) : -1;
+    const idxCopy = hasHeader ? findIdx(['copywriter', 'copy']) : -1;
+    const idxDir = hasHeader ? findIdx(['diretor', 'director']) : -1;
+    const idxVm = hasHeader ? findIdx(['videomaker', 'filmmaker']) : -1;
+    const idxEditor = hasHeader ? findIdx(['editor']) : -1;
 
     return dataLines.map<ParsedRow>(line => {
       const cols = splitLine(line);
@@ -154,6 +182,20 @@ export function BulkImportDialog({ open, onOpenChange, taskType, defaultStage, d
         references: get(idxRefs) || undefined,
         postDate: parseDate(get(idxPostDate)),
         postTime: get(idxPostTime) || undefined,
+        platform: get(idxPlatform) || undefined,
+        format: get(idxFormat) || undefined,
+        videoObjective: get(idxObjective) || undefined,
+        videoIdea: get(idxIdea) || undefined,
+        fullScript: get(idxScript) || undefined,
+        observations: get(idxObs) || undefined,
+        creativeDirection: get(idxCreative) || undefined,
+        editingStyle: get(idxEditStyle) || undefined,
+        strategicNotes: get(idxStrategic) || undefined,
+        recordingNotes: get(idxRec) || undefined,
+        copywriter: get(idxCopy) || undefined,
+        director: get(idxDir) || undefined,
+        videomaker: get(idxVm) || undefined,
+        editor: get(idxEditor) || undefined,
       };
       if (!row.title) row.error = 'Título vazio';
       else if (!row.clientId) row.error = 'Cliente não encontrado (defina fallback)';
@@ -172,11 +214,12 @@ export function BulkImportDialog({ open, onOpenChange, taskType, defaultStage, d
       const clientList = activeClients.map(c => c.companyName).join(', ');
       const teamList = team.map(m => m.name).join(', ');
       const systemPrompt = `Você extrai tarefas de um texto livre em português e devolve JSON PURO (sem markdown).
-Formato: { "tasks": [ { "title": string, "client": string|null, "assignee": string|null, "dueDate": "YYYY-MM-DD"|null, "priority": "Alta"|"Média"|"Baixa"|null, "description": string|null, "references": string|null, "postDate": "YYYY-MM-DD"|null, "postTime": "HH:MM"|null } ] }
+Formato: { "tasks": [ { "title": string, "client": string|null, "assignee": string|null, "dueDate": "YYYY-MM-DD"|null, "priority": "Alta"|"Média"|"Baixa"|null, "description": string|null, "references": string|null, "postDate": "YYYY-MM-DD"|null, "postTime": "HH:MM"|null, "platform": string|null, "format": string|null, "videoObjective": string|null, "videoIdea": string|null, "fullScript": string|null, "observations": string|null, "creativeDirection": string|null, "editingStyle": string|null, "strategicNotes": string|null, "recordingNotes": string|null, "copywriter": string|null, "director": string|null, "videomaker": string|null, "editor": string|null } ] }
 Regras:
 - Cada linha ou bloco separado por linhas em branco = 1 tarefa.
-- Campos podem vir com rótulos livres (nome, título, cliente, responsavel, referência, link, data, prioridade, etc). Use "|" ou ";" ou "," como separadores dentro da mesma linha.
+- Campos podem vir com rótulos livres (nome, título, cliente, responsavel, referência, link, data, prioridade, plataforma, formato, objetivo, ideia, roteiro, observações, direção criativa, estilo de edição, notas estratégicas, notas de gravação, copywriter, diretor, videomaker, editor, etc). Use "|" ou ";" ou "," como separadores dentro da mesma linha.
 - "references" recebe URLs (http/www...) ou nomes de referências visuais.
+- "platform" ex: Instagram, TikTok, YouTube. "format" ex: Reels, Story, Feed, Short.
 - Se não achar o campo, retorne null.
 - Clientes ativos disponíveis: ${clientList || '(nenhum)'}. Combine o nome mesmo se abreviado.
 - Equipe: ${teamList || '(nenhuma)'}.
@@ -206,6 +249,20 @@ Regras:
           references: it.references || undefined,
           postDate: parseDate(it.postDate || undefined),
           postTime: it.postTime || undefined,
+          platform: it.platform || undefined,
+          format: it.format || undefined,
+          videoObjective: it.videoObjective || undefined,
+          videoIdea: it.videoIdea || undefined,
+          fullScript: it.fullScript || undefined,
+          observations: it.observations || undefined,
+          creativeDirection: it.creativeDirection || undefined,
+          editingStyle: it.editingStyle || undefined,
+          strategicNotes: it.strategicNotes || undefined,
+          recordingNotes: it.recordingNotes || undefined,
+          copywriter: it.copywriter || undefined,
+          director: it.director || undefined,
+          videomaker: it.videomaker || undefined,
+          editor: it.editor || undefined,
         };
         if (!row.title) row.error = 'Título vazio';
         else if (!row.clientId) row.error = 'Cliente não encontrado (defina fallback)';
@@ -239,13 +296,26 @@ Regras:
         status: defaultStage as Task['status'],
         taskType,
         videoName: taskType === 'Produção de Vídeo' ? r.title : '',
-        platform: '', format: '', videoObjective: '',
-        scriptWriter: '', editor: '', videoIdea: '', fullScript: '',
-        videoReferences: r.references || '', observations: '',
-        creativeDirection: '', editingStyle: '', strategicNotes: '',
-        recordingNotes: '', editorComments: '', currentStageOwner: '',
-        copywriter: '', director: '', videomaker: '',
-        postDate: r.postDate, postTime: r.postTime,
+        platform: r.platform || '',
+        format: r.format || '',
+        videoObjective: r.videoObjective || '',
+        scriptWriter: r.copywriter || '',
+        editor: r.editor || '',
+        videoIdea: r.videoIdea || '',
+        fullScript: r.fullScript || '',
+        videoReferences: r.references || '',
+        observations: r.observations || '',
+        creativeDirection: r.creativeDirection || '',
+        editingStyle: r.editingStyle || '',
+        strategicNotes: r.strategicNotes || '',
+        recordingNotes: r.recordingNotes || '',
+        editorComments: '',
+        currentStageOwner: '',
+        copywriter: r.copywriter || '',
+        director: r.director || '',
+        videomaker: r.videomaker || '',
+        postDate: r.postDate,
+        postTime: r.postTime,
       };
       try { await addTask(task); ok++; } catch (e) { console.error(e); fail++; }
     }
@@ -264,9 +334,30 @@ Regras:
   };
 
   const downloadTemplate = () => {
-    const headers = ['titulo', 'cliente', 'responsavel', 'data', 'prioridade', 'descricao', 'referencia', 'data_post', 'hora_post'];
-    const example1 = ['Post lançamento', activeClients[0]?.companyName || 'Cliente X', team[0]?.name || 'Maria', '2026-08-01', 'Alta', 'Peça de anúncio', 'https://ref.com/inspiracao', '2026-08-05', '18:00'];
-    const example2 = ['Reels tutorial', activeClients[0]?.companyName || 'Cliente X', team[0]?.name || 'João', '2026-08-03', 'Media', '', 'https://instagram.com/p/xyz', '', ''];
+    const headers = [
+      'titulo', 'cliente', 'responsavel', 'data', 'prioridade', 'descricao',
+      'referencia', 'data_post', 'hora_post',
+      'plataforma', 'formato', 'objetivo', 'ideia', 'roteiro', 'observacoes',
+      'direcao_criativa', 'estilo_edicao', 'notas_estrategicas', 'notas_gravacao',
+      'copywriter', 'diretor', 'videomaker', 'editor',
+    ];
+    const cli = activeClients[0]?.companyName || 'Cliente X';
+    const t = (i: number) => team[i]?.name || '';
+    const example1 = [
+      'Reels lançamento produto', cli, t(0) || 'Maria', '2026-08-01', 'Alta',
+      'Reels de anúncio do novo produto', 'https://instagram.com/p/exemplo', '2026-08-05', '18:00',
+      'Instagram', 'Reels', 'Conversão', 'Mostrar produto em uso com CTA no fim',
+      'Cena 1: abertura com dor. Cena 2: solução. Cena 3: CTA.', 'Legendas grandes em amarelo',
+      'Cores da marca, ritmo acelerado', 'Cortes rápidos com zoom', 'Foco em conversão para stories salvos',
+      'Gravar em ambiente com boa luz natural',
+      t(1) || 'João', t(2) || 'Pedro', t(3) || 'Lucas', t(4) || 'Ana',
+    ];
+    const example2 = [
+      'Story enquete', cli, t(0) || 'Maria', '2026-08-03', 'Média',
+      'Enquete rápida para engajamento', 'https://instagram.com/p/xyz', '', '',
+      'Instagram', 'Story', 'Engajamento', 'Pergunta simples com 2 opções', '', '',
+      '', '', '', '', '', '', '', '',
+    ];
     const csv = [headers, example1, example2]
       .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
       .join('\n');
@@ -347,7 +438,7 @@ Regras:
             <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 p-3 text-xs">
               <div>
                 <p className="font-medium">Baixe o modelo, preencha e cole aqui</p>
-                <p className="text-muted-foreground text-[11px]">Colunas: titulo, cliente, responsavel, data, prioridade, descricao, referencia, data_post, hora_post</p>
+                <p className="text-muted-foreground text-[11px]">Colunas: titulo, cliente, responsavel, data, prioridade, descricao, referencia, data_post, hora_post, plataforma, formato, objetivo, ideia, roteiro, observacoes, direcao_criativa, estilo_edicao, notas_estrategicas, notas_gravacao, copywriter, diretor, videomaker, editor</p>
               </div>
               <Button variant="outline" size="sm" onClick={downloadTemplate} className="gap-1.5">
                 <Download className="h-3.5 w-3.5" /> Modelo CSV
