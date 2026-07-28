@@ -141,9 +141,10 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
                       src={url}
                       controls
                       playsInline
-                      preload="metadata"
+                      preload="none"
                       className="w-full max-h-[70vh] bg-black"
                     />
+
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span>Vídeo finalizado — assista e aprove antes da publicação.</span>
