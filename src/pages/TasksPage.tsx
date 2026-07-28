@@ -792,6 +792,14 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
           />
         </DialogContent>
       </Dialog>
+
+      <BulkImportDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        taskType={taskTypeFilter || 'Geral'}
+        defaultStage={firstStageName || 'A fazer'}
+        defaultClientId={selectedClient !== 'all' ? selectedClient : undefined}
+      />
     </div>
   );
 }
