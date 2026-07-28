@@ -35,8 +35,9 @@ interface TaskData {
   task_type?: string | null;
 }
 
-function TaskCard({ task, index }: { task: TaskData; index: number }) {
-  const [open, setOpen] = useState(index === 0);
+function TaskCard({ task, index, defaultOpen }: { task: TaskData; index: number; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(!!defaultOpen);
+
   const [videoReloadKey, setVideoReloadKey] = useState(0);
   const isArte = task.task_type === 'Arte';
   const videoName = isArte ? (task.title || 'Arte sem título') : (task.video_name || task.title || 'Sem título');
@@ -141,9 +142,10 @@ function TaskCard({ task, index }: { task: TaskData; index: number }) {
                       src={url}
                       controls
                       playsInline
-                      preload="metadata"
+                      preload="none"
                       className="w-full max-h-[70vh] bg-black"
                     />
+
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span>Vídeo finalizado — assista e aprove antes da publicação.</span>
@@ -291,6 +293,18 @@ export default function ClientContentPage() {
 
   useEffect(() => {
     if (!taskId) return;
+    // Hydrate from cache instantly for perceived speed
+    try {
+      const cached = sessionStorage.getItem(`client-content:${taskId}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.tasks?.length) {
+          setTasks(parsed.tasks);
+          setClientName(parsed.clientName || '');
+          setLoading(false);
+        }
+      }
+    } catch {}
     loadContent(taskId);
   }, [taskId]);
 
@@ -315,20 +329,23 @@ export default function ClientContentPage() {
   const handleConfirmProgram = (taskIdToConfirm: string) => updateStatusRpc(taskIdToConfirm, 'Programado');
 
   const loadContent = async (id: string) => {
-    setLoading(true);
-
     const { data: tasksData, error } = await (supabase as any).rpc('get_public_client_tasks', { _anchor: id });
     if (error) console.error('Error loading tasks:', error);
 
     const list = (tasksData as TaskData[] | null) || [];
     if (list.length > 0) {
       const clientId = list[0].client_id;
+      let name = '';
       if (clientId) {
         const { data: nameData } = await (supabase as any).rpc('get_public_client_name', { _id: clientId });
-        if (nameData) setClientName(nameData as string);
+        if (nameData) name = nameData as string;
       }
       setTasks(list);
+      if (name) setClientName(name);
       setLoading(false);
+      try {
+        sessionStorage.setItem(`client-content:${id}`, JSON.stringify({ tasks: list, clientName: name }));
+      } catch {}
       return;
     }
 
@@ -336,13 +353,24 @@ export default function ClientContentPage() {
     setLoading(false);
   };
 
-  if (loading) {
+  if (loading && tasks.length === 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-background">
+        <header className="sticky top-0 z-10 border-b border-border bg-card/95">
+          <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
+            <img src={logoInova} alt="Inova" className="h-10" />
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          </div>
+        </header>
+        <main className="mx-auto max-w-3xl px-6 py-8 space-y-4">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="h-24 rounded-xl border border-border bg-card animate-pulse" />
+          ))}
+        </main>
       </div>
     );
   }
+
 
   if (notFound || tasks.length === 0) {
     return (
@@ -415,8 +443,9 @@ export default function ClientContentPage() {
             <p className="text-center text-muted-foreground py-8">Nenhuma tarefa pendente!</p>
           ) : (
             displayedTasks.map((task, i) => (
-              <TaskCard key={task.id} task={task} index={i} />
+              <TaskCard key={task.id} task={task} index={i} defaultOpen={task.id === taskId} />
             ))
+
           )}
         </div>
 
