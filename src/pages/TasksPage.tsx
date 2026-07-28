@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 
 import { useAgency } from '@/contexts/AgencyContext';
 import { Task } from '@/types/agency';
-import { Plus, Filter, Search, X, Users, ChevronDown, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film, FolderOpen } from 'lucide-react';
+import { Plus, Filter, Search, X, Users, ChevronDown, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film, FolderOpen, FileSpreadsheet } from 'lucide-react';
+import { BulkImportDialog } from '@/components/tasks/BulkImportDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -471,6 +472,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -692,6 +694,9 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
               <Button variant="outline" size="sm" className="gap-1 flex-1 sm:flex-none" onClick={() => setShowFilters(!showFilters)}>
                 <Filter className="h-3.5 w-3.5" /> Filtros
               </Button>
+              <Button variant="outline" size="sm" className="gap-1 flex-1 sm:flex-none" onClick={() => setBulkOpen(true)} title="Criar vários cards de uma vez colando de planilha">
+                <FileSpreadsheet className="h-3.5 w-3.5" /> Em massa
+              </Button>
               <Button size="sm" className="gap-1 flex-1 sm:flex-none" onClick={openNew}>
                 <Plus className="h-4 w-4" /> Nova Tarefa
               </Button>
@@ -787,6 +792,14 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
           />
         </DialogContent>
       </Dialog>
+
+      <BulkImportDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        taskType={taskTypeFilter || 'Geral'}
+        defaultStage={firstStageName || 'A fazer'}
+        defaultClientId={selectedClient !== 'all' ? selectedClient : undefined}
+      />
     </div>
   );
 }
