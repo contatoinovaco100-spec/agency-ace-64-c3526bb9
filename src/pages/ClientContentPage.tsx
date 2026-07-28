@@ -443,8 +443,9 @@ export default function ClientContentPage() {
             <p className="text-center text-muted-foreground py-8">Nenhuma tarefa pendente!</p>
           ) : (
             displayedTasks.map((task, i) => (
-              <TaskCard key={task.id} task={task} index={i} />
+              <TaskCard key={task.id} task={task} index={i} defaultOpen={task.id === taskId} />
             ))
+
           )}
         </div>
 
