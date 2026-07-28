@@ -30,6 +30,20 @@ interface ParsedRow {
   postDate?: string;
   postTime?: string;
   references?: string;
+  platform?: string;
+  format?: string;
+  videoObjective?: string;
+  videoIdea?: string;
+  fullScript?: string;
+  observations?: string;
+  creativeDirection?: string;
+  editingStyle?: string;
+  strategicNotes?: string;
+  recordingNotes?: string;
+  copywriter?: string;
+  director?: string;
+  videomaker?: string;
+  editor?: string;
   error?: string;
 }
 
