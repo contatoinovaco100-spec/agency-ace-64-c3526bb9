@@ -308,6 +308,22 @@ export default function ClientContentPage() {
     loadContent(taskId);
   }, [taskId]);
 
+  // Auto-refresh a cada 4 minutos + ao voltar o foco (evita cache em mobile)
+  useEffect(() => {
+    if (!taskId) return;
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') loadContent(taskId);
+    }, 4 * 60 * 1000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadContent(taskId);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [taskId]);
+
   const updateStatusRpc = async (taskIdToConfirm: string, newStatus: 'Postado' | 'Programado') => {
     setConfirmingId(taskIdToConfirm);
     setTasks(prev => prev.map(t =>
