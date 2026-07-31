@@ -251,7 +251,7 @@ export default function AdsAuditPage() {
         : `TOM DA MENSAGEM: CRÍTICO E DIRETO (NEGATIVO/ALERTA). Seja franco, urgente e mostre os riscos reais de manter a campanha como está. Use linguagem de alerta ("perda de dinheiro", "campanha sangrando verba", "urgente", "crítico"). Destaque o quanto está sendo desperdiçado e a necessidade de agir AGORA. Não suavize problemas.`;
 
       const systemPrompt = `Você é um Consultor Sênior de Tráfego Pago (Meta Ads, Google Ads, TikTok Ads) com 10+ anos de experiência.
-Vai receber um PRINT de gerenciador de anúncios. Faça OCR mental, identifique TODAS as métricas visíveis (CTR, CPC, CPM, ROAS, frequência, conversões, gasto, alcance, impressões, leads, CPA) e gere um RELATÓRIO VISUAL COMPLETO de nível agência premium.
+Vai receber UM OU MAIS PRINTS de gerenciador de anúncios (telas complementares da mesma conta/campanha). Faça OCR mental de TODOS, consolide as métricas visíveis (CTR, CPC, CPM, ROAS, frequência, conversões, gasto, alcance, impressões, leads, CPA) e gere UM ÚNICO RELATÓRIO VISUAL COMPLETO de nível agência premium.
 
 ${toneInstruction}
 
