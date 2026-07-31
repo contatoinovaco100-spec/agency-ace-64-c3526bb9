@@ -558,7 +558,7 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
 
 
 
-              {!image ? (
+              {shots.length === 0 ? (
                 <label
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={onDrop}
@@ -571,24 +571,59 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
                     Arraste ou clique para enviar
                   </p>
                   <p className="text-xs text-muted-foreground text-center px-4 max-w-md">
-                    Print do Meta Ads, Google Ads ou TikTok Ads com métricas visíveis (CTR, CPC, ROAS, frequência, conversões…).
+                    Prints do Meta Ads, Google Ads ou TikTok Ads com métricas visíveis (CTR, CPC, ROAS, frequência, conversões…). Você pode enviar vários de uma vez.
                   </p>
-                  <p className="mt-3 text-[10px] text-muted-foreground/70">PNG, JPG, JPEG (máx 10MB)</p>
-                  <input type="file" className="hidden" accept="image/png,image/jpeg" onChange={handleFileChange} />
+                  <p className="mt-3 text-[10px] text-muted-foreground/70">PNG, JPG, JPEG (máx 10MB cada · até {MAX_SHOTS} prints)</p>
+                  <input type="file" multiple className="hidden" accept="image/png,image/jpeg" onChange={handleFileChange} />
                 </label>
               ) : (
-                <div className="relative h-72 sm:h-80 w-full rounded-2xl overflow-hidden border border-border shadow-lg">
-                  <img src={image} alt="Print das métricas" className="w-full h-full object-contain bg-black/40" />
-                  <Button variant="destructive" size="icon" onClick={() => { setFile(null); setImage(null); }} className="absolute top-3 right-3 rounded-full h-9 w-9 shadow-lg">
-                    <X className="w-4 h-4" />
-                  </Button>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {shots.map((shot, idx) => (
+                      <div key={idx} className="relative h-40 rounded-2xl overflow-hidden border border-border shadow-lg bg-black/40">
+                        {shot.dataUrl ? (
+                          <img src={shot.dataUrl} alt={`Print ${idx + 1}`} className="w-full h-full object-contain" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                          </div>
+                        )}
+                        <span className="absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-foreground">
+                          {idx + 1}
+                        </span>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => removeShot(idx)}
+                          className="absolute top-2 right-2 rounded-full h-7 w-7 shadow-lg"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+
+                    {shots.length < MAX_SHOTS && (
+                      <label
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={onDrop}
+                        className="flex flex-col items-center justify-center h-40 border-2 border-dashed border-border rounded-2xl bg-background/40 hover:bg-background/60 hover:border-primary/50 transition-all cursor-pointer"
+                      >
+                        <Upload className="w-6 h-6 text-primary mb-2" />
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Adicionar print</span>
+                        <input type="file" multiple className="hidden" accept="image/png,image/jpeg" onChange={handleFileChange} />
+                      </label>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/70 text-center">
+                    {shots.length} de {MAX_SHOTS} prints · a IA analisa todos em conjunto num único relatório.
+                  </p>
                 </div>
               )}
 
               <div className="flex justify-center pt-2">
                 <Button
                   onClick={analyze}
-                  disabled={!image || !clientName.trim() || isProcessing}
+                  disabled={shots.length === 0 || !clientName.trim() || isProcessing}
                   className="bg-primary text-primary-foreground font-black px-10 h-14 rounded-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100 uppercase tracking-wider"
                 >
                   {isProcessing ? (
