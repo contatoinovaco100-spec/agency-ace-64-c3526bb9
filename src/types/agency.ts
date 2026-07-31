@@ -86,6 +86,8 @@ export interface Task {
   // Post scheduling
   postDate?: string;
   postTime?: string;
+  // Legenda do post (arte)
+  caption?: string;
 }
 
 export interface TaskChecklistItem {
