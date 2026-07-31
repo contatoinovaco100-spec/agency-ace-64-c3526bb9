@@ -505,6 +505,38 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                   </TabsContent>
                 )}
 
+                {/* Legenda (Arte) */}
+                {form.taskType === 'Arte' && (
+                  <TabsContent value="caption" className="space-y-3 mt-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Legenda do post</Label>
+                      <Textarea
+                        rows={8}
+                        value={form.caption || ''}
+                        onChange={e => setForm({ ...form, caption: e.target.value })}
+                        placeholder="Escreva aqui a legenda do post (texto, hashtags, CTA)..."
+                        className="mt-1"
+                      />
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-[11px] text-muted-foreground">{(form.caption || '').length} caracteres</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(form.caption || '');
+                            toast.success('Legenda copiada!');
+                          }}
+                          disabled={!form.caption}
+                        >
+                          Copiar legenda
+                        </Button>
+                      </div>
+                    </div>
+                  </TabsContent>
+                )}
+
+
+
                 {/* Checklist */}
                 <TabsContent value="checklist" className="space-y-2 mt-3">
                   {checklist.map(item => (
