@@ -230,7 +230,8 @@ export default function AdsAuditPage() {
   };
 
   const analyze = async () => {
-    if (!file || !image) return;
+    const ready = shots.filter((s) => s.dataUrl);
+    if (!ready.length) return;
     if (!clientName.trim()) {
       toast.error('Informe o nome do cliente antes de gerar o relatório.');
       return;
@@ -240,7 +241,10 @@ export default function AdsAuditPage() {
     const toastId = toast.loading('Analisando dados e gerando relatório estratégico…');
 
     try {
-      const base64Data = image.split(',')[1];
+      const imagesPayload = ready.map((s) => ({
+        base64: s.dataUrl.split(',')[1],
+        mimeType: s.file.type,
+      }));
 
       const toneInstruction = tone === 'positiva'
         ? `TOM DA MENSAGEM: POSITIVO E ENCORAJADOR. Mesmo apontando problemas, destaque oportunidades, conquistas e o potencial de crescimento. Use linguagem otimista ("ótima base", "com pequenos ajustes", "potencial enorme"). Suavize críticas. Foque no que pode melhorar e na evolução. Evite alarmar o cliente.`
