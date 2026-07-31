@@ -31,7 +31,7 @@ serve(async (req) => {
       }
     }
 
-    const { systemPrompt, userMessage, model = "google/gemini-2.5-flash", imageBase64, imageMimeType } = await req.json();
+    const { systemPrompt, userMessage, model = "google/gemini-2.5-flash", imageBase64, imageMimeType, images } = await req.json();
 
     if (!userMessage || typeof userMessage !== 'string') {
       return new Response(JSON.stringify({ error: "userMessage é obrigatório." }), {
@@ -45,11 +45,18 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY não configurada.");
     }
 
-    // Build user content (supports optional image for vision)
-    const userContent: unknown = imageBase64 && imageMimeType
+    // Build user content (supports one or many images for vision)
+    const imageList: { base64: string; mimeType: string }[] = Array.isArray(images) && images.length
+      ? images.filter((i: any) => i?.base64 && i?.mimeType)
+      : (imageBase64 && imageMimeType ? [{ base64: imageBase64, mimeType: imageMimeType }] : []);
+
+    const userContent: unknown = imageList.length
       ? [
           { type: "text", text: userMessage },
-          { type: "image_url", image_url: { url: `data:${imageMimeType};base64,${imageBase64}` } },
+          ...imageList.map((img) => ({
+            type: "image_url",
+            image_url: { url: `data:${img.mimeType};base64,${img.base64}` },
+          })),
         ]
       : userMessage;
 
