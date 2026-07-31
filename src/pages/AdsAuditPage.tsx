@@ -157,36 +157,61 @@ export default function AdsAuditPage() {
   };
   useEffect(() => { fetchHistory(); }, [user, isPublicView]);
 
+  const MAX_SHOTS = 6;
+
+  const addFiles = (list: FileList | File[] | null) => {
+    if (!list) return;
+    const incoming = Array.from(list);
+    if (!incoming.length) return;
+
+    const valid = incoming.filter((f) => {
+      if (!/^image\/(png|jpe?g)$/.test(f.type)) {
+        toast.error(`"${f.name}": use PNG, JPG ou JPEG`);
+        return false;
+      }
+      if (f.size > 10 * 1024 * 1024) {
+        toast.error(`"${f.name}": imagem muito grande (máx 10MB)`);
+        return false;
+      }
+      return true;
+    });
+    if (!valid.length) return;
+
+    setShots((prev) => {
+      const free = MAX_SHOTS - prev.length;
+      if (free <= 0) {
+        toast.error(`Máximo de ${MAX_SHOTS} prints`);
+        return prev;
+      }
+      const slice = valid.slice(0, free);
+      if (valid.length > free) toast.warning(`Apenas ${free} print(s) adicionados (máx ${MAX_SHOTS}).`);
+      slice.forEach((f) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setShots((cur) =>
+            cur.map((s) => (s.file === f ? { ...s, dataUrl: reader.result as string } : s))
+          );
+        };
+        reader.readAsDataURL(f);
+      });
+      return [...prev, ...slice.map((f) => ({ file: f, dataUrl: '' }))];
+    });
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
-    if (!selected) return;
-    if (selected.size > 10 * 1024 * 1024) {
-      toast.error('Imagem muito grande (máx 10MB)');
-      return;
-    }
-    setFile(selected);
-    const reader = new FileReader();
-    reader.onload = () => setImage(reader.result as string);
-    reader.readAsDataURL(selected);
+    addFiles(e.target.files);
+    e.target.value = '';
   };
 
   const onDrop = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
-    const dropped = e.dataTransfer.files?.[0];
-    if (!dropped) return;
-    if (!/^image\/(png|jpe?g)$/.test(dropped.type)) {
-      toast.error('Use PNG, JPG ou JPEG');
-      return;
-    }
-    setFile(dropped);
-    const reader = new FileReader();
-    reader.onload = () => setImage(reader.result as string);
-    reader.readAsDataURL(dropped);
+    addFiles(e.dataTransfer.files);
   };
 
+  const removeShot = (idx: number) => setShots((prev) => prev.filter((_, i) => i !== idx));
+
   const reset = () => {
-    setFile(null);
-    setImage(null);
+    setShots([]);
     setDiagnosis(null);
     setClientName('');
     setSavedSlug(null);
