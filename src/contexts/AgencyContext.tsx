@@ -85,6 +85,7 @@ function rowToTask(row: any): Task {
     copywriter: row.copywriter || '', director: row.director || '', videomaker: row.videomaker || '',
     videoUrl: row.video_url || '',
     rawFootageUrl: row.raw_footage_url || '',
+    caption: (row as any).caption || '',
     postDate: row.post_date || '', postTime: row.post_time || '',
   };
 }
