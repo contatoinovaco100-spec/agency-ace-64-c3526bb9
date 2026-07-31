@@ -197,6 +197,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     video_url: t.videoUrl || null,
     raw_footage_url: t.rawFootageUrl || null,
     post_date: t.postDate || null, post_time: t.postTime || null,
+    caption: t.caption || null,
   });
 
   const addClient = async (c: Client) => {
