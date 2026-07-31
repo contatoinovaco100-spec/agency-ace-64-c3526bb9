@@ -31,7 +31,7 @@ serve(async (req) => {
       }
     }
 
-    const { systemPrompt, userMessage, model = "google/gemini-2.5-flash", imageBase64, imageMimeType } = await req.json();
+    const { systemPrompt, userMessage, model = "google/gemini-2.5-flash", imageBase64, imageMimeType, images } = await req.json();
 
     if (!userMessage || typeof userMessage !== 'string') {
       return new Response(JSON.stringify({ error: "userMessage é obrigatório." }), {
