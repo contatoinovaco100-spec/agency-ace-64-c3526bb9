@@ -470,6 +470,9 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                   {form.taskType === 'Arte' && (
                     <TabsTrigger value="references" className="flex-1 gap-1"><Link className="h-3.5 w-3.5" /> Referências</TabsTrigger>
                   )}
+                  {form.taskType === 'Arte' && (
+                    <TabsTrigger value="caption" className="flex-1 gap-1"><FileText className="h-3.5 w-3.5" /> Legenda</TabsTrigger>
+                  )}
                   <TabsTrigger value="checklist" className="flex-1 gap-1"><CheckSquare className="h-3.5 w-3.5" /> Checklist</TabsTrigger>
                   <TabsTrigger value="comments" className="flex-1 gap-1"><MessageSquare className="h-3.5 w-3.5" /> Comentários ({comments.length})</TabsTrigger>
                   <TabsTrigger value="attachments" className="flex-1 gap-1"><FileText className="h-3.5 w-3.5" /> Anexos ({attachments.length})</TabsTrigger>
