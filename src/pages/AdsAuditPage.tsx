@@ -321,10 +321,9 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
       const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-copywriter', {
         body: {
           systemPrompt,
-          userMessage: `${toneInstruction}\n\nAnalise o print do gerenciador de anúncios e gere o relatório completo no formato JSON pedido. LEMBRE-SE: TODO o texto (resumo.titulo, resumo.explicacao, interpretacao de cada métrica, diagnosticoEstrategico, planoDeAcao, projecao, alertas) DEVE refletir o tom ${tone === 'positiva' ? 'POSITIVO e encorajador' : 'NEGATIVO, crítico e de alerta urgente'} escolhido. Não misture os dois tons.`,
+          userMessage: `${toneInstruction}\n\nForam enviados ${imagesPayload.length} print(s) do gerenciador de anúncios. Analise TODOS eles em conjunto (podem ser telas complementares da mesma conta/campanha), consolide as métricas e gere UM único relatório completo no formato JSON pedido. LEMBRE-SE: TODO o texto (resumo.titulo, resumo.explicacao, interpretacao de cada métrica, diagnosticoEstrategico, planoDeAcao, projecao, alertas) DEVE refletir o tom ${tone === 'positiva' ? 'POSITIVO e encorajador' : 'NEGATIVO, crítico e de alerta urgente'} escolhido. Não misture os dois tons.`,
           model: 'google/gemini-2.5-flash',
-          imageBase64: base64Data,
-          imageMimeType: file.type,
+          images: imagesPayload,
         },
       });
 
