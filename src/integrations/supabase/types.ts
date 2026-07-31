@@ -2895,6 +2895,7 @@ export type Database = {
       tasks: {
         Row: {
           assignee: string
+          caption: string | null
           client_id: string | null
           copywriter: string
           created_at: string
@@ -2931,6 +2932,7 @@ export type Database = {
         }
         Insert: {
           assignee?: string
+          caption?: string | null
           client_id?: string | null
           copywriter?: string
           created_at?: string
@@ -2967,6 +2969,7 @@ export type Database = {
         }
         Update: {
           assignee?: string
+          caption?: string | null
           client_id?: string | null
           copywriter?: string
           created_at?: string
@@ -3423,6 +3426,7 @@ export type Database = {
         Args: { _anchor: string }
         Returns: {
           assignee: string
+          caption: string | null
           client_id: string | null
           copywriter: string
           created_at: string

@@ -85,6 +85,7 @@ function rowToTask(row: any): Task {
     copywriter: row.copywriter || '', director: row.director || '', videomaker: row.videomaker || '',
     videoUrl: row.video_url || '',
     rawFootageUrl: row.raw_footage_url || '',
+    caption: (row as any).caption || '',
     postDate: row.post_date || '', postTime: row.post_time || '',
   };
 }
@@ -196,6 +197,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     video_url: t.videoUrl || null,
     raw_footage_url: t.rawFootageUrl || null,
     post_date: t.postDate || null, post_time: t.postTime || null,
+    caption: t.caption || null,
   });
 
   const addClient = async (c: Client) => {
