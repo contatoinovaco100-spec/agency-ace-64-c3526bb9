@@ -107,8 +107,7 @@ export default function AdsAuditPage() {
   const navigate = useNavigate();
   const isPublicView = !!routeSlug;
 
-  const [file, setFile] = useState<File | null>(null);
-  const [image, setImage] = useState<string | null>(null);
+  const [shots, setShots] = useState<{ file: File; dataUrl: string }[]>([]);
   const [clientName, setClientName] = useState('');
   const [tone, setTone] = useState<'positiva' | 'negativa'>('positiva');
   const [isProcessing, setIsProcessing] = useState(false);
