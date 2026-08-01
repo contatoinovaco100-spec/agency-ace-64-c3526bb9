@@ -63,6 +63,8 @@ const PortfolioPage        = lazy(() => import("./pages/PortfolioPage"));
 const InstagramPostsPage   = lazy(() => import("./pages/InstagramPostsPage"));
 const InstagramAutomationPage = lazy(() => import("./pages/InstagramAutomationPage"));
 const SocialAccountsPage = lazy(() => import("./pages/SocialAccountsPage"));
+const InstagramAnalyticsPage = lazy(() => import("./pages/InstagramAnalyticsPage"));
+
 const PublishContentPage = lazy(() => import("./pages/PublishContentPage"));
 const PublishHistoryPage = lazy(() => import("./pages/PublishHistoryPage"));
 const ShootingSchedulePage = lazy(() => import("./pages/ShootingSchedulePage"));
@@ -228,6 +230,8 @@ function AppRoutes() {
                     <Route path="/portfolio-instagram" element={<InstagramPostsPage />} />
                     <Route path="/instagram-automacao" element={<InstagramAutomationPage />} />
                     <Route path="/redes-sociais"       element={<SocialAccountsPage />} />
+                    <Route path="/instagram-analytics" element={<InstagramAnalyticsPage />} />
+
                     <Route path="/publicar"            element={<PublishContentPage />} />
                     <Route path="/publicacoes"         element={<PublishHistoryPage />} />
                     <Route path="/gravacoes"           element={<ShootingSchedulePage />} />

@@ -12,6 +12,9 @@ export interface AccountContext {
 
 export interface PublishInput {
   mediaUrl: string;
+  /** Para carrossel: várias mídias na ordem */
+  mediaUrls?: string[];
+  mediaTypes?: Array<"video" | "image">;
   mediaType: "video" | "image";
   caption: string;
   firstComment?: string;

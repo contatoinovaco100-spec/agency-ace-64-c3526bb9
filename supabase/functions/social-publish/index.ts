@@ -43,13 +43,28 @@ Deno.serve(async (req) => {
     if (!targets?.length) return json({ error: "Nenhum destino pendente" }, 400);
 
     // URL assinada única (o vídeo é enviado uma só vez para o Storage)
-    let mediaUrl = job.media_url as string;
-    if (job.media_path) {
+    const signOne = async (path: string) => {
       const { data: signed } = await admin.storage
-        .from(BUCKET).createSignedUrl(job.media_path, 60 * 60 * 6);
-      if (signed?.signedUrl) mediaUrl = signed.signedUrl;
+        .from(BUCKET).createSignedUrl(path, 60 * 60 * 6);
+      return signed?.signedUrl || "";
+    };
+
+    const paths: string[] = (job.media_paths && job.media_paths.length)
+      ? job.media_paths
+      : (job.media_path ? [job.media_path] : []);
+
+    let mediaUrl = job.media_url as string;
+    const mediaUrls: string[] = [];
+    for (const p of paths) {
+      const url = await signOne(p);
+      if (url) mediaUrls.push(url);
     }
+    if (mediaUrls.length) mediaUrl = mediaUrls[0];
+    const mediaTypes: Array<"video" | "image"> = paths.map((p) =>
+      /\.(mp4|mov|m4v|webm)$/i.test(p) ? "video" : "image"
+    );
     if (!mediaUrl) return json({ error: "Mídia não encontrada" }, 400);
+
 
     await admin.from("publish_jobs").update({ status: "processing" }).eq("id", job_id);
 
@@ -79,6 +94,8 @@ Deno.serve(async (req) => {
             },
             {
               mediaUrl,
+              mediaUrls,
+              mediaTypes,
               mediaType: (job.media_type === "image" ? "image" : "video"),
               caption: job.caption || "",
               firstComment: job.first_comment || "",

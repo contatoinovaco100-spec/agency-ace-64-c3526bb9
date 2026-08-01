@@ -1472,6 +1472,53 @@ export type Database = {
           },
         ]
       }
+      instagram_metrics_snapshots: {
+        Row: {
+          account_id: string
+          created_at: string
+          followers: number
+          id: string
+          impressions: number
+          media_count: number
+          profile_views: number
+          reach: number
+          snapshot_date: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          followers?: number
+          id?: string
+          impressions?: number
+          media_count?: number
+          profile_views?: number
+          reach?: number
+          snapshot_date?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          followers?: number
+          id?: string
+          impressions?: number
+          media_count?: number
+          profile_views?: number
+          reach?: number
+          snapshot_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_metrics_snapshots_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "social_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_posts: {
         Row: {
           created_at: string
@@ -1977,6 +2024,7 @@ export type Database = {
           id: string
           location_id: string
           media_path: string
+          media_paths: string[]
           media_type: string
           media_url: string
           post_type: string
@@ -2000,6 +2048,7 @@ export type Database = {
           id?: string
           location_id?: string
           media_path?: string
+          media_paths?: string[]
           media_type?: string
           media_url?: string
           post_type?: string
@@ -2023,6 +2072,7 @@ export type Database = {
           id?: string
           location_id?: string
           media_path?: string
+          media_paths?: string[]
           media_type?: string
           media_url?: string
           post_type?: string
