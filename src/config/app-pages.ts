@@ -88,6 +88,8 @@ export const APP_PAGES: AppPage[] = [
   { path: '/redes-sociais',       label: 'Redes Sociais',        icon: Network,         category: 'Ferramentas' },
   { path: '/publicar',            label: 'Publicar Conteúdo',    icon: Sparkles,        category: 'Ferramentas' },
   { path: '/publicacoes',         label: 'Histórico de Posts',   icon: ListChecks,      category: 'Ferramentas' },
+  { path: '/instagram-analytics', label: 'Analytics Instagram',  icon: BarChart3,       category: 'Ferramentas' },
+
 
   // Administração (só admin)
   { path: '/funcionarios',        label: 'Funcionários',        icon: UserCog,         category: 'Administração', adminOnly: true },
