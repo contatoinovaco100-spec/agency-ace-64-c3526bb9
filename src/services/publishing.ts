@@ -5,10 +5,12 @@ const JOBS = 'publish_jobs' as any;
 const TARGETS = 'publish_targets' as any;
 const BUCKET = 'instagram-media';
 
-export type PostType = 'auto' | 'reels' | 'image' | 'stories';
+export type PostType = 'auto' | 'reels' | 'image' | 'stories' | 'carousel';
 
 export interface CreateJobInput {
-  file: File;
+  /** Uma mídia (compatibilidade) ou várias (carrossel) */
+  file?: File;
+  files?: File[];
   caption: string;
   firstComment?: string;
   scheduledAt?: string | null;
@@ -24,6 +26,7 @@ export interface CreateJobInput {
   accounts: SocialAccount[];
   onProgress?: (pct: number) => void;
 }
+
 
 
 /** Instagram só aceita JPEG em fotos — converte qualquer imagem para JPEG e limita a 1440px. */
