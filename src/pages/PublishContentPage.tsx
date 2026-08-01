@@ -25,8 +25,8 @@ export default function PublishContentPage() {
 
   const { targetsOf } = usePublishJobs(jobId ?? undefined);
 
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string>('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [caption, setCaption] = useState('');
   const [firstComment, setFirstComment] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
@@ -44,8 +44,12 @@ export default function PublishContentPage() {
   const [publishing, setPublishing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const file = files[0] ?? null;
+  const preview = previews[0] ?? '';
   const isVideo = !!file && file.type.startsWith('video');
-  const effectiveType: PostType = postType !== 'auto' ? postType : (isVideo ? 'reels' : 'image');
+  const effectiveType: PostType = postType !== 'auto'
+    ? postType
+    : (files.length > 1 ? 'carousel' : isVideo ? 'reels' : 'image');
 
 
   const selectedAccounts = useMemo(
@@ -53,11 +57,21 @@ export default function PublishContentPage() {
     [accounts, selected],
   );
 
-  const pickFile = (f: File) => {
-    if (f.size > 500 * 1024 * 1024) { toast.error('Arquivo maior que 500 MB'); return; }
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
+  const pickFiles = (list: File[]) => {
+    const valid = list.filter(f => {
+      if (f.size > 500 * 1024 * 1024) { toast.error(`${f.name}: maior que 500 MB`); return false; }
+      return true;
+    });
+    if (!valid.length) return;
+    setFiles(prev => [...prev, ...valid].slice(0, 10));
+    setPreviews(prev => [...prev, ...valid.map(f => URL.createObjectURL(f))].slice(0, 10));
   };
+
+  const removeFile = (idx: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== idx));
+    setPreviews(prev => prev.filter((_, i) => i !== idx));
+  };
+
 
   const toggle = (id: string) =>
     setSelected(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id]));
