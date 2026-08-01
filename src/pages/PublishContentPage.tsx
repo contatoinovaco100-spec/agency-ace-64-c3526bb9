@@ -10,6 +10,8 @@ import { Film, Loader2, Send, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountSelector } from '@/components/social/AccountSelector';
 import { TargetStatusList } from '@/components/social/TargetStatusList';
+import { ManualPublishPanel } from '@/components/social/ManualPublishPanel';
+
 import { useSocialAccounts } from '@/hooks/useSocialAccounts';
 import { usePublishJobs } from '@/hooks/usePublishJobs';
 import { publishingService } from '@/services/publishing';
