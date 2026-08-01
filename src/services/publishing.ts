@@ -5,15 +5,26 @@ const JOBS = 'publish_jobs' as any;
 const TARGETS = 'publish_targets' as any;
 const BUCKET = 'instagram-media';
 
+export type PostType = 'auto' | 'reels' | 'image' | 'stories';
+
 export interface CreateJobInput {
   file: File;
   caption: string;
   firstComment?: string;
   scheduledAt?: string | null;
   thumbnailUrl?: string;
+  postType?: PostType;
+  shareToFeed?: boolean;
+  collaborators?: string[];
+  locationId?: string;
+  userTags?: string[];
+  coverUrl?: string;
+  thumbOffset?: number;
+  audioName?: string;
   accounts: SocialAccount[];
   onProgress?: (pct: number) => void;
 }
+
 
 /** Instagram só aceita JPEG em fotos — converte qualquer imagem para JPEG e limita a 1440px. */
 async function toInstagramJpeg(file: File): Promise<File> {
@@ -70,7 +81,19 @@ export const publishingService = {
         thumbnail_url: input.thumbnailUrl ?? '',
         scheduled_at: input.scheduledAt || null,
         status: input.scheduledAt ? 'scheduled' : 'pending',
+        post_type: input.postType ?? 'auto',
+        share_to_feed: input.shareToFeed !== false,
+        collaborators: (input.collaborators ?? []).map(c => c.replace(/^@/, '').trim()).filter(Boolean),
+        location_id: input.locationId ?? '',
+        user_tags: (input.userTags ?? [])
+          .map(u => u.replace(/^@/, '').trim())
+          .filter(Boolean)
+          .map(username => ({ username, x: 0.5, y: 0.5 })),
+        cover_url: input.coverUrl ?? '',
+        thumb_offset: input.thumbOffset ?? 0,
+        audio_name: input.audioName ?? '',
       })
+
       .select('*')
       .single();
     if (error) throw error;

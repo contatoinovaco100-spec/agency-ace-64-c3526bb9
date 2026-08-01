@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Film, Loader2, RefreshCw, Send, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -14,7 +16,7 @@ import { ManualPublishPanel } from '@/components/social/ManualPublishPanel';
 
 import { useSocialAccounts } from '@/hooks/useSocialAccounts';
 import { usePublishJobs } from '@/hooks/usePublishJobs';
-import { publishingService } from '@/services/publishing';
+import { publishingService, type PostType } from '@/services/publishing';
 
 export default function PublishContentPage() {
   const { accounts, byPlatform, loading, refreshing, error, reload } = useSocialAccounts();
@@ -29,10 +31,22 @@ export default function PublishContentPage() {
   const [firstComment, setFirstComment] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [postType, setPostType] = useState<PostType>('auto');
+  const [shareToFeed, setShareToFeed] = useState(true);
+  const [collaborators, setCollaborators] = useState('');
+  const [locationId, setLocationId] = useState('');
+  const [userTags, setUserTags] = useState('');
+  const [coverUrl, setCoverUrl] = useState('');
+  const [thumbOffset, setThumbOffset] = useState('');
+  const [audioName, setAudioName] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
   const [publishing, setPublishing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isVideo = !!file && file.type.startsWith('video');
+  const effectiveType: PostType = postType !== 'auto' ? postType : (isVideo ? 'reels' : 'image');
+
 
   const selectedAccounts = useMemo(
     () => accounts.filter(a => selected.includes(a.id)),
@@ -63,7 +77,16 @@ export default function PublishContentPage() {
       const job = await publishingService.createJob({
         file, caption, firstComment, scheduledAt: scheduledAt || null,
         thumbnailUrl, accounts: selectedAccounts, onProgress: setProgress,
+        postType,
+        shareToFeed,
+        collaborators: collaborators.split(',').map(s => s.trim()).filter(Boolean),
+        locationId,
+        userTags: userTags.split(',').map(s => s.trim()).filter(Boolean),
+        coverUrl,
+        thumbOffset: Number(thumbOffset) || 0,
+        audioName,
       });
+
       setJobId(job.id);
       setMediaPath(job.media_path);
 
@@ -115,7 +138,11 @@ export default function PublishContentPage() {
               >
                 {preview ? (
                   <div className="relative w-full">
-                    <video src={preview} controls className="mx-auto max-h-64 rounded-md" />
+                    {isVideo ? (
+                      <video src={preview} controls className="mx-auto max-h-64 rounded-md" />
+                    ) : (
+                      <img src={preview} alt="Pré-visualização da mídia" className="mx-auto max-h-64 rounded-md" />
+                    )}
                     <Button
                       size="icon" variant="secondary" className="absolute right-2 top-2 h-7 w-7"
                       onClick={e => { e.stopPropagation(); setFile(null); setPreview(''); }}
@@ -126,10 +153,11 @@ export default function PublishContentPage() {
                 ) : (
                   <>
                     <Upload className="h-6 w-6 text-muted-foreground" />
-                    <p className="text-sm font-medium">Arraste o vídeo ou clique para escolher</p>
-                    <p className="text-xs text-muted-foreground">MP4 vertical até 500 MB</p>
+                    <p className="text-sm font-medium">Arraste o vídeo ou a foto, ou clique para escolher</p>
+                    <p className="text-xs text-muted-foreground">MP4 ou JPG/PNG até 500 MB</p>
                   </>
                 )}
+
                 <input
                   ref={inputRef} type="file" accept="video/*,image/*" className="hidden"
                   onChange={e => { const f = e.target.files?.[0]; if (f) pickFile(f); }}
@@ -137,9 +165,28 @@ export default function PublishContentPage() {
               </div>
 
               <div className="space-y-2">
+                <Label>Tipo de publicação</Label>
+                <Select value={postType} onValueChange={(v) => setPostType(v as PostType)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Automático (vídeo → Reels, imagem → Feed)</SelectItem>
+                    <SelectItem value="reels">Reels</SelectItem>
+                    <SelectItem value="image">Foto no feed</SelectItem>
+                    <SelectItem value="stories">Stories</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label>Legenda</Label>
                 <Textarea rows={4} value={caption} onChange={e => setCaption(e.target.value)}
-                  placeholder="Escreva a legenda do post..." />
+                  placeholder="Escreva a legenda do post..."
+                  disabled={effectiveType === 'stories'} />
+                <p className="text-xs text-muted-foreground">
+                  {effectiveType === 'stories'
+                    ? 'Stories não aceita legenda pela API.'
+                    : `${caption.length}/2200 caracteres`}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -148,16 +195,71 @@ export default function PublishContentPage() {
                   placeholder="#hashtags ou link" />
               </div>
 
+              {effectiveType === 'reels' && (
+                <>
+                  <div className="flex items-center justify-between rounded-md border p-3">
+                    <div>
+                      <Label className="text-sm">Compartilhar também no feed</Label>
+                      <p className="text-xs text-muted-foreground">O Reels aparece na grade do perfil.</p>
+                    </div>
+                    <Switch checked={shareToFeed} onCheckedChange={setShareToFeed} />
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Capa do Reels (URL)</Label>
+                      <Input value={coverUrl} onChange={e => setCoverUrl(e.target.value)} placeholder="https://..." />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Ou segundo da capa (ms)</Label>
+                      <Input type="number" min={0} value={thumbOffset}
+                        onChange={e => setThumbOffset(e.target.value)} placeholder="Ex: 1000" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Nome do áudio (opcional)</Label>
+                    <Input value={audioName} onChange={e => setAudioName(e.target.value)}
+                      placeholder="Áudio original do perfil" />
+                  </div>
+                </>
+              )}
+
+              {effectiveType !== 'stories' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Colaboradores (até 3, separados por vírgula)</Label>
+                    <Input value={collaborators} onChange={e => setCollaborators(e.target.value)}
+                      placeholder="@perfil1, @perfil2" />
+                  </div>
+
+                  {effectiveType === 'image' && (
+                    <div className="space-y-2">
+                      <Label>Marcar pessoas na foto (separadas por vírgula)</Label>
+                      <Input value={userTags} onChange={e => setUserTags(e.target.value)}
+                        placeholder="@cliente, @parceiro" />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label>Localização (ID da página do Facebook)</Label>
+                    <Input value={locationId} onChange={e => setLocationId(e.target.value)}
+                      placeholder="Ex: 1234567890" />
+                  </div>
+                </>
+              )}
+
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Agendamento (opcional)</Label>
                   <Input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Miniatura (URL, quando suportado)</Label>
+                  <Label>Miniatura (URL, outras redes)</Label>
                   <Input value={thumbnailUrl} onChange={e => setThumbnailUrl(e.target.value)} placeholder="https://..." />
                 </div>
               </div>
+
             </CardContent>
           </Card>
 
