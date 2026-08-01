@@ -37,6 +37,7 @@ export interface Client {
   accountManager: string;
   status: ClientStatus;
   notes: string;
+  cancelledAt?: string | null;
   scopeDetails: ScopeDetails;
 }
 
