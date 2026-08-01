@@ -1964,6 +1964,122 @@ export type Database = {
           },
         ]
       }
+      publish_jobs: {
+        Row: {
+          caption: string
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          first_comment: string
+          id: string
+          media_path: string
+          media_type: string
+          media_url: string
+          scheduled_at: string | null
+          status: string
+          thumbnail_url: string
+          updated_at: string
+        }
+        Insert: {
+          caption?: string
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          first_comment?: string
+          id?: string
+          media_path?: string
+          media_type?: string
+          media_url?: string
+          scheduled_at?: string | null
+          status?: string
+          thumbnail_url?: string
+          updated_at?: string
+        }
+        Update: {
+          caption?: string
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          first_comment?: string
+          id?: string
+          media_path?: string
+          media_type?: string
+          media_url?: string
+          scheduled_at?: string | null
+          status?: string
+          thumbnail_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publish_jobs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      publish_targets: {
+        Row: {
+          account_id: string | null
+          created_at: string
+          error_message: string
+          id: string
+          job_id: string
+          permalink: string
+          platform: string
+          published_at: string | null
+          remote_post_id: string
+          status: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string
+          error_message?: string
+          id?: string
+          job_id: string
+          permalink?: string
+          platform: string
+          published_at?: string | null
+          remote_post_id?: string
+          status?: string
+          updated_at?: string
+          username?: string
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string
+          error_message?: string
+          id?: string
+          job_id?: string
+          permalink?: string
+          platform?: string
+          published_at?: string | null
+          remote_post_id?: string
+          status?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publish_targets_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "social_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publish_targets_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "publish_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quiz_answers: {
         Row: {
           created_at: string
@@ -2683,6 +2799,94 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_account_secrets: {
+        Row: {
+          access_token: string
+          account_id: string
+          expires_at: string | null
+          refresh_token: string
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string
+          account_id: string
+          expires_at?: string | null
+          refresh_token?: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          account_id?: string
+          expires_at?: string | null
+          refresh_token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_account_secrets_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "social_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_accounts: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          display_name: string
+          expires_at: string | null
+          external_id: string | null
+          id: string
+          last_synced_at: string | null
+          platform: string
+          profile_picture: string
+          status: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          expires_at?: string | null
+          external_id?: string | null
+          id?: string
+          last_synced_at?: string | null
+          platform: string
+          profile_picture?: string
+          status?: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          expires_at?: string | null
+          external_id?: string | null
+          id?: string
+          last_synced_at?: string | null
+          platform?: string
+          profile_picture?: string
+          status?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_accounts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]

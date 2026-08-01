@@ -62,6 +62,9 @@ const ReportsPage          = lazy(() => import("./pages/ReportsPage"));
 const PortfolioPage        = lazy(() => import("./pages/PortfolioPage"));
 const InstagramPostsPage   = lazy(() => import("./pages/InstagramPostsPage"));
 const InstagramAutomationPage = lazy(() => import("./pages/InstagramAutomationPage"));
+const SocialAccountsPage = lazy(() => import("./pages/SocialAccountsPage"));
+const PublishContentPage = lazy(() => import("./pages/PublishContentPage"));
+const PublishHistoryPage = lazy(() => import("./pages/PublishHistoryPage"));
 const ShootingSchedulePage = lazy(() => import("./pages/ShootingSchedulePage"));
 const WhiteboardPage       = lazy(() => import("./pages/WhiteboardPage"));
 const ContentPlanningPage  = lazy(() => import("@/pages/ContentPlanningPage"));
@@ -224,6 +227,9 @@ function AppRoutes() {
                     <Route path="/portfolio"           element={<PortfolioPage />} />
                     <Route path="/portfolio-instagram" element={<InstagramPostsPage />} />
                     <Route path="/instagram-automacao" element={<InstagramAutomationPage />} />
+                    <Route path="/redes-sociais"       element={<SocialAccountsPage />} />
+                    <Route path="/publicar"            element={<PublishContentPage />} />
+                    <Route path="/publicacoes"         element={<PublishHistoryPage />} />
                     <Route path="/gravacoes"           element={<ShootingSchedulePage />} />
                     <Route path="/whiteboard"          element={<WhiteboardPage />} />
                     <Route path="/prospeccao"          element={<ProspectionPage />} />
