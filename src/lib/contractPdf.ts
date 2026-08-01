@@ -130,7 +130,7 @@ export async function generateContractPdf(
     }
   };
   drawParty(margin, 'CONTRATANTE (PRESTADOR)', c.contractor_name, c.contractor_cpf_cnpj, c.contractor_address);
-  drawParty(margin + colW + 6, 'CONTRATADO (CLIENTE)', c.client_name, c.client_cpf_cnpj, c.client_address, c.client_email);
+  drawParty(margin + colW + 6, 'CONTRATADO (CLIENTE)', c.client_company || c.client_name, c.client_cpf_cnpj, c.client_address, c.client_email);
   y += 36;
 
   doc.setDrawColor(220, 220, 220);
