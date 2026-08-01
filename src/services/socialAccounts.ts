@@ -44,6 +44,15 @@ export const socialAccountsService = {
     if (error) throw error;
   },
 
+  /** Atualiza dados manuais da conta (marca como ativa e registra a data). */
+  async touch(id: string, patch: Partial<SocialAccount> = {}) {
+    const { error } = await supabase
+      .from(TABLE)
+      .update({ ...patch, status: 'connected', last_synced_at: new Date().toISOString() } as any)
+      .eq('id', id);
+    if (error) throw error;
+  },
+
 
   async getAuthUrl(platform: SocialPlatform, redirectUri: string): Promise<string> {
     const { data, error } = await supabase.functions.invoke('social-oauth', {
