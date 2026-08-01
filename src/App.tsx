@@ -223,6 +223,7 @@ function AppRoutes() {
                     <Route path="/relatorios"          element={<ReportsPage />} />
                     <Route path="/portfolio"           element={<PortfolioPage />} />
                     <Route path="/portfolio-instagram" element={<InstagramPostsPage />} />
+                    <Route path="/instagram-automacao" element={<InstagramAutomationPage />} />
                     <Route path="/gravacoes"           element={<ShootingSchedulePage />} />
                     <Route path="/whiteboard"          element={<WhiteboardPage />} />
                     <Route path="/prospeccao"          element={<ProspectionPage />} />
