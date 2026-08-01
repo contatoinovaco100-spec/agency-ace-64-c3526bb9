@@ -61,15 +61,27 @@ export const publishingService = {
     return job as unknown as PublishJob;
   },
 
-  /** Dispara a publicação em paralelo (Edge Function). */
-  async run(jobId: string) {
-    const { data, error } = await supabase.functions.invoke('social-publish', {
-      body: { job_id: jobId },
-    });
+  /** Marca uma conta como publicada/pendente manualmente. */
+  async markTarget(targetId: string, status: 'pending' | 'published') {
+    const { error } = await supabase
+      .from(TARGETS)
+      .update({
+        status,
+        published_at: status === 'published' ? new Date().toISOString() : null,
+      } as any)
+      .eq('id', targetId);
     if (error) throw error;
-    if (data?.error) throw new Error(data.error);
-    return data;
   },
+
+  /** Recalcula o status do job a partir dos destinos. */
+  async refreshJobStatus(jobId: string) {
+    const targets = await this.listTargets(jobId);
+    const done = targets.filter(t => t.status === 'published').length;
+    const status = done === 0 ? 'pending' : done === targets.length ? 'published' : 'partial';
+    await supabase.from(JOBS).update({ status } as any).eq('id', jobId);
+    return status;
+  },
+
 
   async listJobs(limit = 100): Promise<PublishJob[]> {
     const { data, error } = await supabase
