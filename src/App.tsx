@@ -106,6 +106,7 @@ const LinktreePage              = lazy(() => import("./pages/LinktreePage"));
 const LinktreeEditorPage        = lazy(() => import("./pages/LinktreeEditorPage"));
 const NovaAssistantPage         = lazy(() => import("./pages/NovaAssistantPage"));
 const AdsAuditPage              = lazy(() => import("./pages/AdsAuditPage"));
+const SocialAuditPage           = lazy(() => import("./pages/SocialAuditPage"));
 const CollaboratorContractsPage = lazy(() => import("./pages/CollaboratorContractsPage"));
 const EmployeesPage             = lazy(() => import("./pages/EmployeesPage"));
 const MyTasksPage               = lazy(() => import("./pages/MyTasksPage"));
@@ -163,7 +164,8 @@ function AppRoutes() {
     location.pathname.startsWith('/quiz/') ||
     location.pathname === '/painel-artes' ||
     location.pathname.startsWith('/lp/') ||
-    (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar'));
+    (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar')) ||
+    location.pathname.startsWith('/diagnostico-social');
 
   return (
     <Suspense fallback={<PageLoader />}>
@@ -184,6 +186,7 @@ function AppRoutes() {
           <Route path="/diagnostico/:slug"   element={<DiagnosticLP />} />
           <Route path="/diagnostico-anuncios" element={<AdsAuditPage />} />
           <Route path="/diagnostico-anuncios/:slug" element={<AdsAuditPage />} />
+          <Route path="/diagnostico-social/:slug" element={<SocialAuditPage />} />
           <Route path="/negocios"            element={<RedeNegociosPage />} />
           <Route path="/rede/perfil"         element={<RedePerfilPage />} />
           <Route path="/rede/novo"           element={<RedeNovoPostPage />} />

@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSocialAccounts } from '@/hooks/useSocialAccounts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { BarChart3, Flame, Heart, MessageCircle, RefreshCw, Users, Eye, TrendingUp } from 'lucide-react';
+import { BarChart3, Flame, Heart, MessageCircle, RefreshCw, Users, Eye, TrendingUp, Wand2, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface AnalyticsData {
   profile: { username: string; name: string; picture: string; followers: number; following: number; media_count: number };
@@ -26,6 +31,8 @@ interface AnalyticsData {
 const nf = (n: number) => new Intl.NumberFormat('pt-BR').format(n || 0);
 
 export default function InstagramAnalyticsPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { accounts, loading: loadingAccounts } = useSocialAccounts();
   const igAccounts = useMemo(
     () => accounts.filter(a => a.platform === 'instagram' && a.external_id),
@@ -36,6 +43,12 @@ export default function InstagramAnalyticsPage() {
   const [days, setDays] = useState('30');
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Audit states
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+  const [clientName, setClientName] = useState('');
+  const [tone, setTone] = useState<'positiva' | 'negativa'>('positiva');
+  const [isGeneratingAudit, setIsGeneratingAudit] = useState(false);
 
   useEffect(() => {
     if (!accountId && igAccounts.length) setAccountId(igAccounts[0].id);
@@ -59,6 +72,138 @@ export default function InstagramAnalyticsPage() {
   }, [accountId, days]);
 
   useEffect(() => { load(); }, [load]);
+
+  const generateSlug = (name: string) => {
+    const base = (name || 'cliente')
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 40) || 'cliente';
+    const rand = Math.random().toString(36).substring(2, 8);
+    return `${base}-${rand}`;
+  };
+
+  const handleGenerateAudit = async () => {
+    if (!data) return;
+    if (!clientName.trim()) {
+      toast.error('Informe o nome do cliente.');
+      return;
+    }
+    
+    setIsGeneratingAudit(true);
+    const toastId = toast.loading('Analisando perfil e gerando relatório...');
+
+    try {
+      const toneInstruction = tone === 'positiva'
+        ? `TOM DA MENSAGEM: POSITIVO E ENCORAJADOR. Mesmo apontando problemas, destaque oportunidades, conquistas e o potencial de crescimento. Use linguagem otimista.`
+        : `TOM DA MENSAGEM: CRÍTICO E DIRETO (NEGATIVO/ALERTA). Seja franco, urgente e mostre os riscos reais. Use linguagem de alerta. Não suavize problemas.`;
+
+      const systemPrompt = \`Você é um Consultor Sênior de Social Media com foco em Instagram.
+Você vai receber um JSON contendo métricas reais de um perfil do Instagram (alcance, seguidores, visitas, publicações recentes, virais, etc).
+Analise os dados e gere UM ÚNICO RELATÓRIO ESTRATÉGICO COMPLETO.
+
+\${toneInstruction}
+
+REGRAS DE OURO:
+1. Use os valores reais fornecidos no JSON.
+2. Para cada métrica principal, dê o valor, uma classificação (Excelente/Boa/Média/Baixa/Crítica) e uma breve interpretação.
+3. Score geral de 0-100 baseado na performance global.
+4. Scores por dimensão (conteudo, engajamento, alcance, conversao) de 0-100.
+5. Plano de ação: 5-7 ações com TÍTULO + DESCRIÇÃO + prioridade.
+6. KPIs destaque: 3-4 indicadores principais.
+7. Status válidos: "good", "warning", "bad".
+
+Retorne APENAS JSON neste formato:
+{
+  "campanha": {
+    "nome": "Perfil analisado",
+    "plataforma": "Instagram",
+    "periodo": "Últimos \${days} dias",
+    "objetivo": "Crescimento e Engajamento"
+  },
+  "resumo": {
+    "classificacao": "good" | "warning" | "bad",
+    "titulo": "Boa" | "Regular" | "Ruim" | "Crítica" | "Excelente",
+    "explicacao": "2-3 frases sobre o estado geral",
+    "scoreGeral": 65
+  },
+  "kpisDestaque": [
+    { "label": "Alcance", "value": "10k", "delta": "+15%", "status": "good" }
+  ],
+  "metricas": [
+    { "name": "Engajamento", "value": "2.4%", "benchmark": "Ideal: > 3%", "classification": "Média", "status": "warning", "interpretation": "Interpretação" }
+  ],
+  "scores": {
+    "conteudo": 60,
+    "engajamento": 75,
+    "alcance": 50,
+    "conversao": 80
+  },
+  "diagnosticoEstrategico": {
+    "problemaPrincipal": "Frase principal",
+    "gargalo": "Conteúdo",
+    "detalhe": "Detalhes",
+    "pontosFortes": ["p1"],
+    "pontosFracos": ["p1"]
+  },
+  "planoDeAcao": [
+    { "titulo": "Ação", "descricao": "Desc", "prioridade": "alta" }
+  ],
+  "projecao": {
+    "cenarioAtual": "Atual",
+    "cenarioOtimizado": "Otimizado",
+    "potencial": "+X%"
+  },
+  "alertas": [
+    { "tipo": "warning", "mensagem": "Alerta" }
+  ]
+}
+IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.\`;
+
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-copywriter', {
+        body: {
+          systemPrompt,
+          userMessage: JSON.stringify(data),
+          model: 'google/gemini-2.5-flash',
+        },
+      });
+
+      if (fnError) throw new Error(fnError.message || 'Erro ao chamar IA');
+      if (fnData?.error) throw new Error(fnData.error);
+
+      let result: any = fnData?.result;
+      if (typeof result === 'string') {
+        const cleaned = result.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+        result = JSON.parse(cleaned);
+      }
+      if (!result?.resumo) throw new Error('IA não retornou um relatório válido');
+
+      const newSlug = generateSlug(clientName);
+      const { error: insertError } = await supabase.from('social_audits').insert({
+        user_id: user?.id ?? null,
+        slug: newSlug,
+        client_name: clientName.trim(),
+        platform: 'instagram',
+        score: result?.resumo?.scoreGeral ?? 0,
+        diagnosis: result,
+      });
+
+      if (insertError) {
+        console.warn('Erro ao salvar:', insertError);
+        toast.error('Erro ao salvar relatório no banco de dados.', { id: toastId });
+        return;
+      }
+
+      toast.success('Relatório estratégico gerado com sucesso!', { id: toastId });
+      setIsAuditModalOpen(false);
+      navigate(\`/diagnostico-social/\${newSlug}\`);
+      
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || 'Erro ao gerar relatório', { id: toastId });
+    } finally {
+      setIsGeneratingAudit(false);
+    }
+  };
 
   const chartData = (data?.daily ?? []).map(d => ({
     date: d.date.slice(5),
@@ -100,6 +245,9 @@ export default function InstagramAnalyticsPage() {
           </Select>
           <Button variant="outline" onClick={load} disabled={loading || !accountId}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar
+          </Button>
+          <Button onClick={() => setIsAuditModalOpen(true)} disabled={loading || !data} className="bg-primary hover:bg-primary/90">
+            <Wand2 className="mr-2 h-4 w-4" /> Gerar Diagnóstico
           </Button>
         </div>
       </div>
@@ -193,6 +341,67 @@ export default function InstagramAnalyticsPage() {
           ))}
         </CardContent>
       </Card>
+
+      <Dialog open={isAuditModalOpen} onOpenChange={setIsAuditModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Gerar Diagnóstico Estratégico</DialogTitle>
+            <DialogDescription>
+              A IA vai analisar todas as métricas do período selecionado e criar um relatório completo compartilhável.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="name" className="text-sm font-medium">Nome do Cliente</label>
+              <Input
+                id="name"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                placeholder="Ex: Restaurante Sabor & Arte"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Tom da Mensagem</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTone('positiva')}
+                  className={cn(
+                    'p-3 rounded-lg border-2 text-left transition-all',
+                    tone === 'positiva' ? 'border-emerald-500 bg-emerald-500/10' : 'border-border hover:border-border/80'
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-emerald-500" />
+                    <span className="text-sm font-semibold">Positiva</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">Foco em oportunidades.</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTone('negativa')}
+                  className={cn(
+                    'p-3 rounded-lg border-2 text-left transition-all',
+                    tone === 'negativa' ? 'border-red-500 bg-red-500/10' : 'border-border hover:border-border/80'
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                    <span className="text-sm font-semibold">Alerta</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">Foco em riscos reais.</p>
+                </button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAuditModalOpen(false)}>Cancelar</Button>
+            <Button onClick={handleGenerateAudit} disabled={isGeneratingAudit || !clientName.trim()}>
+              {isGeneratingAudit ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...</> : 'Gerar Relatório'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
