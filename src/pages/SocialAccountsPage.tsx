@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Instagram, Music2, Share2, CalendarClock, AlertTriangle, Send, Loader2, LogIn,
+  HelpCircle, CheckCircle2, ExternalLink, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountCard } from '@/components/social/AccountCard';
@@ -12,6 +13,7 @@ import { useSocialAccounts } from '@/hooks/useSocialAccounts';
 import { usePublishJobs } from '@/hooks/usePublishJobs';
 import { socialAccountsService } from '@/services/socialAccounts';
 import type { SocialAccount, SocialPlatform } from '@/types/social';
+
 
 /** URI fixo — precisa estar cadastrado no app da Meta / TikTok. */
 const REDIRECT_URI = 'https://inovamarketing.online/redes-sociais';
