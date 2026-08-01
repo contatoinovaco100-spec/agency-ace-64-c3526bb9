@@ -80,7 +80,17 @@ export default function PortfolioPage() {
     }
   };
 
-  useEffect(() => { fetchProjects(); }, []);
+  useEffect(() => {
+    fetchProjects();
+
+    const channel = supabase
+      .channel('portfolio-projects-admin')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'portfolio_projects' }, () => fetchProjects())
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'portfolio_projects' }, () => fetchProjects())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const openNew = () => {
     setEditingId(null);
