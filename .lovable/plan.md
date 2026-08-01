@@ -2,10 +2,11 @@
 
 Não tenho acesso ao painel de desenvolvedores da Meta — o cadastro do URI de redirecionamento precisa ser feito por você (leva 1 minuto):
 
-1. developers.facebook.com > seu app (ID `792310407276103`) > Login do Facebook > Configurações
+1. developers.facebook.com > seu app (ID `2235928767163276`) > Login do Facebook > Configurações
 2. Em "URIs de redirecionamento do OAuth válidos", adicionar exatamente:
    `https://inovamarketing.online/redes-sociais`
 3. Salvar alterações.
+
 
 ## Problema encontrado no código
 
