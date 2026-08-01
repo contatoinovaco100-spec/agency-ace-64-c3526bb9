@@ -20,19 +20,16 @@ export default function SocialAccountsPage() {
   const reconnect = async (a: SocialAccount) => {
     setSyncingId(a.id);
     try {
-      const res = await socialAccountsService.sync(a.id);
-      if (res.success) toast.success('Conta sincronizada');
-      else {
-        toast.warning('Token expirado — refaça a conexão');
-        await startOAuth(a.platform);
-      }
+      await socialAccountsService.touch(a.id);
+      toast.success('Conta atualizada');
       reload();
     } catch (e: any) {
-      toast.error('Erro ao sincronizar', { description: e?.message });
+      toast.error('Erro ao atualizar', { description: e?.message });
     } finally {
       setSyncingId(null);
     }
   };
+
 
   const remove = async (a: SocialAccount) => {
     if (!confirm(`Remover @${a.username}?`)) return;
