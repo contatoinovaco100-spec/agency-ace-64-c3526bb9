@@ -38,6 +38,7 @@ interface Contract {
   contractor_name: string;
   contractor_cpf_cnpj: string;
   contractor_address: string;
+  client_company: string;
   client_name: string;
   client_cpf_cnpj: string;
   client_email: string;
@@ -90,6 +91,7 @@ const emptyContract = {
   contractor_name: 'INOVA Co.',
   contractor_cpf_cnpj: '',
   contractor_address: '',
+  client_company: '',
   client_name: '',
   client_cpf_cnpj: '',
   client_email: '',
@@ -280,6 +282,7 @@ export default function ContractsPage() {
       contractor_name: c.contractor_name,
       contractor_cpf_cnpj: c.contractor_cpf_cnpj,
       contractor_address: c.contractor_address,
+      client_company: c.client_company || '',
       client_name: c.client_name,
       client_cpf_cnpj: c.client_cpf_cnpj,
       client_email: c.client_email,
@@ -340,7 +343,8 @@ export default function ContractsPage() {
                 </span>
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span>Cliente: <strong className="text-foreground">{c.client_name || '—'}</strong></span>
+                <span>Cliente: <strong className="text-foreground">{c.client_company || c.client_name || '—'}</strong></span>
+                {c.client_company && c.client_name && <span>Responsável: {c.client_name}</span>}
                 <span>Valor: <strong className="text-foreground">R$ {Number(c.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês</strong></span>
                 {c.plan_name && <span>Plano: <strong className="text-foreground">{c.plan_name}</strong></span>}
                 <span>Duração: {c.duration_months} meses</span>
@@ -450,7 +454,8 @@ export default function ContractsPage() {
                 </div>
                 <div className="space-y-3">
                   <p className="text-xs font-bold uppercase tracking-wider text-primary">Contratado (Cliente)</p>
-                  <div><Label className="text-xs text-muted-foreground">Nome / Razão Social</Label><Input value={form.client_name} onChange={e => setForm(p => ({ ...p, client_name: e.target.value }))} className="mt-1" /></div>
+                  <div><Label className="text-xs text-muted-foreground">Empresa / Razão Social</Label><Input value={form.client_company} onChange={e => setForm(p => ({ ...p, client_company: e.target.value }))} placeholder="Nome da empresa (aparece como cliente)" className="mt-1" /></div>
+                  <div><Label className="text-xs text-muted-foreground">Responsável</Label><Input value={form.client_name} onChange={e => setForm(p => ({ ...p, client_name: e.target.value }))} placeholder="Nome do responsável" className="mt-1" /></div>
                   <div><Label className="text-xs text-muted-foreground">CPF / CNPJ</Label><Input value={form.client_cpf_cnpj} onChange={e => setForm(p => ({ ...p, client_cpf_cnpj: e.target.value }))} className="mt-1" /></div>
                   <div><Label className="text-xs text-muted-foreground">Email</Label><Input type="email" value={form.client_email} onChange={e => setForm(p => ({ ...p, client_email: e.target.value }))} className="mt-1" /></div>
                   <div><Label className="text-xs text-muted-foreground">Endereço</Label><Input value={form.client_address} onChange={e => setForm(p => ({ ...p, client_address: e.target.value }))} className="mt-1" /></div>

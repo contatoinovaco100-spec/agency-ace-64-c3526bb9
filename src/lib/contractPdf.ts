@@ -7,6 +7,7 @@ export type ContractPdfData = {
   contractor_name: string;
   contractor_cpf_cnpj: string;
   contractor_address: string;
+  client_company?: string;
   client_name: string;
   client_cpf_cnpj: string;
   client_email: string;
@@ -129,7 +130,7 @@ export async function generateContractPdf(
     }
   };
   drawParty(margin, 'CONTRATANTE (PRESTADOR)', c.contractor_name, c.contractor_cpf_cnpj, c.contractor_address);
-  drawParty(margin + colW + 6, 'CONTRATADO (CLIENTE)', c.client_name, c.client_cpf_cnpj, c.client_address, c.client_email);
+  drawParty(margin + colW + 6, 'CONTRATADO (CLIENTE)', c.client_company || c.client_name, c.client_cpf_cnpj, c.client_address, c.client_email);
   y += 36;
 
   doc.setDrawColor(220, 220, 220);

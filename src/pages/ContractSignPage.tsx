@@ -22,6 +22,7 @@ interface Contract {
   contractor_name: string;
   contractor_cpf_cnpj: string;
   contractor_address: string;
+  client_company?: string;
   client_name: string;
   client_cpf_cnpj: string;
   client_email: string;
@@ -348,7 +349,8 @@ export default function ContractSignPage() {
 
               <div className="rounded-lg bg-gray-50 p-4 not-prose">
                 <p className="text-sm font-semibold text-gray-900">CONTRATADO (Cliente):</p>
-                <p className="text-sm text-gray-600">{contract.client_name}</p>
+                <p className="text-sm text-gray-600">{contract.client_company || contract.client_name}</p>
+                {contract.client_company && contract.client_name && <p className="text-sm text-gray-600">Responsável: {contract.client_name}</p>}
                 {contract.client_cpf_cnpj && <p className="text-sm text-gray-600">CPF/CNPJ: {contract.client_cpf_cnpj}</p>}
                 {contract.client_email && <p className="text-sm text-gray-600">Email: {contract.client_email}</p>}
                 {contract.client_address && <p className="text-sm text-gray-600">Endereço: {contract.client_address}</p>}

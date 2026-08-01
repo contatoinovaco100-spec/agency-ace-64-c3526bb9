@@ -1126,6 +1126,7 @@ export type Database = {
           additional_clauses: string
           affiliate_token: string | null
           client_address: string
+          client_company: string
           client_cpf_cnpj: string
           client_email: string
           client_id: string | null
@@ -1152,6 +1153,7 @@ export type Database = {
           additional_clauses?: string
           affiliate_token?: string | null
           client_address?: string
+          client_company?: string
           client_cpf_cnpj?: string
           client_email?: string
           client_id?: string | null
@@ -1178,6 +1180,7 @@ export type Database = {
           additional_clauses?: string
           affiliate_token?: string | null
           client_address?: string
+          client_company?: string
           client_cpf_cnpj?: string
           client_email?: string
           client_id?: string | null
@@ -3474,6 +3477,7 @@ export type Database = {
           additional_clauses: string
           affiliate_token: string | null
           client_address: string
+          client_company: string
           client_cpf_cnpj: string
           client_email: string
           client_id: string | null
