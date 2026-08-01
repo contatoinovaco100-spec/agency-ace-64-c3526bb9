@@ -53,21 +53,30 @@ async function toInstagramJpeg(file: File): Promise<File> {
 export const publishingService = {
   /** Faz upload do vídeo UMA única vez e cria o job + fila de destinos. */
   async createJob(input: CreateJobInput): Promise<PublishJob> {
-    const isVideo = input.file.type.startsWith('video');
-    const file = isVideo ? input.file : await toInstagramJpeg(input.file);
+    const sources = (input.files && input.files.length ? input.files : (input.file ? [input.file] : []))
+      .slice(0, 10);
+    if (!sources.length) throw new Error('Nenhuma mídia selecionada');
 
-    const ext = isVideo ? (file.name.split('.').pop() || 'mp4').toLowerCase() : 'jpg';
-    const path = `publish/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const paths: string[] = [];
+    for (let i = 0; i < sources.length; i++) {
+      const src = sources[i];
+      const isVid = src.type.startsWith('video');
+      const file = isVid ? src : await toInstagramJpeg(src);
+      const ext = isVid ? (file.name.split('.').pop() || 'mp4').toLowerCase() : 'jpg';
+      const path = `publish/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: isVid ? (file.type || 'video/mp4') : 'image/jpeg',
+        });
+      if (upErr) throw upErr;
+      paths.push(path);
+      input.onProgress?.(10 + Math.round(((i + 1) / sources.length) * 60));
+    }
 
-    input.onProgress?.(10);
-    const { error: upErr } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, file, {
-        cacheControl: '3600',
-        upsert: false,
-        contentType: isVideo ? (file.type || 'video/mp4') : 'image/jpeg',
-      });
-    if (upErr) throw upErr;
+    const isVideo = sources[0].type.startsWith('video');
     input.onProgress?.(70);
 
     const { data: userData } = await supabase.auth.getUser();
@@ -77,8 +86,10 @@ export const publishingService = {
       .from(JOBS)
       .insert({
         created_by: userData.user?.id ?? null,
-        media_path: path,
+        media_path: paths[0],
+        media_paths: paths,
         media_type: isVideo ? 'video' : 'image',
+
         caption: input.caption,
         first_comment: input.firstComment ?? '',
         thumbnail_url: input.thumbnailUrl ?? '',
