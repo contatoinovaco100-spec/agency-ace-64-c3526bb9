@@ -85,6 +85,9 @@ export const APP_PAGES: AppPage[] = [
   { path: '/quiz-builder',        label: 'Quiz Builder',        icon: Layers,          category: 'Ferramentas', adminOnly: true },
   { path: '/figma-to-lp',         label: 'Figma → LP',          icon: Palette,         category: 'Ferramentas', adminOnly: true },
   { path: '/instagram-automacao', label: 'Fila Instagram',       icon: Sparkles,        category: 'Ferramentas', adminOnly: true },
+  { path: '/redes-sociais',       label: 'Redes Sociais',        icon: Network,         category: 'Ferramentas' },
+  { path: '/publicar',            label: 'Publicar Conteúdo',    icon: Sparkles,        category: 'Ferramentas' },
+  { path: '/publicacoes',         label: 'Histórico de Posts',   icon: ListChecks,      category: 'Ferramentas' },
 
   // Administração (só admin)
   { path: '/funcionarios',        label: 'Funcionários',        icon: UserCog,         category: 'Administração', adminOnly: true },
