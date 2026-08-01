@@ -89,10 +89,57 @@ export const instagramAdapter: PlatformAdapter = {
 
   async publish(account: AccountContext, input: PublishInput): Promise<PublishResult> {
     const isVideo = input.mediaType === "video";
+    const urls = (input.mediaUrls && input.mediaUrls.length ? input.mediaUrls : [input.mediaUrl])
+      .filter(Boolean);
+    const types = input.mediaTypes && input.mediaTypes.length === urls.length
+      ? input.mediaTypes
+      : urls.map(() => (isVideo ? "video" : "image") as "video" | "image");
+    const wantsCarousel = input.postType === "carousel" || urls.length > 1;
     const postType = input.postType && input.postType !== "auto"
       ? input.postType
       : (isVideo ? "reels" : "image");
     const isStory = postType === "stories";
+
+    // ---- Carrossel (até 10 mídias) ----
+    if (wantsCarousel && !isStory) {
+      const children: string[] = [];
+      for (let i = 0; i < Math.min(urls.length, 10); i++) {
+        const cp = new URLSearchParams();
+        cp.set("access_token", account.accessToken);
+        cp.set("is_carousel_item", "true");
+        if (types[i] === "video") {
+          cp.set("media_type", "VIDEO");
+          cp.set("video_url", urls[i]);
+        } else {
+          cp.set("image_url", urls[i]);
+        }
+        const item = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
+          method: "POST",
+          body: cp,
+        });
+        await waitContainer(account.accessToken, item.id, types[i] === "video");
+        children.push(item.id);
+      }
+
+      const parentParams = new URLSearchParams();
+      parentParams.set("access_token", account.accessToken);
+      parentParams.set("media_type", "CAROUSEL");
+      parentParams.set("children", children.join(","));
+      parentParams.set("caption", input.caption || "");
+      if (input.locationId) parentParams.set("location_id", input.locationId);
+      if (input.collaborators?.length) {
+        parentParams.set("collaborators", JSON.stringify(input.collaborators.slice(0, 3)));
+      }
+      const parent = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
+        method: "POST",
+        body: parentParams,
+      });
+      await waitContainer(account.accessToken, parent.id, true);
+      const publishedId = await publishContainer(account, parent.id);
+      await addFirstComment(account, publishedId, input.firstComment);
+      return { remotePostId: publishedId, permalink: await getPermalink(account, publishedId) };
+    }
+
 
     const params = new URLSearchParams();
     params.set("access_token", account.accessToken);
