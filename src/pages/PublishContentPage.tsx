@@ -51,6 +51,9 @@ export default function PublishContentPage() {
   const toggleAll = (ids: string[], checked: boolean) =>
     setSelected(p => (checked ? Array.from(new Set([...p, ...ids])) : p.filter(x => !ids.includes(x))));
 
+  const autoAccounts = selectedAccounts.filter(a => !!a.external_id);
+  const manualAccounts = selectedAccounts.filter(a => !a.external_id);
+
   const publish = async () => {
     if (!file) { toast.error('Envie um vídeo'); return; }
     if (!selectedAccounts.length) { toast.error('Selecione ao menos uma conta'); return; }
@@ -63,19 +66,31 @@ export default function PublishContentPage() {
       });
       setJobId(job.id);
       setMediaPath(job.media_path);
-      toast.success(
-        scheduledAt
-          ? 'Publicação agendada — o material fica pronto no painel ao lado'
-          : 'Material pronto! Baixe a mídia e poste em cada conta',
-      );
+
+      if (scheduledAt) {
+        toast.success('Publicação agendada');
+      } else if (autoAccounts.length) {
+        await publishingService.run(job.id);
+        toast.success(`Publicando em ${autoAccounts.length} conta(s) conectada(s)`, {
+          description: manualAccounts.length
+            ? `${manualAccounts.length} conta(s) manual(is) ficam no painel ao lado.`
+            : 'Acompanhe o status ao lado.',
+        });
+      } else {
+        toast.success('Material pronto! Baixe a mídia e poste em cada conta manual');
+      }
     } catch (e: any) {
-      toast.error('Erro ao preparar publicação', { description: e?.message });
+      toast.error('Erro ao publicar', { description: e?.message });
     } finally {
       setPublishing(false);
     }
   };
 
   const targets = jobId ? targetsOf(jobId) : [];
+  const manualTargets = targets.filter(t =>
+    manualAccounts.some(a => a.username === t.username && a.platform === t.platform));
+
+
 
 
   return (
@@ -170,7 +185,11 @@ export default function PublishContentPage() {
 
           <Button className="w-full" size="lg" onClick={publish} disabled={publishing}>
             {publishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            {scheduledAt ? 'Agendar publicação' : 'Preparar publicação'}
+            {scheduledAt
+              ? 'Agendar publicação'
+              : autoAccounts.length
+                ? `Publicar agora em ${autoAccounts.length} conta(s)`
+                : 'Preparar publicação'}
           </Button>
           {publishing && <Progress value={progress} className="h-1.5" />}
         </div>
@@ -178,26 +197,32 @@ export default function PublishContentPage() {
         <Card className="h-fit lg:sticky lg:top-4">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Film className="h-4 w-4" /> Publicação manual
+              <Film className="h-4 w-4" /> Status em tempo real
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {!jobId ? (
               <p className="text-xs text-muted-foreground">
-                Ao preparar, a mídia e a legenda ficam prontas aqui para você postar em cada conta.
+                O progresso de cada conta aparece aqui assim que você publicar.
               </p>
             ) : (
               <>
-                <ManualPublishPanel
-                  jobId={jobId}
-                  mediaPath={mediaPath}
-                  caption={caption}
-                  firstComment={firstComment}
-                  targets={targets}
-                />
                 <TargetStatusList targets={targets} />
+                {manualTargets.length > 0 && (
+                  <div className="border-t pt-3">
+                    <p className="mb-2 text-xs font-medium">Contas manuais</p>
+                    <ManualPublishPanel
+                      jobId={jobId}
+                      mediaPath={mediaPath}
+                      caption={caption}
+                      firstComment={firstComment}
+                      targets={manualTargets}
+                    />
+                  </div>
+                )}
               </>
             )}
+
           </CardContent>
         </Card>
 
