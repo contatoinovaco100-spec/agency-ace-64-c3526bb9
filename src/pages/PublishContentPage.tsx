@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Film, Loader2, Send, Upload, X } from 'lucide-react';
+import { Film, Loader2, RefreshCw, Send, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountSelector } from '@/components/social/AccountSelector';
 import { TargetStatusList } from '@/components/social/TargetStatusList';
@@ -17,7 +17,7 @@ import { usePublishJobs } from '@/hooks/usePublishJobs';
 import { publishingService } from '@/services/publishing';
 
 export default function PublishContentPage() {
-  const { accounts, byPlatform, loading } = useSocialAccounts();
+  const { accounts, byPlatform, loading, refreshing, error, reload } = useSocialAccounts();
   const [jobId, setJobId] = useState<string | null>(null);
   const [mediaPath, setMediaPath] = useState<string>('');
 
@@ -163,11 +163,22 @@ export default function PublishContentPage() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Contas ({selected.length} selecionadas)</CardTitle>
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-base">Contas ({selected.length} selecionadas)</CardTitle>
+                <Button size="sm" variant="ghost" onClick={() => reload()} disabled={refreshing}>
+                  <RefreshCw className={`mr-1 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  Atualizar
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               {loading ? (
                 <><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></>
+              ) : error ? (
+                <div className="space-y-2 text-sm">
+                  <p className="text-destructive">Não foi possível carregar as contas.</p>
+                  <Button size="sm" variant="outline" onClick={() => reload()}>Tentar novamente</Button>
+                </div>
               ) : accounts.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Nenhuma conta conectada. Vá em <strong>Redes Sociais</strong> para conectar.
