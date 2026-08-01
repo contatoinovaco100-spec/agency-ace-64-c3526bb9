@@ -75,7 +75,16 @@ export default function PublishContentPage() {
       const job = await publishingService.createJob({
         file, caption, firstComment, scheduledAt: scheduledAt || null,
         thumbnailUrl, accounts: selectedAccounts, onProgress: setProgress,
+        postType,
+        shareToFeed,
+        collaborators: collaborators.split(',').map(s => s.trim()).filter(Boolean),
+        locationId,
+        userTags: userTags.split(',').map(s => s.trim()).filter(Boolean),
+        coverUrl,
+        thumbOffset: Number(thumbOffset) || 0,
+        audioName,
       });
+
       setJobId(job.id);
       setMediaPath(job.media_path);
 
