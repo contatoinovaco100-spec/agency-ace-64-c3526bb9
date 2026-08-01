@@ -1,69 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Instagram, Music2, Plus, Loader2, Share2, CalendarClock, AlertTriangle, Send } from 'lucide-react';
+import { Instagram, Music2, Share2, CalendarClock, AlertTriangle, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountCard } from '@/components/social/AccountCard';
+import { AddAccountDialog } from '@/components/social/AddAccountDialog';
 import { useSocialAccounts } from '@/hooks/useSocialAccounts';
 import { usePublishJobs } from '@/hooks/usePublishJobs';
 import { socialAccountsService } from '@/services/socialAccounts';
 import type { SocialAccount, SocialPlatform } from '@/types/social';
 
-const REDIRECT_PATH = '/redes-sociais';
-// URI canônico — precisa estar cadastrado igualzinho no app da Meta / TikTok
-const CANONICAL_ORIGIN = 'https://inovamarketing.online';
-const CANONICAL_REDIRECT = `${CANONICAL_ORIGIN}${REDIRECT_PATH}`;
-
 export default function SocialAccountsPage() {
   const { accounts, byPlatform, loading, reload } = useSocialAccounts();
   const { jobs } = usePublishJobs();
-  const [params, setParams] = useSearchParams();
-  const [connecting, setConnecting] = useState<SocialPlatform | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
 
-  const redirectUri = CANONICAL_REDIRECT;
-  const isCanonicalOrigin = window.location.origin === CANONICAL_ORIGIN;
-
-  // Retorno do OAuth
-  useEffect(() => {
-    const code = params.get('code');
-    const oauthError = params.get('error_description') || params.get('error');
-    if (!code && !oauthError) return;
-
-    const platform = (sessionStorage.getItem('social_oauth_platform') || 'instagram') as SocialPlatform;
-    sessionStorage.removeItem('social_oauth_platform');
-    setParams({}, { replace: true });
-
-    if (oauthError) {
-      toast.error('Autorização recusada', { description: oauthError });
-      return;
-    }
-
-    (async () => {
-      try {
-        const res = await socialAccountsService.connect(platform, code!, redirectUri);
-        toast.success(`Conectado: ${res.accounts.join(', ')}`);
-        reload();
-      } catch (e: any) {
-        toast.error('Falha ao conectar', { description: e?.message });
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params]);
-
-  const startOAuth = async (platform: SocialPlatform) => {
-    setConnecting(platform);
-    try {
-      const url = await socialAccountsService.getAuthUrl(platform, redirectUri);
-      sessionStorage.setItem('social_oauth_platform', platform);
-      window.location.href = url;
-    } catch (e: any) {
-      toast.error('Não foi possível iniciar a conexão', { description: e?.message });
-      setConnecting(null);
-    }
-  };
 
 
   const reconnect = async (a: SocialAccount) => {
