@@ -146,35 +146,44 @@ export default function PublishContentPage() {
             <CardContent className="space-y-4">
               <div
                 onDragOver={e => e.preventDefault()}
-                onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) pickFile(f); }}
+                onDrop={e => { e.preventDefault(); pickFiles(Array.from(e.dataTransfer.files || [])); }}
                 className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-6 text-center transition-colors hover:border-primary/50"
                 onClick={() => inputRef.current?.click()}
               >
-                {preview ? (
-                  <div className="relative w-full">
-                    {isVideo ? (
-                      <video src={preview} controls className="mx-auto max-h-64 rounded-md" />
-                    ) : (
-                      <img src={preview} alt="Pré-visualização da mídia" className="mx-auto max-h-64 rounded-md" />
-                    )}
-                    <Button
-                      size="icon" variant="secondary" className="absolute right-2 top-2 h-7 w-7"
-                      onClick={e => { e.stopPropagation(); setFile(null); setPreview(''); }}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
+                {previews.length > 0 ? (
+                  <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-3">
+                    {previews.map((src, i) => (
+                      <div key={src} className="relative">
+                        {files[i]?.type.startsWith('video') ? (
+                          <video src={src} className="h-28 w-full rounded-md object-cover" />
+                        ) : (
+                          <img src={src} alt={`Mídia ${i + 1}`} className="h-28 w-full rounded-md object-cover" />
+                        )}
+                        <span className="absolute left-1 top-1 rounded bg-background/80 px-1 text-[10px] font-medium">
+                          {i + 1}
+                        </span>
+                        <Button
+                          size="icon" variant="secondary" className="absolute right-1 top-1 h-6 w-6"
+                          onClick={e => { e.stopPropagation(); removeFile(i); }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <>
                     <Upload className="h-6 w-6 text-muted-foreground" />
-                    <p className="text-sm font-medium">Arraste o vídeo ou a foto, ou clique para escolher</p>
-                    <p className="text-xs text-muted-foreground">MP4 ou JPG/PNG até 500 MB</p>
+                    <p className="text-sm font-medium">Arraste os vídeos/fotos ou clique para escolher</p>
+                    <p className="text-xs text-muted-foreground">
+                      MP4 ou JPG/PNG até 500 MB — selecione várias para criar um carrossel (até 10)
+                    </p>
                   </>
                 )}
 
                 <input
-                  ref={inputRef} type="file" accept="video/*,image/*" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) pickFile(f); }}
+                  ref={inputRef} type="file" accept="video/*,image/*" multiple className="hidden"
+                  onChange={e => { pickFiles(Array.from(e.target.files || [])); e.currentTarget.value = ''; }}
                 />
               </div>
 
@@ -183,13 +192,18 @@ export default function PublishContentPage() {
                 <Select value={postType} onValueChange={(v) => setPostType(v as PostType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="auto">Automático (vídeo → Reels, imagem → Feed)</SelectItem>
+                    <SelectItem value="auto">Automático (vídeo → Reels, imagem → Feed, várias → Carrossel)</SelectItem>
                     <SelectItem value="reels">Reels</SelectItem>
                     <SelectItem value="image">Foto no feed</SelectItem>
+                    <SelectItem value="carousel">Carrossel</SelectItem>
                     <SelectItem value="stories">Stories</SelectItem>
                   </SelectContent>
                 </Select>
+                {effectiveType === 'carousel' && (
+                  <p className="text-xs text-muted-foreground">{files.length} mídia(s) no carrossel</p>
+                )}
               </div>
+
 
               <div className="space-y-2">
                 <Label>Legenda</Label>
