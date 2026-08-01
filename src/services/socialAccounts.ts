@@ -14,10 +14,45 @@ export const socialAccountsService = {
     return (data ?? []) as unknown as SocialAccount[];
   },
 
+  async addManual(input: {
+    platform: SocialPlatform;
+    username: string;
+    display_name?: string;
+    profile_picture?: string;
+  }) {
+    const { data: userData } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from(TABLE)
+      .insert({
+        platform: input.platform,
+        username: input.username,
+        display_name: input.display_name || input.username,
+        profile_picture: input.profile_picture || '',
+        status: 'connected',
+        external_id: null,
+        last_synced_at: new Date().toISOString(),
+        created_by: userData.user?.id ?? null,
+      } as any)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data as unknown as SocialAccount;
+  },
+
   async remove(id: string) {
     const { error } = await supabase.from(TABLE).delete().eq('id', id);
     if (error) throw error;
   },
+
+  /** Atualiza dados manuais da conta (marca como ativa e registra a data). */
+  async touch(id: string, patch: Partial<SocialAccount> = {}) {
+    const { error } = await supabase
+      .from(TABLE)
+      .update({ ...patch, status: 'connected', last_synced_at: new Date().toISOString() } as any)
+      .eq('id', id);
+    if (error) throw error;
+  },
+
 
   async getAuthUrl(platform: SocialPlatform, redirectUri: string): Promise<string> {
     const { data, error } = await supabase.functions.invoke('social-oauth', {

@@ -10,6 +10,8 @@ import { Film, Loader2, Send, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountSelector } from '@/components/social/AccountSelector';
 import { TargetStatusList } from '@/components/social/TargetStatusList';
+import { ManualPublishPanel } from '@/components/social/ManualPublishPanel';
+
 import { useSocialAccounts } from '@/hooks/useSocialAccounts';
 import { usePublishJobs } from '@/hooks/usePublishJobs';
 import { publishingService } from '@/services/publishing';
@@ -17,6 +19,8 @@ import { publishingService } from '@/services/publishing';
 export default function PublishContentPage() {
   const { accounts, byPlatform, loading } = useSocialAccounts();
   const [jobId, setJobId] = useState<string | null>(null);
+  const [mediaPath, setMediaPath] = useState<string>('');
+
   const { targetsOf } = usePublishJobs(jobId ?? undefined);
 
   const [file, setFile] = useState<File | null>(null);
@@ -58,20 +62,21 @@ export default function PublishContentPage() {
         thumbnailUrl, accounts: selectedAccounts, onProgress: setProgress,
       });
       setJobId(job.id);
-      if (scheduledAt) {
-        toast.success('Publicação agendada');
-      } else {
-        await publishingService.run(job.id);
-        toast.success('Publicação iniciada em todas as contas');
-      }
+      setMediaPath(job.media_path);
+      toast.success(
+        scheduledAt
+          ? 'Publicação agendada — o material fica pronto no painel ao lado'
+          : 'Material pronto! Baixe a mídia e poste em cada conta',
+      );
     } catch (e: any) {
-      toast.error('Erro ao publicar', { description: e?.message });
+      toast.error('Erro ao preparar publicação', { description: e?.message });
     } finally {
       setPublishing(false);
     }
   };
 
   const targets = jobId ? targetsOf(jobId) : [];
+
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -165,7 +170,7 @@ export default function PublishContentPage() {
 
           <Button className="w-full" size="lg" onClick={publish} disabled={publishing}>
             {publishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            {scheduledAt ? 'Agendar publicação' : 'Publicar agora'}
+            {scheduledAt ? 'Agendar publicação' : 'Preparar publicação'}
           </Button>
           {publishing && <Progress value={progress} className="h-1.5" />}
         </div>
@@ -173,19 +178,29 @@ export default function PublishContentPage() {
         <Card className="h-fit lg:sticky lg:top-4">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Film className="h-4 w-4" /> Status em tempo real
+              <Film className="h-4 w-4" /> Publicação manual
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {!jobId ? (
               <p className="text-xs text-muted-foreground">
-                O progresso de cada conta aparece aqui assim que você publicar.
+                Ao preparar, a mídia e a legenda ficam prontas aqui para você postar em cada conta.
               </p>
             ) : (
-              <TargetStatusList targets={targets} />
+              <>
+                <ManualPublishPanel
+                  jobId={jobId}
+                  mediaPath={mediaPath}
+                  caption={caption}
+                  firstComment={firstComment}
+                  targets={targets}
+                />
+                <TargetStatusList targets={targets} />
+              </>
             )}
           </CardContent>
         </Card>
+
       </div>
     </div>
   );

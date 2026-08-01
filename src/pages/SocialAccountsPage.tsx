@@ -1,87 +1,35 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Instagram, Music2, Plus, Loader2, Share2, CalendarClock, AlertTriangle, Send } from 'lucide-react';
+import { Instagram, Music2, Share2, CalendarClock, AlertTriangle, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountCard } from '@/components/social/AccountCard';
+import { AddAccountDialog } from '@/components/social/AddAccountDialog';
 import { useSocialAccounts } from '@/hooks/useSocialAccounts';
 import { usePublishJobs } from '@/hooks/usePublishJobs';
 import { socialAccountsService } from '@/services/socialAccounts';
 import type { SocialAccount, SocialPlatform } from '@/types/social';
 
-const REDIRECT_PATH = '/redes-sociais';
-// URI canônico — precisa estar cadastrado igualzinho no app da Meta / TikTok
-const CANONICAL_ORIGIN = 'https://inovamarketing.online';
-const CANONICAL_REDIRECT = `${CANONICAL_ORIGIN}${REDIRECT_PATH}`;
-
 export default function SocialAccountsPage() {
   const { accounts, byPlatform, loading, reload } = useSocialAccounts();
   const { jobs } = usePublishJobs();
-  const [params, setParams] = useSearchParams();
-  const [connecting, setConnecting] = useState<SocialPlatform | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
 
-  const redirectUri = CANONICAL_REDIRECT;
-  const isCanonicalOrigin = window.location.origin === CANONICAL_ORIGIN;
-
-  // Retorno do OAuth
-  useEffect(() => {
-    const code = params.get('code');
-    const oauthError = params.get('error_description') || params.get('error');
-    if (!code && !oauthError) return;
-
-    const platform = (sessionStorage.getItem('social_oauth_platform') || 'instagram') as SocialPlatform;
-    sessionStorage.removeItem('social_oauth_platform');
-    setParams({}, { replace: true });
-
-    if (oauthError) {
-      toast.error('Autorização recusada', { description: oauthError });
-      return;
-    }
-
-    (async () => {
-      try {
-        const res = await socialAccountsService.connect(platform, code!, redirectUri);
-        toast.success(`Conectado: ${res.accounts.join(', ')}`);
-        reload();
-      } catch (e: any) {
-        toast.error('Falha ao conectar', { description: e?.message });
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params]);
-
-  const startOAuth = async (platform: SocialPlatform) => {
-    setConnecting(platform);
-    try {
-      const url = await socialAccountsService.getAuthUrl(platform, redirectUri);
-      sessionStorage.setItem('social_oauth_platform', platform);
-      window.location.href = url;
-    } catch (e: any) {
-      toast.error('Não foi possível iniciar a conexão', { description: e?.message });
-      setConnecting(null);
-    }
-  };
 
 
   const reconnect = async (a: SocialAccount) => {
     setSyncingId(a.id);
     try {
-      const res = await socialAccountsService.sync(a.id);
-      if (res.success) toast.success('Conta sincronizada');
-      else {
-        toast.warning('Token expirado — refaça a conexão');
-        await startOAuth(a.platform);
-      }
+      await socialAccountsService.touch(a.id);
+      toast.success('Conta atualizada');
       reload();
     } catch (e: any) {
-      toast.error('Erro ao sincronizar', { description: e?.message });
+      toast.error('Erro ao atualizar', { description: e?.message });
     } finally {
       setSyncingId(null);
     }
   };
+
 
   const remove = async (a: SocialAccount) => {
     if (!confirm(`Remover @${a.username}?`)) return;
@@ -119,21 +67,20 @@ export default function SocialAccountsPage() {
         </p>
       </div>
 
-      {!isCanonicalOrigin && (
-        <Card className="border-amber-500/40 bg-amber-500/5">
-          <CardContent className="flex items-start gap-3 p-4">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-            <div className="text-sm">
-              <p className="font-medium">Conecte pelo domínio oficial</p>
-              <p className="text-muted-foreground">
-                O retorno do login das redes sociais só chega em{' '}
-                <a className="underline" href={CANONICAL_REDIRECT}>{CANONICAL_REDIRECT}</a>. Abra
-                esta página por lá para conectar ou reconectar contas.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Card className="border-amber-500/40 bg-amber-500/5">
+        <CardContent className="flex items-start gap-3 p-4">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <div className="text-sm">
+            <p className="font-medium">Modo manual</p>
+            <p className="text-muted-foreground">
+              As contas são cadastradas aqui manualmente (sem login externo). Na tela
+              <strong> Publicar Conteúdo</strong> você sobe o vídeo uma vez e recebe a mídia e a
+              legenda prontas para postar em cada conta.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
 
 
 
@@ -166,12 +113,8 @@ export default function SocialAccountsPage() {
                 <Icon className="h-4 w-4" /> {label}
                 <span className="text-xs font-normal text-muted-foreground">({list.length})</span>
               </h2>
-              <Button size="sm" onClick={() => startOAuth(platform)} disabled={connecting === platform}>
-                {connecting === platform
-                  ? <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                  : <Plus className="mr-1 h-4 w-4" />}
-                Conectar novo {label}
-              </Button>
+              <AddAccountDialog platform={platform} label={label} onAdded={reload} />
+
             </div>
 
             {loading ? (

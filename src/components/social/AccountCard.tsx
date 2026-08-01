@@ -56,7 +56,7 @@ export function AccountCard({ account, syncing, onReconnect, onRemove }: Props) 
             {syncing
               ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
               : <RefreshCw className="mr-1 h-3.5 w-3.5" />}
-            Reconectar
+            Atualizar
           </Button>
           <Button size="sm" variant="ghost" onClick={() => onRemove(account)}>
             <Trash2 className="h-3.5 w-3.5 text-destructive" />
