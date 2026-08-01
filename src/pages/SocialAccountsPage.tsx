@@ -1,7 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Instagram, Music2, Share2, CalendarClock, AlertTriangle, Send } from 'lucide-react';
+import {
+  Instagram, Music2, Share2, CalendarClock, AlertTriangle, Send, Loader2, LogIn,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountCard } from '@/components/social/AccountCard';
 import { AddAccountDialog } from '@/components/social/AddAccountDialog';
@@ -10,18 +13,73 @@ import { usePublishJobs } from '@/hooks/usePublishJobs';
 import { socialAccountsService } from '@/services/socialAccounts';
 import type { SocialAccount, SocialPlatform } from '@/types/social';
 
+/** URI fixo — precisa estar cadastrado no app da Meta / TikTok. */
+const REDIRECT_URI = 'https://inovamarketing.online/redes-sociais';
+
 export default function SocialAccountsPage() {
   const { accounts, byPlatform, loading, reload } = useSocialAccounts();
   const { jobs } = usePublishJobs();
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState<SocialPlatform | null>(null);
 
+  const offDomain = typeof window !== 'undefined' &&
+    window.location.origin !== 'https://inovamarketing.online';
 
+  // Retorno do OAuth (?code=...&state=...)
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('code');
+    const err = url.searchParams.get('error_description') || url.searchParams.get('error');
+    if (err) {
+      toast.error('Login cancelado', { description: err });
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+    if (!code) return;
+    const platform = (sessionStorage.getItem('social_oauth_platform') || 'instagram') as SocialPlatform;
+    window.history.replaceState({}, '', window.location.pathname);
+    (async () => {
+      setConnecting(platform);
+      try {
+        const res = await socialAccountsService.connect(platform, code, REDIRECT_URI);
+        toast.success(`Conectado: ${res.accounts.map(a => '@' + a).join(', ')}`);
+        reload();
+      } catch (e: any) {
+        toast.error('Erro ao conectar', { description: e?.message });
+      } finally {
+        sessionStorage.removeItem('social_oauth_platform');
+        setConnecting(null);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startLogin = async (platform: SocialPlatform) => {
+    setConnecting(platform);
+    try {
+      const url = await socialAccountsService.getAuthUrl(platform, REDIRECT_URI);
+      sessionStorage.setItem('social_oauth_platform', platform);
+      window.location.href = url;
+    } catch (e: any) {
+      toast.error('Não foi possível iniciar o login', { description: e?.message });
+      setConnecting(null);
+    }
+  };
 
   const reconnect = async (a: SocialAccount) => {
     setSyncingId(a.id);
     try {
-      await socialAccountsService.touch(a.id);
-      toast.success('Conta atualizada');
+      if (a.external_id) {
+        const res = await socialAccountsService.sync(a.id);
+        if (res.status === 'expired') {
+          toast.error('Token expirado — refaça o login', { description: res.details });
+        } else {
+          toast.success('Conta sincronizada');
+        }
+      } else {
+        await socialAccountsService.touch(a.id);
+        toast.success('Conta atualizada');
+      }
       reload();
     } catch (e: any) {
       toast.error('Erro ao atualizar', { description: e?.message });
@@ -41,6 +99,7 @@ export default function SocialAccountsPage() {
       toast.error('Erro ao remover', { description: e?.message });
     }
   };
+
 
   const stats = useMemo(() => {
     const today = new Date().toDateString();
