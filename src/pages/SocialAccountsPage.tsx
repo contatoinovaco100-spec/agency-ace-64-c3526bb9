@@ -126,19 +126,34 @@ export default function SocialAccountsPage() {
         </p>
       </div>
 
-      <Card className="border-amber-500/40 bg-amber-500/5">
+      <Card className="border-primary/40 bg-primary/5">
         <CardContent className="flex items-start gap-3 p-4">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <LogIn className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div className="text-sm">
-            <p className="font-medium">Modo manual</p>
+            <p className="font-medium">Publicação automática</p>
             <p className="text-muted-foreground">
-              As contas são cadastradas aqui manualmente (sem login externo). Na tela
-              <strong> Publicar Conteúdo</strong> você sobe o vídeo uma vez e recebe a mídia e a
-              legenda prontas para postar em cada conta.
+              Faça login na conta com <strong>Conectar</strong> (Instagram Business/Criador
+              vinculado a uma Página do Facebook). Contas conectadas por login publicam de verdade
+              ao clicar em Publicar. Contas cadastradas manualmente continuam no modo copiar/baixar.
             </p>
           </div>
         </CardContent>
       </Card>
+
+      {offDomain && (
+        <Card className="border-amber-500/40 bg-amber-500/5">
+          <CardContent className="flex items-start gap-3 p-4">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+            <div className="text-sm">
+              <p className="font-medium">Abra pelo domínio oficial para conectar</p>
+              <p className="text-muted-foreground">
+                O login das redes só retorna para <strong>https://inovamarketing.online/redes-sociais</strong>.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
 
 
 
