@@ -88,21 +88,54 @@ export const instagramAdapter: PlatformAdapter = {
   },
 
   async publish(account: AccountContext, input: PublishInput): Promise<PublishResult> {
+    const isVideo = input.mediaType === "video";
+    const postType = input.postType && input.postType !== "auto"
+      ? input.postType
+      : (isVideo ? "reels" : "image");
+    const isStory = postType === "stories";
+
     const params = new URLSearchParams();
     params.set("access_token", account.accessToken);
-    params.set("caption", input.caption || "");
-    if (input.mediaType === "video") {
-      params.set("media_type", "REELS");
+    if (!isStory) params.set("caption", input.caption || "");
+
+    if (isVideo) {
+      params.set("media_type", isStory ? "STORIES" : "REELS");
       params.set("video_url", input.mediaUrl);
-      if (input.thumbnailUrl) params.set("thumb_offset", "0");
+      if (!isStory) {
+        params.set("share_to_feed", input.shareToFeed === false ? "false" : "true");
+        if (input.coverUrl) params.set("cover_url", input.coverUrl);
+        else if (input.thumbOffset) params.set("thumb_offset", String(input.thumbOffset));
+        if (input.audioName) params.set("audio_name", input.audioName);
+      }
     } else {
+      if (isStory) params.set("media_type", "STORIES");
       params.set("image_url", input.mediaUrl);
+    }
+
+    if (!isStory) {
+      if (input.locationId) params.set("location_id", input.locationId);
+      if (input.collaborators?.length) {
+        params.set("collaborators", JSON.stringify(input.collaborators.slice(0, 3)));
+      }
+      if (!isVideo && input.userTags?.length) {
+        params.set(
+          "user_tags",
+          JSON.stringify(
+            input.userTags.slice(0, 20).map((t) => ({
+              username: t.username,
+              x: typeof t.x === "number" ? t.x : 0.5,
+              y: typeof t.y === "number" ? t.y : 0.5,
+            })),
+          ),
+        );
+      }
     }
 
     const container = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
       method: "POST",
       body: params,
     });
+
 
     // Aguarda o container ficar pronto (vídeo ~5 min, imagem ~45s)
     const maxTries = input.mediaType === "video" ? 60 : 15;
