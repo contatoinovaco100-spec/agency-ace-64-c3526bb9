@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const META_APP_ID = "792310407276103";
+const META_APP_ID = "2235928767163276";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
