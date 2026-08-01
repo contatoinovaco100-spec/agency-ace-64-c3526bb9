@@ -119,6 +119,24 @@ export default function SocialAccountsPage() {
         </p>
       </div>
 
+      {!isCanonicalOrigin && (
+        <Card className="border-amber-500/40 bg-amber-500/5">
+          <CardContent className="flex items-start gap-3 p-4">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+            <div className="text-sm">
+              <p className="font-medium">Conecte pelo domínio oficial</p>
+              <p className="text-muted-foreground">
+                O retorno do login das redes sociais só chega em{' '}
+                <a className="underline" href={CANONICAL_REDIRECT}>{CANONICAL_REDIRECT}</a>. Abra
+                esta página por lá para conectar ou reconectar contas.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {[
           { label: 'Contas conectadas', value: stats.accounts, icon: Share2 },
