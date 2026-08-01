@@ -1395,83 +1395,82 @@ export type Database = {
         }
         Relationships: []
       }
-      ig_accounts: {
+      ig_queue_accounts: {
         Row: {
-          access_token: string
           active: boolean
+          avatar_url: string
           created_at: string
+          display_name: string
+          handle: string
           id: string
-          ig_user_id: string
-          page_id: string
-          page_name: string
-          profile_picture_url: string
-          token_expires_at: string | null
-          updated_at: string
-          username: string
         }
         Insert: {
-          access_token: string
           active?: boolean
+          avatar_url?: string
           created_at?: string
+          display_name?: string
+          handle: string
           id?: string
-          ig_user_id: string
-          page_id?: string
-          page_name?: string
-          profile_picture_url?: string
-          token_expires_at?: string | null
-          updated_at?: string
-          username?: string
         }
         Update: {
-          access_token?: string
           active?: boolean
+          avatar_url?: string
           created_at?: string
+          display_name?: string
+          handle?: string
           id?: string
-          ig_user_id?: string
-          page_id?: string
-          page_name?: string
-          profile_picture_url?: string
-          token_expires_at?: string | null
-          updated_at?: string
-          username?: string
         }
         Relationships: []
       }
-      ig_publications: {
+      ig_queue_posts: {
         Row: {
+          account_id: string
           caption: string
           created_at: string
-          created_by: string | null
-          fail_count: number
           id: string
+          media_paths: string[]
           media_type: string
           media_urls: string[]
-          results: Json
-          success_count: number
+          published_at: string | null
+          published_by: string | null
+          scheduled_at: string | null
+          status: string
         }
         Insert: {
+          account_id: string
           caption?: string
           created_at?: string
-          created_by?: string | null
-          fail_count?: number
           id?: string
+          media_paths?: string[]
           media_type?: string
           media_urls?: string[]
-          results?: Json
-          success_count?: number
+          published_at?: string | null
+          published_by?: string | null
+          scheduled_at?: string | null
+          status?: string
         }
         Update: {
+          account_id?: string
           caption?: string
           created_at?: string
-          created_by?: string | null
-          fail_count?: number
           id?: string
+          media_paths?: string[]
           media_type?: string
           media_urls?: string[]
-          results?: Json
-          success_count?: number
+          published_at?: string | null
+          published_by?: string | null
+          scheduled_at?: string | null
+          status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ig_queue_posts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "ig_queue_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       instagram_posts: {
         Row: {
