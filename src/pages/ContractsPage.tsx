@@ -282,6 +282,7 @@ export default function ContractsPage() {
       contractor_name: c.contractor_name,
       contractor_cpf_cnpj: c.contractor_cpf_cnpj,
       contractor_address: c.contractor_address,
+      client_company: c.client_company || '',
       client_name: c.client_name,
       client_cpf_cnpj: c.client_cpf_cnpj,
       client_email: c.client_email,
