@@ -163,9 +163,28 @@ export default function PublishContentPage() {
               </div>
 
               <div className="space-y-2">
+                <Label>Tipo de publicação</Label>
+                <Select value={postType} onValueChange={(v) => setPostType(v as PostType)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Automático (vídeo → Reels, imagem → Feed)</SelectItem>
+                    <SelectItem value="reels">Reels</SelectItem>
+                    <SelectItem value="image">Foto no feed</SelectItem>
+                    <SelectItem value="stories">Stories</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label>Legenda</Label>
                 <Textarea rows={4} value={caption} onChange={e => setCaption(e.target.value)}
-                  placeholder="Escreva a legenda do post..." />
+                  placeholder="Escreva a legenda do post..."
+                  disabled={effectiveType === 'stories'} />
+                <p className="text-xs text-muted-foreground">
+                  {effectiveType === 'stories'
+                    ? 'Stories não aceita legenda pela API.'
+                    : `${caption.length}/2200 caracteres`}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -174,16 +193,71 @@ export default function PublishContentPage() {
                   placeholder="#hashtags ou link" />
               </div>
 
+              {effectiveType === 'reels' && (
+                <>
+                  <div className="flex items-center justify-between rounded-md border p-3">
+                    <div>
+                      <Label className="text-sm">Compartilhar também no feed</Label>
+                      <p className="text-xs text-muted-foreground">O Reels aparece na grade do perfil.</p>
+                    </div>
+                    <Switch checked={shareToFeed} onCheckedChange={setShareToFeed} />
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Capa do Reels (URL)</Label>
+                      <Input value={coverUrl} onChange={e => setCoverUrl(e.target.value)} placeholder="https://..." />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Ou segundo da capa (ms)</Label>
+                      <Input type="number" min={0} value={thumbOffset}
+                        onChange={e => setThumbOffset(e.target.value)} placeholder="Ex: 1000" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Nome do áudio (opcional)</Label>
+                    <Input value={audioName} onChange={e => setAudioName(e.target.value)}
+                      placeholder="Áudio original do perfil" />
+                  </div>
+                </>
+              )}
+
+              {effectiveType !== 'stories' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Colaboradores (até 3, separados por vírgula)</Label>
+                    <Input value={collaborators} onChange={e => setCollaborators(e.target.value)}
+                      placeholder="@perfil1, @perfil2" />
+                  </div>
+
+                  {effectiveType === 'image' && (
+                    <div className="space-y-2">
+                      <Label>Marcar pessoas na foto (separadas por vírgula)</Label>
+                      <Input value={userTags} onChange={e => setUserTags(e.target.value)}
+                        placeholder="@cliente, @parceiro" />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label>Localização (ID da página do Facebook)</Label>
+                    <Input value={locationId} onChange={e => setLocationId(e.target.value)}
+                      placeholder="Ex: 1234567890" />
+                  </div>
+                </>
+              )}
+
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Agendamento (opcional)</Label>
                   <Input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Miniatura (URL, quando suportado)</Label>
+                  <Label>Miniatura (URL, outras redes)</Label>
                   <Input value={thumbnailUrl} onChange={e => setThumbnailUrl(e.target.value)} placeholder="https://..." />
                 </div>
               </div>
+
             </CardContent>
           </Card>
 
