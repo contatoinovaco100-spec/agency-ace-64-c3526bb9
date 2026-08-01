@@ -46,6 +46,7 @@ function rowToClient(row: Tables<'clients'>): Client {
     monthlyValue: Number(row.monthly_value), scope: row.scope,
     serviceType: row.service_type as ServiceType[], accountManager: row.account_manager,
     status: row.status as Client['status'], notes: row.notes,
+    cancelledAt: (row as any).cancelled_at || null,
     scopeDetails: {
       monthlyDeliverables: row.scope_monthly_deliverables || [],
       includedServices: row.scope_included_services || [],
