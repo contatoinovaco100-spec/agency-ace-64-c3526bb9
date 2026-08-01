@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Instagram, Music2, Share2, CalendarClock, AlertTriangle, Send, Loader2, LogIn,
-  HelpCircle, CheckCircle2, ExternalLink, ChevronDown, ChevronUp,
+  HelpCircle, CheckCircle2, ExternalLink, ChevronDown, ChevronUp, RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountCard } from '@/components/social/AccountCard';
@@ -19,7 +19,7 @@ import type { SocialAccount, SocialPlatform } from '@/types/social';
 const REDIRECT_URI = 'https://inovamarketing.online/redes-sociais';
 
 export default function SocialAccountsPage() {
-  const { accounts, byPlatform, loading, reload } = useSocialAccounts();
+  const { accounts, byPlatform, loading, refreshing, reload } = useSocialAccounts();
   const { jobs } = usePublishJobs();
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [connecting, setConnecting] = useState<SocialPlatform | null>(null);
@@ -121,11 +121,17 @@ export default function SocialAccountsPage() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div>
-        <h1 className="text-2xl font-bold">Redes Sociais</h1>
-        <p className="text-sm text-muted-foreground">
-          Gerencie todas as contas conectadas e publique em várias delas de uma vez.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Redes Sociais</h1>
+          <p className="text-sm text-muted-foreground">
+            Gerencie todas as contas conectadas e publique em várias delas de uma vez.
+          </p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => reload()} disabled={refreshing}>
+          <RefreshCw className={`mr-1 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          Atualizar
+        </Button>
       </div>
 
       <Card className="border-primary/40 bg-primary/5">
