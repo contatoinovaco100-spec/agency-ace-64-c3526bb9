@@ -24,6 +24,32 @@ export function useSocialAccounts() {
 
   useEffect(() => { reload(); }, [reload]);
 
+  // A rota pode montar enquanto a sessão ainda está sendo restaurada. Nesse caso,
+  // a primeira consulta roda como visitante e retorna uma lista vazia pelas regras
+  // de acesso. Recarrega assim que o usuário autenticado estiver disponível.
+  useEffect(() => {
+    let active = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (active && data.session) reload();
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
+        reload();
+      }
+      if (event === 'SIGNED_OUT') {
+        setAccounts([]);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      active = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, [reload]);
+
   // Atualiza em tempo real quando contas são criadas/alteradas/removidas
   useEffect(() => {
     const channel = supabase
