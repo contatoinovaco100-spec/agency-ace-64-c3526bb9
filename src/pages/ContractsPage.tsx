@@ -38,6 +38,7 @@ interface Contract {
   contractor_name: string;
   contractor_cpf_cnpj: string;
   contractor_address: string;
+  client_company: string;
   client_name: string;
   client_cpf_cnpj: string;
   client_email: string;
