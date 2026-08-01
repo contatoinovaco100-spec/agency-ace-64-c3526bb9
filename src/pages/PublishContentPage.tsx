@@ -17,6 +17,8 @@ import { publishingService } from '@/services/publishing';
 export default function PublishContentPage() {
   const { accounts, byPlatform, loading } = useSocialAccounts();
   const [jobId, setJobId] = useState<string | null>(null);
+  const [mediaPath, setMediaPath] = useState<string>('');
+
   const { targetsOf } = usePublishJobs(jobId ?? undefined);
 
   const [file, setFile] = useState<File | null>(null);
