@@ -91,6 +91,7 @@ const emptyContract = {
   contractor_name: 'INOVA Co.',
   contractor_cpf_cnpj: '',
   contractor_address: '',
+  client_company: '',
   client_name: '',
   client_cpf_cnpj: '',
   client_email: '',
