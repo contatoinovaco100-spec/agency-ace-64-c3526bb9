@@ -1966,49 +1966,73 @@ export type Database = {
       }
       publish_jobs: {
         Row: {
+          audio_name: string
           caption: string
           client_id: string | null
+          collaborators: string[]
+          cover_url: string
           created_at: string
           created_by: string | null
           first_comment: string
           id: string
+          location_id: string
           media_path: string
           media_type: string
           media_url: string
+          post_type: string
           scheduled_at: string | null
+          share_to_feed: boolean
           status: string
+          thumb_offset: number
           thumbnail_url: string
           updated_at: string
+          user_tags: Json
         }
         Insert: {
+          audio_name?: string
           caption?: string
           client_id?: string | null
+          collaborators?: string[]
+          cover_url?: string
           created_at?: string
           created_by?: string | null
           first_comment?: string
           id?: string
+          location_id?: string
           media_path?: string
           media_type?: string
           media_url?: string
+          post_type?: string
           scheduled_at?: string | null
+          share_to_feed?: boolean
           status?: string
+          thumb_offset?: number
           thumbnail_url?: string
           updated_at?: string
+          user_tags?: Json
         }
         Update: {
+          audio_name?: string
           caption?: string
           client_id?: string | null
+          collaborators?: string[]
+          cover_url?: string
           created_at?: string
           created_by?: string | null
           first_comment?: string
           id?: string
+          location_id?: string
           media_path?: string
           media_type?: string
           media_url?: string
+          post_type?: string
           scheduled_at?: string | null
+          share_to_feed?: boolean
           status?: string
+          thumb_offset?: number
           thumbnail_url?: string
           updated_at?: string
+          user_tags?: Json
         }
         Relationships: [
           {
