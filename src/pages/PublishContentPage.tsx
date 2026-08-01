@@ -58,20 +58,21 @@ export default function PublishContentPage() {
         thumbnailUrl, accounts: selectedAccounts, onProgress: setProgress,
       });
       setJobId(job.id);
-      if (scheduledAt) {
-        toast.success('Publicação agendada');
-      } else {
-        await publishingService.run(job.id);
-        toast.success('Publicação iniciada em todas as contas');
-      }
+      setMediaPath(job.media_path);
+      toast.success(
+        scheduledAt
+          ? 'Publicação agendada — o material fica pronto no painel ao lado'
+          : 'Material pronto! Baixe a mídia e poste em cada conta',
+      );
     } catch (e: any) {
-      toast.error('Erro ao publicar', { description: e?.message });
+      toast.error('Erro ao preparar publicação', { description: e?.message });
     } finally {
       setPublishing(false);
     }
   };
 
   const targets = jobId ? targetsOf(jobId) : [];
+
 
   return (
     <div className="space-y-6 p-4 md:p-6">
