@@ -217,13 +217,13 @@ export default function PublicPortfolioPage() {
     { id: '3', title: 'Bastidores', description: 'Making of de produção', video_url: '', thumbnail_url: '', category: 'Social Media', completed_at: null },
   ];
 
-  useEffect(() => {
+  const loadData = () => {
     Promise.all([
       supabase.from('portfolio_projects').select('*').order('order_index', { ascending: true }),
       supabase.from('instagram_posts' as any).select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: false }),
     ]).then(([projectsRes, igRes]) => {
       let fetchedProjects = (projectsRes.data as Project[]) || [];
-      
+
       // Fallback if order_index doesn't exist yet (indicated by error or empty if we expect items)
       if (projectsRes.error || fetchedProjects.length === 0) {
         supabase.from('portfolio_projects').select('*').order('created_at', { ascending: false }).then(res => {
@@ -232,10 +232,21 @@ export default function PublicPortfolioPage() {
       } else {
         setProjects(fetchedProjects);
       }
-      
+
       setIgPosts(((igRes.data as any[]) || []) as IGPost[]);
       setLoading(false);
     });
+  };
+
+  useEffect(() => {
+    loadData();
+
+    const channel = supabase
+      .channel('portfolio-projects-public')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'portfolio_projects' }, () => loadData())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const categories = [...new Set(projects.map(p => p.category).filter(Boolean))];
