@@ -14,7 +14,7 @@ import { ManualPublishPanel } from '@/components/social/ManualPublishPanel';
 
 import { useSocialAccounts } from '@/hooks/useSocialAccounts';
 import { usePublishJobs } from '@/hooks/usePublishJobs';
-import { publishingService } from '@/services/publishing';
+import { publishingService, type PostType } from '@/services/publishing';
 
 export default function PublishContentPage() {
   const { accounts, byPlatform, loading, refreshing, error, reload } = useSocialAccounts();
