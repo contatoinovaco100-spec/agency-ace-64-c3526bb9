@@ -744,6 +744,7 @@ export type Database = {
       clients: {
         Row: {
           account_manager: string
+          cancelled_at: string | null
           company_name: string
           contact_name: string
           contract_start_date: string | null
@@ -765,6 +766,7 @@ export type Database = {
         }
         Insert: {
           account_manager?: string
+          cancelled_at?: string | null
           company_name: string
           contact_name?: string
           contract_start_date?: string | null
@@ -786,6 +788,7 @@ export type Database = {
         }
         Update: {
           account_manager?: string
+          cancelled_at?: string | null
           company_name?: string
           contact_name?: string
           contract_start_date?: string | null
