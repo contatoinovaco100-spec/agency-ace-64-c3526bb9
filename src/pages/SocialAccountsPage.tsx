@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Instagram, Music2, Share2, CalendarClock, AlertTriangle, Send, Loader2, LogIn,
-  HelpCircle, CheckCircle2, ExternalLink, ChevronDown, ChevronUp,
+  HelpCircle, CheckCircle2, ExternalLink, ChevronDown, ChevronUp, RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountCard } from '@/components/social/AccountCard';
