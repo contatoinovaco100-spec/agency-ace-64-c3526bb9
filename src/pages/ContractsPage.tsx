@@ -343,7 +343,8 @@ export default function ContractsPage() {
                 </span>
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span>Cliente: <strong className="text-foreground">{c.client_name || '—'}</strong></span>
+                <span>Cliente: <strong className="text-foreground">{c.client_company || c.client_name || '—'}</strong></span>
+                {c.client_company && c.client_name && <span>Responsável: {c.client_name}</span>}
                 <span>Valor: <strong className="text-foreground">R$ {Number(c.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês</strong></span>
                 {c.plan_name && <span>Plano: <strong className="text-foreground">{c.plan_name}</strong></span>}
                 <span>Duração: {c.duration_months} meses</span>
