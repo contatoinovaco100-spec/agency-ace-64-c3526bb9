@@ -83,14 +83,15 @@ export default function PublishContentPage() {
   const manualAccounts = selectedAccounts.filter(a => !a.external_id);
 
   const publish = async () => {
-    if (!file) { toast.error('Envie um vídeo'); return; }
+    if (!files.length) { toast.error('Envie ao menos uma mídia'); return; }
     if (!selectedAccounts.length) { toast.error('Selecione ao menos uma conta'); return; }
     setPublishing(true);
     setProgress(5);
     try {
       const job = await publishingService.createJob({
-        file, caption, firstComment, scheduledAt: scheduledAt || null,
+        files, caption, firstComment, scheduledAt: scheduledAt || null,
         thumbnailUrl, accounts: selectedAccounts, onProgress: setProgress,
+
         postType,
         shareToFeed,
         collaborators: collaborators.split(',').map(s => s.trim()).filter(Boolean),
