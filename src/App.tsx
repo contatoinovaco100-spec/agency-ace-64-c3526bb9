@@ -230,6 +230,8 @@ function AppRoutes() {
                     <Route path="/portfolio-instagram" element={<InstagramPostsPage />} />
                     <Route path="/instagram-automacao" element={<InstagramAutomationPage />} />
                     <Route path="/redes-sociais"       element={<SocialAccountsPage />} />
+                    <Route path="/instagram-analytics" element={<InstagramAnalyticsPage />} />
+
                     <Route path="/publicar"            element={<PublishContentPage />} />
                     <Route path="/publicacoes"         element={<PublishHistoryPage />} />
                     <Route path="/gravacoes"           element={<ShootingSchedulePage />} />
