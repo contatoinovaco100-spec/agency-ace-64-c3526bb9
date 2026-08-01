@@ -136,7 +136,11 @@ export default function PublishContentPage() {
               >
                 {preview ? (
                   <div className="relative w-full">
-                    <video src={preview} controls className="mx-auto max-h-64 rounded-md" />
+                    {isVideo ? (
+                      <video src={preview} controls className="mx-auto max-h-64 rounded-md" />
+                    ) : (
+                      <img src={preview} alt="Pré-visualização da mídia" className="mx-auto max-h-64 rounded-md" />
+                    )}
                     <Button
                       size="icon" variant="secondary" className="absolute right-2 top-2 h-7 w-7"
                       onClick={e => { e.stopPropagation(); setFile(null); setPreview(''); }}
@@ -147,10 +151,11 @@ export default function PublishContentPage() {
                 ) : (
                   <>
                     <Upload className="h-6 w-6 text-muted-foreground" />
-                    <p className="text-sm font-medium">Arraste o vídeo ou clique para escolher</p>
-                    <p className="text-xs text-muted-foreground">MP4 vertical até 500 MB</p>
+                    <p className="text-sm font-medium">Arraste o vídeo ou a foto, ou clique para escolher</p>
+                    <p className="text-xs text-muted-foreground">MP4 ou JPG/PNG até 500 MB</p>
                   </>
                 )}
+
                 <input
                   ref={inputRef} type="file" accept="video/*,image/*" className="hidden"
                   onChange={e => { const f = e.target.files?.[0]; if (f) pickFile(f); }}
