@@ -63,6 +63,8 @@ const PortfolioPage        = lazy(() => import("./pages/PortfolioPage"));
 const InstagramPostsPage   = lazy(() => import("./pages/InstagramPostsPage"));
 const InstagramAutomationPage = lazy(() => import("./pages/InstagramAutomationPage"));
 const SocialAccountsPage = lazy(() => import("./pages/SocialAccountsPage"));
+const InstagramAnalyticsPage = lazy(() => import("./pages/InstagramAnalyticsPage"));
+
 const PublishContentPage = lazy(() => import("./pages/PublishContentPage"));
 const PublishHistoryPage = lazy(() => import("./pages/PublishHistoryPage"));
 const ShootingSchedulePage = lazy(() => import("./pages/ShootingSchedulePage"));
