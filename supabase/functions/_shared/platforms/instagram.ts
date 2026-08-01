@@ -12,6 +12,78 @@ const GRAPH = "https://graph.facebook.com/v21.0";
 const APP_ID = Deno.env.get("META_APP_ID") || "2235928767163276";
 const APP_SECRET = Deno.env.get("META_APP_SECRET") || "";
 
+/** Aguarda o container ficar FINISHED (vídeo demora bem mais que imagem). */
+async function waitContainer(token: string, containerId: string, isVideo: boolean) {
+  const maxTries = isVideo ? 60 : 15;
+  const waitMs = isVideo ? 5000 : 3000;
+  let noStatus = 0;
+  for (let i = 0; i < maxTries; i++) {
+    await sleep(waitMs);
+    let st: any;
+    try {
+      st = await jsonFetch(`${GRAPH}/${containerId}?fields=status_code,status&access_token=${token}`);
+    } catch (_) {
+      continue;
+    }
+    if (st.status_code === "FINISHED") return;
+    if (st.status_code === "ERROR" || st.status_code === "EXPIRED") {
+      throw new Error(`Falha no processamento da mídia: ${st.status || st.status_code}`);
+    }
+    if (!st.status_code) {
+      noStatus++;
+      if (!isVideo && noStatus >= 2) return;
+    }
+  }
+  if (isVideo) throw new Error("Tempo esgotado no processamento da mídia");
+}
+
+async function publishContainer(account: AccountContext, containerId: string): Promise<string> {
+  const params = new URLSearchParams();
+  params.set("creation_id", containerId);
+  params.set("access_token", account.accessToken);
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    try {
+      const published = await jsonFetch(`${GRAPH}/${account.externalId}/media_publish`, {
+        method: "POST",
+        body: params,
+      });
+      return published.id;
+    } catch (e) {
+      lastErr = e;
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/Media ID is not available|not available|transient/i.test(msg)) {
+        await sleep(5000 * (attempt + 1));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+
+async function addFirstComment(account: AccountContext, postId: string, comment?: string) {
+  if (!comment) return;
+  try {
+    const cp = new URLSearchParams();
+    cp.set("message", comment);
+    cp.set("access_token", account.accessToken);
+    await jsonFetch(`${GRAPH}/${postId}/comments`, { method: "POST", body: cp });
+  } catch (_) { /* opcional */ }
+}
+
+async function getPermalink(account: AccountContext, postId: string): Promise<string> {
+  try {
+    const info = await jsonFetch(
+      `${GRAPH}/${postId}?fields=permalink&access_token=${account.accessToken}`,
+    );
+    return info.permalink || "";
+  } catch (_) {
+    return "";
+  }
+}
+
+
 
 export const instagramAdapter: PlatformAdapter = {
   id: "instagram",
