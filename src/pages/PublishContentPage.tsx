@@ -29,10 +29,22 @@ export default function PublishContentPage() {
   const [firstComment, setFirstComment] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [postType, setPostType] = useState<PostType>('auto');
+  const [shareToFeed, setShareToFeed] = useState(true);
+  const [collaborators, setCollaborators] = useState('');
+  const [locationId, setLocationId] = useState('');
+  const [userTags, setUserTags] = useState('');
+  const [coverUrl, setCoverUrl] = useState('');
+  const [thumbOffset, setThumbOffset] = useState('');
+  const [audioName, setAudioName] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
   const [publishing, setPublishing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isVideo = !!file && file.type.startsWith('video');
+  const effectiveType: PostType = postType !== 'auto' ? postType : (isVideo ? 'reels' : 'image');
+
 
   const selectedAccounts = useMemo(
     () => accounts.filter(a => selected.includes(a.id)),
