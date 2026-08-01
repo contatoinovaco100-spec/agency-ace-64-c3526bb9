@@ -42,13 +42,20 @@ Deno.serve(async (req) => {
 
     if (action === "connect") {
       const adapter = getAdapter(platform);
-      const accounts = await adapter.exchangeCode(
-        String(body.code || ""),
-        String(body.redirect_uri || ""),
-      );
+      let accounts;
+      try {
+        accounts = await adapter.exchangeCode(
+          String(body.code || ""),
+          String(body.redirect_uri || ""),
+        );
+      } catch (e) {
+        console.error("social-oauth connect error", e);
+        return json({ error: String((e as Error).message) }, 400);
+      }
       if (!accounts.length) {
         return json({ error: "Nenhuma conta encontrada nesse login" }, 400);
       }
+
 
       const saved: string[] = [];
       for (const acc of accounts) {

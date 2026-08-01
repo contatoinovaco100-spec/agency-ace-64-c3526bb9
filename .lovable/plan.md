@@ -1,31 +1,27 @@
-Plano para trazer tudo de volta com segurança:
+## O que eu não consigo fazer
 
-1. Confirmar o estado real
-- O backend está saudável.
-- As tabelas e dados principais ainda existem: clientes, tarefas, leads, perfis, contratos, squads e páginas continuam no banco.
-- Os arquivos principais do app também ainda existem no projeto.
+Não tenho acesso ao painel de desenvolvedores da Meta — o cadastro do URI de redirecionamento precisa ser feito por você (leva 1 minuto):
 
-2. Descobrir por que aparece “sumiu tudo”
-- Verificar a tela de login e o usuário atual.
-- Checar se o problema é sessão expirada, permissões/RLS, rota protegida ou filtro por funcionário.
-- Conferir logs recentes de autenticação e erros do app.
+1. developers.facebook.com > seu app (ID `792310407276103`) > Login do Facebook > Configurações
+2. Em "URIs de redirecionamento do OAuth válidos", adicionar exatamente:
+   `https://inovamarketing.online/redes-sociais`
+3. Salvar alterações.
 
-3. Restaurar acesso sem apagar nada
-- Se for permissão de funcionário/admin, ajustar o vínculo correto em `user_roles`, `user_page_access`, `user_module_access` ou `user_client_access`.
-- Se for problema no login, corrigir o fluxo de autenticação/rota protegida.
-- Se for filtro escondendo dados, ajustar os filtros das páginas afetadas.
+## Problema encontrado no código
 
-4. Validar as áreas principais
-- Login.
-- Dashboard.
-- Clientes.
-- Tarefas/Kanban de vídeo e arte.
-- CRM.
-- Squads/ranking.
-- Conteúdo do cliente.
+Hoje a página `/redes-sociais` monta o redirect com `window.location.origin`. Isso significa que, no preview do editor ou no domínio `.lovable.app`, o URI enviado à Meta é diferente do cadastrado e o login falha com "URL bloqueada / redirect_uri mismatch". Só funcionaria no domínio principal.
 
-5. Só recuperar/recriar se realmente faltar algo
-- Não vou “reenviar tudo” por cima porque os dados ainda estão lá; isso poderia duplicar ou sobrescrever informações.
-- Se alguma tabela, função, componente ou permissão específica estiver faltando depois da checagem, recrio apenas essa parte.
+## O que vou implementar
 
-Para implementar, vou começar pelo diagnóstico de login/permissões e corrigir o ponto que está impedindo você de ver os dados.
+1. **Redirect URI canônico fixo**: usar sempre `https://inovamarketing.online/redes-sociais` para Instagram, independentemente de onde a plataforma está aberta. Assim só existe 1 URI para cadastrar na Meta.
+2. **Aviso quando fora do domínio oficial**: se o usuário abrir `/redes-sociais` no preview, mostrar um alerta explicando que a conexão precisa ser feita pelo domínio oficial (o retorno do OAuth cai lá).
+3. **Retorno do OAuth mais robusto**: ler `code`, `state` e também `error`/`error_description` da URL; se a Meta devolver erro, exibir a mensagem real em vez de falhar em silêncio, e limpar os parâmetros da URL após processar.
+4. **Mensagens de erro reais do Graph**: propagar o texto de erro da Meta (ex.: escopo faltando, app em modo de desenvolvimento, conta sem Instagram Business vinculado) para o toast, em vez de "Nenhuma conta encontrada".
+5. **Validação do fluxo**: depois que você salvar o URI na Meta, eu testo a função `social-oauth` (geração da URL de autorização e leitura dos logs do retorno) e confirmo se as contas são gravadas corretamente. O clique final de autorização na tela da Meta precisa ser feito por você, já que exige sua sessão Facebook.
+
+## Detalhes técnicos
+
+- `src/pages/SocialAccountsPage.tsx`: constante `CANONICAL_ORIGIN`, tratamento de `error` no callback, `window.history.replaceState` para limpar a query.
+- `supabase/functions/social-oauth/index.ts`: retornar detalhe do erro na ação `connect`.
+- `supabase/functions/_shared/platforms/instagram.ts`: mensagem específica quando `/me/accounts` não retorna nenhuma página com `instagram_business_account`.
+- Requisitos do lado da Meta para publicar: app com Login do Facebook ativo, conta Instagram do tipo Business/Creator vinculada a uma Página, e o usuário como testador/admin enquanto o app estiver em modo de desenvolvimento.

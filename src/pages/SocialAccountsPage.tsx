@@ -12,6 +12,9 @@ import { socialAccountsService } from '@/services/socialAccounts';
 import type { SocialAccount, SocialPlatform } from '@/types/social';
 
 const REDIRECT_PATH = '/redes-sociais';
+// URI canônico — precisa estar cadastrado igualzinho no app da Meta / TikTok
+const CANONICAL_ORIGIN = 'https://inovamarketing.online';
+const CANONICAL_REDIRECT = `${CANONICAL_ORIGIN}${REDIRECT_PATH}`;
 
 export default function SocialAccountsPage() {
   const { accounts, byPlatform, loading, reload } = useSocialAccounts();
@@ -20,18 +23,27 @@ export default function SocialAccountsPage() {
   const [connecting, setConnecting] = useState<SocialPlatform | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
 
-  const redirectUri = `${window.location.origin}${REDIRECT_PATH}`;
+  const redirectUri = CANONICAL_REDIRECT;
+  const isCanonicalOrigin = window.location.origin === CANONICAL_ORIGIN;
 
   // Retorno do OAuth
   useEffect(() => {
     const code = params.get('code');
-    if (!code) return;
+    const oauthError = params.get('error_description') || params.get('error');
+    if (!code && !oauthError) return;
+
     const platform = (sessionStorage.getItem('social_oauth_platform') || 'instagram') as SocialPlatform;
     sessionStorage.removeItem('social_oauth_platform');
     setParams({}, { replace: true });
+
+    if (oauthError) {
+      toast.error('Autorização recusada', { description: oauthError });
+      return;
+    }
+
     (async () => {
       try {
-        const res = await socialAccountsService.connect(platform, code, redirectUri);
+        const res = await socialAccountsService.connect(platform, code!, redirectUri);
         toast.success(`Conectado: ${res.accounts.join(', ')}`);
         reload();
       } catch (e: any) {
@@ -52,6 +64,7 @@ export default function SocialAccountsPage() {
       setConnecting(null);
     }
   };
+
 
   const reconnect = async (a: SocialAccount) => {
     setSyncingId(a.id);
@@ -105,6 +118,24 @@ export default function SocialAccountsPage() {
           Gerencie todas as contas conectadas e publique em várias delas de uma vez.
         </p>
       </div>
+
+      {!isCanonicalOrigin && (
+        <Card className="border-amber-500/40 bg-amber-500/5">
+          <CardContent className="flex items-start gap-3 p-4">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+            <div className="text-sm">
+              <p className="font-medium">Conecte pelo domínio oficial</p>
+              <p className="text-muted-foreground">
+                O retorno do login das redes sociais só chega em{' '}
+                <a className="underline" href={CANONICAL_REDIRECT}>{CANONICAL_REDIRECT}</a>. Abra
+                esta página por lá para conectar ou reconectar contas.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {[

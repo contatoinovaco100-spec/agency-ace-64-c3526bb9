@@ -61,8 +61,18 @@ export const instagramAdapter: PlatformAdapter = {
         expiresAt,
       });
     }
+    if (!accounts.length) {
+      const names = (pages.data || []).map((p: any) => p.name).join(", ");
+      throw new Error(
+        names
+          ? `Nenhuma conta do Instagram Business vinculada às Páginas: ${names}. ` +
+            `Converta o perfil para Comercial/Criador e vincule-o à Página no Facebook.`
+          : "Nenhuma Página do Facebook foi autorizada. Refaça o login marcando a Página do cliente.",
+      );
+    }
     return accounts;
   },
+
 
   async fetchProfile(account): Promise<ProfileInfo> {
     const data = await jsonFetch(
