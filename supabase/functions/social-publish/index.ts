@@ -83,7 +83,16 @@ Deno.serve(async (req) => {
               caption: job.caption || "",
               firstComment: job.first_comment || "",
               thumbnailUrl: job.thumbnail_url || "",
+              postType: job.post_type || "auto",
+              shareToFeed: job.share_to_feed !== false,
+              collaborators: job.collaborators || [],
+              locationId: job.location_id || "",
+              userTags: job.user_tags || [],
+              coverUrl: job.cover_url || "",
+              thumbOffset: job.thumb_offset || 0,
+              audioName: job.audio_name || "",
             },
+
           );
 
           await admin.from("publish_targets").update({
