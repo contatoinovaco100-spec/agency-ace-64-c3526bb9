@@ -70,21 +70,20 @@ export default function SocialAccountsPage() {
         </p>
       </div>
 
-      {!isCanonicalOrigin && (
-        <Card className="border-amber-500/40 bg-amber-500/5">
-          <CardContent className="flex items-start gap-3 p-4">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-            <div className="text-sm">
-              <p className="font-medium">Conecte pelo domínio oficial</p>
-              <p className="text-muted-foreground">
-                O retorno do login das redes sociais só chega em{' '}
-                <a className="underline" href={CANONICAL_REDIRECT}>{CANONICAL_REDIRECT}</a>. Abra
-                esta página por lá para conectar ou reconectar contas.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Card className="border-amber-500/40 bg-amber-500/5">
+        <CardContent className="flex items-start gap-3 p-4">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <div className="text-sm">
+            <p className="font-medium">Modo manual</p>
+            <p className="text-muted-foreground">
+              As contas são cadastradas aqui manualmente (sem login externo). Na tela
+              <strong> Publicar Conteúdo</strong> você sobe o vídeo uma vez e recebe a mídia e a
+              legenda prontas para postar em cada conta.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
 
 
 
