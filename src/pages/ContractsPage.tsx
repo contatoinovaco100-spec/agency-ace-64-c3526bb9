@@ -454,7 +454,8 @@ export default function ContractsPage() {
                 </div>
                 <div className="space-y-3">
                   <p className="text-xs font-bold uppercase tracking-wider text-primary">Contratado (Cliente)</p>
-                  <div><Label className="text-xs text-muted-foreground">Nome / Razão Social</Label><Input value={form.client_name} onChange={e => setForm(p => ({ ...p, client_name: e.target.value }))} className="mt-1" /></div>
+                  <div><Label className="text-xs text-muted-foreground">Empresa / Razão Social</Label><Input value={form.client_company} onChange={e => setForm(p => ({ ...p, client_company: e.target.value }))} placeholder="Nome da empresa (aparece como cliente)" className="mt-1" /></div>
+                  <div><Label className="text-xs text-muted-foreground">Responsável</Label><Input value={form.client_name} onChange={e => setForm(p => ({ ...p, client_name: e.target.value }))} placeholder="Nome do responsável" className="mt-1" /></div>
                   <div><Label className="text-xs text-muted-foreground">CPF / CNPJ</Label><Input value={form.client_cpf_cnpj} onChange={e => setForm(p => ({ ...p, client_cpf_cnpj: e.target.value }))} className="mt-1" /></div>
                   <div><Label className="text-xs text-muted-foreground">Email</Label><Input type="email" value={form.client_email} onChange={e => setForm(p => ({ ...p, client_email: e.target.value }))} className="mt-1" /></div>
                   <div><Label className="text-xs text-muted-foreground">Endereço</Label><Input value={form.client_address} onChange={e => setForm(p => ({ ...p, client_address: e.target.value }))} className="mt-1" /></div>
