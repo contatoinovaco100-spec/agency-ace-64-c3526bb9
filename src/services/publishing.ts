@@ -81,7 +81,19 @@ export const publishingService = {
         thumbnail_url: input.thumbnailUrl ?? '',
         scheduled_at: input.scheduledAt || null,
         status: input.scheduledAt ? 'scheduled' : 'pending',
+        post_type: input.postType ?? 'auto',
+        share_to_feed: input.shareToFeed !== false,
+        collaborators: (input.collaborators ?? []).map(c => c.replace(/^@/, '').trim()).filter(Boolean),
+        location_id: input.locationId ?? '',
+        user_tags: (input.userTags ?? [])
+          .map(u => u.replace(/^@/, '').trim())
+          .filter(Boolean)
+          .map(username => ({ username, x: 0.5, y: 0.5 })),
+        cover_url: input.coverUrl ?? '',
+        thumb_offset: input.thumbOffset ?? 0,
+        audio_name: input.audioName ?? '',
       })
+
       .select('*')
       .single();
     if (error) throw error;
