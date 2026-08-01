@@ -187,9 +187,17 @@ export default function SocialAccountsPage() {
                 <Icon className="h-4 w-4" /> {label}
                 <span className="text-xs font-normal text-muted-foreground">({list.length})</span>
               </h2>
-              <AddAccountDialog platform={platform} label={label} onAdded={reload} />
-
+              <div className="flex items-center gap-2">
+                <AddAccountDialog platform={platform} label={label} onAdded={reload} />
+                <Button size="sm" onClick={() => startLogin(platform)} disabled={connecting === platform}>
+                  {connecting === platform
+                    ? <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    : <LogIn className="mr-1 h-4 w-4" />}
+                  Conectar {label}
+                </Button>
+              </div>
             </div>
+
 
             {loading ? (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
