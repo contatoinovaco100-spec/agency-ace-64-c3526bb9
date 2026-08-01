@@ -12,6 +12,9 @@ import { socialAccountsService } from '@/services/socialAccounts';
 import type { SocialAccount, SocialPlatform } from '@/types/social';
 
 const REDIRECT_PATH = '/redes-sociais';
+// URI canônico — precisa estar cadastrado igualzinho no app da Meta / TikTok
+const CANONICAL_ORIGIN = 'https://inovamarketing.online';
+const CANONICAL_REDIRECT = `${CANONICAL_ORIGIN}${REDIRECT_PATH}`;
 
 export default function SocialAccountsPage() {
   const { accounts, byPlatform, loading, reload } = useSocialAccounts();
@@ -20,18 +23,27 @@ export default function SocialAccountsPage() {
   const [connecting, setConnecting] = useState<SocialPlatform | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
 
-  const redirectUri = `${window.location.origin}${REDIRECT_PATH}`;
+  const redirectUri = CANONICAL_REDIRECT;
+  const isCanonicalOrigin = window.location.origin === CANONICAL_ORIGIN;
 
   // Retorno do OAuth
   useEffect(() => {
     const code = params.get('code');
-    if (!code) return;
+    const oauthError = params.get('error_description') || params.get('error');
+    if (!code && !oauthError) return;
+
     const platform = (sessionStorage.getItem('social_oauth_platform') || 'instagram') as SocialPlatform;
     sessionStorage.removeItem('social_oauth_platform');
     setParams({}, { replace: true });
+
+    if (oauthError) {
+      toast.error('Autorização recusada', { description: oauthError });
+      return;
+    }
+
     (async () => {
       try {
-        const res = await socialAccountsService.connect(platform, code, redirectUri);
+        const res = await socialAccountsService.connect(platform, code!, redirectUri);
         toast.success(`Conectado: ${res.accounts.join(', ')}`);
         reload();
       } catch (e: any) {
@@ -52,6 +64,7 @@ export default function SocialAccountsPage() {
       setConnecting(null);
     }
   };
+
 
   const reconnect = async (a: SocialAccount) => {
     setSyncingId(a.id);
