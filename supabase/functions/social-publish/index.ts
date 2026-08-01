@@ -79,6 +79,8 @@ Deno.serve(async (req) => {
             },
             {
               mediaUrl,
+              mediaUrls,
+              mediaTypes,
               mediaType: (job.media_type === "image" ? "image" : "video"),
               caption: job.caption || "",
               firstComment: job.first_comment || "",
