@@ -104,10 +104,11 @@ export const instagramAdapter: PlatformAdapter = {
       body: params,
     });
 
-    // Aguarda o container ficar pronto (vídeo ~5 min, imagem ~1 min)
-    const maxTries = input.mediaType === "video" ? 60 : 20;
+    // Aguarda o container ficar pronto (vídeo ~5 min, imagem ~45s)
+    const maxTries = input.mediaType === "video" ? 60 : 15;
     const waitMs = input.mediaType === "video" ? 5000 : 3000;
     let ready = false;
+    let noStatus = 0;
     for (let i = 0; i < maxTries; i++) {
       await sleep(waitMs);
       let st: any;
@@ -122,10 +123,16 @@ export const instagramAdapter: PlatformAdapter = {
       if (st.status_code === "ERROR" || st.status_code === "EXPIRED") {
         throw new Error(`Falha no processamento da mídia: ${st.status || st.status_code}`);
       }
+      if (!st.status_code) {
+        noStatus++;
+        // imagens nem sempre expõem status_code — segue após algumas checagens
+        if (input.mediaType !== "video" && noStatus >= 2) { ready = true; break; }
+      }
     }
     if (!ready && input.mediaType === "video") {
       throw new Error("Tempo esgotado no processamento do vídeo");
     }
+
 
     const publishParams = new URLSearchParams();
     publishParams.set("creation_id", container.id);
