@@ -144,6 +144,18 @@ export default function Dashboard() {
     
     const refDate = new Date(signatureDateStr);
     if (isNaN(refDate.getTime())) return;
+
+    // Casa o contrato com cliente cadastrado pelo nome (case-insensitive).
+    const matchedClient = clients.find(
+      c => norm(c.companyName) === norm(ct.client_name)
+    );
+
+    // Cliente cancelado: o LTV congela na data do cancelamento.
+    let limitDate = todayDate;
+    if (matchedClient?.status === 'Cancelado') {
+      const cancelDate = matchedClient.cancelledAt ? new Date(matchedClient.cancelledAt) : null;
+      if (cancelDate && !isNaN(cancelDate.getTime())) limitDate = cancelDate;
+    }
     
     let monthsPaid = 0;
     
@@ -156,7 +168,7 @@ export default function Dashboard() {
     }
     
     const duration = ct.duration_months || 999;
-    while (currentPaymentDate <= todayDate && monthsPaid < duration) {
+    while (currentPaymentDate <= limitDate && monthsPaid < duration) {
       monthsPaid++;
       currentPaymentDate.setMonth(currentPaymentDate.getMonth() + 1);
     }
@@ -164,11 +176,8 @@ export default function Dashboard() {
     if (monthsPaid < 1) return; // só conta quem já pagou pelo menos 1 mês completo
     const ltv = monthsPaid * (ct.monthly_value || 0);
 
-    // Casa o contrato com cliente cadastrado pelo nome (case-insensitive).
-    const matchedClient = clients.find(
-      c => norm(c.companyName) === norm(ct.client_name)
-    );
     const key = matchedClient?.id || `name:${norm(ct.client_name)}`;
+
 
     if (!ltvMap[key]) {
       ltvMap[key] = {
