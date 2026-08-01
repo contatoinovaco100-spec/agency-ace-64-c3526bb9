@@ -9,8 +9,9 @@ import {
 } from "./types.ts";
 
 const GRAPH = "https://graph.facebook.com/v21.0";
-const APP_ID = Deno.env.get("META_APP_ID") || "792310407276103";
+const APP_ID = Deno.env.get("META_APP_ID") || "2235928767163276";
 const APP_SECRET = Deno.env.get("META_APP_SECRET") || "";
+
 
 export const instagramAdapter: PlatformAdapter = {
   id: "instagram",
