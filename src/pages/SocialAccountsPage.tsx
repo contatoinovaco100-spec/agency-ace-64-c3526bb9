@@ -117,12 +117,8 @@ export default function SocialAccountsPage() {
                 <Icon className="h-4 w-4" /> {label}
                 <span className="text-xs font-normal text-muted-foreground">({list.length})</span>
               </h2>
-              <Button size="sm" onClick={() => startOAuth(platform)} disabled={connecting === platform}>
-                {connecting === platform
-                  ? <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                  : <Plus className="mr-1 h-4 w-4" />}
-                Conectar novo {label}
-              </Button>
+              <AddAccountDialog platform={platform} label={label} onAdded={reload} />
+
             </div>
 
             {loading ? (
