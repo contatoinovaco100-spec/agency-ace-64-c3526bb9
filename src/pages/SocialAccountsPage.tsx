@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Instagram, Music2, Share2, CalendarClock, AlertTriangle, Send, Loader2, LogIn,
+  HelpCircle, CheckCircle2, ExternalLink, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountCard } from '@/components/social/AccountCard';
@@ -12,6 +13,7 @@ import { useSocialAccounts } from '@/hooks/useSocialAccounts';
 import { usePublishJobs } from '@/hooks/usePublishJobs';
 import { socialAccountsService } from '@/services/socialAccounts';
 import type { SocialAccount, SocialPlatform } from '@/types/social';
+
 
 /** URI fixo — precisa estar cadastrado no app da Meta / TikTok. */
 const REDIRECT_URI = 'https://inovamarketing.online/redes-sociais';
@@ -154,6 +156,9 @@ export default function SocialAccountsPage() {
         </Card>
       )}
 
+      <ConnectionGuide />
+
+
 
 
 
@@ -225,3 +230,73 @@ export default function SocialAccountsPage() {
     </div>
   );
 }
+
+function ConnectionGuide() {
+  const [open, setOpen] = useState(true);
+  const steps = [
+    {
+      label: 'Instagram precisa ser Business/Criador',
+      desc: 'Acesse o app do Instagram → Configurações → Conta → Alternar para conta profissional. Escolha Business ou Criador.',
+    },
+    {
+      label: 'Vincule a uma Página do Facebook',
+      desc: 'No Centro de Contas do Meta, conecte seu perfil do Instagram a uma Página do Facebook que você administra.',
+    },
+    {
+      label: 'Cadastre o endereço de retorno no Meta',
+      desc: 'Abra developers.facebook.com, vá em seu app, Login do Facebook → Configurações, e adicione exatamente: https://inovamarketing.online/redes-sociais',
+    },
+    {
+      label: 'Clique em "Conectar Instagram" aqui na plataforma',
+      desc: 'Use este botão quando estiver no domínio oficial inovamarketing.online. O preview do editor não funciona.',
+    },
+    {
+      label: 'Autorize o app no Facebook',
+      desc: 'Marque todas as Páginas que aparecerem e confirme. A INOVA só recebe permissão de publicar — não altera sua senha.',
+    },
+  ];
+
+  return (
+    <Card className="border-primary/30 bg-primary/5">
+      <CardContent className="p-4">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="flex w-full items-center justify-between text-left"
+        >
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <HelpCircle className="h-4 w-4 text-primary" />
+            Como conectar o Instagram automaticamente (passo a passo)
+          </div>
+          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+
+        {open && (
+          <ol className="mt-4 space-y-3">
+            {steps.map((s, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  {i + 1}
+                </span>
+                <div>
+                  <p className="font-medium">{s.label}</p>
+                  <p className="text-muted-foreground">{s.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+
+        <div className="mt-4 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-500">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <p>
+            Se aparecer "Recurso indisponível" no login, o app da Meta ainda está em modo de desenvolvimento.
+            Você precisa ir em <strong>Configurações → Básico</strong> do app, preencher a URL da política de privacidade,
+            categoria e ícone, e depois mudar o seletor de <strong>Desenvolvimento → Ao vivo</strong>.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
