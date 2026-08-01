@@ -104,28 +104,56 @@ export const instagramAdapter: PlatformAdapter = {
       body: params,
     });
 
-    // Aguarda o processamento do vídeo (até ~5 min)
-    if (input.mediaType === "video") {
-      for (let i = 0; i < 60; i++) {
-        await sleep(5000);
-        const st = await jsonFetch(
+    // Aguarda o container ficar pronto (vídeo ~5 min, imagem ~1 min)
+    const maxTries = input.mediaType === "video" ? 60 : 20;
+    const waitMs = input.mediaType === "video" ? 5000 : 3000;
+    let ready = false;
+    for (let i = 0; i < maxTries; i++) {
+      await sleep(waitMs);
+      let st: any;
+      try {
+        st = await jsonFetch(
           `${GRAPH}/${container.id}?fields=status_code,status&access_token=${account.accessToken}`,
         );
-        if (st.status_code === "FINISHED") break;
-        if (st.status_code === "ERROR" || st.status_code === "EXPIRED") {
-          throw new Error(`Falha no processamento do vídeo: ${st.status || st.status_code}`);
-        }
-        if (i === 59) throw new Error("Tempo esgotado no processamento do vídeo");
+      } catch (_) {
+        continue;
       }
+      if (st.status_code === "FINISHED") { ready = true; break; }
+      if (st.status_code === "ERROR" || st.status_code === "EXPIRED") {
+        throw new Error(`Falha no processamento da mídia: ${st.status || st.status_code}`);
+      }
+    }
+    if (!ready && input.mediaType === "video") {
+      throw new Error("Tempo esgotado no processamento do vídeo");
     }
 
     const publishParams = new URLSearchParams();
     publishParams.set("creation_id", container.id);
     publishParams.set("access_token", account.accessToken);
-    const published = await jsonFetch(`${GRAPH}/${account.externalId}/media_publish`, {
-      method: "POST",
-      body: publishParams,
-    });
+
+    let published: any;
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      try {
+        published = await jsonFetch(`${GRAPH}/${account.externalId}/media_publish`, {
+          method: "POST",
+          body: publishParams,
+        });
+        lastErr = undefined;
+        break;
+      } catch (e) {
+        lastErr = e;
+        const msg = e instanceof Error ? e.message : String(e);
+        // container ainda não indexado pela Meta — tenta de novo
+        if (/Media ID is not available|not available|transient/i.test(msg)) {
+          await sleep(5000 * (attempt + 1));
+          continue;
+        }
+        throw e;
+      }
+    }
+    if (lastErr) throw lastErr;
+
 
     if (input.firstComment) {
       try {
