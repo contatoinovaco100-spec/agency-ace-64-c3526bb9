@@ -19,7 +19,7 @@ import type { SocialAccount, SocialPlatform } from '@/types/social';
 const REDIRECT_URI = 'https://inovamarketing.online/redes-sociais';
 
 export default function SocialAccountsPage() {
-  const { accounts, byPlatform, loading, reload } = useSocialAccounts();
+  const { accounts, byPlatform, loading, refreshing, reload } = useSocialAccounts();
   const { jobs } = usePublishJobs();
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [connecting, setConnecting] = useState<SocialPlatform | null>(null);
