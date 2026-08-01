@@ -156,6 +156,9 @@ export default function SocialAccountsPage() {
         </Card>
       )}
 
+      <ConnectionGuide />
+
+
 
 
 
