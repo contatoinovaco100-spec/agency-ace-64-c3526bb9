@@ -16,7 +16,17 @@ export interface PublishInput {
   caption: string;
   firstComment?: string;
   thumbnailUrl?: string;
+  /** auto | reels | image | stories */
+  postType?: string;
+  shareToFeed?: boolean;
+  collaborators?: string[];
+  locationId?: string;
+  userTags?: Array<{ username: string; x?: number; y?: number }>;
+  coverUrl?: string;
+  thumbOffset?: number;
+  audioName?: string;
 }
+
 
 export interface PublishResult {
   remotePostId: string;
