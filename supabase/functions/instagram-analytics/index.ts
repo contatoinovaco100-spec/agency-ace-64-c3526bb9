@@ -72,20 +72,19 @@ Deno.serve(async (req) => {
     const until = Math.floor(Date.now() / 1000);
     const since = until - range * 86400;
 
-    const dailyRaw = await safe(
-      () =>
-        g(
-          `${GRAPH}/${igId}/insights?metric=reach,profile_views&period=day&since=${since}&until=${until}&access_token=${token}`,
-        ),
-      { data: [] as any[] },
+    const reachRaw = await safe(
+      () => g(`${GRAPH}/${igId}/insights?metric=reach&period=day&since=${since}&until=${until}&access_token=${token}`),
+      { data: [] as any[] }
+    );
+
+    const viewsRaw = await safe(
+      () => g(`${GRAPH}/${igId}/insights?metric=views&period=day&since=${since}&until=${until}&access_token=${token}`),
+      { data: [] as any[] }
     );
 
     const followerRaw = await safe(
-      () =>
-        g(
-          `${GRAPH}/${igId}/insights?metric=follower_count&period=day&since=${since}&until=${until}&access_token=${token}`,
-        ),
-      { data: [] as any[] },
+      () => g(`${GRAPH}/${igId}/insights?metric=follower_count&period=day&since=${since}&until=${until}&access_token=${token}`),
+      { data: [] as any[] }
     );
 
     const byDate: Record<string, any> = {};
@@ -95,11 +94,14 @@ Deno.serve(async (req) => {
           const date = (v.end_time || "").slice(0, 10);
           if (!date) continue;
           byDate[date] = byDate[date] || { date };
-          byDate[date][metric.name] = Number(v.value) || 0;
+          // If metric name is "views", map it to "profile_views" so the frontend still works
+          const mName = metric.name === 'views' ? 'profile_views' : metric.name;
+          byDate[date][mName] = Number(v.value) || 0;
         }
       }
     };
-    collect(dailyRaw);
+    collect(reachRaw);
+    collect(viewsRaw);
     collect(followerRaw);
     const daily = Object.values(byDate).sort((a: any, b: any) => a.date.localeCompare(b.date));
 
