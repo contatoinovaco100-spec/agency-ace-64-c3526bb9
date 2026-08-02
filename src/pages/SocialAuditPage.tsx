@@ -146,8 +146,6 @@ export default function SocialAuditPage() {
       });
   }, [routeSlug, navigate]);
 
-  // Disable upload view entirely
-  const isPublicView = true;
 
 
   // Load history when authenticated

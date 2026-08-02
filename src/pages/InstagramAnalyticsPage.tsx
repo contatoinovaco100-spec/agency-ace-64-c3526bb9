@@ -97,7 +97,7 @@ export default function InstagramAnalyticsPage() {
         ? `TOM DA MENSAGEM: POSITIVO E ENCORAJADOR. Mesmo apontando problemas, destaque oportunidades, conquistas e o potencial de crescimento. Use linguagem otimista.`
         : `TOM DA MENSAGEM: CRÍTICO E DIRETO (NEGATIVO/ALERTA). Seja franco, urgente e mostre os riscos reais. Use linguagem de alerta. Não suavize problemas.`;
 
-      const systemPrompt = \`Você é um Consultor Sênior de Social Media com foco em Instagram.
+      const systemPrompt = `Você é um Consultor Sênior de Social Media com foco em Instagram.
 Você vai receber um JSON contendo métricas reais de um perfil do Instagram (alcance, seguidores, visitas, publicações recentes, virais, etc).
 Analise os dados e gere UM ÚNICO RELATÓRIO ESTRATÉGICO COMPLETO.
 
@@ -157,7 +157,7 @@ Retorne APENAS JSON neste formato:
     { "tipo": "warning", "mensagem": "Alerta" }
   ]
 }
-IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.\`;
+IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
 
       const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-copywriter', {
         body: {
@@ -172,7 +172,7 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.\`;
 
       let result: any = fnData?.result;
       if (typeof result === 'string') {
-        const cleaned = result.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+        const cleaned = result.replace(/```json/g, '').replace(/```/g, '').trim();
         result = JSON.parse(cleaned);
       }
       if (!result?.resumo) throw new Error('IA não retornou um relatório válido');
@@ -195,7 +195,7 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.\`;
 
       toast.success('Relatório estratégico gerado com sucesso!', { id: toastId });
       setIsAuditModalOpen(false);
-      navigate(\`/diagnostico-social/\${newSlug}\`);
+      navigate(`/diagnostico-social/${newSlug}`);
       
     } catch (e: any) {
       console.error(e);
