@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Download, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -21,11 +21,28 @@ interface PreparedAttachment {
 
 const IMAGE_EXT = /\.(png|jpe?g|webp|gif|bmp|svg|avif)$/i;
 
+// Cache global para signed URLs (evita regenerar a cada render)
+const signedUrlCache = new Map<string, { url: string; expires: number }>();
+const CACHE_DURATION = 55 * 60 * 1000; // 55 minutos (signed URL expira em 60)
+
 function extractPath(fileUrl: string): string | null {
   // URL format: https://<proj>.supabase.co/storage/v1/object/(public|sign)/task-attachments/<path>
   const m = fileUrl.match(/\/task-attachments\/(.+?)(\?|$)/);
   if (m) return decodeURIComponent(m[1]);
   return null;
+}
+
+function getCachedSignedUrl(path: string): string | null {
+  const cached = signedUrlCache.get(path);
+  if (cached && cached.expires > Date.now()) {
+    return cached.url;
+  }
+  if (cached) signedUrlCache.delete(path);
+  return null;
+}
+
+function setCachedSignedUrl(path: string, url: string): void {
+  signedUrlCache.set(path, { url, expires: Date.now() + CACHE_DURATION });
 }
 
 export default function ArteAttachmentsPreview({
@@ -38,51 +55,76 @@ export default function ArteAttachmentsPreview({
   const [items, setItems] = useState<PreparedAttachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from('task_attachments')
-        .select('id, file_name, file_url, file_type')
-        .eq('task_id', taskId)
-        .order('created_at', { ascending: false });
+  const loadAttachments = useCallback(async () => {
+    if (!taskId) return;
+    
+    setLoading(true);
+    const { data } = await supabase
+      .from('task_attachments')
+      .select('id, file_name, file_url, file_type')
+      .eq('task_id', taskId)
+      .order('created_at', { ascending: false });
 
-      const rows = (data || []) as AttachmentRow[];
-      const prepared: PreparedAttachment[] = [];
-      for (const r of rows) {
-        const path = extractPath(r.file_url || '');
-        if (!path) continue;
-        const isImage =
-          (r.file_type || '').startsWith('image/') || IMAGE_EXT.test(r.file_name);
+    const rows = (data || []) as AttachmentRow[];
+    const prepared: PreparedAttachment[] = [];
+    const pathsToSign: string[] = [];
+    const pathToIndex = new Map<string, number>();
+
+    for (const r of rows) {
+      const path = extractPath(r.file_url || '');
+      if (!path) continue;
+      const isImage =
+        (r.file_type || '').startsWith('image/') || IMAGE_EXT.test(r.file_name);
+      
+      // Verificar cache primeiro
+      if (isImage) {
+        const cachedUrl = getCachedSignedUrl(path);
+        prepared.push({ 
+          id: r.id, 
+          name: r.file_name, 
+          path, 
+          isImage, 
+          signedUrl: cachedUrl || undefined 
+        });
+        if (!cachedUrl) {
+          pathToIndex.set(path, prepared.length - 1);
+          pathsToSign.push(path);
+        }
+      } else {
         prepared.push({ id: r.id, name: r.file_name, path, isImage });
       }
+    }
 
-      // Sign image URLs for preview
-      const imagePaths = prepared.filter((p) => p.isImage).map((p) => p.path);
-      if (imagePaths.length) {
-        const { data: signed } = await supabase.storage
-          .from('task-attachments')
-          .createSignedUrls(imagePaths, 60 * 60);
-        if (signed) {
-          const map = new Map(signed.map((s) => [s.path, s.signedUrl]));
-          for (const p of prepared) {
-            const u = map.get(p.path);
-            if (u) p.signedUrl = u;
+    // Só busca signed URLs para imagens que não estão em cache
+    if (pathsToSign.length > 0) {
+      const { data: signed } = await supabase.storage
+        .from('task-attachments')
+        .createSignedUrls(pathsToSign, 60 * 60);
+      
+      if (signed) {
+        for (const s of signed) {
+          const idx = pathToIndex.get(s.path);
+          if (idx !== undefined && prepared[idx]) {
+            prepared[idx].signedUrl = s.signedUrl;
+            setCachedSignedUrl(s.path, s.signedUrl);
           }
         }
       }
+    }
 
-      if (!cancelled) {
-        setItems(prepared);
-        setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    if (mountedRef.current) {
+      setItems(prepared);
+      setLoading(false);
+    }
   }, [taskId]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    loadAttachments();
+    return () => { mountedRef.current = false; };
+  }, [loadAttachments]);
 
   const handleDownload = async (a: PreparedAttachment, e: React.MouseEvent) => {
     e.preventDefault();
@@ -111,8 +153,9 @@ export default function ArteAttachmentsPreview({
 
   if (loading) {
     return (
-      <div className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-        <Loader2 className="h-3 w-3 animate-spin" /> Carregando artes...
+      <div className={cn("flex items-center gap-1.5 text-[10px] text-muted-foreground", compact ? "mt-1" : "mt-2")}>
+        <Loader2 className="h-3 w-3 animate-spin" /> 
+        <span className="animate-pulse">Carregando artes...</span>
       </div>
     );
   }
@@ -124,19 +167,31 @@ export default function ArteAttachmentsPreview({
   return (
     <div className={cn("space-y-2", compact ? "mt-1" : "mt-2")} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
       {previewItem && (
-        <div className={cn("relative overflow-hidden rounded-md border border-border bg-muted", compact && "h-10")}>
+        <div className={cn("relative overflow-hidden rounded-md border border-border bg-muted/50", compact && "h-10")}>
+          {/* Placeholder com gradiente enquanto carrega */}
+          <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted/80 to-muted animate-pulse" />
           <img
             src={previewItem.signedUrl}
             alt={previewItem.name}
-            className={compact ? 'h-10 w-full object-cover' : 'max-h-72 w-full object-contain bg-black/40'}
+            className={cn(
+              "relative transition-opacity duration-300",
+              compact ? 'h-10 w-full object-cover' : 'max-h-72 w-full object-contain bg-black/40'
+            )}
             loading="lazy"
+            decoding="async"
+            onLoad={(e) => {
+              // Remove placeholder quando imagem carrega
+              const img = e.currentTarget;
+              img.style.opacity = '1';
+            }}
+            style={{ opacity: 0 }}
           />
           {!compact && (
             <button
               type="button"
               onClick={(e) => handleDownload(previewItem, e)}
               disabled={downloadingId === previewItem.id}
-              className="absolute right-1.5 top-1.5 inline-flex items-center gap-1 rounded bg-black/70 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur hover:bg-black/85 disabled:opacity-60"
+              className="absolute right-1.5 top-1.5 z-10 inline-flex items-center gap-1 rounded bg-black/70 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur hover:bg-black/85 disabled:opacity-60"
               title="Baixar em qualidade original"
             >
               {downloadingId === previewItem.id ? (
@@ -159,7 +214,7 @@ export default function ArteAttachmentsPreview({
               onClick={(e) => handleDownload(a, e)}
               disabled={downloadingId === a.id}
               className={cn(
-                "inline-flex max-w-full items-center gap-1 rounded border border-border bg-background text-foreground hover:bg-muted disabled:opacity-60",
+                "inline-flex max-w-full items-center gap-1 rounded border border-border bg-background text-foreground hover:bg-muted disabled:opacity-60 transition-colors",
                 compact ? "px-1 py-[1px] text-[8px]" : "px-1.5 py-0.5 text-[10px]"
               )}
               title={`Baixar ${a.name}`}

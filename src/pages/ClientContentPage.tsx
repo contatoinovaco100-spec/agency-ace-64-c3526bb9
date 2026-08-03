@@ -1,13 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import logoInova from '@/assets/logo-inova.png';
 import { cn } from '@/lib/utils';
-import { Clapperboard, Calendar, Target, FileText, Link2, MessageSquare, Loader2, ChevronDown, ChevronRight, CheckCircle, Eye, EyeOff, Palette, RefreshCw, Download } from 'lucide-react';
+import {
+  Clapperboard, Calendar, Target, FileText, Link2, MessageSquare,
+  Loader2, ChevronDown, ChevronRight, Palette, RefreshCw, Download,
+  CheckCircle2, Clock, Play, Instagram, Youtube, ExternalLink, X, ZoomIn,
+  Sparkles, LayoutList, Image as ImageIcon,
+} from 'lucide-react';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import { toast } from 'sonner';
+
+// Cache de dados da página
+const pageCache = new Map<string, { data: TaskData[]; clientName: string; timestamp: number }>();
+const PAGE_CACHE_DURATION = 2 * 60 * 1000; // 2 minutos
 
 interface TaskData {
   id: string;
@@ -35,22 +44,118 @@ interface TaskData {
   task_type?: string | null;
 }
 
-function TaskCard({ task, index, defaultOpen }: { task: TaskData; index: number; defaultOpen?: boolean }) {
-  const [open, setOpen] = useState(!!defaultOpen);
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
+function platformIcon(platform: string) {
+  const p = (platform || '').toLowerCase();
+  if (p.includes('instagram')) return <Instagram className="h-3 w-3" />;
+  if (p.includes('youtube')) return <Youtube className="h-3 w-3" />;
+  if (p.includes('tiktok')) return (
+    <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24">
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.32 6.32 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V9.41a8.16 8.16 0 0 0 4.77 1.52V7.49a4.85 4.85 0 0 1-1.01-.8z"/>
+    </svg>
+  );
+  return null;
+}
+
+function StatusBadge({ status, isArte }: { status: string; isArte?: boolean }) {
+  const cfg: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
+    'Postado':      { label: 'Postado',      cls: 'bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30',  icon: <CheckCircle2 className="h-3 w-3" /> },
+    'Programado':   { label: 'Programado',   cls: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',      icon: <Calendar className="h-3 w-3" /> },
+    'Finalizado':   { label: isArte ? 'Arte pronta' : 'Finalizado', cls: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30', icon: <Sparkles className="h-3 w-3" /> },
+    'Em revisão':   { label: 'Em revisão',   cls: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30', icon: <Clock className="h-3 w-3" /> },
+    'Em andamento': { label: 'Em andamento', cls: 'bg-primary/15 text-primary border-primary/30',                              icon: <Play className="h-3 w-3" /> },
+    'default':      { label: status,         cls: 'bg-muted text-muted-foreground border-border',                              icon: <LayoutList className="h-3 w-3" /> },
+  };
+  const { label, cls, icon } = cfg[status] || cfg['default'];
+  return (
+    <span className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', cls)}>
+      {icon}{label}
+    </span>
+  );
+}
+
+// ─── Lightbox ────────────────────────────────────────────────────────────────
+
+function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-sm" onClick={onClose}>
+      <button onClick={onClose} className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2.5 text-white hover:bg-white/25 transition-all" aria-label="Fechar">
+        <X className="h-5 w-5" />
+      </button>
+      <img src={src} alt="Arte" className="max-h-screen max-w-screen-xl w-full object-contain p-6 select-none" onClick={e => e.stopPropagation()} />
+    </div>
+  );
+}
+
+// ─── Arte Preview with clickable lightbox ────────────────────────────────────
+
+function ArtePreviewClickable({ taskId, status }: { taskId: string; status: string }) {
+  const [lightbox, setLightbox] = useState<string | null>(null);
+  const isRevisao = status === 'Em revisão';
+  return (
+    <>
+      <div className={cn('rounded-xl border p-4', isRevisao ? 'border-orange-500/30 bg-orange-500/5' : 'border-purple-500/30 bg-purple-500/5')}>
+        <div className="mb-3 flex items-center gap-2">
+          <Palette className={cn('h-4 w-4', isRevisao ? 'text-orange-500' : 'text-purple-500')} />
+          <h4 className="text-xs font-bold uppercase tracking-wide text-foreground">
+            {isRevisao ? '🎨 Arte em revisão — aguardando aprovação' : '✅ Arte pronta para publicação'}
+          </h4>
+        </div>
+        {/* We use ArteAttachmentsPreview but wrap it in a clickable overlay */}
+        <div className="relative group cursor-zoom-in" onClick={() => {
+          // Find the first image src rendered by ArteAttachmentsPreview and open it
+          const img = document.querySelector(`[data-arte-task="${taskId}"] img`) as HTMLImageElement | null;
+          if (img) setLightbox(img.src);
+        }}>
+          <div data-arte-task={taskId}>
+            <ArteAttachmentsPreview taskId={taskId} compact={false} />
+          </div>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 transition-all group-hover:bg-black/30">
+            <div className="flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-xs font-semibold text-white opacity-0 transition-all group-hover:opacity-100">
+              <ZoomIn className="h-3.5 w-3.5" /> Clique para ampliar
+            </div>
+          </div>
+        </div>
+      </div>
+      {lightbox && <Lightbox src={lightbox} onClose={() => setLightbox(null)} />}
+    </>
+  );
+}
+
+// ─── TaskCard ─────────────────────────────────────────────────────────────────
+
+function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, isConfirming }: {
+  task: TaskData;
+  index: number;
+  defaultOpen?: boolean;
+  onConfirmPost: (id: string) => void;
+  onConfirmProgram: (id: string) => void;
+  isConfirming: boolean;
+}) {
+  const [open, setOpen] = useState(!!defaultOpen);
   const [videoReloadKey, setVideoReloadKey] = useState(0);
+
   const isArte = task.task_type === 'Arte';
   const videoName = isArte ? (task.title || 'Arte sem título') : (task.video_name || task.title || 'Sem título');
-  
   const isPosted = task.status === 'Postado';
   const isProgramado = task.status === 'Programado';
+  const isFinalizado = task.status === 'Finalizado' || task.status === 'Em revisão';
+
   const displayDate = task.post_date || task.scheduled_date || task.due_date;
-  const formattedDate = displayDate 
+  const formattedDate = displayDate
     ? new Date(displayDate + (task.post_date && !displayDate.includes('T') ? 'T00:00:00' : '')).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
-    : 'Sem data';
+    : null;
   const postTime = (task as any).post_time as string | null | undefined;
   const formattedTime = postTime ? postTime.slice(0, 5) : null;
-  const isPast = displayDate && new Date(displayDate) < new Date();
+
+  const platformIc = platformIcon(task.platform);
 
   const sections = [
     { icon: Target, label: 'Objetivo', content: task.video_objective },
@@ -64,220 +169,269 @@ function TaskCard({ task, index, defaultOpen }: { task: TaskData; index: number;
   ].filter(s => s.content);
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
+    <div className={cn(
+      'group rounded-2xl border bg-card overflow-hidden shadow-sm transition-all duration-200',
+      isPosted ? 'border-green-500/30 opacity-75' : 'border-border hover:border-primary/30 hover:shadow-md',
+      open && !isPosted && 'border-primary/40 shadow-md ring-1 ring-primary/10'
+    )}>
+      {/* Card Header */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-4 p-5 text-left transition-colors hover:bg-secondary/20"
+        className="flex w-full items-start gap-4 p-5 text-left transition-colors hover:bg-secondary/10"
       >
-        <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", isArte ? "bg-pink-500/10" : "bg-primary/10")}>
-          {isArte ? <Palette className="h-5 w-5 text-pink-500" /> : <Clapperboard className="h-5 w-5 text-primary" />}
+        {/* Index bubble */}
+        <div className={cn(
+          'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold',
+          isPosted ? 'bg-green-500/15 text-green-600 dark:text-green-400' :
+          isArte ? 'bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-600 dark:text-pink-400' :
+          'bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary'
+        )}>
+          {isPosted ? <CheckCircle2 className="h-4.5 w-4.5" /> : `${index + 1}`}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-muted-foreground shrink-0">#{index + 1}</span>
-            <h3 className="text-base font-semibold text-foreground truncate">{videoName}</h3>
-            {task.video_url && (
-              <svg width="14" height="14" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg" className="shrink-0" aria-label="Vídeo no Drive"><title>Vídeo no Drive</title>
-                <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
-                <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
-                <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
-                <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-                <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-              </svg>
-            )}
+
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className={cn('text-base font-bold leading-snug text-foreground truncate', isPosted && 'line-through text-muted-foreground')}>
+              {videoName}
+            </h3>
+            {open ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />}
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
+
+          {/* Tags row */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <StatusBadge status={task.status} isArte={isArte} />
+
             {task.platform && (
-              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">{task.platform}</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-secondary border border-border px-2.5 py-0.5 text-[11px] font-medium text-foreground">
+                {platformIc}{task.platform}
+              </span>
             )}
             {task.format && (
-              <span className="rounded-full bg-info/10 px-2.5 py-0.5 text-[11px] font-medium text-info">{task.format}</span>
+              <span className="inline-flex items-center rounded-full bg-secondary border border-border px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                {task.format}
+              </span>
             )}
-            <span className={cn(
-              "rounded-full px-2.5 py-0.5 text-[11px] font-medium",
-              isPosted ? "bg-green-500/20 text-green-500" : "bg-yellow-500/20 text-yellow-500"
-            )}>
-              {isPosted ? 'Postado' : task.status || 'Pendente'}
-            </span>
-            <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-[#bff720]/20 text-[#5a7a00] dark:text-[#bff720] font-semibold">
-              <Calendar className="h-3 w-3" />
-              Postar: {formattedDate}{formattedTime ? ` às ${formattedTime}` : ''}
-            </span>
+
+            {formattedDate && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#bff720]/15 border border-[#bff720]/30 px-2.5 py-0.5 text-[11px] font-semibold text-[#5a7a00] dark:text-[#bff720]">
+                <Calendar className="h-3 w-3" />
+                {formattedDate}{formattedTime ? ` · ${formattedTime}` : ''}
+              </span>
+            )}
+
+            {task.video_url && !isArte && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
+                <Play className="h-3 w-3" /> Vídeo disponível
+              </span>
+            )}
           </div>
         </div>
-        
-        {open ? <ChevronDown className="h-5 w-5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />}
       </button>
 
+      {/* Expanded body */}
       {open && (
-        <div className="border-t border-border p-5 space-y-4">
-          {task.description && (
-            <p className="text-sm text-muted-foreground">{task.description}</p>
-          )}
-          {isArte && (
-            <div className="rounded-lg border border-pink-500/30 bg-pink-500/5 p-3">
-              <div className="mb-2 flex items-center gap-2">
-                <Palette className="h-3.5 w-3.5 text-pink-500" />
-                <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide">Arte pronta</h4>
-              </div>
-              <ArteAttachmentsPreview taskId={task.id} compact={false} />
-            </div>
-          )}
-          {!isArte && task.video_url && (() => {
-            const url = task.video_url;
-            const isDrive = /drive\.google\.com/i.test(url);
-            const isYouTube = /(youtube\.com|youtu\.be)/i.test(url);
-            const isVimeo = /vimeo\.com/i.test(url);
-            const isDirectFile = /\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(url);
-            const isSelfHosted = !isDrive && !isYouTube && !isVimeo && (isDirectFile || /supabase\.co\/storage/i.test(url));
+        <div className="border-t border-border">
+          <div className="p-5 space-y-5">
+            {task.description && (
+              <p className="text-sm text-muted-foreground leading-relaxed">{task.description}</p>
+            )}
 
-            if (isSelfHosted) {
+            {/* Arte preview */}
+            {isArte && <ArtePreviewClickable taskId={task.id} status={task.status} />}
+
+            {/* Video player */}
+            {!isArte && task.video_url && (() => {
+              const url = task.video_url!;
+              const isDrive = /drive\.google\.com/i.test(url);
+              const isYouTube = /(youtube\.com|youtu\.be)/i.test(url);
+              const isDirectFile = /\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(url);
+              const isSelfHosted = !isDrive && !isYouTube && (isDirectFile || /supabase\.co\/storage/i.test(url));
               const fileName = (task.video_name || task.title || 'video').replace(/[^\w.-]+/g, '_') + (url.match(/\.(mp4|webm|ogg|mov|m4v)(\?|$)/i)?.[0]?.split('?')[0] || '.mp4');
-              return (
-                <div className="space-y-2">
-                  <div className="rounded-lg overflow-hidden border border-primary/30 bg-black">
-                    <video
-                      key={videoReloadKey}
-                      src={url}
-                      controls
-                      playsInline
-                      preload="none"
-                      className="w-full max-h-[70vh] bg-black"
-                    />
 
+              if (isSelfHosted) return (
+                <div className="space-y-3">
+                  <div className="rounded-xl overflow-hidden border border-primary/20 bg-black shadow-inner relative group">
+                    {/* Placeholder com gradiente enquanto vídeo carrega */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center z-10 group-hover:opacity-0 transition-opacity duration-300">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Play className="h-6 w-6 text-primary ml-0.5" />
+                        </div>
+                        <p className="text-xs text-gray-400">Clique para reproduzir</p>
+                      </div>
+                    </div>
+                    <video 
+                      key={videoReloadKey} 
+                      src={url} 
+                      controls 
+                      playsInline 
+                      preload="metadata"
+                      className="w-full max-h-[65vh] bg-black relative z-20" 
+                    />
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span>Vídeo finalizado — assista e aprove antes da publicação.</span>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setVideoReloadKey(k => k + 1)}
-                        className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
-                      >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">🎬 Vídeo finalizado — assista e aprove antes da publicação</p>
+                    <div className="flex items-center gap-3 text-xs font-semibold text-primary">
+                      <button type="button" onClick={() => setVideoReloadKey(k => k + 1)} className="inline-flex items-center gap-1 hover:text-primary/80 transition-colors">
                         <RefreshCw className="w-3.5 h-3.5" /> Recarregar
                       </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const tid = toast.loading('Baixando vídeo...');
-                          try {
-                            const res = await fetch(url);
-                            if (!res.ok) throw new Error('Falha no download');
-                            const reader = res.body?.getReader();
-                            const total = Number(res.headers.get('content-length')) || 0;
-                            const chunks: Uint8Array[] = [];
-                            let received = 0;
-                            if (reader) {
-                              while (true) {
-                                const { done, value } = await reader.read();
-                                if (done) break;
-                                if (value) {
-                                  chunks.push(value);
-                                  received += value.length;
-                                  if (total) toast.loading(`Baixando... ${Math.round((received/total)*100)}%`, { id: tid });
-                                }
-                              }
+                      <button type="button" onClick={async () => {
+                        const tid = toast.loading('Baixando vídeo...');
+                        try {
+                          const res = await fetch(url);
+                          if (!res.ok) throw new Error('Falha no download');
+                          const chunks: Uint8Array[] = [];
+                          const total = Number(res.headers.get('content-length')) || 0;
+                          let received = 0;
+                          const reader = res.body?.getReader();
+                          if (reader) {
+                            while (true) {
+                              const { done, value } = await reader.read();
+                              if (done) break;
+                              if (value) { chunks.push(value); received += value.length; if (total) toast.loading(`Baixando... ${Math.round((received/total)*100)}%`, { id: tid }); }
                             }
-                            const blob = new Blob(chunks as BlobPart[], { type: res.headers.get('content-type') || 'video/mp4' });
-                            const objUrl = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = objUrl;
-                            a.download = fileName;
-                            document.body.appendChild(a);
-                            a.click();
-                            a.remove();
-                            setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
-                            toast.success('Download concluído!', { id: tid });
-                          } catch (e: any) {
-                            toast.error(`Erro ao baixar: ${e?.message || 'tente novamente'}`, { id: tid });
                           }
-                        }}
-                        className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
-                      >
+                          const blob = new Blob(chunks as BlobPart[], { type: res.headers.get('content-type') || 'video/mp4' });
+                          const objUrl = URL.createObjectURL(blob);
+                          const a = document.createElement('a'); a.href = objUrl; a.download = fileName;
+                          document.body.appendChild(a); a.click(); a.remove();
+                          setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
+                          toast.success('Download concluído!', { id: tid });
+                        } catch (e: any) { toast.error(`Erro ao baixar: ${e?.message || 'tente novamente'}`, { id: tid }); }
+                      }} className="inline-flex items-center gap-1 hover:text-primary/80 transition-colors">
                         <Download className="w-3.5 h-3.5" /> Baixar vídeo
                       </button>
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-semibold text-primary hover:underline"
-                      >
-                        Abrir em nova aba ↗
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary/80 transition-colors">
+                        <ExternalLink className="w-3.5 h-3.5" /> Abrir ↗
                       </a>
                     </div>
                   </div>
                 </div>
               );
-            }
 
-            if (isYouTube) {
-              const embed = url
-                .replace('watch?v=', 'embed/')
-                .replace('youtu.be/', 'youtube.com/embed/');
-              return (
-                <div className="aspect-video rounded-lg overflow-hidden border border-primary/30 bg-black">
-                  <iframe src={embed} className="w-full h-full" allowFullScreen title="Vídeo" />
-                </div>
-              );
-            }
-
-            if (isDrive) {
-              const preview = url.replace('/view', '/preview');
-              return (
-                <div className="space-y-2">
-                  <div className="aspect-video rounded-lg overflow-hidden border border-primary/30 bg-black">
-                    <iframe src={preview} className="w-full h-full" allow="autoplay" title="Vídeo Drive" />
+              if (isYouTube) {
+                const embed = url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
+                return (
+                  <div className="aspect-video rounded-xl overflow-hidden border border-primary/20 bg-black">
+                    <iframe src={embed} className="w-full h-full" allowFullScreen title="Vídeo" />
                   </div>
-                  <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-primary hover:underline">
-                    Abrir no Google Drive ↗
-                  </a>
-                </div>
-              );
-            }
+                );
+              }
 
-            return (
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex w-full items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/20 hover:border-primary/50 transition-all"
-              >
-                <span>Abrir vídeo finalizado</span>
-                <span>↗</span>
-              </a>
-            );
-          })()}
-
-          {sections.map((section, i) => (
-            <div key={i}>
-              <div className="mb-1.5 flex items-center gap-2">
-                <section.icon className="h-3.5 w-3.5 text-primary" />
-                <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide">{section.label}</h4>
-              </div>
-              {section.isLinks ? (
-                <div className="space-y-1">
-                  {section.content!.split('\n').filter(Boolean).map((line, j) => (
-                    <a key={j} href={line.trim().startsWith('http') ? line.trim() : `https://${line.trim()}`} target="_blank" rel="noopener noreferrer" className="block text-sm text-primary underline underline-offset-2 hover:text-primary/80 break-all">
-                      {line.trim()}
+              if (isDrive) {
+                const preview = url.replace('/view', '/preview');
+                return (
+                  <div className="space-y-2">
+                    <div className="aspect-video rounded-xl overflow-hidden border border-primary/20 bg-black">
+                      <iframe src={preview} className="w-full h-full" allow="autoplay" title="Vídeo Drive" />
+                    </div>
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                      <ExternalLink className="w-3 h-3" /> Abrir no Google Drive
                     </a>
-                  ))}
-                </div>
-              ) : (
-                <p className={cn(
-                  'text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed',
-                  section.large && 'rounded-lg bg-secondary/30 p-3 font-mono text-xs'
-                )}>
-                  {section.content}
-                </p>
-              )}
-            </div>
-          ))}
+                  </div>
+                );
+              }
+
+              return (
+                <a href={url} target="_blank" rel="noopener noreferrer" className="group flex w-full items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3.5 text-sm font-semibold text-primary hover:bg-primary/15 hover:border-primary/50 transition-all">
+                  <span className="flex items-center gap-2"><Play className="h-4 w-4" />Abrir vídeo finalizado</span>
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              );
+            })()}
+
+            {/* Content sections */}
+            {sections.length > 0 && (
+              <div className="space-y-4 pt-1">
+                <div className="h-px bg-border" />
+                {sections.map((section, i) => (
+                  <div key={i}>
+                    <div className="mb-2 flex items-center gap-2">
+                      <section.icon className="h-3.5 w-3.5 text-primary/70" />
+                      <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{section.label}</h4>
+                    </div>
+                    {section.isLinks ? (
+                      <div className="space-y-1.5">
+                        {section.content!.split('\n').filter(Boolean).map((line, j) => (
+                          <a key={j} href={line.trim().startsWith('http') ? line.trim() : `https://${line.trim()}`} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sm text-primary underline underline-offset-2 hover:text-primary/80 break-all">
+                            <ExternalLink className="h-3 w-3 shrink-0" />{line.trim()}
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className={cn('text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed', section.large && 'rounded-xl bg-secondary/40 p-4 font-mono text-xs border border-border')}>
+                        {section.content}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* CTA buttons — confirm post / program */}
+            {!isPosted && !isProgramado && isFinalizado && !isArte && (
+              <div className="flex flex-wrap gap-3 pt-2 border-t border-border">
+                <button
+                  type="button"
+                  disabled={isConfirming}
+                  onClick={() => onConfirmPost(task.id)}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-green-600 disabled:opacity-60 transition-all shadow-sm shadow-green-500/20"
+                >
+                  {isConfirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  Confirmar publicação
+                </button>
+                <button
+                  type="button"
+                  disabled={isConfirming}
+                  onClick={() => onConfirmProgram(task.id)}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/10 px-4 py-2.5 text-sm font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 disabled:opacity-60 transition-all"
+                >
+                  {isConfirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
+                  Marcar como programado
+                </button>
+              </div>
+            )}
+
+            {isPosted && (
+              <div className="flex items-center gap-2 rounded-xl bg-green-500/10 border border-green-500/20 px-4 py-3">
+                <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                <p className="text-sm font-semibold text-green-600 dark:text-green-400">Postagem confirmada ✓</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
   );
 }
+
+// ─── Progress Bar ─────────────────────────────────────────────────────────────
+
+function ProgressBar({ tasks }: { tasks: TaskData[] }) {
+  if (tasks.length === 0) return null;
+  const posted = tasks.filter(t => t.status === 'Postado').length;
+  const pct = Math.round((posted / tasks.length) * 100);
+  return (
+    <div className="mb-8 rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-bold text-foreground">Progresso do mês</p>
+          <p className="text-xs text-muted-foreground">{posted} de {tasks.length} conteúdos publicados</p>
+        </div>
+        <span className="text-2xl font-black text-primary">{pct}%</span>
+      </div>
+      <div className="h-2.5 w-full rounded-full bg-secondary overflow-hidden">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-primary to-[#bff720] transition-all duration-700"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ClientContentPage() {
   const { taskId } = useParams<{ taskId: string }>();
@@ -291,63 +445,20 @@ export default function ClientContentPage() {
   const { isAdmin } = useUserRole();
   const isInternal = !!user && isAdmin;
 
-  useEffect(() => {
-    if (!taskId) return;
-    // Hydrate from cache instantly for perceived speed
-    try {
-      const cached = sessionStorage.getItem(`client-content:${taskId}`);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed?.tasks?.length) {
-          setTasks(parsed.tasks);
-          setClientName(parsed.clientName || '');
-          setLoading(false);
-        }
+  const loadContent = useCallback(async (id: string, forceRefresh = false) => {
+    // Verificar cache primeiro (se não forçar refresh)
+    if (!forceRefresh) {
+      const cached = pageCache.get(id);
+      if (cached && Date.now() - cached.timestamp < PAGE_CACHE_DURATION) {
+        setTasks(cached.data);
+        setClientName(cached.clientName);
+        setLoading(false);
+        return;
       }
-    } catch {}
-    loadContent(taskId);
-  }, [taskId]);
-
-  // Auto-refresh a cada 4 minutos + ao voltar o foco (evita cache em mobile)
-  useEffect(() => {
-    if (!taskId) return;
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') loadContent(taskId);
-    }, 4 * 60 * 1000);
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') loadContent(taskId);
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', onVisible);
-    };
-  }, [taskId]);
-
-  const updateStatusRpc = async (taskIdToConfirm: string, newStatus: 'Postado' | 'Programado') => {
-    setConfirmingId(taskIdToConfirm);
-    setTasks(prev => prev.map(t =>
-      t.id === taskIdToConfirm ? { ...t, status: newStatus } : t
-    ));
-    try {
-      const { error } = await (supabase as any).rpc('update_public_task_status', { _id: taskIdToConfirm, _status: newStatus });
-      if (error) throw error;
-      toast.success(newStatus === 'Postado' ? 'Postagem confirmada com sucesso!' : 'Programação confirmada com sucesso!');
-    } catch (err: any) {
-      console.error('Error updating task status:', err);
-      toast.error(`Erro ao confirmar: ${err?.message || 'tente novamente'}`);
-    } finally {
-      setConfirmingId(null);
     }
-  };
 
-  const handleConfirmPost = (taskIdToConfirm: string) => updateStatusRpc(taskIdToConfirm, 'Postado');
-  const handleConfirmProgram = (taskIdToConfirm: string) => updateStatusRpc(taskIdToConfirm, 'Programado');
-
-  const loadContent = async (id: string) => {
     const { data: tasksData, error } = await (supabase as any).rpc('get_public_client_tasks', { _anchor: id });
     if (error) console.error('Error loading tasks:', error);
-
     const list = (tasksData as TaskData[] | null) || [];
     if (list.length > 0) {
       const clientId = list[0].client_id;
@@ -359,115 +470,243 @@ export default function ClientContentPage() {
       setTasks(list);
       if (name) setClientName(name);
       setLoading(false);
-      try {
-        sessionStorage.setItem(`client-content:${id}`, JSON.stringify({ tasks: list, clientName: name }));
+      
+      // Atualizar cache
+      pageCache.set(id, { data: list, clientName: name, timestamp: Date.now() });
+      
+      // Salvar também no sessionStorage
+      try { 
+        sessionStorage.setItem(`client-content:${id}`, JSON.stringify({ tasks: list, clientName: name })); 
       } catch {}
       return;
     }
-
     setNotFound(true);
     setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!taskId) return;
+    
+    // Tentar carregar do sessionStorage primeiro (instantâneo)
+    try {
+      const cached = sessionStorage.getItem(`client-content:${taskId}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.tasks?.length) {
+          setTasks(parsed.tasks);
+          setClientName(parsed.clientName || '');
+          setLoading(false);
+        }
+      }
+    } catch {}
+    
+    // Carregar dados atualizados
+    loadContent(taskId);
+  }, [taskId, loadContent]);
+
+  useEffect(() => {
+    if (!taskId) return;
+    
+    let refreshTimeout: NodeJS.Timeout;
+    let isRefreshing = false;
+    
+    const debouncedRefresh = () => {
+      if (isRefreshing) return;
+      clearTimeout(refreshTimeout);
+      refreshTimeout = setTimeout(() => {
+        if (document.visibilityState === 'visible') {
+          isRefreshing = true;
+          loadContent(taskId, true).finally(() => {
+            isRefreshing = false;
+          });
+        }
+      }, 1000); // Debounce de 1 segundo
+    };
+    
+    const interval = setInterval(debouncedRefresh, 4 * 60 * 1000);
+    const onVisible = debouncedRefresh;
+    
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { 
+      clearInterval(interval); 
+      clearTimeout(refreshTimeout);
+      document.removeEventListener('visibilitychange', onVisible); 
+    };
+  }, [taskId, loadContent]);
+
+  const updateStatusRpc = async (taskIdToConfirm: string, newStatus: 'Postado' | 'Programado') => {
+    setConfirmingId(taskIdToConfirm);
+    setTasks(prev => prev.map(t => t.id === taskIdToConfirm ? { ...t, status: newStatus } : t));
+    try {
+      const { error } = await (supabase as any).rpc('update_public_task_status', { _id: taskIdToConfirm, _status: newStatus });
+      if (error) throw error;
+      toast.success(newStatus === 'Postado' ? '✅ Postagem confirmada com sucesso!' : '📅 Programação confirmada!');
+    } catch (err: any) {
+      toast.error(`Erro ao confirmar: ${err?.message || 'tente novamente'}`);
+    } finally {
+      setConfirmingId(null);
+    }
   };
 
-  if (loading && tasks.length === 0) {
-    return (
-      <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-10 border-b border-border bg-card/95">
-          <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-            <img src={logoInova} alt="Inova" className="h-10" />
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+  // ── Loading skeleton ──
+  if (loading && tasks.length === 0) return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
+          <img src={logoInova} alt="Inova" className="h-10" />
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span className="text-xs text-muted-foreground animate-pulse">Carregando...</span>
           </div>
-        </header>
-        <main className="mx-auto max-w-3xl px-6 py-8 space-y-4">
-          {[0, 1, 2].map(i => (
-            <div key={i} className="h-24 rounded-xl border border-border bg-card animate-pulse" />
-          ))}
-        </main>
-      </div>
-    );
-  }
+        </div>
+      </header>
+      <main className="mx-auto max-w-3xl px-6 py-8 space-y-4">
+        {/* Hero skeleton */}
+        <div className="mb-8 space-y-2">
+          <div className="h-8 w-64 bg-muted rounded-lg animate-pulse" />
+          <div className="h-4 w-96 bg-muted/60 rounded animate-pulse" />
+        </div>
+        {/* Progress bar skeleton */}
+        <div className="h-24 rounded-2xl border border-border bg-card animate-pulse" />
+        {/* Cards skeleton */}
+        {[0, 1, 2].map(i => (
+          <div key={i} className="h-28 rounded-2xl border border-border bg-card animate-pulse flex items-center gap-4 p-5">
+            <div className="h-9 w-9 rounded-xl bg-muted shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-5 w-48 bg-muted rounded animate-pulse" />
+              <div className="flex gap-2">
+                <div className="h-5 w-20 bg-muted rounded-full animate-pulse" />
+                <div className="h-5 w-24 bg-muted rounded-full animate-pulse" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </main>
+    </div>
+  );
 
-
-  if (notFound || tasks.length === 0) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background">
-        <img src={logoInova} alt="Inova" className="h-12" />
-        <p className="text-lg text-muted-foreground">Conteúdo não encontrado.</p>
+  // ── Not found ──
+  if (notFound || tasks.length === 0) return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background px-6">
+      <img src={logoInova} alt="Inova" className="h-12 opacity-70" />
+      <div className="text-center">
+        <p className="text-xl font-bold text-foreground">Conteúdo não encontrado</p>
+        <p className="mt-1 text-sm text-muted-foreground">Verifique o link ou entre em contato com a equipe Inova.</p>
       </div>
-    );
-  }
+    </div>
+  );
 
   const pendingTasks = tasks.filter(t => {
     if (taskId && t.id === taskId) return true;
     const isArte = t.task_type === 'Arte';
-
-    // Concluído nunca aparece para o cliente. Para artes, só aparece se estiver "Finalizado".
     if (t.status === 'Concluído') return false;
     if (t.status === 'Postado') return false;
-    if (isArte && t.status !== 'Finalizado') return false;
+    if (isArte && t.status !== 'Finalizado' && t.status !== 'Em revisão') return false;
     const taskDate = t.post_date || t.scheduled_date || t.due_date;
     if (!taskDate) return true;
     const date = new Date(taskDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
     if (date < today && !isInternal && !isArte) return false;
     return true;
   });
   const postedTasks = tasks.filter(t => t.status === 'Postado');
   const displayedTasks = showPosted ? tasks.filter(t => t.status !== 'Concluído') : pendingTasks;
+  const allTasks = tasks.filter(t => t.status !== 'Concluído');
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
       <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <img src={logoInova} alt="Inova" className="h-10" />
-          <div className="flex items-center gap-4">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-4">
+          <div className="flex items-center gap-3">
+            <img src={logoInova} alt="Inova" className="h-10" />
+            {clientName && (
+              <div className="hidden sm:block h-6 w-px bg-border" />
+            )}
+            {clientName && (
+              <p className="hidden sm:block text-sm font-semibold text-foreground">{clientName}</p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
-              title="Recarregar página"
+              onClick={() => loadContent(taskId!)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+              title="Atualizar"
             >
-              <RefreshCw className="h-4 w-4" /> Recarregar
+              <RefreshCw className="h-4 w-4" />
+              <span className="hidden sm:inline">Atualizar</span>
             </button>
+
             <div className="text-right">
-              {clientName && <p className="text-sm font-medium text-foreground">{clientName}</p>}
-              <p className="text-xs text-muted-foreground">{pendingTasks.length} {pendingTasks.length === 1 ? 'pendente' : 'pendentes'}</p>
+              {clientName && <p className="text-sm font-semibold text-foreground sm:hidden">{clientName}</p>}
+              <p className="text-xs text-muted-foreground">
+                {pendingTasks.length} {pendingTasks.length === 1 ? 'pendente' : 'pendentes'}
+              </p>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-6 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Cronograma de Conteúdo (Atualizado)</h1>
-            <p className="text-sm text-muted-foreground">Confirme as postagens conforme forem sendo publicadas</p>
-          </div>
-          {postedTasks.length > 0 && (
+      <main className="mx-auto max-w-3xl px-4 sm:px-6 py-8">
+        {/* Hero title */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-black text-foreground tracking-tight">
+            Cronograma de Conteúdo
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Confira os conteúdos preparados pela equipe Inova e confirme as publicações.
+          </p>
+        </div>
+
+        {/* Progress bar (only when there are multiple tasks) */}
+        {allTasks.length > 1 && <ProgressBar tasks={allTasks} />}
+
+        {/* Toggle show posted */}
+        {postedTasks.length > 0 && (
+          <div className="mb-5 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+              {showPosted ? 'Todos os conteúdos' : 'Conteúdos pendentes'}
+            </p>
             <button
               onClick={() => setShowPosted(!showPosted)}
-              className="text-sm text-primary hover:underline"
+              className="text-xs font-semibold text-primary hover:underline underline-offset-2 flex items-center gap-1"
             >
-              {showPosted ? 'Ocultar publicados' : `Ver ${postedTasks.length} publicados`}
+              {showPosted ? `Ocultar publicados` : `+ Ver ${postedTasks.length} publicado${postedTasks.length > 1 ? 's' : ''}`}
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
+        {/* Task list */}
         <div className="space-y-4">
           {displayedTasks.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">Nenhuma tarefa pendente!</p>
+            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border py-16 text-center">
+              <Sparkles className="h-10 w-10 text-muted-foreground/40" />
+              <p className="text-base font-semibold text-muted-foreground">Tudo em dia! 🎉</p>
+              <p className="text-sm text-muted-foreground/70">Nenhum conteúdo pendente no momento.</p>
+            </div>
           ) : (
             displayedTasks.map((task, i) => (
-              <TaskCard key={task.id} task={task} index={i} defaultOpen={task.id === taskId} />
+              <TaskCard
+                key={task.id}
+                task={task}
+                index={i}
+                defaultOpen={task.id === taskId || (displayedTasks.length === 1)}
+                onConfirmPost={id => updateStatusRpc(id, 'Postado')}
+                onConfirmProgram={id => updateStatusRpc(id, 'Programado')}
+                isConfirming={confirmingId === task.id}
+              />
             ))
-
           )}
         </div>
 
-        <div className="mt-12 border-t border-border pt-6 text-center">
-          <img src={logoInova} alt="Inova" className="mx-auto h-8 opacity-50" />
-          <p className="mt-2 text-xs text-muted-foreground">Conteúdo preparado pela equipe Inova</p>
+        {/* Footer */}
+        <div className="mt-16 border-t border-border pt-8 text-center">
+          <img src={logoInova} alt="Inova" className="mx-auto h-8 opacity-40" />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Conteúdo preparado com 💛 pela equipe <span className="font-semibold">Inova</span>
+          </p>
         </div>
       </main>
     </div>
