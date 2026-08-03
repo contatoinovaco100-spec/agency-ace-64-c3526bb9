@@ -187,8 +187,8 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   return (
     <div className="flex flex-col h-full w-full">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4 shrink-0">
-        <h2 className="text-base sm:text-lg font-semibold text-foreground">{isNew ? 'Nova Tarefa' : 'Detalhes da Tarefa'}</h2>
+      <div className="flex items-center justify-between border-b border-border px-3 py-2 sm:px-6 sm:py-4 shrink-0">
+        <h2 className="text-sm sm:text-lg font-semibold text-foreground">{isNew ? 'Nova Tarefa' : 'Detalhes da Tarefa'}</h2>
         <div className="flex items-center gap-1">
           {!isNew && task && (
             <Button variant="ghost" size="icon" className="h-8 w-8" title="Compartilhar" onClick={() => {
@@ -205,9 +205,9 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="grid gap-5 p-4 sm:p-6">
+        <div className="grid gap-3 sm:gap-5 p-3 sm:p-6">
           {/* ── Core fields ── */}
-          <div className="grid gap-4">
+          <div className="grid gap-3 sm:gap-4">
             <div>
               <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Nome da tarefa / vídeo</Label>
               <Input value={form.videoName || form.title || ''} onChange={e => setForm({ ...form, videoName: e.target.value, title: e.target.value })} placeholder="Ex: Reels de lançamento" className="mt-1" />
@@ -232,7 +232,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                 Tarefas marcadas como "Arte estática" aparecem na aba <span className="font-semibold text-foreground">Artes Estáticas</span> em vez do Kanban de Tarefas.
               </p>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
               <div>
                 <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Cliente</Label>
                 <Select value={form.clientId || ''} onValueChange={v => setForm({ ...form, clientId: v })}>
@@ -248,7 +248,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
               <div>
                 <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Prioridade</Label>
                 <Select value={form.priority || 'Média'} onValueChange={v => setForm({ ...form, priority: v as any })}>
@@ -261,9 +261,9 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                 <Input type="date" value={form.dueDate || ''} onChange={e => setForm({ ...form, dueDate: e.target.value })} className="mt-1" />
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
               <div>
-                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Data de postagem (cliente)</Label>
+                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Data de postagem</Label>
                 <Input type="date" value={form.postDate || ''} onChange={e => setForm({ ...form, postDate: e.target.value })} className="mt-1" />
               </div>
               <div>
@@ -282,7 +282,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               <span className="flex h-6 w-6 items-center justify-center rounded bg-primary/20 text-xs">📹</span> 
               Produção de Vídeo
             </h3>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-3">
               <div>
                 <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Plataforma</Label>
                 <Select value={form.platform || ''} onValueChange={v => setForm({ ...form, platform: v })}>
@@ -311,7 +311,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2">
               <div>
                 <Label className="text-[10px] text-muted-foreground uppercase">✍️ Copywriter</Label>
                 <Select value={form.copywriter || ''} onValueChange={v => setForm({ ...form, copywriter: v })}>
@@ -466,17 +466,17 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
             <>
               <Separator />
               <Tabs defaultValue={form.taskType === 'Arte' ? 'references' : 'checklist'} className="w-full">
-                <TabsList className="w-full">
+                <TabsList className="w-full h-auto flex-wrap gap-0.5">
                   {form.taskType === 'Arte' && (
-                    <TabsTrigger value="references" className="flex-1 gap-1"><Link className="h-3.5 w-3.5" /> Referências</TabsTrigger>
+                    <TabsTrigger value="references" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><Link className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Refs</TabsTrigger>
                   )}
                   {form.taskType === 'Arte' && (
-                    <TabsTrigger value="caption" className="flex-1 gap-1"><FileText className="h-3.5 w-3.5" /> Legenda</TabsTrigger>
+                    <TabsTrigger value="caption" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Legenda</TabsTrigger>
                   )}
-                  <TabsTrigger value="checklist" className="flex-1 gap-1"><CheckSquare className="h-3.5 w-3.5" /> Checklist</TabsTrigger>
-                  <TabsTrigger value="comments" className="flex-1 gap-1"><MessageSquare className="h-3.5 w-3.5" /> Comentários ({comments.length})</TabsTrigger>
-                  <TabsTrigger value="attachments" className="flex-1 gap-1"><FileText className="h-3.5 w-3.5" /> Anexos ({attachments.length})</TabsTrigger>
-                  <TabsTrigger value="history" className="flex-1 gap-1"><History className="h-3.5 w-3.5" /> Histórico ({stageHistory.length})</TabsTrigger>
+                  <TabsTrigger value="checklist" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><CheckSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Check</TabsTrigger>
+                  <TabsTrigger value="comments" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><MessageSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Notas ({comments.length})</TabsTrigger>
+                  <TabsTrigger value="attachments" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Arq ({attachments.length})</TabsTrigger>
+                  <TabsTrigger value="history" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><History className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Hist ({stageHistory.length})</TabsTrigger>
                 </TabsList>
 
                 {/* Referências (Arte) */}
@@ -674,13 +674,13 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
       </div>
 
       {/* Footer actions */}
-      <div className="flex items-center gap-2 border-t border-border px-6 py-4 shrink-0">
-        <Button onClick={handleSave} className="flex-1" disabled={saving}>
-          {saving ? 'Salvando...' : isNew ? 'Criar Tarefa' : 'Salvar'}
+      <div className="flex items-center gap-2 border-t border-border px-3 py-2 sm:px-6 sm:py-4 shrink-0">
+        <Button onClick={handleSave} className="flex-1 h-9 sm:h-10 text-sm" disabled={saving}>
+          {saving ? 'Salvando...' : isNew ? 'Criar' : 'Salvar'}
         </Button>
         {!isNew && task && (
-          <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => onDelete(task.id)}>
-            <Trash2 className="mr-1 h-4 w-4" /> Excluir
+          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive h-9" onClick={() => onDelete(task.id)}>
+            <Trash2 className="mr-1 h-3.5 w-3.5" /> Excluir
           </Button>
         )}
       </div>
