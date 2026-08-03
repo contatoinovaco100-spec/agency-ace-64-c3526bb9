@@ -93,42 +93,87 @@ interface GraphData {
   thumbnail_url: string | null;
 }
 
+function shortcodeOf(url: string): string | null {
+  const m = url.match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/i);
+  return m ? m[1] : null;
+}
+
+/** Busca insights de views de uma mídia já identificada. */
+async function fetchInsightsViews(mediaId: string, token: string, isVideo: boolean): Promise<number | null> {
+  const metrics = isVideo ? ["views", "plays", "video_views", "reach"] : ["views", "reach"];
+  for (const metric of metrics) {
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/v21.0/${mediaId}/insights?metric=${metric}&access_token=${token}`,
+      );
+      const data = await res.json();
+      const val = data?.data?.[0]?.values?.[0]?.value;
+      if (typeof val === "number" && val > 0) return val;
+    } catch (_) { /* tenta próxima métrica */ }
+  }
+  return null;
+}
+
+/**
+ * Monta um índice shortcode -> mídia varrendo as mídias recentes de cada
+ * conta do Instagram conectada pelo app da Meta (social_accounts).
+ */
+async function buildMediaIndex(
+  accounts: Array<{ external_id: string; token: string }>,
+): Promise<Map<string, { id: string; token: string; data: GraphData; isVideo: boolean }>> {
+  const index = new Map<string, { id: string; token: string; data: GraphData; isVideo: boolean }>();
+  for (const acc of accounts) {
+    let url =
+      `https://graph.facebook.com/v21.0/${acc.external_id}/media?fields=id,permalink,media_type,media_product_type,like_count,comments_count,thumbnail_url,media_url&limit=100&access_token=${acc.token}`;
+    for (let page = 0; page < 3 && url; page++) {
+      try {
+        const res = await fetch(url);
+        const body = await res.json();
+        if (!res.ok || body?.error) break;
+        for (const m of body.data || []) {
+          const code = shortcodeOf(m.permalink || "");
+          if (!code || index.has(code)) continue;
+          const isVideo = m.media_type === "VIDEO" || m.media_product_type === "REELS";
+          index.set(code, {
+            id: m.id,
+            token: acc.token,
+            isVideo,
+            data: {
+              views: null,
+              like_count: m.like_count || 0,
+              comment_count: m.comments_count || 0,
+              media_type: m.media_product_type === "REELS" ? "REELS" : (m.media_type || ""),
+              thumbnail_url: m.thumbnail_url || m.media_url || null,
+            },
+          });
+        }
+        url = body?.paging?.next || "";
+      } catch (_) {
+        break;
+      }
+    }
+  }
+  return index;
+}
+
 async function fetchGraphStats(mediaId: string, tokens: string[]): Promise<GraphData | null> {
   for (const token of tokens) {
     try {
       const mediaRes = await fetch(
-        `https://graph.facebook.com/v21.0/${mediaId}?fields=like_count,comments_count,media_type,media_url,thumbnail_url,permalink&access_token=${token}`
+        `https://graph.facebook.com/v21.0/${mediaId}?fields=like_count,comments_count,media_type,media_product_type,media_url,thumbnail_url,permalink&access_token=${token}`
       );
       if (!mediaRes.ok) continue;
       const mediaData = await mediaRes.json();
       if (mediaData.error) continue;
 
-      let views: number | null = null;
-
-      if (mediaData.media_type === "VIDEO") {
-        const insightsRes = await fetch(
-          `https://graph.facebook.com/v21.0/${mediaId}/insights?metric=plays,video_views&access_token=${token}`
-        );
-        const insightsData = await insightsRes.json();
-
-        if (insightsData?.data) {
-          for (const metric of insightsData.data) {
-            const val = metric?.values?.[0]?.value;
-            if (val !== undefined && val > 0) {
-              views = val;
-              break;
-            }
-          }
-        }
-      } else {
-        views = null;
-      }
+      const isVideo = mediaData.media_type === "VIDEO" || mediaData.media_product_type === "REELS";
+      const views = isVideo ? await fetchInsightsViews(mediaId, token, true) : null;
 
       return {
         views,
         like_count: mediaData.like_count || 0,
         comment_count: mediaData.comments_count || 0,
-        media_type: mediaData.media_type || "",
+        media_type: mediaData.media_product_type === "REELS" ? "REELS" : (mediaData.media_type || ""),
         thumbnail_url: mediaData.thumbnail_url || mediaData.media_url || null,
       };
     } catch (e) {
@@ -137,6 +182,7 @@ async function fetchGraphStats(mediaId: string, tokens: string[]): Promise<Graph
   }
   return null;
 }
+
 
 async function scrapePost(
   url: string,
@@ -214,6 +260,32 @@ Deno.serve(async (req) => {
     const tokens: string[] = [];
     if (globalToken) tokens.push(globalToken);
 
+    // Contas do Instagram conectadas pelo app da Meta (fonte principal)
+    const igAccounts: Array<{ external_id: string; token: string }> = [];
+    try {
+      const { data: socialAccounts } = await supabase
+        .from("social_accounts")
+        .select("id, external_id, platform, status");
+      const igIds = (socialAccounts || []).filter((a: any) =>
+        a.platform === "instagram" && a.external_id
+      );
+      if (igIds.length) {
+        const { data: secrets } = await supabase
+          .from("social_account_secrets")
+          .select("account_id, access_token")
+          .in("account_id", igIds.map((a: any) => a.id));
+        const byId = new Map((secrets || []).map((s: any) => [s.account_id, s.access_token]));
+        for (const a of igIds) {
+          const tk = byId.get((a as any).id);
+          if (!tk) continue;
+          igAccounts.push({ external_id: (a as any).external_id, token: tk });
+          if (!tokens.includes(tk)) tokens.push(tk);
+        }
+      }
+    } catch (dbErr) {
+      console.error("Erro ao carregar contas conectadas:", dbErr);
+    }
+
     try {
       const { data: accounts } = await supabase
         .from("client_meta_accounts")
@@ -229,6 +301,10 @@ Deno.serve(async (req) => {
       console.error("Erro ao carregar tokens do banco:", dbErr);
     }
 
+    // Índice de mídias das contas conectadas (shortcode -> mídia)
+    const mediaIndex = igAccounts.length ? await buildMediaIndex(igAccounts) : new Map();
+    console.log(`Contas IG conectadas: ${igAccounts.length} | mídias indexadas: ${mediaIndex.size}`);
+
     const results: Array<{
       id: string;
       ok: boolean;
@@ -237,8 +313,34 @@ Deno.serve(async (req) => {
     }> = [];
 
     for (const p of posts || []) {
-      const { views, error: err, graphData } = await scrapePost(p.post_url, tokens);
+      let views: number | null = null;
+      let err: string | null = null;
+      let graphData: GraphData | null = null;
+
+      // 1) Via app da Meta — mídia da própria conta conectada
+      const code = shortcodeOf(p.post_url || "");
+      const hit = code ? mediaIndex.get(code) : undefined;
+      if (hit) {
+        const v = await fetchInsightsViews(hit.id, hit.token, hit.isVideo);
+        graphData = { ...hit.data, views: v };
+        views = v;
+        if (views === null) err = "sem métrica de views na Graph API";
+      }
+
+      // 2) Fallback: scraping público
+      if (views === null) {
+        const scraped = await scrapePost(p.post_url, tokens);
+        if (scraped.views !== null) {
+          views = scraped.views;
+          err = null;
+          graphData = scraped.graphData ?? graphData;
+        } else if (!graphData) {
+          err = scraped.error;
+        }
+      }
+
       const prev = Number(p.views_count) || 0;
+
 
       if (views !== null) {
         const update: Record<string, unknown> = {
