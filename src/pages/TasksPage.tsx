@@ -604,23 +604,23 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    // Resolver o nome da coluna: over.id pode ser o UUID de outro card
-    const overIdStr = over.id as string;
     let newColumn: string;
-    
-    if (allColumnNames.includes(overIdStr)) {
-      // Soltou diretamente em uma coluna vazia
-      newColumn = overIdStr;
+    const overId = over.id as string;
+
+    if (allColumnNames.includes(overId)) {
+      newColumn = overId;
     } else {
-      // Soltou em cima de outro card - encontrar a coluna daquele card
-      const overTask = tasks.find(t => t.id === overIdStr);
-      if (!overTask) return;
-      newColumn = mapStatusToColumn(overTask.status);
+      const overTask = tasks.find(t => t.id === overId);
+      if (overTask) {
+        newColumn = mapStatusToColumn(overTask.status);
+      } else {
+        newColumn = mapStatusToColumn(overId);
+      }
     }
 
     const currentColumn = mapStatusToColumn(task.status);
     if (currentColumn === newColumn) return;
-    
+
     try {
       await updateTask({ ...task, status: newColumn as any });
     } catch (err) {
