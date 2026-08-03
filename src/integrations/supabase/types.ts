@@ -2965,6 +2965,42 @@ export type Database = {
           },
         ]
       }
+      social_audits: {
+        Row: {
+          client_name: string
+          created_at: string
+          diagnosis: Json
+          id: string
+          platform: string
+          score: number
+          slug: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          client_name?: string
+          created_at?: string
+          diagnosis?: Json
+          id?: string
+          platform?: string
+          score?: number
+          slug: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          client_name?: string
+          created_at?: string
+          diagnosis?: Json
+          id?: string
+          platform?: string
+          score?: number
+          slug?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       squad_clients: {
         Row: {
           client_id: string
