@@ -352,7 +352,8 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
         platform: result?.campanha?.plataforma || '',
         score: result?.resumo?.scoreGeral ?? 0,
         diagnosis: result,
-      });
+      } as any);
+
       if (insertError) {
         console.warn('Erro ao salvar relatório:', insertError);
         toast.warning('Relatório gerado, mas não pôde ser salvo no histórico.');
