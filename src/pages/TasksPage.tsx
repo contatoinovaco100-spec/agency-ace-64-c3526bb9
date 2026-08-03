@@ -601,12 +601,31 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     const { active, over } = e;
     if (!over) return;
     const taskId = active.id as string;
-    const newColumn = over.id as string;
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
+
+    // Resolver o nome da coluna: over.id pode ser o UUID de outro card
+    const overIdStr = over.id as string;
+    let newColumn: string;
+    
+    if (allColumnNames.includes(overIdStr)) {
+      // Soltou diretamente em uma coluna vazia
+      newColumn = overIdStr;
+    } else {
+      // Soltou em cima de outro card - encontrar a coluna daquele card
+      const overTask = tasks.find(t => t.id === overIdStr);
+      if (!overTask) return;
+      newColumn = mapStatusToColumn(overTask.status);
+    }
+
     const currentColumn = mapStatusToColumn(task.status);
     if (currentColumn === newColumn) return;
-    await updateTask({ ...task, status: newColumn as any });
+    
+    try {
+      await updateTask({ ...task, status: newColumn as any });
+    } catch (err) {
+      console.error('Failed to move task:', err);
+    }
   };
 
   const openCard = (t: Task) => {
