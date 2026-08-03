@@ -93,42 +93,87 @@ interface GraphData {
   thumbnail_url: string | null;
 }
 
+function shortcodeOf(url: string): string | null {
+  const m = url.match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/i);
+  return m ? m[1] : null;
+}
+
+/** Busca insights de views de uma mídia já identificada. */
+async function fetchInsightsViews(mediaId: string, token: string, isVideo: boolean): Promise<number | null> {
+  const metrics = isVideo ? ["views", "plays", "video_views", "reach"] : ["views", "reach"];
+  for (const metric of metrics) {
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/v21.0/${mediaId}/insights?metric=${metric}&access_token=${token}`,
+      );
+      const data = await res.json();
+      const val = data?.data?.[0]?.values?.[0]?.value;
+      if (typeof val === "number" && val > 0) return val;
+    } catch (_) { /* tenta próxima métrica */ }
+  }
+  return null;
+}
+
+/**
+ * Monta um índice shortcode -> mídia varrendo as mídias recentes de cada
+ * conta do Instagram conectada pelo app da Meta (social_accounts).
+ */
+async function buildMediaIndex(
+  accounts: Array<{ external_id: string; token: string }>,
+): Promise<Map<string, { id: string; token: string; data: GraphData; isVideo: boolean }>> {
+  const index = new Map<string, { id: string; token: string; data: GraphData; isVideo: boolean }>();
+  for (const acc of accounts) {
+    let url =
+      `https://graph.facebook.com/v21.0/${acc.external_id}/media?fields=id,permalink,media_type,media_product_type,like_count,comments_count,thumbnail_url,media_url&limit=100&access_token=${acc.token}`;
+    for (let page = 0; page < 3 && url; page++) {
+      try {
+        const res = await fetch(url);
+        const body = await res.json();
+        if (!res.ok || body?.error) break;
+        for (const m of body.data || []) {
+          const code = shortcodeOf(m.permalink || "");
+          if (!code || index.has(code)) continue;
+          const isVideo = m.media_type === "VIDEO" || m.media_product_type === "REELS";
+          index.set(code, {
+            id: m.id,
+            token: acc.token,
+            isVideo,
+            data: {
+              views: null,
+              like_count: m.like_count || 0,
+              comment_count: m.comments_count || 0,
+              media_type: m.media_product_type === "REELS" ? "REELS" : (m.media_type || ""),
+              thumbnail_url: m.thumbnail_url || m.media_url || null,
+            },
+          });
+        }
+        url = body?.paging?.next || "";
+      } catch (_) {
+        break;
+      }
+    }
+  }
+  return index;
+}
+
 async function fetchGraphStats(mediaId: string, tokens: string[]): Promise<GraphData | null> {
   for (const token of tokens) {
     try {
       const mediaRes = await fetch(
-        `https://graph.facebook.com/v21.0/${mediaId}?fields=like_count,comments_count,media_type,media_url,thumbnail_url,permalink&access_token=${token}`
+        `https://graph.facebook.com/v21.0/${mediaId}?fields=like_count,comments_count,media_type,media_product_type,media_url,thumbnail_url,permalink&access_token=${token}`
       );
       if (!mediaRes.ok) continue;
       const mediaData = await mediaRes.json();
       if (mediaData.error) continue;
 
-      let views: number | null = null;
-
-      if (mediaData.media_type === "VIDEO") {
-        const insightsRes = await fetch(
-          `https://graph.facebook.com/v21.0/${mediaId}/insights?metric=plays,video_views&access_token=${token}`
-        );
-        const insightsData = await insightsRes.json();
-
-        if (insightsData?.data) {
-          for (const metric of insightsData.data) {
-            const val = metric?.values?.[0]?.value;
-            if (val !== undefined && val > 0) {
-              views = val;
-              break;
-            }
-          }
-        }
-      } else {
-        views = null;
-      }
+      const isVideo = mediaData.media_type === "VIDEO" || mediaData.media_product_type === "REELS";
+      const views = isVideo ? await fetchInsightsViews(mediaId, token, true) : null;
 
       return {
         views,
         like_count: mediaData.like_count || 0,
         comment_count: mediaData.comments_count || 0,
-        media_type: mediaData.media_type || "",
+        media_type: mediaData.media_product_type === "REELS" ? "REELS" : (mediaData.media_type || ""),
         thumbnail_url: mediaData.thumbnail_url || mediaData.media_url || null,
       };
     } catch (e) {
@@ -137,6 +182,7 @@ async function fetchGraphStats(mediaId: string, tokens: string[]): Promise<Graph
   }
   return null;
 }
+
 
 async function scrapePost(
   url: string,
