@@ -146,14 +146,21 @@ export default function ViralRankingPage() {
   const autoImport = async () => {
     setImporting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('auto-import-viral', { body: {} });
+      const { data, error } = await supabase.functions.invoke('auto-import-viral', {
+        body: { days: 30, min_views: Number(threshold) > 0 ? Number(threshold) : 20000 },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       const count = data?.imported || 0;
+      const upd = data?.updated || 0;
       if (count > 0) {
-        toast.success(`${count} post${count > 1 ? 's' : ''} importado${count > 1 ? 's' : ''} do Instagram!`);
+        toast.success(`${count} vídeo${count > 1 ? 's' : ''} acima de ${(data?.min_views || 20000).toLocaleString('pt-BR')} views importado${count > 1 ? 's' : ''}!`);
+      } else if (upd > 0) {
+        toast.success(`${upd} vídeo${upd > 1 ? 's' : ''} atualizado${upd > 1 ? 's' : ''}`);
       } else {
-        toast.info('Nenhum post novo encontrado');
+        toast.info('Nenhum vídeo do último mês bateu a meta de views');
       }
+
       fetchAll();
     } catch (e: any) {
       toast.error('Erro ao importar', { description: e?.message });
