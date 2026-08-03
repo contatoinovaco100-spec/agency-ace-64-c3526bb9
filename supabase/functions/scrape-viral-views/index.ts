@@ -260,6 +260,32 @@ Deno.serve(async (req) => {
     const tokens: string[] = [];
     if (globalToken) tokens.push(globalToken);
 
+    // Contas do Instagram conectadas pelo app da Meta (fonte principal)
+    const igAccounts: Array<{ external_id: string; token: string }> = [];
+    try {
+      const { data: socialAccounts } = await supabase
+        .from("social_accounts")
+        .select("id, external_id, platform, status");
+      const igIds = (socialAccounts || []).filter((a: any) =>
+        a.platform === "instagram" && a.external_id
+      );
+      if (igIds.length) {
+        const { data: secrets } = await supabase
+          .from("social_account_secrets")
+          .select("account_id, access_token")
+          .in("account_id", igIds.map((a: any) => a.id));
+        const byId = new Map((secrets || []).map((s: any) => [s.account_id, s.access_token]));
+        for (const a of igIds) {
+          const tk = byId.get((a as any).id);
+          if (!tk) continue;
+          igAccounts.push({ external_id: (a as any).external_id, token: tk });
+          if (!tokens.includes(tk)) tokens.push(tk);
+        }
+      }
+    } catch (dbErr) {
+      console.error("Erro ao carregar contas conectadas:", dbErr);
+    }
+
     try {
       const { data: accounts } = await supabase
         .from("client_meta_accounts")
@@ -275,6 +301,10 @@ Deno.serve(async (req) => {
       console.error("Erro ao carregar tokens do banco:", dbErr);
     }
 
+    // Índice de mídias das contas conectadas (shortcode -> mídia)
+    const mediaIndex = igAccounts.length ? await buildMediaIndex(igAccounts) : new Map();
+    console.log(`Contas IG conectadas: ${igAccounts.length} | mídias indexadas: ${mediaIndex.size}`);
+
     const results: Array<{
       id: string;
       ok: boolean;
@@ -283,8 +313,34 @@ Deno.serve(async (req) => {
     }> = [];
 
     for (const p of posts || []) {
-      const { views, error: err, graphData } = await scrapePost(p.post_url, tokens);
+      let views: number | null = null;
+      let err: string | null = null;
+      let graphData: GraphData | null = null;
+
+      // 1) Via app da Meta — mídia da própria conta conectada
+      const code = shortcodeOf(p.post_url || "");
+      const hit = code ? mediaIndex.get(code) : undefined;
+      if (hit) {
+        const v = await fetchInsightsViews(hit.id, hit.token, hit.isVideo);
+        graphData = { ...hit.data, views: v };
+        views = v;
+        if (views === null) err = "sem métrica de views na Graph API";
+      }
+
+      // 2) Fallback: scraping público
+      if (views === null) {
+        const scraped = await scrapePost(p.post_url, tokens);
+        if (scraped.views !== null) {
+          views = scraped.views;
+          err = null;
+          graphData = scraped.graphData ?? graphData;
+        } else if (!graphData) {
+          err = scraped.error;
+        }
+      }
+
       const prev = Number(p.views_count) || 0;
+
 
       if (views !== null) {
         const update: Record<string, unknown> = {
