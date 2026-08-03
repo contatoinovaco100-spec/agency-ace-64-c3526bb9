@@ -599,10 +599,10 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const handleDragEnd = async (e: DragEndEvent) => {
     setActiveId(null);
     const { active, over } = e;
-    if (!over) return;
+    if (!over) { console.log('[DnD] No over target'); return; }
     const taskId = active.id as string;
     const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
+    if (!task) { console.log('[DnD] Task not found:', taskId); return; }
 
     let newColumn: string;
     const overId = over.id as string;
@@ -619,6 +619,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     }
 
     const currentColumn = mapStatusToColumn(task.status);
+    console.log('[DnD] Moving from', currentColumn, '->', newColumn, '(overId:', overId, ')');
     if (currentColumn === newColumn) return;
 
     try {
