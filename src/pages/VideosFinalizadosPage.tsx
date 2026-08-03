@@ -14,7 +14,7 @@ import { Task } from '@/types/agency';
  * Ao clicar em "Marcar como Postado", o card some.
  */
 export default function VideosFinalizadosPage() {
-  const { tasks, clients, updateTask } = useAgency();
+  const { tasks, clients, moveTaskToStage } = useAgency();
   const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [posting, setPosting] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export default function VideosFinalizadosPage() {
   const markPosted = async (task: Task) => {
     setPosting(task.id);
     try {
-      await updateTask({ ...task, status: 'Concluído' as any });
+      await moveTaskToStage(task.id, 'Concluído');
       toast({ title: 'Marcado como postado', description: task.title });
     } catch (err: any) {
       toast({

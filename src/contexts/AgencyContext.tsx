@@ -17,6 +17,7 @@ interface AgencyContextType {
   deleteClient: (id: string) => Promise<void>;
   addTask: (task: Task) => Promise<void>;
   updateTask: (task: Task) => Promise<void>;
+  moveTaskToStage: (taskId: string, newStatus: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   advanceVideoStage: (task: Task, changedBy: string) => Promise<void>;
   addLead: (lead: Lead) => Promise<void>;
@@ -256,6 +257,39 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Move a task between kanban stages. Only updates the `status` column to avoid
+  // failing when other columns aren't present in the production schema.
+  const moveTaskToStage = async (taskId: string, newStatus: string) => {
+    const prevTask = tasks.find(x => x.id === taskId);
+    if (!prevTask) return;
+    const updated = { ...prevTask, status: newStatus as Task['status'] };
+    // Optimistic update: reflect the change in UI immediately.
+    setTasks(prev => prev.map(x => x.id === taskId ? updated : x));
+    const { error } = await supabase
+      .from('tasks')
+      .update({ status: toDatabaseTaskStatus(newStatus) })
+      .eq('id', taskId);
+    if (error) {
+      // Rollback if the database update fails.
+      setTasks(prev => prev.map(x => x.id === taskId ? prevTask : x));
+      console.error('Failed to move task', error);
+      throw error;
+    }
+    if (prevTask.status !== newStatus && user) {
+      try {
+        const { data: prof } = await supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle();
+        const changedBy = (prof?.full_name || user.email || 'Desconhecido').toString();
+        await supabase.from('task_stage_history').insert({
+          task_id: taskId,
+          from_stage: toDatabaseTaskStatus(prevTask.status),
+          to_stage: toDatabaseTaskStatus(newStatus),
+          changed_by: changedBy,
+        } as any);
+      } catch (e) {
+        console.error('Failed to log stage change', e);
+      }
+    }
+  };
 
   const deleteTask = async (id: string) => {
     await supabase.from('tasks').delete().eq('id', id);
@@ -347,7 +381,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     <AgencyContext.Provider value={{
       clients, tasks, leads, team, events, loading,
       addClient, updateClient, deleteClient,
-      addTask, updateTask, deleteTask, advanceVideoStage,
+      addTask, updateTask, deleteTask, moveTaskToStage, advanceVideoStage,
       addLead, updateLead, deleteLead, convertLeadToClient,
       
       addEvent, deleteEvent,

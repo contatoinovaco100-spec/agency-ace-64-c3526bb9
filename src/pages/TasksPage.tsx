@@ -474,7 +474,7 @@ interface TasksPageProps {
 }
 
 export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerExtra }: TasksPageProps = {}) {
-  const { tasks, clients, team, addTask, updateTask, deleteTask, refresh } = useAgency();
+  const { tasks, clients, team, addTask, updateTask, deleteTask, moveTaskToStage, refresh } = useAgency();
   const board = taskTypeFilter === 'Arte' ? 'artes' : 'tasks';
   const { stages: dbStages } = useKanbanStages(board);
 
@@ -599,10 +599,10 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const handleDragEnd = async (e: DragEndEvent) => {
     setActiveId(null);
     const { active, over } = e;
-    if (!over) { console.log('[DnD] No over target'); return; }
+    if (!over) return;
     const taskId = active.id as string;
     const task = tasks.find(t => t.id === taskId);
-    if (!task) { console.log('[DnD] Task not found:', taskId); return; }
+    if (!task) return;
 
     let newColumn: string;
     const overId = over.id as string;
@@ -619,11 +619,10 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     }
 
     const currentColumn = mapStatusToColumn(task.status);
-    console.log('[DnD] Moving from', currentColumn, '->', newColumn, '(overId:', overId, ')');
     if (currentColumn === newColumn) return;
 
     try {
-      await updateTask({ ...task, status: newColumn as any });
+      await moveTaskToStage(taskId, newColumn);
     } catch (err) {
       console.error('Failed to move task:', err);
     }
@@ -774,7 +773,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                 onCardClick={openCard}
                 onAdd={openNew}
                 getClientName={getClientName}
-                onAdvanceTask={(task, nextStage) => updateTask({ ...task, status: nextStage as any })}
+                onAdvanceTask={(task, nextStage) => moveTaskToStage(task.id, nextStage)}
                 nextStageName={getNextStageName(stage.name)}
                 showAddButton={stage.name === firstStageName}
                 onDuplicateTask={handleDuplicateTask}
