@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Film, Loader2, RefreshCw, Send, Upload, X } from 'lucide-react';
+import { Film, History, Loader2, RefreshCw, Send, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountSelector } from '@/components/social/AccountSelector';
 import { TargetStatusList } from '@/components/social/TargetStatusList';
@@ -18,12 +18,26 @@ import { useSocialAccounts } from '@/hooks/useSocialAccounts';
 import { usePublishJobs } from '@/hooks/usePublishJobs';
 import { publishingService, type PostType } from '@/services/publishing';
 
+const JOB_STATUS_META: Record<string, { label: string; cls: string }> = {
+  pending: { label: 'Pendente', cls: 'bg-muted text-muted-foreground' },
+  processing: { label: 'Processando', cls: 'bg-primary/15 text-primary' },
+  published: { label: 'Publicado', cls: 'bg-emerald-500/15 text-emerald-600' },
+  partial: { label: 'Parcial', cls: 'bg-warning/15 text-warning' },
+  failed: { label: 'Falhou', cls: 'bg-destructive/15 text-destructive' },
+  scheduled: { label: 'Agendado', cls: 'bg-info/15 text-info' },
+};
+
+function formatJobDate(iso?: string) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
 export default function PublishContentPage() {
   const { accounts, byPlatform, loading, refreshing, error, reload } = useSocialAccounts();
   const [jobId, setJobId] = useState<string | null>(null);
   const [mediaPath, setMediaPath] = useState<string>('');
 
-  const { targetsOf } = usePublishJobs(jobId ?? undefined);
+  const { jobs, targetsOf, loading: jobsLoading } = usePublishJobs(jobId ?? undefined);
 
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -127,6 +141,36 @@ export default function PublishContentPage() {
   const targets = jobId ? targetsOf(jobId) : [];
   const manualTargets = targets.filter(t =>
     manualAccounts.some(a => a.username === t.username && a.platform === t.platform));
+
+  const resetForm = useCallback(() => {
+    previews.forEach(u => URL.revokeObjectURL(u));
+    setJobId(null);
+    setMediaPath('');
+    setFiles([]);
+    setPreviews([]);
+    setCaption('');
+    setFirstComment('');
+    setScheduledAt('');
+    setThumbnailUrl('');
+    setPostType('auto');
+    setShareToFeed(true);
+    setCollaborators('');
+    setLocationId('');
+    setUserTags('');
+    setCoverUrl('');
+    setThumbOffset('');
+    setAudioName('');
+    setSelected([]);
+    setProgress(0);
+  }, [previews]);
+
+  useEffect(() => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job?.status === 'published') {
+      toast.success('Publicação concluída! Pronto para a próxima.');
+      resetForm();
+    }
+  }, [jobs, jobId, resetForm]);
 
 
 
@@ -365,6 +409,56 @@ export default function PublishContentPage() {
               </>
             )}
 
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <History className="h-4 w-4" /> Em andamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {jobsLoading ? (
+              <><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" /></>
+            ) : jobs.filter(j => j.status !== 'published').length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Nada em andamento. Publicações concluídas somem daqui automaticamente.
+              </p>
+            ) : (
+              jobs
+                .filter(j => j.status !== 'published')
+                .slice(0, 10)
+                .map(job => {
+                const m = JOB_STATUS_META[job.status] ?? JOB_STATUS_META.pending;
+                const jobTargets = targetsOf(job.id);
+                const done = jobTargets.filter(t => t.status === 'published').length;
+                const title = job.caption?.trim() || (job.media_type === 'video' ? 'Vídeo' : 'Imagem');
+                return (
+                  <div key={job.id} className="rounded-md border p-3">
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-2 text-xs font-medium">
+                        <Film className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{title}</span>
+                      </span>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${m.cls}`}>
+                        {m.label}
+                      </span>
+                    </div>
+                    <div className="mb-2 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                      <span>{formatJobDate(job.created_at)}</span>
+                      {jobTargets.length > 0 && (
+                        <>
+                          <span>·</span>
+                          <span>{done}/{jobTargets.length} conta(s) publicada(s)</span>
+                        </>
+                      )}
+                    </div>
+                    <TargetStatusList targets={jobTargets} />
+                  </div>
+                );
+              })
+            )}
           </CardContent>
         </Card>
 
