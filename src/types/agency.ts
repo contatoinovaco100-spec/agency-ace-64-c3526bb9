@@ -89,6 +89,9 @@ export interface Task {
   postTime?: string;
   // Legenda do post (arte)
   caption?: string;
+  // Client approval tracking
+  approvedByClient?: boolean;
+  approvedAt?: string;
 }
 
 export interface TaskChecklistItem {

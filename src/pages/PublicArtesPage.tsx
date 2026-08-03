@@ -1,7 +1,48 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Palette, Calendar, User, Building2, AlertCircle, RefreshCw, X, Clock, FileText, Flag } from 'lucide-react';
+import { Loader2, Palette, Calendar, User, Building2, AlertCircle, RefreshCw, X, Clock, FileText, Flag, ZoomIn, Download, Image as ImageIcon } from 'lucide-react';
 import logoInova from '@/assets/logo-inova.png';
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+interface AttachmentRow {
+  id: string;
+  file_name: string;
+  file_url: string;
+  file_type: string | null;
+}
+interface PreparedAttachment {
+  id: string;
+  name: string;
+  path: string;
+  isImage: boolean;
+  signedUrl?: string;
+}
+const IMAGE_EXT = /\.(png|jpe?g|webp|gif|bmp|svg|avif)$/i;
+function useArteAttachments(taskId: string) {
+  const [items, setItems] = useState<PreparedAttachment[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await (supabase as any).rpc('get_public_arte_attachments', { _task_id: taskId });
+      if (error) { setLoading(false); return; }
+      
+      const rows = (data || []) as AttachmentRow[];
+      const prepared: PreparedAttachment[] = rows.map(r => ({
+        id: r.id,
+        name: r.file_name,
+        path: r.file_url,
+        isImage: (r.file_type || '').startsWith('image/') || IMAGE_EXT.test(r.file_name),
+        signedUrl: r.file_url
+      }));
+
+      if (!cancelled) { setItems(prepared); setLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [taskId]);
+  return { items, loading };
+}
 
 interface ArteTask {
   id: string;
@@ -51,6 +92,7 @@ export default function PublicArtesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<ArteTask | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   async function load(showSpinner = true) {
     if (showSpinner) setLoading(true);
@@ -163,7 +205,29 @@ export default function PublicArtesPage() {
         INOVA Co. — Painel interno de produção
       </footer>
 
-      {selected && <TaskDetailModal task={selected} onClose={() => setSelected(null)} />}
+      {selected && <TaskDetailModal task={selected} onClose={() => setSelected(null)} onOpenLightbox={setLightboxUrl} />}
+
+      {/* Fullscreen Lightbox */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            onClick={() => setLightboxUrl(null)}
+            className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2.5 text-white hover:bg-white/25 transition-colors"
+            aria-label="Fechar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="Arte"
+            className="max-h-screen max-w-screen-xl w-full object-contain p-4"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -173,6 +237,31 @@ function StatCard({ label, value, highlight }: { label: string; value: number; h
     <div className={`rounded-xl border p-4 ${highlight ? 'border-destructive/40 bg-destructive/10' : 'border-border bg-card'}`}>
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className={`mt-1 text-2xl font-bold ${highlight ? 'text-destructive' : 'text-foreground'}`}>{value}</p>
+    </div>
+  );
+}
+
+function TaskCardPreview({ taskId }: { taskId: string }) {
+  const { items, loading } = useArteAttachments(taskId);
+  const preview = items.find(i => i.isImage && i.signedUrl);
+  if (loading) return <div className="h-20 animate-pulse rounded-md bg-muted" />;
+  if (!preview) return null;
+  return (
+    <div className="relative overflow-hidden rounded-md border border-border bg-muted">
+      <img
+        src={preview.signedUrl}
+        alt={preview.name}
+        className="h-24 w-full object-cover"
+        loading="lazy"
+      />
+      <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/30">
+        <ZoomIn className="h-5 w-5 text-white opacity-0 transition group-hover:opacity-100" />
+      </div>
+      {items.length > 1 && (
+        <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white">
+          +{items.length - 1}
+        </span>
+      )}
     </div>
   );
 }
@@ -199,8 +288,11 @@ function TaskCard({ task, onOpen }: { task: ArteTask; onOpen: () => void }) {
         )}
       </div>
 
+      {/* Art preview thumbnail */}
+      <TaskCardPreview taskId={task.id} />
+
       {task.description && (
-        <p className="line-clamp-3 text-xs text-muted-foreground">{task.description}</p>
+        <p className="line-clamp-2 text-xs text-muted-foreground">{task.description}</p>
       )}
 
       <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
@@ -233,7 +325,85 @@ function TaskCard({ task, onOpen }: { task: ArteTask; onOpen: () => void }) {
   );
 }
 
-function TaskDetailModal({ task, onClose }: { task: ArteTask; onClose: () => void }) {
+function ModalArteGallery({ taskId, onOpenLightbox }: { taskId: string; onOpenLightbox: (url: string) => void }) {
+  const { items, loading } = useArteAttachments(taskId);
+  const images = items.filter(i => i.isImage && i.signedUrl);
+  const [downloading, setDownloading] = useState<string | null>(null);
+
+  const handleDownload = async (item: PreparedAttachment, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDownloading(item.id);
+    try {
+      const fetchUrl = item.signedUrl || item.path;
+      const res = await fetch(fetchUrl);
+      if (!res.ok) throw new Error('Falha no download');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = item.name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally { setDownloading(null); }
+  };
+
+  if (loading) return <div className="h-40 animate-pulse rounded-xl bg-muted" />;
+  if (!images.length && !items.length) return (
+    <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border py-8 text-muted-foreground">
+      <ImageIcon className="h-8 w-8" />
+      <p className="text-sm">Nenhuma arte anexada ainda</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-2">
+      <div className={`grid gap-2 ${images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        {images.map(img => (
+          <button
+            key={img.id}
+            type="button"
+            onClick={() => onOpenLightbox(img.signedUrl!)}
+            className="group relative overflow-hidden rounded-xl border border-border bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
+            title="Clique para ampliar"
+          >
+            <img
+              src={img.signedUrl}
+              alt={img.name}
+              className="w-full object-cover transition group-hover:scale-[1.02]"
+              style={{ maxHeight: images.length > 1 ? '180px' : '360px' }}
+              loading="lazy"
+            />
+            <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 transition-all group-hover:bg-black/40">
+              <ZoomIn className="h-7 w-7 text-white opacity-0 drop-shadow transition group-hover:opacity-100" />
+            </div>
+            <button
+              type="button"
+              onClick={(e) => handleDownload(img, e)}
+              disabled={downloading === img.id}
+              className="absolute bottom-2 right-2 flex items-center gap-1 rounded-lg bg-black/70 px-2 py-1 text-[10px] font-semibold text-white opacity-0 transition group-hover:opacity-100 hover:bg-black/85 disabled:opacity-50"
+            >
+              {downloading === img.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+              Baixar
+            </button>
+          </button>
+        ))}
+      </div>
+      {/* Non-image attachments */}
+      {items.filter(i => !i.isImage).map(item => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={(e) => handleDownload(item, e as any)}
+          disabled={downloading === item.id}
+          className="flex w-full items-center gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground hover:bg-muted/70 disabled:opacity-60"
+        >
+          {downloading === item.id ? <Loader2 className="h-4 w-4 animate-spin shrink-0" /> : <Download className="h-4 w-4 shrink-0 text-muted-foreground" />}
+          <span className="truncate">{item.name}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function TaskDetailModal({ task, onClose, onOpenLightbox }: { task: ArteTask; onClose: () => void; onOpenLightbox: (url: string) => void }) {
   const due = formatDate(task.post_date || task.due_date);
   const created = formatDate(task.created_at);
   const accent = PRIORITY_ACCENT[task.priority || ''] || 'border-l-border';
@@ -277,6 +447,15 @@ function TaskDetailModal({ task, onClose }: { task: ArteTask; onClose: () => voi
         </div>
 
         <div className="space-y-5 overflow-y-auto p-6">
+          {/* Art preview — click to open fullscreen */}
+          <section>
+            <h3 className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              <Palette className="h-3.5 w-3.5" /> Arte
+              <span className="ml-1 text-[10px] font-normal normal-case text-muted-foreground/60">— clique para ampliar</span>
+            </h3>
+            <ModalArteGallery taskId={task.id} onOpenLightbox={onOpenLightbox} />
+          </section>
+
           {task.description && (
             <section>
               <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">

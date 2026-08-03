@@ -115,9 +115,19 @@ function CardContent({ task, clientName, compact }: { task: Task; clientName?: s
         )}
         {isArte && <ArteAttachmentsPreview taskId={task.id} compact={false} />}
         <div className="mt-1.5 flex items-center justify-between gap-2">
-          <span className={cn('rounded px-1 py-[1px] text-[9px] font-semibold leading-tight', PRIORITY_BADGE[task.priority])}>
-            {task.priority}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className={cn('rounded px-1 py-[1px] text-[9px] font-semibold leading-tight', PRIORITY_BADGE[task.priority])}>
+              {task.priority}
+            </span>
+            {task.approvedByClient && (
+              <span className="inline-flex items-center gap-0.5 rounded bg-green-500/15 px-1.5 py-[1px] text-[9px] font-bold text-green-600 dark:text-green-400 border border-green-500/30" title={`Aprovado pelo cliente em ${task.approvedAt ? new Date(task.approvedAt).toLocaleDateString('pt-BR') : ''}`}>
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6 9 17l-5-5"/>
+                </svg>
+                Aprovado
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-1.5 min-w-0">
             {task.assignee && (
               <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[9px] font-bold text-primary" title={task.assignee}>
