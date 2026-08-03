@@ -185,17 +185,17 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, o
       >
         {/* Index bubble */}
         <div className={cn(
-          'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold',
+          'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold',
           isPosted ? 'bg-green-500/15 text-green-600 dark:text-green-400' :
           isArte ? 'bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-600 dark:text-pink-400' :
           'bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary'
         )}>
-          {isPosted ? <CheckCircle2 className="h-4.5 w-4.5" /> : `${index + 1}`}
+          {isPosted ? <CheckCircle2 className="h-5 w-5" /> : `${index + 1}`}
         </div>
 
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-start justify-between gap-2">
-            <h3 className={cn('text-base font-bold leading-snug text-foreground truncate', isPosted && 'line-through text-muted-foreground')}>
+            <h3 className={cn('text-base font-bold leading-snug text-foreground', isPosted && 'line-through text-muted-foreground')}>
               {videoName}
             </h3>
             {open ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />}
@@ -346,43 +346,54 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, o
 
             {/* Content sections */}
             {sections.length > 0 && (
-              <div className="space-y-4 pt-1">
+              <div className="space-y-5 pt-1">
                 <div className="h-px bg-border" />
-                {sections.map((section, i) => (
-                  <div key={i}>
-                    <div className="mb-2 flex items-center gap-2">
-                      <section.icon className="h-3.5 w-3.5 text-primary/70" />
-                      <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{section.label}</h4>
-                    </div>
-                    {section.isLinks ? (
-                      <div className="space-y-1.5">
-                        {section.content!.split('\n').filter(Boolean).map((line, j) => (
-                          <a key={j} href={line.trim().startsWith('http') ? line.trim() : `https://${line.trim()}`} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-sm text-primary underline underline-offset-2 hover:text-primary/80 break-all">
-                            <ExternalLink className="h-3 w-3 shrink-0" />{line.trim()}
-                          </a>
-                        ))}
+                <div className="grid gap-4">
+                  {sections.map((section, i) => (
+                    <div key={i} className="rounded-xl bg-secondary/30 p-4 border border-border/50">
+                      <div className="mb-2 flex items-center gap-2">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10">
+                          <section.icon className="h-3.5 w-3.5 text-primary" />
+                        </div>
+                        <h4 className="text-xs font-bold text-foreground uppercase tracking-wide">{section.label}</h4>
                       </div>
-                    ) : (
-                      <p className={cn('text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed', section.large && 'rounded-xl bg-secondary/40 p-4 font-mono text-xs border border-border')}>
-                        {section.content}
-                      </p>
-                    )}
-                  </div>
-                ))}
+                      {section.isLinks ? (
+                        <div className="space-y-1.5 mt-2">
+                          {section.content!.split('\n').filter(Boolean).map((line, j) => (
+                            <a key={j} href={line.trim().startsWith('http') ? line.trim() : `https://${line.trim()}`} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-sm text-primary underline underline-offset-2 hover:text-primary/80 break-all">
+                              <ExternalLink className="h-3 w-3 shrink-0" />{line.trim()}
+                            </a>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className={cn('text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed', section.large && 'rounded-lg bg-background/50 p-3 font-mono text-xs border border-border mt-2')}>
+                          {section.content}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
             {/* CTA buttons — approve / alteration for finalized videos */}
             {!isPosted && !isProgramado && isFinalizado && !isArte && (
-              <div className="space-y-3 pt-2 border-t border-border">
+              <div className="space-y-4 pt-4 border-t border-border">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <h4 className="text-xs font-bold text-foreground uppercase tracking-wide">Ação necessária</h4>
+                </div>
+                
                 {!showAlterationInput ? (
                   <div className="flex flex-wrap gap-3">
                     <button
                       type="button"
                       disabled={isConfirming}
                       onClick={() => onApprove(task.id)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-green-600 disabled:opacity-60 transition-all shadow-sm shadow-green-500/20"
+                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-green-500 px-4 py-3 text-sm font-bold text-white hover:bg-green-600 disabled:opacity-60 transition-all shadow-sm shadow-green-500/20"
                     >
                       {isConfirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                       Aprovado
@@ -391,10 +402,10 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, o
                       type="button"
                       disabled={isConfirming}
                       onClick={() => setShowAlterationInput(true)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 py-2.5 text-sm font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-500/20 disabled:opacity-60 transition-all"
+                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 py-3 text-sm font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-500/20 disabled:opacity-60 transition-all"
                     >
                       <Palette className="h-4 w-4" />
-                      Alteração
+                      Solicitar alteração
                     </button>
                   </div>
                 ) : (
@@ -419,7 +430,7 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, o
                           setAlterationText('');
                           setShowAlterationInput(false);
                         }}
-                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-orange-600 disabled:opacity-60 transition-all shadow-sm shadow-orange-500/20"
+                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white hover:bg-orange-600 disabled:opacity-60 transition-all shadow-sm shadow-orange-500/20"
                       >
                         {isConfirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Palette className="h-4 w-4" />}
                         Enviar alteração
@@ -431,7 +442,7 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, o
                           setShowAlterationInput(false);
                           setAlterationText('');
                         }}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
                       >
                         Cancelar
                       </button>
@@ -442,9 +453,14 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, o
             )}
 
             {isPosted && (
-              <div className="flex items-center gap-2 rounded-xl bg-green-500/10 border border-green-500/20 px-4 py-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
-                <p className="text-sm font-semibold text-green-600 dark:text-green-400">Postagem confirmada ✓</p>
+              <div className="flex items-center gap-3 rounded-xl bg-green-500/10 border border-green-500/20 px-4 py-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500/20">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-green-600 dark:text-green-400">Aprovado pelo cliente</p>
+                  <p className="text-xs text-green-600/70 dark:text-green-400/70">Conteúdo pronto para publicação</p>
+                </div>
               </div>
             )}
           </div>
@@ -456,28 +472,7 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, o
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
 
-function ProgressBar({ tasks }: { tasks: TaskData[] }) {
-  if (tasks.length === 0) return null;
-  const posted = tasks.filter(t => t.status === 'Postado').length;
-  const pct = Math.round((posted / tasks.length) * 100);
-  return (
-    <div className="mb-8 rounded-2xl border border-border bg-card p-5 shadow-sm">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-bold text-foreground">Progresso do mês</p>
-          <p className="text-xs text-muted-foreground">{posted} de {tasks.length} conteúdos publicados</p>
-        </div>
-        <span className="text-2xl font-black text-primary">{pct}%</span>
-      </div>
-      <div className="h-2.5 w-full rounded-full bg-secondary overflow-hidden">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-primary to-[#bff720] transition-all duration-700"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
-}
+// Removido - barra de progresso do mês
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
@@ -719,6 +714,14 @@ export default function ClientContentPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {pendingTasks.length > 0 && (
+              <div className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5">
+                <span className="text-xs font-bold text-primary">{pendingTasks.length}</span>
+                <span className="text-xs text-primary/70">
+                  {pendingTasks.length === 1 ? 'pendente' : 'pendentes'}
+                </span>
+              </div>
+            )}
             <button
               type="button"
               onClick={() => loadContent(taskId!)}
@@ -728,42 +731,37 @@ export default function ClientContentPage() {
               <RefreshCw className="h-4 w-4" />
               <span className="hidden sm:inline">Atualizar</span>
             </button>
-
-            <div className="text-right">
-              {clientName && <p className="text-sm font-semibold text-foreground sm:hidden">{clientName}</p>}
-              <p className="text-xs text-muted-foreground">
-                {pendingTasks.length} {pendingTasks.length === 1 ? 'pendente' : 'pendentes'}
-              </p>
-            </div>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-3xl px-4 sm:px-6 py-8">
         {/* Hero title */}
-        <div className="mb-8">
+        <div className="mb-8 text-center">
           <h1 className="text-2xl font-black text-foreground tracking-tight">
             Cronograma de Conteúdo
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Confira os conteúdos preparados pela equipe Inova e confirme as publicações.
+          <p className="mt-2 text-sm text-muted-foreground">
+            Confira os conteúdos preparados pela equipe Inova
           </p>
         </div>
 
-        {/* Progress bar (only when there are multiple tasks) */}
-        {allTasks.length > 1 && <ProgressBar tasks={allTasks} />}
-
         {/* Toggle show posted */}
         {postedTasks.length > 0 && (
-          <div className="mb-5 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-              {showPosted ? 'Todos os conteúdos' : 'Conteúdos pendentes'}
-            </p>
+          <div className="mb-6 flex items-center justify-between rounded-xl border border-border bg-card p-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
+                <span className="text-xs font-bold text-primary">{postedTasks.length}</span>
+              </div>
+              <p className="text-sm font-medium text-foreground">
+                {showPosted ? 'Todos os conteúdos' : 'Conteúdos pendentes'}
+              </p>
+            </div>
             <button
               onClick={() => setShowPosted(!showPosted)}
-              className="text-xs font-semibold text-primary hover:underline underline-offset-2 flex items-center gap-1"
+              className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
             >
-              {showPosted ? `Ocultar publicados` : `+ Ver ${postedTasks.length} publicado${postedTasks.length > 1 ? 's' : ''}`}
+              {showPosted ? `Ocultar publicados` : `+ Ver publicados`}
             </button>
           </div>
         )}
@@ -772,9 +770,11 @@ export default function ClientContentPage() {
         <div className="space-y-4">
           {displayedTasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border py-16 text-center">
-              <Sparkles className="h-10 w-10 text-muted-foreground/40" />
-              <p className="text-base font-semibold text-muted-foreground">Tudo em dia! 🎉</p>
-              <p className="text-sm text-muted-foreground/70">Nenhum conteúdo pendente no momento.</p>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+                <CheckCircle2 className="h-6 w-6 text-green-500" />
+              </div>
+              <p className="text-base font-semibold text-foreground">Tudo em dia!</p>
+              <p className="text-sm text-muted-foreground">Nenhum conteúdo pendente no momento.</p>
             </div>
           ) : (
             displayedTasks.map((task, i) => (
