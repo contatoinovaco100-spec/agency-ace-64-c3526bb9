@@ -238,9 +238,9 @@ export default function PublishContentPage() {
     };
     const intervalMin = schedulePattern !== 'none' ? (intervals[schedulePattern] ?? 0) : 0;
     const hasInterval = intervalMin > 0;
-    const baseTime = Date.now();
 
     const newScheduledItems: Array<{ jobId: string; fileName: string; publishAt: Date; status: 'waiting' | 'publishing' | 'done' | 'error' }> = [];
+    let lastScheduledAt = Date.now();
 
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
@@ -261,12 +261,15 @@ export default function PublishContentPage() {
         if (i === 0) {
           if (autoAccounts.length) {
             await publishingService.run(job.id);
+            lastScheduledAt = Date.now();
           }
         } else if (hasInterval) {
-          const publishAt = new Date(baseTime + i * intervalMin * 60000);
+          const publishAt = new Date(lastScheduledAt + intervalMin * 60000);
           newScheduledItems.push({ jobId: job.id, fileName: f.name, publishAt, status: 'waiting' });
+          lastScheduledAt = publishAt.getTime();
         } else if (autoAccounts.length) {
           await publishingService.run(job.id);
+          lastScheduledAt = Date.now();
         }
         ok++;
       } catch (e: any) {
@@ -285,9 +288,8 @@ export default function PublishContentPage() {
 
     if (ok && !errors.length) {
       if (hasInterval) {
-        const last = new Date(baseTime + (files.length - 1) * intervalMin * 60000);
         toast.success(`${ok} publicação(ões) enviada(s)`, {
-          description: `1º post publicado agora · Último em ${last.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`,
+          description: `1º post publicado agora · Último em ${new Date(lastScheduledAt).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`,
         });
       } else {
         toast.success(`${ok} publicação(ões) enviada(s) em massa`, {
