@@ -17,6 +17,7 @@ import { ManualPublishPanel } from '@/components/social/ManualPublishPanel';
 import { useSocialAccounts } from '@/hooks/useSocialAccounts';
 import { usePublishJobs } from '@/hooks/usePublishJobs';
 import { publishingService, type PostType } from '@/services/publishing';
+import { supabase } from '@/integrations/supabase/client';
 
 const JOB_STATUS_META: Record<string, { label: string; cls: string }> = {
   pending: { label: 'Pendente', cls: 'bg-muted text-muted-foreground' },
@@ -265,6 +266,12 @@ export default function PublishContentPage() {
           }
         } else if (hasInterval) {
           const publishAt = new Date(lastScheduledAt + intervalMin * 60000);
+          // Persist scheduled_at in DB so time shows even after re-renders
+          const { error: updateErr } = await (supabase as any)
+            .from('publish_jobs')
+            .update({ scheduled_at: publishAt.toISOString(), status: 'scheduled' })
+            .eq('id', job.id);
+          if (updateErr) console.error('Failed to set scheduled_at:', updateErr);
           newScheduledItems.push({ jobId: job.id, fileName: f.name, publishAt, status: 'waiting' });
           lastScheduledAt = publishAt.getTime();
         } else if (autoAccounts.length) {
@@ -735,13 +742,13 @@ export default function PublishContentPage() {
         </div>
 
         <div className="space-y-6">
-        <Card className="h-fit lg:sticky lg:top-4">
+        <Card className="h-fit">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Film className="h-4 w-4" /> Status em tempo real
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 min-h-[120px]">
 
             {!jobId ? (
               <p className="text-xs text-muted-foreground">
@@ -774,7 +781,7 @@ export default function PublishContentPage() {
               <History className="h-4 w-4" /> Em andamento
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 min-h-[100px]">
             {jobsLoading ? (
               <><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" /></>
             ) : jobs.filter(j => j.status !== 'published').length === 0 ? (
