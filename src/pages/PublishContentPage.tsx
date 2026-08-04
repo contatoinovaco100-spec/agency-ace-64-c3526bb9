@@ -75,20 +75,32 @@ export default function PublishContentPage() {
     [accounts, selected],
   );
 
+  const maxFiles = bulkMode ? 30 : 10;
+
   const pickFiles = (list: File[]) => {
     const valid = list.filter(f => {
       if (f.size > 500 * 1024 * 1024) { toast.error(`${f.name}: maior que 500 MB`); return false; }
       return true;
     });
     if (!valid.length) return;
-    setFiles(prev => [...prev, ...valid].slice(0, 10));
-    setPreviews(prev => [...prev, ...valid.map(f => URL.createObjectURL(f))].slice(0, 10));
+    setFiles(prev => [...prev, ...valid].slice(0, maxFiles));
+    setPreviews(prev => [...prev, ...valid.map(f => URL.createObjectURL(f))].slice(0, maxFiles));
   };
 
   const removeFile = (idx: number) => {
     setFiles(prev => prev.filter((_, i) => i !== idx));
     setPreviews(prev => prev.filter((_, i) => i !== idx));
+    setBulkCaptions(prev => {
+      const next: Record<number, string> = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const i = Number(k);
+        if (i < idx) next[i] = v;
+        else if (i > idx) next[i - 1] = v;
+      });
+      return next;
+    });
   };
+
 
 
   const toggle = (id: string) =>
