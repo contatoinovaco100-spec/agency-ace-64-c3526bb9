@@ -443,7 +443,7 @@ export default function PublishContentPage() {
 
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-6 p-4 md:p-6 overflow-x-hidden">
       <div>
         <h1 className="text-2xl font-bold">Publicar Conteúdo</h1>
         <p className="text-sm text-muted-foreground">
@@ -452,7 +452,7 @@ export default function PublishContentPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Conteúdo</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -772,8 +772,8 @@ export default function PublishContentPage() {
           </div>
         </div>
 
-        <div className="space-y-5 lg:space-y-6">
-        <Card className="h-fit">
+        <div className="min-w-0 space-y-5 lg:space-y-6">
+        <Card className="h-fit min-w-0">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Film className="h-4 w-4" /> Status em tempo real
@@ -806,7 +806,7 @@ export default function PublishContentPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <CardHeader className="px-4 pt-4 pb-3 sm:px-5">
             <CardTitle className="flex items-center gap-2 text-base">
               <History className="h-4 w-4" /> Em andamento
@@ -883,19 +883,19 @@ export default function PublishContentPage() {
                         )}
                       </div>
                     </div>
-                    <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
+                    <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground text-balance">
                       {scheduledItem ? (
-                        <span className="flex items-center gap-0.5 text-info font-medium">
+                        <span className="flex min-w-0 items-center gap-0.5 text-info font-medium">
                           <Clock className="h-3 w-3 shrink-0" />
-                          Publica: {scheduledItem.publishAt.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          <span className="break-words">Publica: {scheduledItem.publishAt.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                         </span>
                       ) : job.scheduled_at ? (
-                        <span className="flex items-center gap-0.5 text-info font-medium">
+                        <span className="flex min-w-0 items-center gap-0.5 text-info font-medium">
                           <Clock className="h-3 w-3 shrink-0" />
-                          Agendado: {formatJobDate(job.scheduled_at)}
+                          <span className="break-words">Agendado: {formatJobDate(job.scheduled_at)}</span>
                         </span>
                       ) : (
-                        <span>{formatJobDate(job.created_at)}</span>
+                        <span className="break-words">{formatJobDate(job.created_at)}</span>
                       )}
                       {jobTargets.length > 0 && (
                         <>
@@ -913,7 +913,7 @@ export default function PublishContentPage() {
         </Card>
 
         {scheduledItems.length > 0 && (
-          <Card>
+          <Card className="min-w-0">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Timer className="h-4 w-4" /> Programação
@@ -963,7 +963,7 @@ export default function PublishContentPage() {
         )}
 
         {stuckJobs.length > 0 && (
-          <Card>
+          <Card className="min-w-0">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="flex items-center gap-2 text-base">

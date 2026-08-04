@@ -13,7 +13,7 @@ export function TargetStatusList({ targets }: { targets: PublishTarget[] }) {
     return <p className="text-xs text-muted-foreground">Nenhuma conta nesta publicação.</p>;
   }
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 min-w-0">
       {targets.map(t => {
         const m = meta[t.status] ?? meta.pending;
         const Icon = m.icon;
@@ -21,7 +21,7 @@ export function TargetStatusList({ targets }: { targets: PublishTarget[] }) {
         return (
           <div
             key={t.id}
-            className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-md bg-muted/40 px-2.5 py-1.5 text-xs"
+            className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-md bg-muted/40 px-2.5 py-1.5 text-xs"
           >
             <span className="flex min-w-0 items-center gap-2">
               <Platform className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
