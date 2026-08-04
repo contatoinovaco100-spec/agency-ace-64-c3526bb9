@@ -21,7 +21,7 @@ export function TargetStatusList({ targets }: { targets: PublishTarget[] }) {
         return (
           <div
             key={t.id}
-            className="flex items-center justify-between gap-2 rounded-md bg-muted/40 px-3 py-2 text-xs animate-in fade-in-50"
+            className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-md bg-muted/40 px-2.5 py-1.5 text-xs"
           >
             <span className="flex min-w-0 items-center gap-2">
               <Platform className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -29,7 +29,7 @@ export function TargetStatusList({ targets }: { targets: PublishTarget[] }) {
             </span>
             <span className="flex items-center gap-1.5 shrink-0">
               {t.status === 'failed' && t.error_message && (
-                <span className="max-w-[220px] truncate text-[10px] text-destructive/80" title={t.error_message}>
+                <span className="max-w-[140px] truncate text-[10px] text-destructive/80" title={t.error_message}>
                   {t.error_message}
                 </span>
               )}

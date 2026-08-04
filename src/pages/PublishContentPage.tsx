@@ -772,14 +772,14 @@ export default function PublishContentPage() {
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-5 lg:space-y-6">
         <Card className="h-fit">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Film className="h-4 w-4" /> Status em tempo real
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 min-h-[120px]">
+          <CardContent className="space-y-4 min-h-[120px] px-4 pb-4 sm:px-5">
 
             {!jobId ? (
               <p className="text-xs text-muted-foreground">
@@ -807,12 +807,12 @@ export default function PublishContentPage() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="px-4 pt-4 pb-3 sm:px-5">
             <CardTitle className="flex items-center gap-2 text-base">
               <History className="h-4 w-4" /> Em andamento
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 min-h-[100px]">
+          <CardContent className="space-y-3 min-h-[100px] px-4 pb-4 sm:px-5">
             {jobsLoading ? (
               <><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" /></>
             ) : jobs.filter(j => j.status !== 'published').length === 0 ? (
@@ -831,8 +831,8 @@ export default function PublishContentPage() {
                 const scheduledItem = scheduledItems.find(si => si.jobId === job.id);
                 const isPending = job.status === 'pending' || job.status === 'scheduled';
                 return (
-                  <div key={job.id} className="rounded-md border p-3">
-                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <div key={job.id} className="rounded-lg border p-3">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
                       <span className="flex min-w-0 items-center gap-2 text-xs font-medium">
                         <Film className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         <span className="truncate">{title}</span>
@@ -883,15 +883,15 @@ export default function PublishContentPage() {
                         )}
                       </div>
                     </div>
-                    <div className="mb-2 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
                       {scheduledItem ? (
                         <span className="flex items-center gap-0.5 text-info font-medium">
-                          <Clock className="h-3 w-3" />
+                          <Clock className="h-3 w-3 shrink-0" />
                           Publica: {scheduledItem.publishAt.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </span>
                       ) : job.scheduled_at ? (
                         <span className="flex items-center gap-0.5 text-info font-medium">
-                          <Clock className="h-3 w-3" />
+                          <Clock className="h-3 w-3 shrink-0" />
                           Agendado: {formatJobDate(job.scheduled_at)}
                         </span>
                       ) : (
@@ -900,7 +900,7 @@ export default function PublishContentPage() {
                       {jobTargets.length > 0 && (
                         <>
                           <span>·</span>
-                          <span>{done}/{jobTargets.length} conta(s)</span>
+                          <span className="shrink-0">{done}/{jobTargets.length} conta(s)</span>
                         </>
                       )}
                     </div>
