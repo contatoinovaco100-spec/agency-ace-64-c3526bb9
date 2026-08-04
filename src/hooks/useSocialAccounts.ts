@@ -63,6 +63,16 @@ export function useSocialAccounts() {
     return () => { supabase.removeChannel(channel); };
   }, [reload]);
 
+  // Fallback: poll periodicamente para garantir que perfis recém-adicionados
+  // e atribuídos ao cliente apareçam na página rapidamente, mesmo se o
+  // realtime falhar ou atrasar.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') reload();
+    }, 20000);
+    return () => clearInterval(id);
+  }, [reload]);
+
   // Recarrega ao voltar para a aba/janela
   useEffect(() => {
     const onFocus = () => { if (document.visibilityState === 'visible') reload(); };
