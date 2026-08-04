@@ -158,6 +158,23 @@ export const publishingService = {
     return { processed, errors };
   },
 
+  /** Cancela um job (marca como 'failed') e remove targets pendentes. */
+  async cancelJob(jobId: string) {
+    const { error } = await supabase
+      .from(JOBS)
+      .update({ status: 'failed' } as any)
+      .eq('id', jobId)
+      .in('status', ['pending', 'scheduled']);
+    if (error) throw error;
+  },
+
+  /** Exclui um job e seus targets do banco. */
+  async deleteJob(jobId: string) {
+    await supabase.from(TARGETS).delete().eq('job_id', jobId);
+    const { error } = await supabase.from(JOBS).delete().eq('id', jobId);
+    if (error) throw error;
+  },
+
   /** Marca uma conta como publicada/pendente manualmente. */
 
   async markTarget(targetId: string, status: 'pending' | 'published') {

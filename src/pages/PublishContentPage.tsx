@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Clock, Film, History, Loader2, RefreshCw, Send, Timer, Upload, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Clock, Film, History, Loader2, RefreshCw, Send, Timer, Trash2, Upload, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountSelector } from '@/components/social/AccountSelector';
 import { TargetStatusList } from '@/components/social/TargetStatusList';
@@ -786,6 +786,8 @@ export default function PublishContentPage() {
                 const jobTargets = targetsOf(job.id);
                 const done = jobTargets.filter(t => t.status === 'published').length;
                 const title = job.caption?.trim() || (job.media_type === 'video' ? 'Vídeo' : 'Imagem');
+                const scheduledItem = scheduledItems.find(si => si.jobId === job.id);
+                const isPending = job.status === 'pending' || job.status === 'scheduled';
                 return (
                   <div key={job.id} className="rounded-md border p-3">
                     <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -793,25 +795,70 @@ export default function PublishContentPage() {
                         <Film className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         <span className="truncate">{title}</span>
                       </span>
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${m.cls}`}>
-                        {m.label}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${m.cls}`}>
+                          {m.label}
+                        </span>
+                        {isPending && (
+                          <>
+                            <Button
+                              size="icon" variant="ghost" className="h-5 w-5"
+                              onClick={async () => {
+                                try {
+                                  await publishingService.cancelJob(job.id);
+                                  toast.success('Publicação cancelada');
+                                  setScheduledItems(prev => prev.filter(si => si.jobId !== job.id));
+                                  timersRef.current.get(job.id)?.clearTimeout?.();
+                                  timersRef.current.delete(job.id);
+                                  reload();
+                                } catch (e: any) {
+                                  toast.error('Erro ao cancelar', { description: e?.message });
+                                }
+                              }}
+                              title="Cancelar"
+                            >
+                              <X className="h-3 w-3 text-destructive" />
+                            </Button>
+                            <Button
+                              size="icon" variant="ghost" className="h-5 w-5"
+                              onClick={async () => {
+                                try {
+                                  await publishingService.deleteJob(job.id);
+                                  toast.success('Publicação excluída');
+                                  setScheduledItems(prev => prev.filter(si => si.jobId !== job.id));
+                                  timersRef.current.get(job.id)?.clearTimeout?.();
+                                  timersRef.current.delete(job.id);
+                                  reload();
+                                } catch (e: any) {
+                                  toast.error('Erro ao excluir', { description: e?.message });
+                                }
+                              }}
+                              title="Excluir"
+                            >
+                              <Trash2 className="h-3 w-3 text-muted-foreground" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div className="mb-2 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                      <span>{formatJobDate(job.created_at)}</span>
-                      {job.scheduled_at && (
-                        <>
-                          <span>·</span>
-                          <span className="flex items-center gap-0.5 text-info">
-                            <Clock className="h-3 w-3" />
-                            Agendado: {formatJobDate(job.scheduled_at)}
-                          </span>
-                        </>
+                      {scheduledItem ? (
+                        <span className="flex items-center gap-0.5 text-info font-medium">
+                          <Clock className="h-3 w-3" />
+                          Publica: {scheduledItem.publishAt.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      ) : job.scheduled_at ? (
+                        <span className="flex items-center gap-0.5 text-info font-medium">
+                          <Clock className="h-3 w-3" />
+                          Agendado: {formatJobDate(job.scheduled_at)}
+                        </span>
+                      ) : (
+                        <span>{formatJobDate(job.created_at)}</span>
                       )}
                       {jobTargets.length > 0 && (
                         <>
                           <span>·</span>
-                          <span>{done}/{jobTargets.length} conta(s) publicada(s)</span>
+                          <span>{done}/{jobTargets.length} conta(s)</span>
                         </>
                       )}
                     </div>
@@ -878,7 +925,7 @@ export default function PublishContentPage() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Clock className="h-4 w-4 text-warning" /> Publicações pendentes ({stuckJobs.length})
+                  <Clock className="h-4 w-4 text-warning" /> Pendentes ({stuckJobs.length})
                 </CardTitle>
                 <Button size="sm" onClick={reprocessAll} disabled={reprocessing}>
                   {reprocessing ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1 h-3 w-3" />}
@@ -887,20 +934,32 @@ export default function PublishContentPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              <p className="text-xs text-muted-foreground mb-2">
-                Posts que foram criados mas ainda não foram publicados. Clique em "Publicar todas" para publicá-las agora.
-              </p>
               {stuckJobs.map((job, idx) => (
-                <div key={job.id} className="flex items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning/5 p-2">
+                <div key={job.id} className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 p-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-warning/15 text-[9px] font-bold text-warning">
+                    {idx + 1}
+                  </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium">{idx + 1}. {job.caption?.trim() || 'Sem legenda'}</p>
+                    <p className="truncate text-xs font-medium">{job.caption?.trim() || 'Sem legenda'}</p>
                     <p className="text-[10px] text-muted-foreground">
                       Criado: {formatJobDate(job.scheduled_at || job.id)}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning">
-                    Aguardando
-                  </span>
+                  <Button
+                    size="icon" variant="ghost" className="h-5 w-5 shrink-0"
+                    onClick={async () => {
+                      try {
+                        await publishingService.deleteJob(job.id);
+                        toast.success('Excluído');
+                        loadStuckJobs();
+                      } catch (e: any) {
+                        toast.error('Erro', { description: e?.message });
+                      }
+                    }}
+                    title="Excluir"
+                  >
+                    <X className="h-3 w-3 text-muted-foreground" />
+                  </Button>
                 </div>
               ))}
             </CardContent>
