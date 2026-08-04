@@ -278,6 +278,16 @@ export default function PublishContentPage() {
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Conteúdo</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <Label className="text-sm">Publicação em massa</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Cada vídeo/foto vira um post separado (até 30), em vez de carrossel.
+                  </p>
+                </div>
+                <Switch checked={bulkMode} onCheckedChange={setBulkMode} disabled={publishing} />
+              </div>
+
               <div
                 onDragOver={e => e.preventDefault()}
                 onDrop={e => { e.preventDefault(); pickFiles(Array.from(e.dataTransfer.files || [])); }}
@@ -310,7 +320,9 @@ export default function PublishContentPage() {
                     <Upload className="h-6 w-6 text-muted-foreground" />
                     <p className="text-sm font-medium">Arraste os vídeos/fotos ou clique para escolher</p>
                     <p className="text-xs text-muted-foreground">
-                      MP4 ou JPG/PNG até 500 MB — selecione várias para criar um carrossel (até 10)
+                      {bulkMode
+                        ? 'MP4 ou JPG/PNG até 500 MB — cada arquivo vira um post (até 30)'
+                        : 'MP4 ou JPG/PNG até 500 MB — selecione várias para criar um carrossel (até 10)'}
                     </p>
                   </>
                 )}
@@ -320,6 +332,29 @@ export default function PublishContentPage() {
                   onChange={e => { pickFiles(Array.from(e.target.files || [])); e.currentTarget.value = ''; }}
                 />
               </div>
+
+              {bulkMode && files.length > 0 && (
+                <div className="space-y-2 rounded-md border p-3">
+                  <Label className="text-sm">Legenda de cada post ({files.length})</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Deixe em branco para usar a legenda padrão abaixo.
+                  </p>
+                  <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                    {files.map((f, i) => (
+                      <div key={`${f.name}-${i}`} className="space-y-1">
+                        <p className="truncate text-[11px] text-muted-foreground">{i + 1}. {f.name}</p>
+                        <Textarea
+                          rows={2}
+                          value={bulkCaptions[i] ?? ''}
+                          onChange={e => setBulkCaptions(p => ({ ...p, [i]: e.target.value }))}
+                          placeholder="Legenda deste post..."
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
 
               <div className="space-y-2">
                 <Label>Tipo de publicação</Label>
