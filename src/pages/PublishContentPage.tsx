@@ -142,12 +142,14 @@ export default function PublishContentPage() {
   const manualTargets = targets.filter(t =>
     manualAccounts.some(a => a.username === t.username && a.platform === t.platform));
 
+  const currentJob = jobs.find(j => j.id === jobId) ?? null;
+  const finished = !!currentJob && ['published', 'partial', 'failed'].includes(currentJob.status);
+
   const resetForm = useCallback(() => {
-    previews.forEach(u => URL.revokeObjectURL(u));
+    setPreviews(prev => { prev.forEach(u => URL.revokeObjectURL(u)); return []; });
     setJobId(null);
     setMediaPath('');
     setFiles([]);
-    setPreviews([]);
     setCaption('');
     setFirstComment('');
     setScheduledAt('');
@@ -162,15 +164,20 @@ export default function PublishContentPage() {
     setAudioName('');
     setSelected([]);
     setProgress(0);
-  }, [previews]);
+  }, []);
 
+  // Avisa uma única vez quando o job termina — sem limpar a tela automaticamente,
+  // para o usuário conseguir ler o resultado de cada conta.
+  const notifiedRef = useRef<string | null>(null);
   useEffect(() => {
-    const job = jobs.find(j => j.id === jobId);
-    if (job?.status === 'published') {
-      toast.success('Publicação concluída! Pronto para a próxima.');
-      resetForm();
-    }
-  }, [jobs, jobId, resetForm]);
+    if (!currentJob || !finished) return;
+    if (notifiedRef.current === currentJob.id) return;
+    notifiedRef.current = currentJob.id;
+    if (currentJob.status === 'published') toast.success('Publicação concluída em todas as contas!');
+    else if (currentJob.status === 'partial') toast.warning('Publicado em parte das contas — veja os erros ao lado.');
+    else toast.error('A publicação falhou. Confira os detalhes ao lado.');
+  }, [currentJob, finished]);
+
 
 
 
