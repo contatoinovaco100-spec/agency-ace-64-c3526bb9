@@ -56,6 +56,9 @@ export default function PublishContentPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
   const [publishing, setPublishing] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkCaptions, setBulkCaptions] = useState<Record<number, string>>({});
+  const [bulkDone, setBulkDone] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const file = files[0] ?? null;
@@ -63,7 +66,8 @@ export default function PublishContentPage() {
   const isVideo = !!file && file.type.startsWith('video');
   const effectiveType: PostType = postType !== 'auto'
     ? postType
-    : (files.length > 1 ? 'carousel' : isVideo ? 'reels' : 'image');
+    : (!bulkMode && files.length > 1 ? 'carousel' : isVideo ? 'reels' : 'image');
+
 
 
   const selectedAccounts = useMemo(
@@ -71,20 +75,32 @@ export default function PublishContentPage() {
     [accounts, selected],
   );
 
+  const maxFiles = bulkMode ? 30 : 10;
+
   const pickFiles = (list: File[]) => {
     const valid = list.filter(f => {
       if (f.size > 500 * 1024 * 1024) { toast.error(`${f.name}: maior que 500 MB`); return false; }
       return true;
     });
     if (!valid.length) return;
-    setFiles(prev => [...prev, ...valid].slice(0, 10));
-    setPreviews(prev => [...prev, ...valid.map(f => URL.createObjectURL(f))].slice(0, 10));
+    setFiles(prev => [...prev, ...valid].slice(0, maxFiles));
+    setPreviews(prev => [...prev, ...valid.map(f => URL.createObjectURL(f))].slice(0, maxFiles));
   };
 
   const removeFile = (idx: number) => {
     setFiles(prev => prev.filter((_, i) => i !== idx));
     setPreviews(prev => prev.filter((_, i) => i !== idx));
+    setBulkCaptions(prev => {
+      const next: Record<number, string> = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const i = Number(k);
+        if (i < idx) next[i] = v;
+        else if (i > idx) next[i - 1] = v;
+      });
+      return next;
+    });
   };
+
 
 
   const toggle = (id: string) =>
@@ -96,9 +112,72 @@ export default function PublishContentPage() {
   const autoAccounts = selectedAccounts.filter(a => !!a.external_id);
   const manualAccounts = selectedAccounts.filter(a => !a.external_id);
 
+  const commonOptions = () => ({
+    postType,
+    shareToFeed,
+    collaborators: collaborators.split(',').map(s => s.trim()).filter(Boolean),
+    locationId,
+    userTags: userTags.split(',').map(s => s.trim()).filter(Boolean),
+    coverUrl,
+    thumbOffset: Number(thumbOffset) || 0,
+    audioName,
+  });
+
+  /** Modo em massa: cada vídeo/foto vira uma publicação separada. */
+  const publishBulk = async () => {
+    setPublishing(true);
+    setProgress(2);
+    setBulkDone(0);
+    let ok = 0;
+    const errors: string[] = [];
+    let lastJobId: string | null = null;
+    let lastPath = '';
+
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      try {
+        const job = await publishingService.createJob({
+          files: [f],
+          caption: (bulkCaptions[i] ?? '').trim() || caption,
+          firstComment,
+          scheduledAt: scheduledAt || null,
+          thumbnailUrl,
+          accounts: selectedAccounts,
+          onProgress: p => setProgress(Math.round(((i + p / 100) / files.length) * 100)),
+          ...commonOptions(),
+        });
+        lastJobId = job.id;
+        lastPath = job.media_path;
+        if (!scheduledAt && autoAccounts.length) {
+          await publishingService.run(job.id);
+        }
+        ok++;
+      } catch (e: any) {
+        errors.push(`${f.name}: ${e?.message ?? 'erro'}`);
+      }
+      setBulkDone(i + 1);
+      setProgress(Math.round(((i + 1) / files.length) * 100));
+    }
+
+    if (lastJobId) { setJobId(lastJobId); setMediaPath(lastPath); }
+    setPublishing(false);
+
+    if (ok && !errors.length) {
+      toast.success(`${ok} publicação(ões) enviada(s) em massa`, {
+        description: scheduledAt ? 'Todas agendadas.' : 'Acompanhe cada uma em "Em andamento".',
+      });
+    } else if (ok) {
+      toast.warning(`${ok} enviada(s), ${errors.length} com erro`, { description: errors[0] });
+    } else {
+      toast.error('Nenhuma publicação enviada', { description: errors[0] });
+    }
+  };
+
   const publish = async () => {
     if (!files.length) { toast.error('Envie ao menos uma mídia'); return; }
     if (!selectedAccounts.length) { toast.error('Selecione ao menos uma conta'); return; }
+    if (bulkMode) return publishBulk();
+
     setPublishing(true);
     setProgress(5);
     try {
@@ -164,6 +243,9 @@ export default function PublishContentPage() {
     setAudioName('');
     setSelected([]);
     setProgress(0);
+    setBulkCaptions({});
+    setBulkDone(0);
+
   }, []);
 
   // Avisa uma única vez quando o job termina — sem limpar a tela automaticamente,
@@ -196,6 +278,16 @@ export default function PublishContentPage() {
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Conteúdo</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <Label className="text-sm">Publicação em massa</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Cada vídeo/foto vira um post separado (até 30), em vez de carrossel.
+                  </p>
+                </div>
+                <Switch checked={bulkMode} onCheckedChange={setBulkMode} disabled={publishing} />
+              </div>
+
               <div
                 onDragOver={e => e.preventDefault()}
                 onDrop={e => { e.preventDefault(); pickFiles(Array.from(e.dataTransfer.files || [])); }}
@@ -228,7 +320,9 @@ export default function PublishContentPage() {
                     <Upload className="h-6 w-6 text-muted-foreground" />
                     <p className="text-sm font-medium">Arraste os vídeos/fotos ou clique para escolher</p>
                     <p className="text-xs text-muted-foreground">
-                      MP4 ou JPG/PNG até 500 MB — selecione várias para criar um carrossel (até 10)
+                      {bulkMode
+                        ? 'MP4 ou JPG/PNG até 500 MB — cada arquivo vira um post (até 30)'
+                        : 'MP4 ou JPG/PNG até 500 MB — selecione várias para criar um carrossel (até 10)'}
                     </p>
                   </>
                 )}
@@ -238,6 +332,29 @@ export default function PublishContentPage() {
                   onChange={e => { pickFiles(Array.from(e.target.files || [])); e.currentTarget.value = ''; }}
                 />
               </div>
+
+              {bulkMode && files.length > 0 && (
+                <div className="space-y-2 rounded-md border p-3">
+                  <Label className="text-sm">Legenda de cada post ({files.length})</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Deixe em branco para usar a legenda padrão abaixo.
+                  </p>
+                  <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                    {files.map((f, i) => (
+                      <div key={`${f.name}-${i}`} className="space-y-1">
+                        <p className="truncate text-[11px] text-muted-foreground">{i + 1}. {f.name}</p>
+                        <Textarea
+                          rows={2}
+                          value={bulkCaptions[i] ?? ''}
+                          onChange={e => setBulkCaptions(p => ({ ...p, [i]: e.target.value }))}
+                          placeholder="Legenda deste post..."
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
 
               <div className="space-y-2">
                 <Label>Tipo de publicação</Label>
@@ -251,10 +368,15 @@ export default function PublishContentPage() {
                     <SelectItem value="stories">Stories</SelectItem>
                   </SelectContent>
                 </Select>
-                {effectiveType === 'carousel' && (
+                {bulkMode ? (
+                  <p className="text-xs text-muted-foreground">
+                    Em massa: o tipo escolhido vale para todos os {files.length} post(s).
+                  </p>
+                ) : effectiveType === 'carousel' ? (
                   <p className="text-xs text-muted-foreground">{files.length} mídia(s) no carrossel</p>
-                )}
+                ) : null}
               </div>
+
 
 
               <div className="space-y-2">
@@ -377,19 +499,22 @@ export default function PublishContentPage() {
           </Card>
 
           <div className="sticky bottom-2 z-10 space-y-2 rounded-lg bg-background/80 p-1 backdrop-blur">
-            <Button className="w-full" size="lg" onClick={publish} disabled={publishing || (!!jobId && !finished)}>
+            <Button className="w-full" size="lg" onClick={publish} disabled={publishing || (!bulkMode && !!jobId && !finished)}>
               {publishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
               {publishing
-                ? 'Enviando...'
+                ? bulkMode ? `Enviando ${bulkDone}/${files.length}...` : 'Enviando...'
                 : scheduledAt
-                  ? 'Agendar publicação'
+                  ? bulkMode ? `Agendar ${files.length} publicação(ões)` : 'Agendar publicação'
                   : autoAccounts.length
-                    ? `Publicar agora em ${autoAccounts.length} conta(s)`
+                    ? bulkMode
+                      ? `Publicar ${files.length} post(s) em ${autoAccounts.length} conta(s)`
+                      : `Publicar agora em ${autoAccounts.length} conta(s)`
                     : 'Preparar publicação'}
             </Button>
-            {(publishing || (!!jobId && !finished)) && (
+            {(publishing || (!bulkMode && !!jobId && !finished)) && (
               <Progress value={publishing ? progress : 100} className="h-1.5" />
             )}
+
             {finished && (
               <Button variant="outline" className="w-full" onClick={resetForm}>
                 Nova publicação
