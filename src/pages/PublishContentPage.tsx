@@ -112,9 +112,72 @@ export default function PublishContentPage() {
   const autoAccounts = selectedAccounts.filter(a => !!a.external_id);
   const manualAccounts = selectedAccounts.filter(a => !a.external_id);
 
+  const commonOptions = () => ({
+    postType,
+    shareToFeed,
+    collaborators: collaborators.split(',').map(s => s.trim()).filter(Boolean),
+    locationId,
+    userTags: userTags.split(',').map(s => s.trim()).filter(Boolean),
+    coverUrl,
+    thumbOffset: Number(thumbOffset) || 0,
+    audioName,
+  });
+
+  /** Modo em massa: cada vídeo/foto vira uma publicação separada. */
+  const publishBulk = async () => {
+    setPublishing(true);
+    setProgress(2);
+    setBulkDone(0);
+    let ok = 0;
+    const errors: string[] = [];
+    let lastJobId: string | null = null;
+    let lastPath = '';
+
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      try {
+        const job = await publishingService.createJob({
+          files: [f],
+          caption: (bulkCaptions[i] ?? '').trim() || caption,
+          firstComment,
+          scheduledAt: scheduledAt || null,
+          thumbnailUrl,
+          accounts: selectedAccounts,
+          onProgress: p => setProgress(Math.round(((i + p / 100) / files.length) * 100)),
+          ...commonOptions(),
+        });
+        lastJobId = job.id;
+        lastPath = job.media_path;
+        if (!scheduledAt && autoAccounts.length) {
+          await publishingService.run(job.id);
+        }
+        ok++;
+      } catch (e: any) {
+        errors.push(`${f.name}: ${e?.message ?? 'erro'}`);
+      }
+      setBulkDone(i + 1);
+      setProgress(Math.round(((i + 1) / files.length) * 100));
+    }
+
+    if (lastJobId) { setJobId(lastJobId); setMediaPath(lastPath); }
+    setPublishing(false);
+
+    if (ok && !errors.length) {
+      toast.success(`${ok} publicação(ões) enviada(s) em massa`, {
+        description: scheduledAt ? 'Todas agendadas.' : 'Acompanhe cada uma em "Em andamento".',
+      });
+    } else if (ok) {
+      toast.warning(`${ok} enviada(s), ${errors.length} com erro`, { description: errors[0] });
+    } else {
+      toast.error('Nenhuma publicação enviada', { description: errors[0] });
+    }
+  };
+
   const publish = async () => {
     if (!files.length) { toast.error('Envie ao menos uma mídia'); return; }
     if (!selectedAccounts.length) { toast.error('Selecione ao menos uma conta'); return; }
+    if (bulkMode) return publishBulk();
+
     setPublishing(true);
     setProgress(5);
     try {
