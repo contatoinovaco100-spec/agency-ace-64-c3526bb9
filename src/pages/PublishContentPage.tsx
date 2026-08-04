@@ -499,19 +499,22 @@ export default function PublishContentPage() {
           </Card>
 
           <div className="sticky bottom-2 z-10 space-y-2 rounded-lg bg-background/80 p-1 backdrop-blur">
-            <Button className="w-full" size="lg" onClick={publish} disabled={publishing || (!!jobId && !finished)}>
+            <Button className="w-full" size="lg" onClick={publish} disabled={publishing || (!bulkMode && !!jobId && !finished)}>
               {publishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
               {publishing
-                ? 'Enviando...'
+                ? bulkMode ? `Enviando ${bulkDone}/${files.length}...` : 'Enviando...'
                 : scheduledAt
-                  ? 'Agendar publicação'
+                  ? bulkMode ? `Agendar ${files.length} publicação(ões)` : 'Agendar publicação'
                   : autoAccounts.length
-                    ? `Publicar agora em ${autoAccounts.length} conta(s)`
+                    ? bulkMode
+                      ? `Publicar ${files.length} post(s) em ${autoAccounts.length} conta(s)`
+                      : `Publicar agora em ${autoAccounts.length} conta(s)`
                     : 'Preparar publicação'}
             </Button>
-            {(publishing || (!!jobId && !finished)) && (
+            {(publishing || (!bulkMode && !!jobId && !finished)) && (
               <Progress value={publishing ? progress : 100} className="h-1.5" />
             )}
+
             {finished && (
               <Button variant="outline" className="w-full" onClick={resetForm}>
                 Nova publicação
