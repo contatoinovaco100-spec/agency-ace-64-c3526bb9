@@ -142,12 +142,14 @@ export default function PublishContentPage() {
   const manualTargets = targets.filter(t =>
     manualAccounts.some(a => a.username === t.username && a.platform === t.platform));
 
+  const currentJob = jobs.find(j => j.id === jobId) ?? null;
+  const finished = !!currentJob && ['published', 'partial', 'failed'].includes(currentJob.status);
+
   const resetForm = useCallback(() => {
-    previews.forEach(u => URL.revokeObjectURL(u));
+    setPreviews(prev => { prev.forEach(u => URL.revokeObjectURL(u)); return []; });
     setJobId(null);
     setMediaPath('');
     setFiles([]);
-    setPreviews([]);
     setCaption('');
     setFirstComment('');
     setScheduledAt('');
@@ -162,15 +164,20 @@ export default function PublishContentPage() {
     setAudioName('');
     setSelected([]);
     setProgress(0);
-  }, [previews]);
+  }, []);
 
+  // Avisa uma única vez quando o job termina — sem limpar a tela automaticamente,
+  // para o usuário conseguir ler o resultado de cada conta.
+  const notifiedRef = useRef<string | null>(null);
   useEffect(() => {
-    const job = jobs.find(j => j.id === jobId);
-    if (job?.status === 'published') {
-      toast.success('Publicação concluída! Pronto para a próxima.');
-      resetForm();
-    }
-  }, [jobs, jobId, resetForm]);
+    if (!currentJob || !finished) return;
+    if (notifiedRef.current === currentJob.id) return;
+    notifiedRef.current = currentJob.id;
+    if (currentJob.status === 'published') toast.success('Publicação concluída em todas as contas!');
+    else if (currentJob.status === 'partial') toast.warning('Publicado em parte das contas — veja os erros ao lado.');
+    else toast.error('A publicação falhou. Confira os detalhes ao lado.');
+  }, [currentJob, finished]);
+
 
 
 
@@ -369,17 +376,29 @@ export default function PublishContentPage() {
             </CardContent>
           </Card>
 
-          <Button className="w-full" size="lg" onClick={publish} disabled={publishing}>
-            {publishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            {scheduledAt
-              ? 'Agendar publicação'
-              : autoAccounts.length
-                ? `Publicar agora em ${autoAccounts.length} conta(s)`
-                : 'Preparar publicação'}
-          </Button>
-          {publishing && <Progress value={progress} className="h-1.5" />}
+          <div className="sticky bottom-2 z-10 space-y-2 rounded-lg bg-background/80 p-1 backdrop-blur">
+            <Button className="w-full" size="lg" onClick={publish} disabled={publishing || (!!jobId && !finished)}>
+              {publishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              {publishing
+                ? 'Enviando...'
+                : scheduledAt
+                  ? 'Agendar publicação'
+                  : autoAccounts.length
+                    ? `Publicar agora em ${autoAccounts.length} conta(s)`
+                    : 'Preparar publicação'}
+            </Button>
+            {(publishing || (!!jobId && !finished)) && (
+              <Progress value={publishing ? progress : 100} className="h-1.5" />
+            )}
+            {finished && (
+              <Button variant="outline" className="w-full" onClick={resetForm}>
+                Nova publicação
+              </Button>
+            )}
+          </div>
         </div>
 
+        <div className="space-y-6">
         <Card className="h-fit lg:sticky lg:top-4">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -387,6 +406,7 @@ export default function PublishContentPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+
             {!jobId ? (
               <p className="text-xs text-muted-foreground">
                 O progresso de cada conta aparece aqui assim que você publicar.
@@ -461,8 +481,10 @@ export default function PublishContentPage() {
             )}
           </CardContent>
         </Card>
+        </div>
 
       </div>
+
     </div>
   );
 }
