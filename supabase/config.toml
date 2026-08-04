@@ -18,8 +18,5 @@ verify_jwt = false
 [functions.scrape-viral-views]
 verify_jwt = false
 
-[functions.process-scheduled-publish]
-verify_jwt = false
-
 [functions.social-publish]
 verify_jwt = false

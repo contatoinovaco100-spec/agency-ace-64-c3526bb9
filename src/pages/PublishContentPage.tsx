@@ -60,7 +60,6 @@ export default function PublishContentPage() {
   const [bulkCaptions, setBulkCaptions] = useState<Record<number, string>>({});
   const [bulkDone, setBulkDone] = useState(0);
   const [schedulePattern, setSchedulePattern] = useState<string>('none');
-  const [scheduleStartTime, setScheduleStartTime] = useState('');
   const [scheduledItems, setScheduledItems] = useState<Array<{ jobId: string; fileName: string; publishAt: Date; status: 'waiting' | 'publishing' | 'done' | 'error' }>>([]);
   const [stuckJobs, setStuckJobs] = useState<Array<{ id: string; caption: string; scheduled_at: string }>>([]);
   const [reprocessing, setReprocessing] = useState(false);
@@ -240,10 +239,7 @@ export default function PublishContentPage() {
       '4h': 240, '6h': 360, '8h': 480, '12h': 720, '24h': 1440,
     };
     const intervalMin = schedulePattern !== 'none' ? (intervals[schedulePattern] ?? 0) : 0;
-    const startTime = schedulePattern !== 'none' && scheduleStartTime
-      ? new Date(scheduleStartTime).getTime()
-      : 0;
-    const useClientSchedule = intervalMin > 0 && startTime > 0;
+    const hasInterval = intervalMin > 0;
 
     const newScheduledItems: Array<{ jobId: string; fileName: string; publishAt: Date; status: 'waiting' | 'publishing' | 'done' | 'error' }> = [];
 
@@ -263,8 +259,12 @@ export default function PublishContentPage() {
         lastJobId = job.id;
         lastPath = job.media_path;
 
-        if (useClientSchedule) {
-          const publishAt = new Date(startTime + i * intervalMin * 60000);
+        if (i === 0) {
+          if (autoAccounts.length) {
+            await publishingService.run(job.id);
+          }
+        } else if (hasInterval) {
+          const publishAt = new Date(Date.now() + i * intervalMin * 60000);
           newScheduledItems.push({ jobId: job.id, fileName: f.name, publishAt, status: 'waiting' });
         } else if (autoAccounts.length) {
           await publishingService.run(job.id);
@@ -285,11 +285,10 @@ export default function PublishContentPage() {
     setPublishing(false);
 
     if (ok && !errors.length) {
-      if (useClientSchedule) {
-        const first = new Date(startTime);
-        const last = new Date(startTime + (files.length - 1) * intervalMin * 60000);
-        toast.success(`${ok} publicação(ões) agendada(s)`, {
-          description: `Primeiro: ${first.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} · Último: ${last.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`,
+      if (hasInterval) {
+        const last = new Date(Date.now() + (files.length - 1) * intervalMin * 60000);
+        toast.success(`${ok} publicação(ões) enviada(s)`, {
+          description: `1º post publicado agora · Último em ${last.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`,
         });
       } else {
         toast.success(`${ok} publicação(ões) enviada(s) em massa`, {
@@ -381,7 +380,6 @@ export default function PublishContentPage() {
     setBulkCaptions({});
     setBulkDone(0);
     setSchedulePattern('none');
-    setScheduleStartTime('');
     setScheduledItems([]);
     timersRef.current.forEach(t => clearTimeout(t));
     timersRef.current.clear();
@@ -499,14 +497,14 @@ export default function PublishContentPage() {
               {bulkMode && files.length > 0 && (
                 <div className="space-y-3 rounded-md border p-3">
                   <div className="space-y-2">
-                    <Label className="text-sm">Padrão de agendamento</Label>
+                    <Label className="text-sm">Intervalo entre posts</Label>
                     <p className="text-xs text-muted-foreground">
-                      Escolha o intervalo entre cada publicação.
+                      O 1º post sai agora. Os seguintes seguem o intervalo escolhido.
                     </p>
                     <Select value={schedulePattern} onValueChange={setSchedulePattern}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Sem agendamento (publicar tudo agora)</SelectItem>
+                        <SelectItem value="none">Publicar todos agora</SelectItem>
                         <SelectItem value="30min">A cada 30 minutos</SelectItem>
                         <SelectItem value="1h">A cada 1 hora</SelectItem>
                         <SelectItem value="2h">A cada 2 horas</SelectItem>
@@ -521,43 +519,29 @@ export default function PublishContentPage() {
                   </div>
 
                   {schedulePattern !== 'none' && (
-                    <div className="space-y-2">
-                      <Label className="text-sm">Data e hora inicial</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Primeiro post será agendado para este horário. Os seguintes seguirão o intervalo.
-                      </p>
-                      <Input
-                        type="datetime-local"
-                        value={scheduleStartTime}
-                        onChange={e => setScheduleStartTime(e.target.value)}
-                        min={new Date().toISOString().slice(0, 16)}
-                      />
-                      <p className="text-[11px] text-muted-foreground">
-                        {files.length} post(s) × intervalo de {
-                          schedulePattern === '30min' ? '30 min' :
-                          schedulePattern === '1h' ? '1 hora' :
-                          schedulePattern === '2h' ? '2 horas' :
-                          schedulePattern === '3h' ? '3 horas' :
-                          schedulePattern === '4h' ? '4 horas' :
-                          schedulePattern === '6h' ? '6 horas' :
-                          schedulePattern === '8h' ? '8 horas' :
-                          schedulePattern === '12h' ? '12 horas' :
-                          '24 horas'
-                        } = último post em {
-                          (() => {
-                            if (!scheduleStartTime) return '...';
-                            const intervals: Record<string, number> = {
-                              '30min': 30, '1h': 60, '2h': 120, '3h': 180,
-                              '4h': 240, '6h': 360, '8h': 480, '12h': 720, '24h': 1440,
-                            };
-                            const start = new Date(scheduleStartTime);
-                            const totalMin = (files.length - 1) * (intervals[schedulePattern] ?? 60);
-                            const end = new Date(start.getTime() + totalMin * 60000);
-                            return end.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-                          })()
-                        }
-                      </p>
-                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      1º post agora · {files.length - 1} próximo(s) a cada {
+                        schedulePattern === '30min' ? '30 min' :
+                        schedulePattern === '1h' ? '1 hora' :
+                        schedulePattern === '2h' ? '2 horas' :
+                        schedulePattern === '3h' ? '3 horas' :
+                        schedulePattern === '4h' ? '4 horas' :
+                        schedulePattern === '6h' ? '6 horas' :
+                        schedulePattern === '8h' ? '8 horas' :
+                        schedulePattern === '12h' ? '12 horas' :
+                        '24 horas'
+                      } · Último em {
+                        (() => {
+                          const intervals: Record<string, number> = {
+                            '30min': 30, '1h': 60, '2h': 120, '3h': 180,
+                            '4h': 240, '6h': 360, '8h': 480, '12h': 720, '24h': 1440,
+                          };
+                          const totalMin = (files.length - 1) * (intervals[schedulePattern] ?? 60);
+                          const end = new Date(Date.now() + totalMin * 60000);
+                          return end.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                        })()
+                      }
+                    </p>
                   )}
                 </div>
               )}
@@ -713,7 +697,7 @@ export default function PublishContentPage() {
               {publishing
                 ? bulkMode ? `Enviando ${bulkDone}/${files.length}...` : 'Enviando...'
                 : (schedulePattern !== 'none' && bulkMode)
-                  ? `Agendar ${files.length} post(s) (${schedulePattern === '30min' ? '30min' : schedulePattern})`
+                  ? `Publicar ${files.length} post(s) (1º agora, demais a cada ${schedulePattern === '30min' ? '30min' : schedulePattern})`
                   : scheduledAt
                     ? bulkMode ? `Agendar ${files.length} publicação(ões)` : 'Agendar publicação'
                     : autoAccounts.length
@@ -831,7 +815,7 @@ export default function PublishContentPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
-                <Timer className="h-4 w-4" /> Fila de agendamento ({scheduledItems.filter(s => s.status === 'waiting').length} pendente(s))
+                <Timer className="h-4 w-4" /> Fila de publicação ({scheduledItems.filter(s => s.status === 'waiting').length} pendente(s))
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -846,9 +830,9 @@ export default function PublishContentPage() {
                 return (
                   <div key={item.jobId} className="flex items-center justify-between gap-2 rounded-md border p-2">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-medium">{idx + 1}. {item.fileName}</p>
+                      <p className="truncate text-xs font-medium">{idx + 2}. {item.fileName}</p>
                       <p className="text-[10px] text-muted-foreground">
-                        {item.publishAt.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        Previsto: {item.publishAt.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.cls}`}>
