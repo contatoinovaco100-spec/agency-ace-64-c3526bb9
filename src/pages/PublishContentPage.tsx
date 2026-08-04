@@ -59,6 +59,8 @@ export default function PublishContentPage() {
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkCaptions, setBulkCaptions] = useState<Record<number, string>>({});
   const [bulkDone, setBulkDone] = useState(0);
+  const [schedulePattern, setSchedulePattern] = useState<string>('none');
+  const [scheduleStartTime, setScheduleStartTime] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const file = files[0] ?? null;
@@ -133,14 +135,29 @@ export default function PublishContentPage() {
     let lastJobId: string | null = null;
     let lastPath = '';
 
+    const intervals: Record<string, number> = {
+      '30min': 30, '1h': 60, '2h': 120, '3h': 180,
+      '4h': 240, '6h': 360, '8h': 480, '12h': 720, '24h': 1440,
+    };
+    const intervalMin = schedulePattern !== 'none' ? (intervals[schedulePattern] ?? 0) : 0;
+    const startTime = schedulePattern !== 'none' && scheduleStartTime
+      ? new Date(scheduleStartTime).getTime()
+      : 0;
+
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
       try {
+        let postScheduledAt: string | null = null;
+        if (intervalMin > 0 && startTime) {
+          const postTime = new Date(startTime + i * intervalMin * 60000);
+          postScheduledAt = postTime.toISOString();
+        }
+
         const job = await publishingService.createJob({
           files: [f],
           caption: (bulkCaptions[i] ?? '').trim() || caption,
           firstComment,
-          scheduledAt: scheduledAt || null,
+          scheduledAt: postScheduledAt || scheduledAt || null,
           thumbnailUrl,
           accounts: selectedAccounts,
           onProgress: p => setProgress(Math.round(((i + p / 100) / files.length) * 100)),
@@ -148,7 +165,7 @@ export default function PublishContentPage() {
         });
         lastJobId = job.id;
         lastPath = job.media_path;
-        if (!scheduledAt && autoAccounts.length) {
+        if (!postScheduledAt && !scheduledAt && autoAccounts.length) {
           await publishingService.run(job.id);
         }
         ok++;
@@ -163,8 +180,21 @@ export default function PublishContentPage() {
     setPublishing(false);
 
     if (ok && !errors.length) {
+      const isScheduled = schedulePattern !== 'none' || scheduledAt;
       toast.success(`${ok} publicação(ões) enviada(s) em massa`, {
-        description: scheduledAt ? 'Todas agendadas.' : 'Acompanhe cada uma em "Em andamento".',
+        description: isScheduled
+          ? `Todas agendadas com intervalo de ${
+              schedulePattern === '30min' ? '30 min' :
+              schedulePattern === '1h' ? '1 hora' :
+              schedulePattern === '2h' ? '2 horas' :
+              schedulePattern === '3h' ? '3 horas' :
+              schedulePattern === '4h' ? '4 horas' :
+              schedulePattern === '6h' ? '6 horas' :
+              schedulePattern === '8h' ? '8 horas' :
+              schedulePattern === '12h' ? '12 horas' :
+              schedulePattern === '24h' ? '24 horas' : ''
+            }.`
+          : 'Acompanhe cada uma em "Em andamento".',
       });
     } else if (ok) {
       toast.warning(`${ok} enviada(s), ${errors.length} com erro`, { description: errors[0] });
@@ -250,6 +280,8 @@ export default function PublishContentPage() {
     setProgress(0);
     setBulkCaptions({});
     setBulkDone(0);
+    setSchedulePattern('none');
+    setScheduleStartTime('');
 
   }, []);
 
@@ -360,6 +392,72 @@ export default function PublishContentPage() {
                 </div>
               )}
 
+              {bulkMode && files.length > 0 && (
+                <div className="space-y-3 rounded-md border p-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Padrão de agendamento</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Escolha o intervalo entre cada publicação.
+                    </p>
+                    <Select value={schedulePattern} onValueChange={setSchedulePattern}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem agendamento (publicar tudo agora)</SelectItem>
+                        <SelectItem value="30min">A cada 30 minutos</SelectItem>
+                        <SelectItem value="1h">A cada 1 hora</SelectItem>
+                        <SelectItem value="2h">A cada 2 horas</SelectItem>
+                        <SelectItem value="3h">A cada 3 horas</SelectItem>
+                        <SelectItem value="4h">A cada 4 horas</SelectItem>
+                        <SelectItem value="6h">A cada 6 horas</SelectItem>
+                        <SelectItem value="8h">A cada 8 horas</SelectItem>
+                        <SelectItem value="12h">A cada 12 horas</SelectItem>
+                        <SelectItem value="24h">A cada 24 horas (1x ao dia)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {schedulePattern !== 'none' && (
+                    <div className="space-y-2">
+                      <Label className="text-sm">Data e hora inicial</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Primeiro post será agendado para este horário. Os seguintes seguirão o intervalo.
+                      </p>
+                      <Input
+                        type="datetime-local"
+                        value={scheduleStartTime}
+                        onChange={e => setScheduleStartTime(e.target.value)}
+                        min={new Date().toISOString().slice(0, 16)}
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        {files.length} post(s) × intervalo de {
+                          schedulePattern === '30min' ? '30 min' :
+                          schedulePattern === '1h' ? '1 hora' :
+                          schedulePattern === '2h' ? '2 horas' :
+                          schedulePattern === '3h' ? '3 horas' :
+                          schedulePattern === '4h' ? '4 horas' :
+                          schedulePattern === '6h' ? '6 horas' :
+                          schedulePattern === '8h' ? '8 horas' :
+                          schedulePattern === '12h' ? '12 horas' :
+                          '24 horas'
+                        } = último post em {
+                          (() => {
+                            if (!scheduleStartTime) return '...';
+                            const intervals: Record<string, number> = {
+                              '30min': 30, '1h': 60, '2h': 120, '3h': 180,
+                              '4h': 240, '6h': 360, '8h': 480, '12h': 720, '24h': 1440,
+                            };
+                            const start = new Date(scheduleStartTime);
+                            const totalMin = (files.length - 1) * (intervals[schedulePattern] ?? 60);
+                            const end = new Date(start.getTime() + totalMin * 60000);
+                            return end.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                          })()
+                        }
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
 
               <div className="space-y-2">
                 <Label>Tipo de publicação</Label>
@@ -457,10 +555,12 @@ export default function PublishContentPage() {
               )}
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Agendamento (opcional)</Label>
-                  <Input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
-                </div>
+                {!bulkMode && (
+                  <div className="space-y-2">
+                    <Label>Agendamento (opcional)</Label>
+                    <Input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Miniatura (URL, outras redes)</Label>
                   <Input value={thumbnailUrl} onChange={e => setThumbnailUrl(e.target.value)} placeholder="https://..." />
@@ -508,13 +608,15 @@ export default function PublishContentPage() {
               {publishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
               {publishing
                 ? bulkMode ? `Enviando ${bulkDone}/${files.length}...` : 'Enviando...'
-                : scheduledAt
-                  ? bulkMode ? `Agendar ${files.length} publicação(ões)` : 'Agendar publicação'
-                  : autoAccounts.length
-                    ? bulkMode
-                      ? `Publicar ${files.length} post(s) em ${autoAccounts.length} conta(s)`
-                      : `Publicar agora em ${autoAccounts.length} conta(s)`
-                    : 'Preparar publicação'}
+                : (schedulePattern !== 'none' && bulkMode)
+                  ? `Agendar ${files.length} post(s) (${schedulePattern === '30min' ? '30min' : schedulePattern})`
+                  : scheduledAt
+                    ? bulkMode ? `Agendar ${files.length} publicação(ões)` : 'Agendar publicação'
+                    : autoAccounts.length
+                      ? bulkMode
+                        ? `Publicar ${files.length} post(s) em ${autoAccounts.length} conta(s)`
+                        : `Publicar agora em ${autoAccounts.length} conta(s)`
+                      : 'Preparar publicação'}
             </Button>
             {(publishing || (!bulkMode && !!jobId && !finished)) && (
               <Progress value={publishing ? progress : 100} className="h-1.5" />
