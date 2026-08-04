@@ -376,17 +376,29 @@ export default function PublishContentPage() {
             </CardContent>
           </Card>
 
-          <Button className="w-full" size="lg" onClick={publish} disabled={publishing}>
-            {publishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            {scheduledAt
-              ? 'Agendar publicação'
-              : autoAccounts.length
-                ? `Publicar agora em ${autoAccounts.length} conta(s)`
-                : 'Preparar publicação'}
-          </Button>
-          {publishing && <Progress value={progress} className="h-1.5" />}
+          <div className="sticky bottom-2 z-10 space-y-2 rounded-lg bg-background/80 p-1 backdrop-blur">
+            <Button className="w-full" size="lg" onClick={publish} disabled={publishing || (!!jobId && !finished)}>
+              {publishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              {publishing
+                ? 'Enviando...'
+                : scheduledAt
+                  ? 'Agendar publicação'
+                  : autoAccounts.length
+                    ? `Publicar agora em ${autoAccounts.length} conta(s)`
+                    : 'Preparar publicação'}
+            </Button>
+            {(publishing || (!!jobId && !finished)) && (
+              <Progress value={publishing ? progress : 100} className="h-1.5" />
+            )}
+            {finished && (
+              <Button variant="outline" className="w-full" onClick={resetForm}>
+                Nova publicação
+              </Button>
+            )}
+          </div>
         </div>
 
+        <div className="space-y-6">
         <Card className="h-fit lg:sticky lg:top-4">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -394,6 +406,7 @@ export default function PublishContentPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+
             {!jobId ? (
               <p className="text-xs text-muted-foreground">
                 O progresso de cada conta aparece aqui assim que você publicar.
