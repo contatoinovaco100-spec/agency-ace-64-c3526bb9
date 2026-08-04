@@ -238,6 +238,7 @@ export default function PublishContentPage() {
     };
     const intervalMin = schedulePattern !== 'none' ? (intervals[schedulePattern] ?? 0) : 0;
     const hasInterval = intervalMin > 0;
+    const baseTime = Date.now();
 
     const newScheduledItems: Array<{ jobId: string; fileName: string; publishAt: Date; status: 'waiting' | 'publishing' | 'done' | 'error' }> = [];
 
@@ -262,7 +263,7 @@ export default function PublishContentPage() {
             await publishingService.run(job.id);
           }
         } else if (hasInterval) {
-          const publishAt = new Date(Date.now() + i * intervalMin * 60000);
+          const publishAt = new Date(baseTime + i * intervalMin * 60000);
           newScheduledItems.push({ jobId: job.id, fileName: f.name, publishAt, status: 'waiting' });
         } else if (autoAccounts.length) {
           await publishingService.run(job.id);
@@ -284,7 +285,7 @@ export default function PublishContentPage() {
 
     if (ok && !errors.length) {
       if (hasInterval) {
-        const last = new Date(Date.now() + (files.length - 1) * intervalMin * 60000);
+        const last = new Date(baseTime + (files.length - 1) * intervalMin * 60000);
         toast.success(`${ok} publicação(ões) enviada(s)`, {
           description: `1º post publicado agora · Último em ${last.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`,
         });
@@ -523,7 +524,8 @@ export default function PublishContentPage() {
                             '4h': 240, '6h': 360, '8h': 480, '12h': 720, '24h': 1440,
                           };
                           const min = intervals[schedulePattern] ?? 60;
-                          const postTime = new Date(Date.now() + i * min * 60000);
+                          const now = new Date();
+                          const postTime = new Date(now.getTime() + i * min * 60000);
                           return (
                             <div key={i} className="flex items-center gap-2 text-[11px]">
                               <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
