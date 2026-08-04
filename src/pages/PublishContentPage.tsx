@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Clock, Film, History, Loader2, RefreshCw, Send, Timer, Upload, X } from 'lucide-react';
+import { Clock, Film, History, Loader2, RefreshCw, Send, Timer, Upload, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountSelector } from '@/components/social/AccountSelector';
 import { TargetStatusList } from '@/components/social/TargetStatusList';
@@ -496,9 +496,6 @@ export default function PublishContentPage() {
                 <div className="space-y-3 rounded-md border p-3">
                   <div className="space-y-2">
                     <Label className="text-sm">Intervalo entre posts</Label>
-                    <p className="text-xs text-muted-foreground">
-                      O 1º post sai agora. Os seguintes seguem o intervalo escolhido.
-                    </p>
                     <Select value={schedulePattern} onValueChange={setSchedulePattern}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -511,35 +508,52 @@ export default function PublishContentPage() {
                         <SelectItem value="6h">A cada 6 horas</SelectItem>
                         <SelectItem value="8h">A cada 8 horas</SelectItem>
                         <SelectItem value="12h">A cada 12 horas</SelectItem>
-                        <SelectItem value="24h">A cada 24 horas (1x ao dia)</SelectItem>
+                        <SelectItem value="24h">A cada 24 horas</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   {schedulePattern !== 'none' && (
-                    <p className="text-[11px] text-muted-foreground">
-                      1º post agora · {files.length - 1} próximo(s) a cada {
-                        schedulePattern === '30min' ? '30 min' :
-                        schedulePattern === '1h' ? '1 hora' :
-                        schedulePattern === '2h' ? '2 horas' :
-                        schedulePattern === '3h' ? '3 horas' :
-                        schedulePattern === '4h' ? '4 horas' :
-                        schedulePattern === '6h' ? '6 horas' :
-                        schedulePattern === '8h' ? '8 horas' :
-                        schedulePattern === '12h' ? '12 horas' :
-                        '24 horas'
-                      } · Último em {
-                        (() => {
+                    <div className="space-y-2 rounded-md bg-muted/50 p-3">
+                      <p className="text-xs font-medium">Pré-visualização da programação</p>
+                      <div className="space-y-1.5">
+                        {files.slice(0, 5).map((f, i) => {
                           const intervals: Record<string, number> = {
                             '30min': 30, '1h': 60, '2h': 120, '3h': 180,
                             '4h': 240, '6h': 360, '8h': 480, '12h': 720, '24h': 1440,
                           };
-                          const totalMin = (files.length - 1) * (intervals[schedulePattern] ?? 60);
-                          const end = new Date(Date.now() + totalMin * 60000);
-                          return end.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-                        })()
-                      }
-                    </p>
+                          const min = intervals[schedulePattern] ?? 60;
+                          const postTime = new Date(Date.now() + i * min * 60000);
+                          return (
+                            <div key={i} className="flex items-center gap-2 text-[11px]">
+                              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
+                                i === 0 ? 'bg-emerald-500 text-white' : 'bg-primary/15 text-primary'
+                              }`}>
+                                {i + 1}
+                              </span>
+                              <span className="truncate text-muted-foreground">{f.name}</span>
+                              <span className="ml-auto shrink-0 font-medium text-foreground">
+                                {i === 0 ? 'Agora' : postTime.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {files.length > 5 && (
+                          <p className="text-[10px] text-muted-foreground pl-7">
+                            +{files.length - 5} mais... Último às {
+                              (() => {
+                                const intervals: Record<string, number> = {
+                                  '30min': 30, '1h': 60, '2h': 120, '3h': 180,
+                                  '4h': 240, '6h': 360, '8h': 480, '12h': 720, '24h': 1440,
+                                };
+                                const totalMin = (files.length - 1) * (intervals[schedulePattern] ?? 60);
+                                return new Date(Date.now() + totalMin * 60000).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                              })()
+                            }
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -813,32 +827,48 @@ export default function PublishContentPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
-                <Timer className="h-4 w-4" /> Fila de publicação ({scheduledItems.filter(s => s.status === 'waiting').length} pendente(s))
+                <Timer className="h-4 w-4" /> Programação
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {scheduledItems.map((item, idx) => {
-                const statusMap = {
-                  waiting: { label: formatCountdown(item.publishAt), cls: 'bg-info/15 text-info' },
-                  publishing: { label: 'Publicando...', cls: 'bg-primary/15 text-primary animate-pulse' },
-                  done: { label: 'Publicado', cls: 'bg-emerald-500/15 text-emerald-600' },
-                  error: { label: 'Erro', cls: 'bg-destructive/15 text-destructive' },
-                };
-                const s = statusMap[item.status];
+            <CardContent className="space-y-3">
+              {(() => {
+                const done = scheduledItems.filter(s => s.status === 'done').length;
+                const total = scheduledItems.length + 1;
+                const pct = Math.round(((done + 1) / total) * 100);
                 return (
-                  <div key={item.jobId} className="flex items-center justify-between gap-2 rounded-md border p-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-medium">{idx + 2}. {item.fileName}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        Previsto: {item.publishAt.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </p>
+                  <>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">{done + 1}/{total} publicado(s)</span>
+                      <span className="font-medium">{pct}%</span>
                     </div>
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.cls}`}>
-                      {s.label}
-                    </span>
-                  </div>
+                    <Progress value={pct} className="h-2" />
+                  </>
                 );
-              })}
+              })()}
+
+              <div className="space-y-1">
+                {scheduledItems.map((item, idx) => {
+                  const statusMap = {
+                    waiting: { icon: Clock, label: formatCountdown(item.publishAt), cls: 'text-info', bg: 'bg-info/10 border-info/20', iconCls: '' },
+                    publishing: { icon: Loader2, label: 'Publicando...', cls: 'text-primary', bg: 'bg-primary/10 border-primary/20', iconCls: 'animate-spin' },
+                    done: { icon: CheckCircle2, label: 'Publicado', cls: 'text-emerald-600', bg: 'bg-emerald-500/10 border-emerald-500/20', iconCls: '' },
+                    error: { icon: AlertCircle, label: 'Erro', cls: 'text-destructive', bg: 'bg-destructive/10 border-destructive/20', iconCls: '' },
+                  };
+                  const s = statusMap[item.status];
+                  const Icon = s.icon;
+                  return (
+                    <div key={item.jobId} className={`flex items-center gap-2.5 rounded-md border p-2 ${s.bg}`}>
+                      <Icon className={`h-3.5 w-3.5 shrink-0 ${s.cls} ${s.iconCls}`} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium">{idx + 2}. {item.fileName}</p>
+                      </div>
+                      <span className={`shrink-0 text-[10px] font-semibold ${s.cls}`}>
+                        {s.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
         )}
