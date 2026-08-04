@@ -8,6 +8,7 @@ import {
 
 export type PageCategory =
   | 'Geral'
+  | 'Postagens'
   | 'Comercial'
   | 'Operacional'
   | 'Produção'
@@ -27,6 +28,8 @@ export interface AppPage {
   adminOnly?: boolean;
   /** Do not render in sidebar (still routable) */
   hidden?: boolean;
+  /** Render in a highlighted style in the sidebar (e.g. Publicar) */
+  highlight?: boolean;
 
 }
 
@@ -47,6 +50,14 @@ export const APP_PAGES: AppPage[] = [
 
   { path: '/roleta',              label: 'Roleta de Prêmios',   icon: Gift,            category: 'Geral' },
   // { path: '/negocios',            label: 'Rede de Negócios',    icon: Network,         category: 'Geral' },
+
+  // Postagens (publicar + relatórios de cliente)
+  { path: '/publicar',            label: 'Publicar Conteúdo',    icon: Sparkles,        category: 'Postagens', highlight: true },
+  { path: '/publicacoes',         label: 'Histórico de Posts',   icon: ListChecks,      category: 'Postagens' },
+  { path: '/redes-sociais',       label: 'Redes Sociais',        icon: Network,         category: 'Postagens' },
+  { path: '/portfolio-instagram', label: 'Posts Instagram',      icon: Sparkles,        category: 'Postagens' },
+  { path: '/instagram-analytics', label: 'Relatório Cliente',    icon: BarChart3,       category: 'Postagens' },
+  { path: '/instagram-automacao', label: 'Fila Instagram',       icon: Sparkles,        category: 'Postagens', adminOnly: true },
 
   // Comercial
   { path: '/crm',                 label: 'CRM',                 icon: Target,          category: 'Comercial' },
@@ -72,7 +83,6 @@ export const APP_PAGES: AppPage[] = [
   // Produção
   // { path: '/galeria',             label: 'Galeria',             icon: Images,          category: 'Produção' },
   { path: '/portfolio',           label: 'Portfólio',           icon: Film,            category: 'Produção' },
-  { path: '/portfolio-instagram', label: 'Posts Instagram',     icon: Sparkles,        category: 'Produção' },
   { path: '/gravacoes',           label: 'Gravações',           icon: Clapperboard,    category: 'Produção' },
 
   // Ferramentas
@@ -84,11 +94,6 @@ export const APP_PAGES: AppPage[] = [
   { path: '/diagnostico-anuncios', label: 'Diagnóstico de Anúncios', icon: BarChart3,    category: 'Ferramentas' },
   { path: '/quiz-builder',        label: 'Quiz Builder',        icon: Layers,          category: 'Ferramentas', adminOnly: true },
   { path: '/figma-to-lp',         label: 'Figma → LP',          icon: Palette,         category: 'Ferramentas', adminOnly: true },
-  { path: '/instagram-automacao', label: 'Fila Instagram',       icon: Sparkles,        category: 'Ferramentas', adminOnly: true },
-  { path: '/redes-sociais',       label: 'Redes Sociais',        icon: Network,         category: 'Ferramentas' },
-  { path: '/publicar',            label: 'Publicar Conteúdo',    icon: Sparkles,        category: 'Ferramentas' },
-  { path: '/publicacoes',         label: 'Histórico de Posts',   icon: ListChecks,      category: 'Ferramentas' },
-  { path: '/instagram-analytics', label: 'Analytics Instagram',  icon: BarChart3,       category: 'Ferramentas' },
 
 
   // Administração (só admin)
@@ -113,7 +118,7 @@ export const APP_PAGES: AppPage[] = [
 ];
 
 export const PAGE_CATEGORIES: PageCategory[] = [
-  'Geral', 'Comercial', 'Operacional', 'Produção', 'Ferramentas', 'Administração',
+  'Geral', 'Postagens', 'Comercial', 'Operacional', 'Produção', 'Ferramentas', 'Administração',
 ];
 
 export function getPage(path: string): AppPage | undefined {

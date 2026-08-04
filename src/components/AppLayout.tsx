@@ -101,13 +101,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     onClick={() => setMobileMenuOpen(false)}
                     className={cn(
                       'flex items-center gap-3 rounded-md px-3 py-2 text-body transition-all duration-200',
-                      isActive
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      item.highlight
+                        ? 'bg-primary text-primary-foreground font-semibold shadow-sm hover:bg-primary/90'
+                        : isActive
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                     )}
                     activeClassName=""
                   >
-                    <Icon className="h-4 w-4 shrink-0" />
+                    <Icon className={cn('h-4 w-4 shrink-0', item.highlight && 'text-primary-foreground')} />
                     <span className={cn('transition-all duration-300', collapsed ? 'lg:hidden' : 'block')}>
                       {item.label}
                     </span>
