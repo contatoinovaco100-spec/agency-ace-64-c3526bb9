@@ -243,6 +243,9 @@ export default function PublishContentPage() {
     setAudioName('');
     setSelected([]);
     setProgress(0);
+    setBulkCaptions({});
+    setBulkDone(0);
+
   }, []);
 
   // Avisa uma única vez quando o job termina — sem limpar a tela automaticamente,
