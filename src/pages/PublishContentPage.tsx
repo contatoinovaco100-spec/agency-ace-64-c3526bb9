@@ -56,6 +56,9 @@ export default function PublishContentPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
   const [publishing, setPublishing] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkCaptions, setBulkCaptions] = useState<Record<number, string>>({});
+  const [bulkDone, setBulkDone] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const file = files[0] ?? null;
@@ -63,7 +66,8 @@ export default function PublishContentPage() {
   const isVideo = !!file && file.type.startsWith('video');
   const effectiveType: PostType = postType !== 'auto'
     ? postType
-    : (files.length > 1 ? 'carousel' : isVideo ? 'reels' : 'image');
+    : (!bulkMode && files.length > 1 ? 'carousel' : isVideo ? 'reels' : 'image');
+
 
 
   const selectedAccounts = useMemo(
