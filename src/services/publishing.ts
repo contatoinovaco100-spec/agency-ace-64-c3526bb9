@@ -136,14 +136,12 @@ export const publishingService = {
     return data as { success: boolean; targets: number };
   },
 
-  /** Reprocessa todos os jobs agendados cujo scheduled_at já passou. */
-  async reprocessScheduled(): Promise<{ processed: number; errors: number }> {
-    const now = new Date().toISOString();
+  /** Reprocessa todos os jobs que ainda não foram publicados. */
+  async reprocessPending(): Promise<{ processed: number; errors: number }> {
     const { data: jobs, error } = await supabase
       .from(JOBS)
-      .select('id')
-      .eq('status', 'scheduled')
-      .lte('scheduled_at', now);
+      .select('id, status')
+      .in('status', ['pending', 'scheduled']);
     if (error) throw error;
     if (!jobs?.length) return { processed: 0, errors: 0 };
 
