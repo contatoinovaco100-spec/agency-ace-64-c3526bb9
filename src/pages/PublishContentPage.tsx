@@ -17,6 +17,7 @@ import { ManualPublishPanel } from '@/components/social/ManualPublishPanel';
 import { useSocialAccounts } from '@/hooks/useSocialAccounts';
 import { usePublishJobs } from '@/hooks/usePublishJobs';
 import { publishingService, type PostType } from '@/services/publishing';
+import { socialAccountsService } from '@/services/socialAccounts';
 import { supabase } from '@/integrations/supabase/client';
 
 const JOB_STATUS_META: Record<string, { label: string; cls: string }> = {
@@ -35,6 +36,7 @@ function formatJobDate(iso?: string) {
 
 export default function PublishContentPage() {
   const { accounts, byPlatform, loading, refreshing, error, reload } = useSocialAccounts();
+  const [syncingAccounts, setSyncingAccounts] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [mediaPath, setMediaPath] = useState<string>('');
 
@@ -130,6 +132,35 @@ export default function PublishContentPage() {
     thumbOffset: Number(thumbOffset) || 0,
     audioName,
   });
+
+  /** Sincroniza contas com o Meta (Instagram/TikTok) e depois recarrega a lista */
+  const syncAndReload = async () => {
+    setSyncingAccounts(true);
+    try {
+      const withExternal = accounts.filter(a => !!a.external_id);
+      if (withExternal.length === 0) {
+        await reload();
+        return;
+      }
+      let synced = 0;
+      let failed = 0;
+      for (const a of withExternal) {
+        try {
+          const res = await socialAccountsService.sync(a.id);
+          if (res.status !== 'expired') synced++;
+          else failed++;
+        } catch {
+          failed++;
+        }
+      }
+      await reload();
+      if (synced > 0 && !failed) toast.success(`${synced} conta(s) sincronizada(s)`);
+      else if (synced > 0 && failed) toast.warning(`${synced} sincronizada(s), ${failed} falha(s)`);
+      else if (failed) toast.error('Falha ao sincronizar contas com o Meta');
+    } finally {
+      setSyncingAccounts(false);
+    }
+  };
 
   function formatCountdown(target: Date): string {
     const diff = target.getTime() - Date.now();
@@ -685,9 +716,9 @@ export default function PublishContentPage() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base">Contas ({selected.length} selecionadas)</CardTitle>
-                <Button size="sm" variant="ghost" onClick={() => reload()} disabled={refreshing}>
-                  <RefreshCw className={`mr-1 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  Atualizar
+                <Button size="sm" variant="ghost" onClick={syncAndReload} disabled={refreshing || syncingAccounts}>
+                  <RefreshCw className={`mr-1 h-4 w-4 ${refreshing || syncingAccounts ? 'animate-spin' : ''}`} />
+                  {syncingAccounts ? 'Sincronizando...' : 'Atualizar'}
                 </Button>
               </div>
             </CardHeader>
