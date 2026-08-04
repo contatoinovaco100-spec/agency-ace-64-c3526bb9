@@ -368,10 +368,15 @@ export default function PublishContentPage() {
                     <SelectItem value="stories">Stories</SelectItem>
                   </SelectContent>
                 </Select>
-                {effectiveType === 'carousel' && (
+                {bulkMode ? (
+                  <p className="text-xs text-muted-foreground">
+                    Em massa: o tipo escolhido vale para todos os {files.length} post(s).
+                  </p>
+                ) : effectiveType === 'carousel' ? (
                   <p className="text-xs text-muted-foreground">{files.length} mídia(s) no carrossel</p>
-                )}
+                ) : null}
               </div>
+
 
 
               <div className="space-y-2">
