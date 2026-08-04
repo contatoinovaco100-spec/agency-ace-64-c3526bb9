@@ -61,32 +61,49 @@ export default function ArteAttachmentsPreview({
     if (!taskId) return;
     
     setLoading(true);
-    const { data } = await supabase
-      .from('task_attachments')
-      .select('id, file_name, file_url, file_type')
-      .eq('task_id', taskId)
-      .order('created_at', { ascending: false });
 
-    const rows = (data || []) as AttachmentRow[];
+    // Try public RPC first (works for unauthenticated users on /conteudo pages)
+    const { data: rpcData } = await (supabase as any).rpc('get_public_arte_attachments', { _task_id: taskId });
+    let rows: AttachmentRow[];
+    if (rpcData && rpcData.length > 0) {
+      rows = rpcData as AttachmentRow[];
+    } else {
+      // Fallback to direct query (works for authenticated users)
+      const { data } = await supabase
+        .from('task_attachments')
+        .select('id, file_name, file_url, file_type')
+        .eq('task_id', taskId)
+        .order('created_at', { ascending: false });
+      rows = (data || []) as AttachmentRow[];
+    }
     const prepared: PreparedAttachment[] = [];
     const pathsToSign: string[] = [];
     const pathToIndex = new Map<string, number>();
 
     for (const r of rows) {
-      const path = extractPath(r.file_url || '');
-      if (!path) continue;
+      const fileUrl = r.file_url || '';
       const isImage =
         (r.file_type || '').startsWith('image/') || IMAGE_EXT.test(r.file_name);
-      
-      // Verificar cache primeiro
+
+      // If file_url is already a signed or public URL, use it directly
+      const isReadyUrl = /\/storage\/v1\/object\/(sign|public)\//i.test(fileUrl);
+      if (isReadyUrl) {
+        prepared.push({ id: r.id, name: r.file_name, path: fileUrl, isImage, signedUrl: fileUrl });
+        continue;
+      }
+
+      // Otherwise extract the storage path and sign it
+      const path = extractPath(fileUrl);
+      if (!path) continue;
+
       if (isImage) {
         const cachedUrl = getCachedSignedUrl(path);
-        prepared.push({ 
-          id: r.id, 
-          name: r.file_name, 
-          path, 
-          isImage, 
-          signedUrl: cachedUrl || undefined 
+        prepared.push({
+          id: r.id,
+          name: r.file_name,
+          path,
+          isImage,
+          signedUrl: cachedUrl || undefined,
         });
         if (!cachedUrl) {
           pathToIndex.set(path, prepared.length - 1);
@@ -131,18 +148,33 @@ export default function ArteAttachmentsPreview({
     e.stopPropagation();
     setDownloadingId(a.id);
     try {
-      const { data, error } = await supabase.storage
-        .from('task-attachments')
-        .download(a.path);
-      if (error || !data) throw error || new Error('Falha no download');
-      const blobUrl = URL.createObjectURL(data);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = a.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
+      // If path is already a full URL (signed or public), fetch it directly
+      if (/^https?:\/\//i.test(a.path)) {
+        const res = await fetch(a.path);
+        if (!res.ok) throw new Error('Falha no download');
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = a.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      } else {
+        const { data, error } = await supabase.storage
+          .from('task-attachments')
+          .download(a.path);
+        if (error || !data) throw error || new Error('Falha no download');
+        const blobUrl = URL.createObjectURL(data);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = a.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }
       toast.success('Download concluído (qualidade original)');
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao baixar arquivo');
