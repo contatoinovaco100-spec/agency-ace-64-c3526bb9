@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Clock, Film, History, Loader2, RefreshCw, Send, Upload, X } from 'lucide-react';
+import { Clock, Film, History, Loader2, RefreshCw, Send, Timer, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountSelector } from '@/components/social/AccountSelector';
 import { TargetStatusList } from '@/components/social/TargetStatusList';
@@ -61,6 +61,10 @@ export default function PublishContentPage() {
   const [bulkDone, setBulkDone] = useState(0);
   const [schedulePattern, setSchedulePattern] = useState<string>('none');
   const [scheduleStartTime, setScheduleStartTime] = useState('');
+  const [scheduledItems, setScheduledItems] = useState<Array<{ jobId: string; fileName: string; publishAt: Date; status: 'waiting' | 'publishing' | 'done' | 'error' }>>([]);
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [, forceTick] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const file = files[0] ?? null;
@@ -125,6 +129,72 @@ export default function PublishContentPage() {
     audioName,
   });
 
+  function formatCountdown(target: Date): string {
+    const diff = target.getTime() - Date.now();
+    if (diff <= 0) return 'Publicando...';
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    if (h > 0) return `${h}h ${m}min`;
+    if (m > 0) return `${m}min ${s}s`;
+    return `${s}s`;
+  }
+
+  const publishScheduledItem = async (item: { jobId: string; fileName: string }) => {
+    setScheduledItems(prev => prev.map(si =>
+      si.jobId === item.jobId ? { ...si, status: 'publishing' } : si
+    ));
+    try {
+      await publishingService.run(item.jobId);
+      setScheduledItems(prev => prev.map(si =>
+        si.jobId === item.jobId ? { ...si, status: 'done' } : si
+      ));
+      toast.success(`${item.fileName} publicado!`);
+    } catch (e: any) {
+      setScheduledItems(prev => prev.map(si =>
+        si.jobId === item.jobId ? { ...si, status: 'error' } : si
+      ));
+      toast.error(`Erro ao publicar ${item.fileName}`, { description: e?.message });
+    }
+    forceTick(n => n + 1);
+  };
+
+  useEffect(() => {
+    const pending = scheduledItems.filter(si => si.status === 'waiting');
+    if (!pending.length) {
+      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+      return;
+    }
+
+    for (const item of pending) {
+      if (timersRef.current.has(item.jobId)) continue;
+      const delay = item.publishAt.getTime() - Date.now();
+      if (delay <= 0) {
+        publishScheduledItem(item);
+        continue;
+      }
+      const timer = setTimeout(() => {
+        timersRef.current.delete(item.jobId);
+        publishScheduledItem(item);
+      }, delay);
+      timersRef.current.set(item.jobId, timer);
+    }
+
+    if (!tickRef.current) {
+      tickRef.current = setInterval(() => forceTick(n => n + 1), 1000);
+    }
+
+    return () => {};
+  }, [scheduledItems]);
+
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach(t => clearTimeout(t));
+      timersRef.current.clear();
+      if (tickRef.current) clearInterval(tickRef.current);
+    };
+  }, []);
+
   /** Modo em massa: cada vídeo/foto vira uma publicação separada. */
   const publishBulk = async () => {
     setPublishing(true);
@@ -143,21 +213,18 @@ export default function PublishContentPage() {
     const startTime = schedulePattern !== 'none' && scheduleStartTime
       ? new Date(scheduleStartTime).getTime()
       : 0;
+    const useClientSchedule = intervalMin > 0 && startTime > 0;
+
+    const newScheduledItems: Array<{ jobId: string; fileName: string; publishAt: Date; status: 'waiting' | 'publishing' | 'done' | 'error' }> = [];
 
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
       try {
-        let postScheduledAt: string | null = null;
-        if (intervalMin > 0 && startTime) {
-          const postTime = new Date(startTime + i * intervalMin * 60000);
-          postScheduledAt = postTime.toISOString();
-        }
-
         const job = await publishingService.createJob({
           files: [f],
           caption: (bulkCaptions[i] ?? '').trim() || caption,
           firstComment,
-          scheduledAt: postScheduledAt || scheduledAt || null,
+          scheduledAt: null,
           thumbnailUrl,
           accounts: selectedAccounts,
           onProgress: p => setProgress(Math.round(((i + p / 100) / files.length) * 100)),
@@ -165,7 +232,11 @@ export default function PublishContentPage() {
         });
         lastJobId = job.id;
         lastPath = job.media_path;
-        if (!postScheduledAt && !scheduledAt && autoAccounts.length) {
+
+        if (useClientSchedule) {
+          const publishAt = new Date(startTime + i * intervalMin * 60000);
+          newScheduledItems.push({ jobId: job.id, fileName: f.name, publishAt, status: 'waiting' });
+        } else if (autoAccounts.length) {
           await publishingService.run(job.id);
         }
         ok++;
@@ -176,26 +247,25 @@ export default function PublishContentPage() {
       setProgress(Math.round(((i + 1) / files.length) * 100));
     }
 
+    if (newScheduledItems.length) {
+      setScheduledItems(prev => [...prev, ...newScheduledItems]);
+    }
+
     if (lastJobId) { setJobId(lastJobId); setMediaPath(lastPath); }
     setPublishing(false);
 
     if (ok && !errors.length) {
-      const isScheduled = schedulePattern !== 'none' || scheduledAt;
-      toast.success(`${ok} publicação(ões) enviada(s) em massa`, {
-        description: isScheduled
-          ? `Todas agendadas com intervalo de ${
-              schedulePattern === '30min' ? '30 min' :
-              schedulePattern === '1h' ? '1 hora' :
-              schedulePattern === '2h' ? '2 horas' :
-              schedulePattern === '3h' ? '3 horas' :
-              schedulePattern === '4h' ? '4 horas' :
-              schedulePattern === '6h' ? '6 horas' :
-              schedulePattern === '8h' ? '8 horas' :
-              schedulePattern === '12h' ? '12 horas' :
-              schedulePattern === '24h' ? '24 horas' : ''
-            }.`
-          : 'Acompanhe cada uma em "Em andamento".',
-      });
+      if (useClientSchedule) {
+        const first = new Date(startTime);
+        const last = new Date(startTime + (files.length - 1) * intervalMin * 60000);
+        toast.success(`${ok} publicação(ões) agendada(s)`, {
+          description: `Primeiro: ${first.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} · Último: ${last.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`,
+        });
+      } else {
+        toast.success(`${ok} publicação(ões) enviada(s) em massa`, {
+          description: scheduledAt ? 'Todas agendadas.' : 'Acompanhe cada uma em "Em andamento".',
+        });
+      }
     } else if (ok) {
       toast.warning(`${ok} enviada(s), ${errors.length} com erro`, { description: errors[0] });
     } else {
@@ -282,6 +352,9 @@ export default function PublishContentPage() {
     setBulkDone(0);
     setSchedulePattern('none');
     setScheduleStartTime('');
+    setScheduledItems([]);
+    timersRef.current.forEach(t => clearTimeout(t));
+    timersRef.current.clear();
 
   }, []);
 
@@ -722,6 +795,40 @@ export default function PublishContentPage() {
             )}
           </CardContent>
         </Card>
+
+        {scheduledItems.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Timer className="h-4 w-4" /> Fila de agendamento ({scheduledItems.filter(s => s.status === 'waiting').length} pendente(s))
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {scheduledItems.map((item, idx) => {
+                const statusMap = {
+                  waiting: { label: formatCountdown(item.publishAt), cls: 'bg-info/15 text-info' },
+                  publishing: { label: 'Publicando...', cls: 'bg-primary/15 text-primary animate-pulse' },
+                  done: { label: 'Publicado', cls: 'bg-emerald-500/15 text-emerald-600' },
+                  error: { label: 'Erro', cls: 'bg-destructive/15 text-destructive' },
+                };
+                const s = statusMap[item.status];
+                return (
+                  <div key={item.jobId} className="flex items-center justify-between gap-2 rounded-md border p-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-medium">{idx + 1}. {item.fileName}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {item.publishAt.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.cls}`}>
+                      {s.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
         </div>
 
       </div>
