@@ -39,9 +39,23 @@ SELECT cron.schedule(
 -- Encontre em: Settings > API > service_role
 -- ============================================================
 
+-- 4. CRON: Processar publicações agendadas a cada minuto
+SELECT cron.schedule(
+  'process-scheduled-publish-every-minute',
+  '* * * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://coblfehkclfjofrshlwl.supabase.co/functions/v1/process-scheduled-publish',
+    headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"}'::jsonb,
+    body := '{}'::jsonb
+  );
+  $$
+);
+
 -- Para verificar os crons criados:
 SELECT * FROM cron.job;
 
 -- Para remover um cron:
 -- SELECT cron.unschedule('scrape-viral-views-every-10min');
 -- SELECT cron.unschedule('auto-import-viral-every-hour');
+-- SELECT cron.unschedule('process-scheduled-publish-every-minute');

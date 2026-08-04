@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Film, History, Loader2, RefreshCw, Send, Upload, X } from 'lucide-react';
+import { Clock, Film, History, Loader2, RefreshCw, Send, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountSelector } from '@/components/social/AccountSelector';
 import { TargetStatusList } from '@/components/social/TargetStatusList';
@@ -199,7 +199,12 @@ export default function PublishContentPage() {
       setMediaPath(job.media_path);
 
       if (scheduledAt) {
-        toast.success('Publicação agendada');
+        const formattedDate = new Date(scheduledAt).toLocaleString('pt-BR', {
+          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+        });
+        toast.success('Publicação agendada', {
+          description: `Será publicada em ${formattedDate}`,
+        });
       } else if (autoAccounts.length) {
         await publishingService.run(job.id);
         toast.success(`Publicando em ${autoAccounts.length} conta(s) conectada(s)`, {
@@ -592,6 +597,15 @@ export default function PublishContentPage() {
                     </div>
                     <div className="mb-2 flex items-center gap-1.5 text-[10px] text-muted-foreground">
                       <span>{formatJobDate(job.created_at)}</span>
+                      {job.scheduled_at && (
+                        <>
+                          <span>·</span>
+                          <span className="flex items-center gap-0.5 text-info">
+                            <Clock className="h-3 w-3" />
+                            Agendado: {formatJobDate(job.scheduled_at)}
+                          </span>
+                        </>
+                      )}
                       {jobTargets.length > 0 && (
                         <>
                           <span>·</span>
