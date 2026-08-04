@@ -62,6 +62,8 @@ export default function PublishContentPage() {
   const [schedulePattern, setSchedulePattern] = useState<string>('none');
   const [scheduleStartTime, setScheduleStartTime] = useState('');
   const [scheduledItems, setScheduledItems] = useState<Array<{ jobId: string; fileName: string; publishAt: Date; status: 'waiting' | 'publishing' | 'done' | 'error' }>>([]);
+  const [stuckJobs, setStuckJobs] = useState<Array<{ id: string; caption: string; scheduled_at: string }>>([]);
+  const [reprocessing, setReprocessing] = useState(false);
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [, forceTick] = useState(0);
@@ -194,6 +196,34 @@ export default function PublishContentPage() {
       if (tickRef.current) clearInterval(tickRef.current);
     };
   }, []);
+
+  const loadStuckJobs = useCallback(async () => {
+    const now = new Date().toISOString();
+    const { data } = await (await import('@/integrations/supabase/client')).supabase
+      .from('publish_jobs' as any)
+      .select('id, caption, scheduled_at')
+      .eq('status', 'scheduled')
+      .lte('scheduled_at', now)
+      .order('scheduled_at');
+    setStuckJobs((data ?? []) as any);
+  }, []);
+
+  useEffect(() => { loadStuckJobs(); }, [loadStuckJobs]);
+
+  const reprocessAll = async () => {
+    setReprocessing(true);
+    try {
+      const { processed, errors } = await publishingService.reprocessScheduled();
+      if (processed > 0) toast.success(`${processed} publicação(ões) reprocessada(s)`);
+      if (errors > 0) toast.warning(`${errors} falha(s) ao reprocessar`);
+      if (processed === 0 && errors === 0) toast.info('Nenhuma publicação pendente');
+      await loadStuckJobs();
+    } catch (e: any) {
+      toast.error('Erro ao reprocessar', { description: e?.message });
+    } finally {
+      setReprocessing(false);
+    }
+  };
 
   /** Modo em massa: cada vídeo/foto vira uma publicação separada. */
   const publishBulk = async () => {
@@ -355,8 +385,9 @@ export default function PublishContentPage() {
     setScheduledItems([]);
     timersRef.current.forEach(t => clearTimeout(t));
     timersRef.current.clear();
+    loadStuckJobs();
 
-  }, []);
+  }, [loadStuckJobs]);
 
   // Avisa uma única vez quando o job termina — sem limpar a tela automaticamente,
   // para o usuário conseguir ler o resultado de cada conta.
@@ -826,6 +857,40 @@ export default function PublishContentPage() {
                   </div>
                 );
               })}
+            </CardContent>
+          </Card>
+        )}
+
+        {stuckJobs.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Clock className="h-4 w-4 text-warning" /> Aguardando processamento ({stuckJobs.length})
+                </CardTitle>
+                <Button size="sm" onClick={reprocessAll} disabled={reprocessing}>
+                  {reprocessing ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1 h-3 w-3" />}
+                  Reprocessar
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-xs text-muted-foreground mb-2">
+                Publicações agendadas que ainda não foram processadas. Clique em "Reprocessar" para publicá-las agora.
+              </p>
+              {stuckJobs.map((job, idx) => (
+                <div key={job.id} className="flex items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning/5 p-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium">{idx + 1}. {job.caption?.trim() || 'Sem legenda'}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Agendado: {formatJobDate(job.scheduled_at)}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning">
+                    Preso
+                  </span>
+                </div>
+              ))}
             </CardContent>
           </Card>
         )}

@@ -136,6 +136,30 @@ export const publishingService = {
     return data as { success: boolean; targets: number };
   },
 
+  /** Reprocessa todos os jobs agendados cujo scheduled_at já passou. */
+  async reprocessScheduled(): Promise<{ processed: number; errors: number }> {
+    const now = new Date().toISOString();
+    const { data: jobs, error } = await supabase
+      .from(JOBS)
+      .select('id')
+      .eq('status', 'scheduled')
+      .lte('scheduled_at', now);
+    if (error) throw error;
+    if (!jobs?.length) return { processed: 0, errors: 0 };
+
+    let processed = 0;
+    let errors = 0;
+    for (const job of jobs) {
+      try {
+        await this.run((job as any).id);
+        processed++;
+      } catch {
+        errors++;
+      }
+    }
+    return { processed, errors };
+  },
+
   /** Marca uma conta como publicada/pendente manualmente. */
 
   async markTarget(targetId: string, status: 'pending' | 'published') {
