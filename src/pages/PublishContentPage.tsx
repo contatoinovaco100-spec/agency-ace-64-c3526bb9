@@ -481,8 +481,10 @@ export default function PublishContentPage() {
             )}
           </CardContent>
         </Card>
+        </div>
 
       </div>
+
     </div>
   );
 }
