@@ -29,24 +29,39 @@ function guessMime(url: string) {
  */
 export default function UniversalVideoPlayer({ src, poster, className = '', reloadKey = 0 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const timerRef = useRef<number | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [stalled, setStalled] = useState(false);
+  const [slow, setSlow] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [started, setStarted] = useState(false);
 
-  // se demorar demais para carregar (máquina/rede lenta), mostra opções alternativas
+  const clearSlow = () => {
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  // Só marca "demorando" depois de um tempo sem progresso de reprodução.
+  // NUNCA vira estado de erro — carregamento lento não é erro.
+  const armSlow = () => {
+    clearSlow();
+    timerRef.current = window.setTimeout(() => setSlow(true), 15000);
+  };
+
+  // reinicia sempre que troca fonte/tenta de novo
   useEffect(() => {
     setState('loading');
-    setStalled(false);
+    setSlow(false);
     setStarted(false);
-    const t = setTimeout(() => {
-      setState((s) => (s === 'loading' ? (setStalled(true), 'loading') : s));
-    }, 12000);
-    return () => clearTimeout(t);
+    armSlow();
+    return clearSlow;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, reloadKey, attempt]);
 
   const retry = () => {
     setAttempt((a) => a + 1);
+    setSlow(false);
     const v = videoRef.current;
     if (v) {
       v.load();
@@ -58,7 +73,8 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
     const video = videoRef.current;
     if (!video) return;
     setStarted(true);
-    setStalled(false);
+    setSlow(false);
+    armSlow();
     try {
       await video.play();
       setState('ready');
@@ -120,10 +136,10 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
                  <Play className="h-6 w-6 fill-current" />
                </Button>
                <p className="text-sm font-semibold text-foreground">Clique para reproduzir</p>
-               {stalled && (
+               {slow && (
                 <>
                   <p className="text-xs text-gray-300">
-                     Este computador não conseguiu preparar o vídeo.
+                     O vídeo ainda está carregando. Se demorar, use as opções abaixo.
                   </p>
                   {fallbackLinks}
                 </>
@@ -133,21 +149,17 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
 
            {state === 'loading' && started && (
              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card/95 px-4 text-center">
-               {stalled ? (
-                 <>
-                   <AlertTriangle className="h-8 w-8 text-yellow-500" />
-                   <p className="text-sm text-foreground">
-                     O formato deste vídeo não é compatível com este computador.
-                   </p>
+               <Loader2 className="h-7 w-7 animate-spin text-primary" />
+               <p className="text-sm text-muted-foreground">
+                 {slow ? 'O vídeo está demorando para carregar em sua conexão…' : 'Preparando vídeo…'}
+               </p>
+               {slow && (
+                 <div className="mt-1 flex flex-col items-center gap-2">
+                   <p className="text-xs text-gray-300">Se continuar assim, use uma das opções:</p>
                    {fallbackLinks}
-                 </>
-               ) : (
-                 <>
-                   <Loader2 className="h-7 w-7 animate-spin text-primary" />
-                   <p className="text-xs text-muted-foreground">Preparando vídeo…</p>
-                 </>
+                 </div>
                )}
-             </div>
+            </div>
            )}
 
           <video
@@ -161,15 +173,11 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
             poster={poster}
             disablePictureInPicture={false}
             controlsList="noremoteplayback"
-             onLoadedMetadata={(event) => {
-               const video = event.currentTarget;
-               if (video.videoWidth === 0 || video.videoHeight === 0) setState('error');
-             }}
-             onLoadedData={() => started && setState('ready')}
-             onCanPlay={() => started && setState('ready')}
-            onPlaying={() => setState('ready')}
-             onWaiting={() => started && setState('loading')}
-             onStalled={() => started && setStalled(true)}
+            onCanPlay={() => { if (started) { clearSlow(); setState('ready'); } }}
+            onLoadedData={() => { if (started) { clearSlow(); setState('ready'); } }}
+            onPlaying={() => { clearSlow(); setState('ready'); }}
+            onWaiting={() => { if (started) { setState('loading'); armSlow(); } }}
+            onStalled={() => { if (started) armSlow(); }}
             onError={() => setState('error')}
             className="w-full max-h-[70vh] bg-black object-contain"
           >
