@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, AlertTriangle, ExternalLink, Download, RotateCw, Play } from 'lucide-react';
+import { Loader2, AlertTriangle, ExternalLink, Download, RotateCw, Play, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -22,10 +22,39 @@ function guessMime(url: string) {
   }
 }
 
+// Detecta H.265/HEVC lendo os primeiros 2MB do arquivo (o box stsd fica no moov).
+async function detectHevc(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, { headers: { Range: 'bytes=0-2097151' } });
+    if (!res.ok) return false;
+    const buf = new Uint8Array(await res.arrayBuffer());
+    for (let i = 0; i < buf.length - 4; i++) {
+      const t = String.fromCharCode(buf[i], buf[i + 1], buf[i + 2], buf[i + 3]);
+      if (t === 'hvc1' || t === 'hev1') return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function canPlayHevc(): boolean {
+  try {
+    const v = document.createElement('video');
+    return !!(
+      v.canPlayType('video/mp4; codecs="hvc1.1.6.L93.B0"') ||
+      v.canPlayType('video/mp4; codecs="hev1.1.6.L93.B0"')
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Player universal — <video> nativo, leve, compatível com computadores fracos,
  * iOS Safari, Android Chrome e webviews. Sem crossOrigin (evita bloqueio de CORS),
- * preload leve, detecção de travamento e fallback com download/nova aba.
+ * detecção de H.265/HEVC (não reproduz em Chrome/Firefox/Edge), e fallback com
+ * download/nova aba em vez de spinner infinito.
  */
 export default function UniversalVideoPlayer({ src, poster, className = '', reloadKey = 0 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -34,6 +63,7 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
   const [slow, setSlow] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [started, setStarted] = useState(false);
+  const [hevcUnsupported, setHevcUnsupported] = useState<boolean>(false);
 
   const clearSlow = () => {
     if (timerRef.current !== null) {
@@ -42,20 +72,27 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
     }
   };
 
-  // Só marca "demorando" depois de um tempo sem progresso de reprodução.
-  // NUNCA vira estado de erro — carregamento lento não é erro.
   const armSlow = () => {
     clearSlow();
-    timerRef.current = window.setTimeout(() => setSlow(true), 15000);
+    timerRef.current = window.setTimeout(() => setSlow(true), 8000);
   };
 
-  // reinicia sempre que troca fonte/tenta de novo
+  // Detecta HEVC (formato que trava em Chrome/Firefox/Edge) e reinicia estados
   useEffect(() => {
+    let cancelled = false;
     setState('loading');
     setSlow(false);
     setStarted(false);
+    setHevcUnsupported(false);
     armSlow();
-    return clearSlow;
+
+    detectHevc(src).then((isHevc) => {
+      if (!cancelled && isHevc && !canPlayHevc()) setHevcUnsupported(true);
+    });
+    return () => {
+      cancelled = true;
+      clearSlow();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, reloadKey, attempt]);
 
@@ -69,18 +106,14 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
     }
   };
 
-  const startPlayback = async () => {
+  const startPlayback = () => {
     const video = videoRef.current;
     if (!video) return;
     setStarted(true);
     setSlow(false);
     armSlow();
-    try {
-      await video.play();
-      setState('ready');
-    } catch {
-      setState('error');
-    }
+    // Sem await: o overlay some na hora e o buffering fica visível nos controles nativos.
+    video.play().catch(() => {});
   };
 
   const fallbackLinks = (
@@ -112,6 +145,40 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
     </div>
   );
 
+  if (hevcUnsupported) {
+    return (
+      <div className={`relative w-full overflow-hidden rounded-xl border border-yellow-500/40 bg-black ${className}`}>
+        <div className="flex flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+          <Film className="h-8 w-8 text-yellow-500" />
+          <p className="text-sm font-semibold text-white">
+            Este vídeo está em formato H.265 (HEVC), que seu navegador não reproduz.
+          </p>
+          <p className="max-w-md text-xs text-gray-300">
+            Abra no Safari (iPhone, iPad ou Mac) ou baixe o arquivo para assistir no computador
+            (QuickTime, VLC ou Windows).
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <a
+              href={src}
+              download
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+            >
+              <Download className="h-3.5 w-3.5" /> Baixar vídeo
+            </a>
+            <a
+              href={src}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 px-3 py-2 text-xs font-semibold text-primary"
+            >
+              <ExternalLink className="h-3.5 w-3.5" /> Abrir em nova aba
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`relative w-full overflow-hidden rounded-xl border border-primary/20 bg-black ${className}`}>
       {state === 'error' ? (
@@ -124,43 +191,37 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
         </div>
       ) : (
         <>
-           {state === 'loading' && !started && (
-             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card px-4 text-center">
-               <Button
-                 type="button"
-                 size="icon"
-                 onClick={startPlayback}
-                 className="h-14 w-14 rounded-full shadow-lg"
-                 aria-label="Reproduzir vídeo"
-               >
-                 <Play className="h-6 w-6 fill-current" />
-               </Button>
-               <p className="text-sm font-semibold text-foreground">Clique para reproduzir</p>
-               {slow && (
-                <>
-                  <p className="text-xs text-gray-300">
-                     O vídeo ainda está carregando. Se demorar, use as opções abaixo.
-                  </p>
-                  {fallbackLinks}
-                </>
-              )}
+          {!started && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card px-4 text-center">
+              <Button
+                type="button"
+                size="icon"
+                onClick={startPlayback}
+                className="h-14 w-14 rounded-full shadow-lg"
+                aria-label="Reproduzir vídeo"
+              >
+                <Play className="h-6 w-6 fill-current" />
+              </Button>
+              <p className="text-sm font-semibold text-foreground">Clique para reproduzir</p>
             </div>
           )}
 
-           {state === 'loading' && started && (
-             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card/95 px-4 text-center">
-               <Loader2 className="h-7 w-7 animate-spin text-primary" />
-               <p className="text-sm text-muted-foreground">
-                 {slow ? 'O vídeo está demorando para carregar em sua conexão…' : 'Preparando vídeo…'}
-               </p>
-               {slow && (
-                 <div className="mt-1 flex flex-col items-center gap-2">
-                   <p className="text-xs text-gray-300">Se continuar assim, use uma das opções:</p>
-                   {fallbackLinks}
-                 </div>
-               )}
+          {slow && started && state !== 'error' && (
+            <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-2 bg-black/80 px-4 py-3 text-center backdrop-blur-sm">
+              <p className="text-xs text-gray-200">
+                <Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />
+                Ainda carregando… se demorar, use uma das opções abaixo.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <a href={src} download className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-semibold text-primary-foreground">
+                  <Download className="h-3 w-3" /> Baixar
+                </a>
+                <a href={src} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 px-2.5 py-1.5 text-[11px] font-semibold text-white">
+                  <ExternalLink className="h-3 w-3" /> Abrir em nova aba
+                </a>
+              </div>
             </div>
-           )}
+          )}
 
           <video
             key={`${src}-${reloadKey}-${attempt}`}
@@ -173,17 +234,15 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
             poster={poster}
             disablePictureInPicture={false}
             controlsList="noremoteplayback"
-            onCanPlay={() => { if (started) { clearSlow(); setState('ready'); } }}
-            onLoadedData={() => { if (started) { clearSlow(); setState('ready'); } }}
+            onCanPlay={() => { clearSlow(); setState('ready'); }}
+            onLoadedData={() => { clearSlow(); setState('ready'); }}
             onPlaying={() => { clearSlow(); setState('ready'); }}
-            onWaiting={() => { if (started) { setState('loading'); armSlow(); } }}
+            onWaiting={() => { if (started) armSlow(); }}
             onStalled={() => { if (started) armSlow(); }}
             onError={() => setState('error')}
             className="w-full max-h-[70vh] bg-black object-contain"
           >
             <source src={src} type={guessMime(src)} />
-            <source src={src} type="video/mp4" />
-            <source src={src} />
             Seu navegador não suporta a reprodução de vídeo.
           </video>
         </>

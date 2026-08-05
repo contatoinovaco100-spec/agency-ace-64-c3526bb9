@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
-import { Upload, Film, X, CheckCircle2, Loader2, Trash2 } from 'lucide-react';
+import { Upload, Film, X, CheckCircle2, Loader2, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -18,6 +18,17 @@ const MAX_MB = 500;
 
 const fmtSize = (b: number) => b > 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${(b / 1024).toFixed(0)} KB`;
 
+async function detectHevcFromFile(file: File): Promise<boolean> {
+  try {
+    const buf = new Uint8Array(await file.slice(0, 2097152).arrayBuffer());
+    for (let i = 0; i < buf.length - 4; i++) {
+      const t = String.fromCharCode(buf[i], buf[i + 1], buf[i + 2], buf[i + 3]);
+      if (t === 'hvc1' || t === 'hev1') return true;
+    }
+  } catch { /* ignore */ }
+  return false;
+}
+
 export default function VideoUploader({ taskId, currentUrl, onUploaded, onDeleted }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -26,6 +37,7 @@ export default function VideoUploader({ taskId, currentUrl, onUploaded, onDelete
   const [progress, setProgress] = useState(0);
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState<number>(0);
+  const [hevcWarning, setHevcWarning] = useState(false);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
 
   const hasVideo = !!currentUrl && currentUrl.includes('task-videos');
@@ -56,6 +68,12 @@ export default function VideoUploader({ taskId, currentUrl, onUploaded, onDelete
     setFileSize(file.size);
     setUploading(true);
     setProgress(0);
+
+    // Aviso não bloqueante: H.265/HEVC não reproduz em Chrome/Firefox/Edge
+    detectHevcFromFile(file).then((isHevc) => {
+      setHevcWarning(isHevc);
+      if (isHevc) toast.warning('Arquivo em H.265 (HEVC): clientes em Chrome/Edge não conseguirão assistir. Prefira exportar em H.264.');
+    });
 
     try {
       const { data: sess } = await supabase.auth.getSession();
@@ -223,6 +241,16 @@ export default function VideoUploader({ taskId, currentUrl, onUploaded, onDelete
           </>
         )}
       </div>
+
+      {hevcWarning && (
+        <div className="flex items-start gap-2 rounded-md border border-yellow-500/40 bg-yellow-500/10 p-2.5 text-[11px] text-yellow-200">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <span>
+            Este arquivo é <b>H.265 (HEVC)</b> — Chrome, Edge e Firefox <b>não reproduzem</b> esse formato
+            e o vídeo fica travado em "Preparando vídeo…". <b>Reexporte em MP4 H.264</b> para que todos consigam assistir.
+          </span>
+        </div>
+      )}
 
       <div className="rounded-md bg-muted/30 border border-border p-2.5 text-[10.5px] text-muted-foreground leading-relaxed">
         <p className="flex items-center gap-1.5 font-semibold text-foreground mb-1">
