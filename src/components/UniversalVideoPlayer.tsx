@@ -132,8 +132,21 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
           )}
 
            {state === 'loading' && started && (
-             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/70">
-               <Loader2 className="h-7 w-7 animate-spin text-primary" />
+             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card/95 px-4 text-center">
+               {stalled ? (
+                 <>
+                   <AlertTriangle className="h-8 w-8 text-yellow-500" />
+                   <p className="text-sm text-foreground">
+                     O formato deste vídeo não é compatível com este computador.
+                   </p>
+                   {fallbackLinks}
+                 </>
+               ) : (
+                 <>
+                   <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                   <p className="text-xs text-muted-foreground">Preparando vídeo…</p>
+                 </>
+               )}
              </div>
            )}
 
