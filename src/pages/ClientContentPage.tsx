@@ -13,7 +13,61 @@ import {
 } from 'lucide-react';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import UniversalVideoPlayer from '@/components/UniversalVideoPlayer';
+import { resolveVideoUrl } from '@/lib/videoUrl';
 import { toast } from 'sonner';
+
+function ResolvedVideoSection({ url, fileName, reloadKey }: { url: string; fileName: string; reloadKey: number }) {
+  const [resolved, setResolved] = useState(url);
+  useEffect(() => {
+    let cancelled = false;
+    setResolved(url);
+    resolveVideoUrl(url).then(r => { if (!cancelled) setResolved(r); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [url]);
+
+  return (
+    <div className="space-y-3">
+      <UniversalVideoPlayer src={resolved} reloadKey={reloadKey} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">🎬 Vídeo finalizado — assista e aprove antes da publicação</p>
+        <div className="flex items-center gap-3 text-xs font-semibold text-primary">
+          <button type="button" onClick={() => setVideoReloadKey(k => k + 1)} className="inline-flex items-center gap-1 hover:text-primary/80 transition-colors">
+            <RefreshCw className="w-3.5 h-3.5" /> Recarregar
+          </button>
+          <button type="button" onClick={async () => {
+            const tid = toast.loading('Baixando vídeo...');
+            try {
+              const res = await fetch(resolved);
+              if (!res.ok) throw new Error('Falha no download');
+              const chunks: Uint8Array[] = [];
+              const total = Number(res.headers.get('content-length')) || 0;
+              let received = 0;
+              const reader = res.body?.getReader();
+              if (reader) {
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  if (value) { chunks.push(value); received += value.length; if (total) toast.loading(`Baixando... ${Math.round((received/total)*100)}%`, { id: tid }); }
+                }
+              }
+              const blob = new Blob(chunks as BlobPart[], { type: res.headers.get('content-type') || 'video/mp4' });
+              const objUrl = URL.createObjectURL(blob);
+              const a = document.createElement('a'); a.href = objUrl; a.download = fileName;
+              document.body.appendChild(a); a.click(); a.remove();
+              setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
+              toast.success('Download concluído!', { id: tid });
+            } catch (e: any) { toast.error(`Erro ao baixar: ${e?.message || 'tente novamente'}`, { id: tid }); }
+          }} className="inline-flex items-center gap-1 hover:text-primary/80 transition-colors">
+            <Download className="w-3.5 h-3.5" /> Baixar vídeo
+          </button>
+          <a href={resolved} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary/80 transition-colors">
+            <ExternalLink className="w-3.5 h-3.5" /> Abrir ↗
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Cache de dados da página
 const pageCache = new Map<string, { data: TaskData[]; clientName: string; timestamp: number }>();
@@ -250,48 +304,7 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, o
               const isSelfHosted = !isDrive && !isYouTube && (isDirectFile || /supabase\.co\/storage/i.test(url));
               const fileName = (task.video_name || task.title || 'video').replace(/[^\w.-]+/g, '_') + (url.match(/\.(mp4|webm|ogg|mov|m4v)(\?|$)/i)?.[0]?.split('?')[0] || '.mp4');
 
-              if (isSelfHosted) return (
-                <div className="space-y-3">
-                  <UniversalVideoPlayer src={url} reloadKey={videoReloadKey} />
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs text-muted-foreground">🎬 Vídeo finalizado — assista e aprove antes da publicação</p>
-                    <div className="flex items-center gap-3 text-xs font-semibold text-primary">
-                      <button type="button" onClick={() => setVideoReloadKey(k => k + 1)} className="inline-flex items-center gap-1 hover:text-primary/80 transition-colors">
-                        <RefreshCw className="w-3.5 h-3.5" /> Recarregar
-                      </button>
-                      <button type="button" onClick={async () => {
-                        const tid = toast.loading('Baixando vídeo...');
-                        try {
-                          const res = await fetch(url);
-                          if (!res.ok) throw new Error('Falha no download');
-                          const chunks: Uint8Array[] = [];
-                          const total = Number(res.headers.get('content-length')) || 0;
-                          let received = 0;
-                          const reader = res.body?.getReader();
-                          if (reader) {
-                            while (true) {
-                              const { done, value } = await reader.read();
-                              if (done) break;
-                              if (value) { chunks.push(value); received += value.length; if (total) toast.loading(`Baixando... ${Math.round((received/total)*100)}%`, { id: tid }); }
-                            }
-                          }
-                          const blob = new Blob(chunks as BlobPart[], { type: res.headers.get('content-type') || 'video/mp4' });
-                          const objUrl = URL.createObjectURL(blob);
-                          const a = document.createElement('a'); a.href = objUrl; a.download = fileName;
-                          document.body.appendChild(a); a.click(); a.remove();
-                          setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
-                          toast.success('Download concluído!', { id: tid });
-                        } catch (e: any) { toast.error(`Erro ao baixar: ${e?.message || 'tente novamente'}`, { id: tid }); }
-                      }} className="inline-flex items-center gap-1 hover:text-primary/80 transition-colors">
-                        <Download className="w-3.5 h-3.5" /> Baixar vídeo
-                      </button>
-                      <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary/80 transition-colors">
-                        <ExternalLink className="w-3.5 h-3.5" /> Abrir ↗
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              );
+              if (isSelfHosted) return <ResolvedVideoSection url={url} fileName={fileName} reloadKey={videoReloadKey} />;
 
               if (isYouTube) {
                 const embed = url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
