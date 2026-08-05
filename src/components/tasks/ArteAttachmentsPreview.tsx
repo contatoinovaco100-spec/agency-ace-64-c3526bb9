@@ -200,23 +200,26 @@ export default function ArteAttachmentsPreview({
     <div className={cn("space-y-2", compact ? "mt-1" : "mt-2")} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
       {previewItem && (
         <div className={cn("relative overflow-hidden rounded-md border border-border bg-muted/50", compact && "h-10")}>
-          {/* Placeholder com gradiente enquanto carrega */}
-          <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted/80 to-muted animate-pulse" />
-          <img
-            src={previewItem.signedUrl}
-            alt={previewItem.name}
-            className={cn(
-              "relative transition-opacity duration-300",
-              compact ? 'h-10 w-full object-cover' : 'max-h-72 w-full object-contain bg-black/40'
-            )}
-            loading="lazy"
-            decoding="async"
-            onLoad={(e) => {
-              // Remove placeholder quando imagem carrega
-              const img = e.currentTarget;
-              img.style.opacity = '1';
-            }}
-            style={{ opacity: 0 }}
+           {/* Placeholder com gradiente enquanto carrega */}
+           <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted/80 to-muted animate-pulse" />
+           <img
+             src={previewItem.signedUrl}
+             alt={previewItem.name}
+             className={cn(
+               "relative transition-opacity duration-300",
+               compact ? 'h-10 w-full object-cover' : 'max-h-72 w-full object-contain bg-black/40'
+             )}
+             loading="eager"
+             decoding="sync"
+             fetchPriority="high"
+             onLoad={(e) => {
+               // Remove placeholder quando imagem carrega
+               const img = e.currentTarget;
+               img.style.opacity = '1';
+               // Remove gradiente para performance
+               img.parentElement?.querySelector('div')?.classList.add('hidden');
+             }}
+             style={{ opacity: 0, contain: 'paint' }}
           />
           {!compact && (
             <button
