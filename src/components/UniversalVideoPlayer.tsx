@@ -57,7 +57,6 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
           ref={videoRef}
           controls
           playsInline
-          // @ts-expect-error atributos legados necessários em iOS/Android antigos
           webkit-playsinline="true"
           x5-playsinline="true"
           preload="metadata"
