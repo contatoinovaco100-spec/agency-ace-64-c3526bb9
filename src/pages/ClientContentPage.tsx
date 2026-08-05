@@ -12,6 +12,7 @@ import {
   Sparkles, LayoutList, Image as ImageIcon,
 } from 'lucide-react';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
+import UniversalVideoPlayer from '@/components/UniversalVideoPlayer';
 import { toast } from 'sonner';
 
 // Cache de dados da página
@@ -254,25 +255,7 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, o
 
               if (isSelfHosted) return (
                 <div className="space-y-3">
-                  <div className="rounded-xl overflow-hidden border border-primary/20 bg-black shadow-inner relative group">
-                    {/* Placeholder com gradiente enquanto vídeo carrega */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center z-10 group-hover:opacity-0 transition-opacity duration-300">
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                          <Play className="h-6 w-6 text-primary ml-0.5" />
-                        </div>
-                        <p className="text-xs text-gray-400">Clique para reproduzir</p>
-                      </div>
-                    </div>
-                    <video 
-                      key={videoReloadKey} 
-                      src={url} 
-                      controls 
-                      playsInline 
-                      preload="metadata"
-                      className="w-full max-h-[65vh] bg-black relative z-20" 
-                    />
-                  </div>
+                  <UniversalVideoPlayer src={url} reloadKey={videoReloadKey} />
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs text-muted-foreground">🎬 Vídeo finalizado — assista e aprove antes da publicação</p>
                     <div className="flex items-center gap-3 text-xs font-semibold text-primary">

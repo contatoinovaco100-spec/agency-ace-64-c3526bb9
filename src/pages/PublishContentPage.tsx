@@ -850,7 +850,7 @@ export default function PublishContentPage() {
                                   await publishingService.cancelJob(job.id);
                                   toast.success('Publicação cancelada');
                                   setScheduledItems(prev => prev.filter(si => si.jobId !== job.id));
-                                  timersRef.current.get(job.id)?.clearTimeout?.();
+                                  { const t = timersRef.current.get(job.id); if (t) clearTimeout(t); }
                                   timersRef.current.delete(job.id);
                                   reload();
                                 } catch (e: any) {
@@ -868,7 +868,7 @@ export default function PublishContentPage() {
                                   await publishingService.deleteJob(job.id);
                                   toast.success('Publicação excluída');
                                   setScheduledItems(prev => prev.filter(si => si.jobId !== job.id));
-                                  timersRef.current.get(job.id)?.clearTimeout?.();
+                                  { const t = timersRef.current.get(job.id); if (t) clearTimeout(t); }
                                   timersRef.current.delete(job.id);
                                   reload();
                                 } catch (e: any) {
