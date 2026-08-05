@@ -40,7 +40,10 @@ export default function PublishContentPage() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [mediaPath, setMediaPath] = useState<string>('');
 
-  const { jobs, targetsOf, loading: jobsLoading } = usePublishJobs(jobId ?? undefined);
+  const { jobs, targetsOf, loading: jobsLoading, reload: reloadJobs } = usePublishJobs(jobId ?? undefined);
+
+  // Evita publicar o mesmo job agendado duas vezes na mesma sessão.
+  const autoPublishedRef = useRef<Set<string>>(new Set());
 
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -253,6 +256,48 @@ export default function PublishContentPage() {
       setReprocessing(false);
     }
   };
+
+  // Auto-publica posts agendados que já venceram ao abrir/atualizar a página, e
+  // agenda timers para os agendados futuros. Cobre o caso em que a aba estava
+  // fechada no horário marcado (o cron backend não estando ativo).
+  useEffect(() => {
+    if (jobsLoading) return;
+    const now = Date.now();
+    jobs
+      .filter(
+        (j) =>
+          j.status === 'scheduled' &&
+          !!j.scheduled_at &&
+          !scheduledItems.some((si) => si.jobId === j.id) &&
+          !autoPublishedRef.current.has(j.id),
+      )
+      .forEach((j) => {
+        const when = new Date(j.scheduled_at as string).getTime();
+        if (when <= now) {
+          autoPublishedRef.current.add(j.id);
+          publishingService
+            .run(j.id)
+            .then(() => reloadJobs())
+            .catch((e: any) => {
+              toast.error(`Erro ao publicar agendado`, { description: e?.message });
+              reloadJobs();
+            });
+        } else {
+          if (timersRef.current.has(j.id)) return;
+          const t = setTimeout(() => {
+            timersRef.current.delete(j.id);
+            publishingService
+              .run(j.id)
+              .then(() => reloadJobs())
+              .catch((e: any) => {
+                toast.error(`Erro ao publicar agendado`, { description: e?.message });
+                reloadJobs();
+              });
+          }, when - now);
+          timersRef.current.set(j.id, t);
+        }
+      });
+  }, [jobs, jobsLoading, scheduledItems, reloadJobs]);
 
   /** Modo em massa: cada vídeo/foto vira uma publicação separada. */
   const publishBulk = async () => {
