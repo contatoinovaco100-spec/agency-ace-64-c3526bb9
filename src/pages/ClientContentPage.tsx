@@ -12,6 +12,7 @@ import {
   Sparkles, LayoutList, Image as ImageIcon,
 } from 'lucide-react';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
+import UniversalVideoPlayer from '@/components/UniversalVideoPlayer';
 import { toast } from 'sonner';
 
 // Cache de dados da página
