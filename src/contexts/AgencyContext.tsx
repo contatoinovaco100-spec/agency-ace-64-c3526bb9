@@ -145,6 +145,10 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
   }, [allClients]);
 
   const fetchAll = useCallback(async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const [cRes, tRes, lRes, pRes, rRes, eRes] = await Promise.all([
       supabase.from('clients').select('*').order('created_at'),
@@ -163,12 +167,13 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     }
     if (eRes.data) setEvents(eRes.data.map(rowToEvent));
     setLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   // Realtime subscription for clients table (auto-create on contract signing, etc.)
   useEffect(() => {
+    if (!user) return;
     const channel = supabase
       .channel('clients-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, (payload) => {
@@ -185,7 +190,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [user]);
 
   const taskToRow = (t: Task) => ({
     id: t.id, client_id: t.clientId || null, title: t.title, description: t.description,
