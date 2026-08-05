@@ -2,23 +2,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Palette, Calendar, User, Building2, AlertCircle, RefreshCw, X, Clock, FileText, Flag, ZoomIn, Download, Image as ImageIcon } from 'lucide-react';
 import logoInova from '@/assets/logo-inova.png';
+import { prepareImageAttachments, signPreparedAttachments, type AttachmentRow, type PreparedAttachment } from '@/lib/arteAttachments';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-interface AttachmentRow {
-  id: string;
-  file_name: string;
-  file_url: string;
-  file_type: string | null;
-}
-interface PreparedAttachment {
-  id: string;
-  name: string;
-  path: string;
-  isImage: boolean;
-  signedUrl?: string;
-}
-const IMAGE_EXT = /\.(png|jpe?g|webp|gif|bmp|svg|avif)$/i;
-function useArteAttachments(taskId: string) {
+const useArteAttachments = (taskId: string) => {
   const [items, setItems] = useState<PreparedAttachment[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -29,20 +16,18 @@ function useArteAttachments(taskId: string) {
       if (error) { setLoading(false); return; }
       
       const rows = (data || []) as AttachmentRow[];
-      const prepared: PreparedAttachment[] = rows.map(r => ({
-        id: r.id,
-        name: r.file_name,
-        path: r.file_url,
-        isImage: (r.file_type || '').startsWith('image/') || IMAGE_EXT.test(r.file_name),
-        signedUrl: r.file_url
-      }));
 
-      if (!cancelled) { setItems(prepared); setLoading(false); }
+      // Nunca confiar na URL gravada (pode ser pública antiga em bucket privado
+      // ou assinada expirada): extrai o caminho e re-assina com URL nova.
+      const { prepared, pathsToSign } = prepareImageAttachments(rows);
+      const signed = await signPreparedAttachments(prepared, pathsToSign);
+
+      if (!cancelled) { setItems(signed); setLoading(false); }
     })();
     return () => { cancelled = true; };
   }, [taskId]);
   return { items, loading };
-}
+};
 
 interface ArteTask {
   id: string;

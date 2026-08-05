@@ -3,47 +3,7 @@ import { Download, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-
-interface AttachmentRow {
-  id: string;
-  file_name: string;
-  file_url: string;
-  file_type: string | null;
-}
-
-interface PreparedAttachment {
-  id: string;
-  name: string;
-  path: string;
-  isImage: boolean;
-  signedUrl?: string;
-}
-
-const IMAGE_EXT = /\.(png|jpe?g|webp|gif|bmp|svg|avif)$/i;
-
-// Cache global para signed URLs (evita regenerar a cada render)
-const signedUrlCache = new Map<string, { url: string; expires: number }>();
-const CACHE_DURATION = 55 * 60 * 1000; // 55 minutos (signed URL expira em 60)
-
-function extractPath(fileUrl: string): string | null {
-  // URL format: https://<proj>.supabase.co/storage/v1/object/(public|sign)/task-attachments/<path>
-  const m = fileUrl.match(/\/task-attachments\/(.+?)(\?|$)/);
-  if (m) return decodeURIComponent(m[1]);
-  return null;
-}
-
-function getCachedSignedUrl(path: string): string | null {
-  const cached = signedUrlCache.get(path);
-  if (cached && cached.expires > Date.now()) {
-    return cached.url;
-  }
-  if (cached) signedUrlCache.delete(path);
-  return null;
-}
-
-function setCachedSignedUrl(path: string, url: string): void {
-  signedUrlCache.set(path, { url, expires: Date.now() + CACHE_DURATION });
-}
+import { prepareImageAttachments, signPreparedAttachments, type PreparedAttachment, type AttachmentRow } from '@/lib/arteAttachments';
 
 export default function ArteAttachmentsPreview({
   taskId,
@@ -79,63 +39,14 @@ export default function ArteAttachmentsPreview({
         .order('created_at', { ascending: false });
       rows = (data || []) as AttachmentRow[];
     }
-    const prepared: PreparedAttachment[] = [];
-    const pathsToSign: string[] = [];
-    const pathToIndex = new Map<string, number>();
 
-    for (const r of rows) {
-      const fileUrl = r.file_url || '';
-      const isImage =
-        (r.file_type || '').startsWith('image/') || IMAGE_EXT.test(r.file_name);
-
-      // If file_url is already a signed or public URL, use it directly
-      const isReadyUrl = /\/storage\/v1\/object\/(sign|public)\//i.test(fileUrl);
-      if (isReadyUrl) {
-        prepared.push({ id: r.id, name: r.file_name, path: fileUrl, isImage, signedUrl: fileUrl });
-        continue;
-      }
-
-      // Otherwise extract the storage path and sign it
-      const path = extractPath(fileUrl);
-      if (!path) continue;
-
-      if (isImage) {
-        const cachedUrl = getCachedSignedUrl(path);
-        prepared.push({
-          id: r.id,
-          name: r.file_name,
-          path,
-          isImage,
-          signedUrl: cachedUrl || undefined,
-        });
-        if (!cachedUrl) {
-          pathToIndex.set(path, prepared.length - 1);
-          pathsToSign.push(path);
-        }
-      } else {
-        prepared.push({ id: r.id, name: r.file_name, path, isImage });
-      }
-    }
-
-    // Só busca signed URLs para imagens que não estão em cache
-    if (pathsToSign.length > 0) {
-      const { data: signed } = await supabase.storage
-        .from('task-attachments')
-        .createSignedUrls(pathsToSign, 60 * 60);
-      
-      if (signed) {
-        for (const s of signed) {
-          const idx = pathToIndex.get(s.path);
-          if (idx !== undefined && prepared[idx]) {
-            prepared[idx].signedUrl = s.signedUrl;
-            setCachedSignedUrl(s.path, s.signedUrl);
-          }
-        }
-      }
-    }
+    // Nunca confiar na URL gravada (pode ser pública antiga em bucket privado
+    // ou assinada expirada): extrai o caminho e re-assina com URL nova.
+    const { prepared, pathsToSign } = prepareImageAttachments(rows);
+    const signed = await signPreparedAttachments(prepared, pathsToSign);
 
     if (mountedRef.current) {
-      setItems(prepared);
+      setItems(signed);
       setLoading(false);
     }
   }, [taskId]);
