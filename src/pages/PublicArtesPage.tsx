@@ -252,7 +252,14 @@ function TaskCardPreview({ taskId }: { taskId: string }) {
         src={preview.signedUrl}
         alt={preview.name}
         className="h-24 w-full object-cover"
-        loading="lazy"
+        loading="eager"
+        decoding="sync"
+        fetchPriority="high"
+        onLoad={(e) => {
+          e.currentTarget.style.opacity = '1';
+          e.currentTarget.parentElement?.querySelector('.animate-pulse')?.classList.add('hidden');
+        }}
+        style={{ opacity: 0, transition: 'opacity 0.3s ease' }}
       />
       <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/30">
         <ZoomIn className="h-5 w-5 text-white opacity-0 transition group-hover:opacity-100" />
