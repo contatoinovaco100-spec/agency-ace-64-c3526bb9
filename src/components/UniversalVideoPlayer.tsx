@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, AlertTriangle, ExternalLink, Download, RotateCw } from 'lucide-react';
+import { Loader2, AlertTriangle, ExternalLink, Download, RotateCw, Play } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Props {
   src: string;
@@ -31,11 +32,13 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [stalled, setStalled] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [started, setStarted] = useState(false);
 
   // se demorar demais para carregar (máquina/rede lenta), mostra opções alternativas
   useEffect(() => {
     setState('loading');
     setStalled(false);
+    setStarted(false);
     const t = setTimeout(() => {
       setState((s) => (s === 'loading' ? (setStalled(true), 'loading') : s));
     }, 12000);
@@ -51,14 +54,30 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
     }
   };
 
+  const startPlayback = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    setStarted(true);
+    setStalled(false);
+    try {
+      await video.play();
+      setState('ready');
+    } catch {
+      setState('error');
+    }
+  };
+
   const fallbackLinks = (
     <div className="flex flex-wrap items-center justify-center gap-2">
-      <button
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
         onClick={retry}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 px-3 py-2 text-xs font-semibold text-primary"
+        className="gap-1.5 text-xs font-semibold"
       >
         <RotateCw className="h-3.5 w-3.5" /> Tentar novamente
-      </button>
+      </Button>
       <a
         href={src}
         target="_blank"
@@ -89,19 +108,47 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
         </div>
       ) : (
         <>
-          {state === 'loading' && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/85 px-4 text-center">
-              <Loader2 className="h-7 w-7 animate-spin text-primary" />
-              {stalled && (
+           {state === 'loading' && !started && (
+             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card px-4 text-center">
+               <Button
+                 type="button"
+                 size="icon"
+                 onClick={startPlayback}
+                 className="h-14 w-14 rounded-full shadow-lg"
+                 aria-label="Reproduzir vídeo"
+               >
+                 <Play className="h-6 w-6 fill-current" />
+               </Button>
+               <p className="text-sm font-semibold text-foreground">Clique para reproduzir</p>
+               {stalled && (
                 <>
                   <p className="text-xs text-gray-300">
-                    O vídeo está demorando para carregar neste computador.
+                     Este computador não conseguiu preparar o vídeo.
                   </p>
                   {fallbackLinks}
                 </>
               )}
             </div>
           )}
+
+           {state === 'loading' && started && (
+             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card/95 px-4 text-center">
+               {stalled ? (
+                 <>
+                   <AlertTriangle className="h-8 w-8 text-yellow-500" />
+                   <p className="text-sm text-foreground">
+                     O formato deste vídeo não é compatível com este computador.
+                   </p>
+                   {fallbackLinks}
+                 </>
+               ) : (
+                 <>
+                   <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                   <p className="text-xs text-muted-foreground">Preparando vídeo…</p>
+                 </>
+               )}
+             </div>
+           )}
 
           <video
             key={`${src}-${reloadKey}-${attempt}`}
@@ -114,10 +161,15 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
             poster={poster}
             disablePictureInPicture={false}
             controlsList="noremoteplayback"
-            onLoadedMetadata={() => setState('ready')}
-            onLoadedData={() => setState('ready')}
-            onCanPlay={() => setState('ready')}
+             onLoadedMetadata={(event) => {
+               const video = event.currentTarget;
+               if (video.videoWidth === 0 || video.videoHeight === 0) setState('error');
+             }}
+             onLoadedData={() => started && setState('ready')}
+             onCanPlay={() => started && setState('ready')}
             onPlaying={() => setState('ready')}
+             onWaiting={() => started && setState('loading')}
+             onStalled={() => started && setStalled(true)}
             onError={() => setState('error')}
             className="w-full max-h-[70vh] bg-black object-contain"
           >
