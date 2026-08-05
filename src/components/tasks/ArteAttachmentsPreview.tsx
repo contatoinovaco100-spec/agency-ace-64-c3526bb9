@@ -48,9 +48,12 @@ function setCachedSignedUrl(path: string, url: string): void {
 export default function ArteAttachmentsPreview({
   taskId,
   compact = true,
+  onPreviewClick,
 }: {
   taskId: string;
   compact?: boolean;
+  /** Opcional: dispara com a URL da imagem preview (ex.: abrir lightbox). */
+  onPreviewClick?: (url: string) => void;
 }) {
   const [items, setItems] = useState<PreparedAttachment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -197,30 +200,28 @@ export default function ArteAttachmentsPreview({
   const previewItem = items.find((i) => i.isImage && i.signedUrl);
 
   return (
-    <div className={cn("space-y-2", compact ? "mt-1" : "mt-2")} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={cn("space-y-2", compact ? "mt-1" : "mt-2")}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (previewItem?.signedUrl) onPreviewClick?.(previewItem.signedUrl);
+      }}
+    >
       {previewItem && (
         <div className={cn("relative overflow-hidden rounded-md border border-border bg-muted/50", compact && "h-10")}>
-           {/* Placeholder com gradiente enquanto carrega */}
            <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted/80 to-muted animate-pulse" />
            <img
              src={previewItem.signedUrl}
              alt={previewItem.name}
              className={cn(
-               "relative transition-opacity duration-300",
+               "relative",
                compact ? 'h-10 w-full object-cover' : 'max-h-72 w-full object-contain bg-black/40'
              )}
              loading="eager"
-             decoding="sync"
+             decoding="async"
              fetchPriority="high"
-             onLoad={(e) => {
-               // Remove placeholder quando imagem carrega
-               const img = e.currentTarget;
-               img.style.opacity = '1';
-               // Remove gradiente para performance
-               img.parentElement?.querySelector('div')?.classList.add('hidden');
-             }}
-             style={{ opacity: 0, contain: 'paint' }}
-          />
+           />
           {!compact && (
             <button
               type="button"

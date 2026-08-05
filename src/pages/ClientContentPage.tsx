@@ -109,15 +109,12 @@ function ArtePreviewClickable({ taskId, status }: { taskId: string; status: stri
             {isRevisao ? '🎨 Arte em revisão — aguardando aprovação' : '✅ Arte pronta para publicação'}
           </h4>
         </div>
-        {/* We use ArteAttachmentsPreview but wrap it in a clickable overlay */}
-        <div className="relative group cursor-zoom-in" onClick={() => {
-          // Find the first image src rendered by ArteAttachmentsPreview and open it
-          const img = document.querySelector(`[data-arte-task="${taskId}"] img`) as HTMLImageElement | null;
-          if (img) setLightbox(img.src);
-        }}>
-          <div data-arte-task={taskId}>
-            <ArteAttachmentsPreview taskId={taskId} compact={false} />
-          </div>
+        <div className="relative group cursor-zoom-in">
+          <ArteAttachmentsPreview
+            taskId={taskId}
+            compact={false}
+            onPreviewClick={(url) => setLightbox(url)}
+          />
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 transition-all group-hover:bg-black/30">
             <div className="flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-xs font-semibold text-white opacity-0 transition-all group-hover:opacity-100">
               <ZoomIn className="h-3.5 w-3.5" /> Clique para ampliar
