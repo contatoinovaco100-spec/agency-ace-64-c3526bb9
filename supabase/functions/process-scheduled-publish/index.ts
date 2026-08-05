@@ -16,35 +16,65 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const now = new Date().toISOString();
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const cutoffIso = new Date(now.getTime() - 10 * 60 * 1000).toISOString();
 
-    const { data: jobs, error: fetchErr } = await admin
-      .from("publish_jobs")
-      .select("id")
-      .eq("status", "scheduled")
-      .lte("scheduled_at", now);
+    // Agendados vencidos + jobs travados em 'processing' (publicação antiga
+    // cujo background foi encerrado antes de concluir).
+    const [{ data: dueJobs }, { data: stuckJobs }] = await Promise.all([
+      admin
+        .from("publish_jobs")
+        .select("id")
+        .eq("status", "scheduled")
+        .lte("scheduled_at", nowIso),
+      admin
+        .from("publish_jobs")
+        .select("id")
+        .eq("status", "processing")
+        .lt("updated_at", cutoffIso),
+    ]);
 
-    if (fetchErr) throw fetchErr;
-    if (!jobs?.length) {
-      return json({ success: true, processed: 0 });
+    // Recupera travados: targets 'publishing' voltam a 'pending' e o job
+    // volta para 'scheduled' para ser publicado normalmente.
+    const recoveredIds: string[] = [];
+    for (const job of stuckJobs || []) {
+      await admin
+        .from("publish_targets")
+        .update({ status: "pending", error_message: "" })
+        .eq("job_id", job.id)
+        .in("status", ["publishing"]);
+      await admin
+        .from("publish_jobs")
+        .update({ status: "scheduled" })
+        .eq("id", job.id);
+      recoveredIds.push(job.id);
+    }
+
+    const ids = [
+      ...(dueJobs || []).map((j: any) => j.id),
+      ...recoveredIds,
+    ];
+    if (!ids.length) {
+      return json({ success: true, processed: 0, recovered: recoveredIds.length });
     }
 
     let processed = 0;
     let failed = 0;
 
-    for (const job of jobs) {
+    for (const id of ids) {
       try {
         const { data: targets } = await admin
           .from("publish_targets")
           .select("id")
-          .eq("job_id", job.id)
+          .eq("job_id", id)
           .in("status", ["pending", "failed"]);
 
         if (!targets?.length) {
           await admin
             .from("publish_jobs")
             .update({ status: "failed" })
-            .eq("id", job.id);
+            .eq("id", id);
           failed++;
           continue;
         }
@@ -52,33 +82,33 @@ Deno.serve(async (req) => {
         await admin
           .from("publish_jobs")
           .update({ status: "processing" })
-          .eq("id", job.id);
+          .eq("id", id);
 
         const { error: invokeErr } = await admin.functions.invoke("social-publish", {
-          body: { job_id: job.id },
+          body: { job_id: id },
         });
 
         if (invokeErr) {
-          console.error(`Failed to invoke social-publish for job ${job.id}:`, invokeErr);
+          console.error(`Failed to invoke social-publish for job ${id}:`, invokeErr);
           await admin
             .from("publish_jobs")
             .update({ status: "scheduled" })
-            .eq("id", job.id);
+            .eq("id", id);
           failed++;
         } else {
           processed++;
         }
       } catch (e) {
-        console.error(`Error processing job ${job.id}:`, e);
+        console.error(`Error processing job ${id}:`, e);
         await admin
           .from("publish_jobs")
           .update({ status: "scheduled" })
-          .eq("id", job.id);
+          .eq("id", id);
         failed++;
       }
     }
 
-    return json({ success: true, processed, failed, total: jobs.length });
+    return json({ success: true, processed, failed, total: ids.length });
   } catch (e) {
     console.error("process-scheduled-publish error", e);
     return json({ error: String((e as Error).message) }, 500);

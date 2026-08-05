@@ -136,11 +136,51 @@ export const publishingService = {
     return data as { success: boolean; targets: number };
   },
 
-  /** Reprocessa todos os jobs que ainda não foram publicados. */
-  async reprocessPending(): Promise<{ processed: number; errors: number }> {
+  /** Recupera jobs travados em 'processing' (targets 'publishing' → 'pending').
+   *  Quando o background do social-publish é encerrado (timeout do Edge Runtime)
+   *  no meio de uma publicação, job fica 'processing' e target 'publishing'
+   *  para sempre — nada mais os reprocessa. Esta função os desbloqueia. */
+  async recoverStuckJobs(): Promise<string[]> {
+    const STUCK_MS = 10 * 60 * 1000;
     const { data: jobs, error } = await supabase
       .from(JOBS)
-      .select('id, status')
+      .select('id, status, scheduled_at, updated_at')
+      .eq('status', 'processing');
+    if (error) throw error;
+    if (!jobs?.length) return [];
+
+    const recovered: string[] = [];
+    for (const job of jobs) {
+      const updated = (job as any).updated_at ? new Date((job as any).updated_at).getTime() : 0;
+      // Publicação real pode levar alguns minutos — só recupera se realmente travou.
+      if (!updated || Date.now() - updated < STUCK_MS) continue;
+
+      await supabase
+        .from(TARGETS)
+        .update({ status: 'pending', error_message: '' } as any)
+        .eq('job_id', (job as any).id)
+        .in('status', ['publishing']);
+
+      // Volta para 'scheduled' (mesmo vencido) para o pipeline existente
+      // (auto-publish do navegador + cron) republicar. Só vira 'pending'
+      // se nunca foi agendado.
+      const status = (job as any).scheduled_at ? 'scheduled' : 'pending';
+      await supabase.from(JOBS).update({ status } as any).eq('id', (job as any).id);
+      recovered.push((job as any).id);
+    }
+    return recovered;
+  },
+
+  /** Reprocessa todos os jobs que já venceram e ainda não foram publicados.
+   *  Antes, recupera os travados em 'processing'. Jobs agendados para o
+   *  futuro NÃO são publicados aqui. */
+  async reprocessPending(): Promise<{ processed: number; errors: number }> {
+    await this.recoverStuckJobs();
+
+    const now = Date.now();
+    const { data: jobs, error } = await supabase
+      .from(JOBS)
+      .select('id, status, scheduled_at')
       .in('status', ['pending', 'scheduled']);
     if (error) throw error;
     if (!jobs?.length) return { processed: 0, errors: 0 };
@@ -148,8 +188,11 @@ export const publishingService = {
     let processed = 0;
     let errors = 0;
     for (const job of jobs) {
+      const j = job as any;
+      // Nunca publica agendados futuros por aqui (só cron/timer do navegador).
+      if (j.scheduled_at && new Date(j.scheduled_at).getTime() > now) continue;
       try {
-        await this.run((job as any).id);
+        await this.run(j.id);
         processed++;
       } catch {
         errors++;

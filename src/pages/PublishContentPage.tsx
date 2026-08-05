@@ -263,6 +263,22 @@ export default function PublishContentPage() {
   useEffect(() => {
     if (jobsLoading) return;
     const now = Date.now();
+
+    // Jobs travados em 'processing' (publicação antiga cujo background foi
+    // encerrado) nunca são reprocessados sozinhos — recupera e re-avalia.
+    const stuck = jobs.filter((j) => j.status === 'processing');
+    if (stuck.length) {
+      publishingService
+        .recoverStuckJobs()
+        .then((ids) => {
+          if (ids.length) {
+            ids.forEach((id) => autoPublishedRef.current.delete(id));
+            reloadJobs();
+          }
+        })
+        .catch(() => {});
+    }
+
     jobs
       .filter(
         (j) =>
@@ -298,6 +314,23 @@ export default function PublishContentPage() {
         }
       });
   }, [jobs, jobsLoading, scheduledItems, reloadJobs]);
+
+  // Watchdog: enquanto a página estiver aberta, recupera jobs travados em
+  // 'processing' (e volta a publicá-los) mesmo sem mudanças no banco.
+  useEffect(() => {
+    const iv = setInterval(async () => {
+      try {
+        const recovered = await publishingService.recoverStuckJobs();
+        if (recovered.length) {
+          recovered.forEach((id) => autoPublishedRef.current.delete(id));
+          reloadJobs();
+        }
+      } catch {
+        /* silencioso */
+      }
+    }, 60_000);
+    return () => clearInterval(iv);
+  }, [reloadJobs]);
 
   /** Modo em massa: cada vídeo/foto vira uma publicação separada. */
   const publishBulk = async () => {
