@@ -408,6 +408,7 @@ function ArchiveDropZone({
   accentClass,
   iconColorClass,
   defaultOpen,
+  onReopenTask,
 }: {
   id: string;
   label: string;
@@ -418,6 +419,7 @@ function ArchiveDropZone({
   accentClass: string;
   iconColorClass: string;
   defaultOpen?: boolean;
+  onReopenTask?: (task: Task) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});
