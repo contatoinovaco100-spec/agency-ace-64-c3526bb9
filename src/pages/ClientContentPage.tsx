@@ -167,7 +167,7 @@ function ArtePreviewClickable({ taskId, status }: { taskId: string; status: stri
           <ArteAttachmentsPreview
             taskId={taskId}
             compact={false}
-            onPreviewClick={(url) => setLightbox(url)}
+            onPreviewClick={(urls, index) => setLightbox(urls[index])}
           />
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 transition-all group-hover:bg-black/30">
             <div className="flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-xs font-semibold text-white opacity-0 transition-all group-hover:opacity-100">

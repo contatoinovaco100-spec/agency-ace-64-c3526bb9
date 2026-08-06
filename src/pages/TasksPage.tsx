@@ -958,7 +958,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
         )}
       </div>
 
-      {/* Aba isolada de artes finalizadas */}
+      {/* Aba isolada de tarefas na etapa "Finalizado" */}
       {groupedByDueDate && (
         <div className="flex w-fit items-center gap-1 rounded-lg border border-border bg-card/70 p-1">
           <button
@@ -998,7 +998,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
             <div className="space-y-5">
               {finalizadasTasks.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-                  Nenhuma arte finalizada ainda.
+                  {taskTypeFilter === 'Arte' ? 'Nenhuma arte finalizada ainda.' : 'Nenhuma tarefa finalizada ainda.'}
                 </div>
               ) : (
                 <div className="space-y-2 rounded-xl border border-success/40 bg-success/5 p-3">

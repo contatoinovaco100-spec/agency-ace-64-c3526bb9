@@ -218,7 +218,7 @@ function AppRoutes() {
                     <Route path="/"                    element={<Dashboard />} />
                     <Route path="/clientes"            element={<ClientsPage />} />
                     <Route path="/crm"                 element={<CRMPage />} />
-                    <Route path="/tarefas"             element={<TasksPage />} />
+                    <Route path="/tarefas"             element={<TasksPage groupedByDueDate />} />
                     <Route path="/artes"               element={<ArtesPage />} />
                     <Route path="/videos-finalizados"  element={<VideosFinalizadosPage />} />
                     <Route path="/agenda-videos"       element={<VideoSchedulePage />} />
