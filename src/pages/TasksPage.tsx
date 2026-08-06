@@ -344,7 +344,9 @@ function KanbanColumn({
             nextStageLabel={nextStageName}
             onDuplicate={onDuplicateTask ? () => onDuplicateTask(task) : undefined}
             onArtPreview={onArtPreview}
+            onReopen={onReopenTask ? () => onReopenTask(task) : undefined}
           />
+
         ))}
 
         {showAddButton && (
