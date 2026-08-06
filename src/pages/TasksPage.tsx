@@ -64,7 +64,9 @@ function buildStatusToColumn(columnNames: string[]) {
 }
 
 // ── Card Content (shared between card and overlay) ─────────
-function CardContent({ task, clientName, compact }: { task: Task; clientName?: string; compact?: boolean }) {
+function CardContent({ task, clientName, compact, onArtPreview }: {
+  task: Task; clientName?: string; compact?: boolean; onArtPreview?: (url: string) => void;
+}) {
   const displayName = task.videoName || task.title || 'Sem título';
   const isArte = task.taskType === 'Arte';
   const date = task.dueDate || task.postDate;
@@ -118,7 +120,7 @@ function CardContent({ task, clientName, compact }: { task: Task; clientName?: s
             Baixar vídeo
           </a>
         )}
-        {isArte && <ArteAttachmentsPreview taskId={task.id} compact={false} />}
+        {isArte && <ArteAttachmentsPreview taskId={task.id} compact={false} onPreviewClick={onArtPreview} />}
         <div className="mt-1.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             <span className={cn('rounded px-1 py-[1px] text-[9px] font-semibold leading-tight', PRIORITY_BADGE[task.priority])}>
@@ -196,17 +198,17 @@ function CardContent({ task, clientName, compact }: { task: Task; clientName?: s
           {task.priority}
         </span>
       </div>
-      {isArte && <ArteAttachmentsPreview taskId={task.id} compact />}
+      {isArte && <ArteAttachmentsPreview taskId={task.id} compact onPreviewClick={onArtPreview} />}
     </div>
   );
 }
 
 // ── Draggable Card ─────────────────────────────────────────
 function DraggableCard({
-  task, onClick, clientName, borderClass, onAdvance, nextStageLabel, onDuplicate,
+  task, onClick, clientName, borderClass, onAdvance, nextStageLabel, onDuplicate, onArtPreview,
 }: {
   task: Task; onClick: () => void; clientName?: string; borderClass: string;
-  onAdvance?: () => void; nextStageLabel?: string | null; onDuplicate?: () => void;
+  onAdvance?: () => void; nextStageLabel?: string | null; onDuplicate?: () => void; onArtPreview?: (url: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
@@ -254,7 +256,7 @@ function DraggableCard({
           <Copy className="h-3 w-3" />
         </button>
       )}
-      <CardContent task={task} clientName={clientName} compact />
+      <CardContent task={task} clientName={clientName} compact onArtPreview={onArtPreview} />
       {onAdvance && nextStageLabel && (
         <button
           onClick={(e) => { e.stopPropagation(); onAdvance(); }}
@@ -280,6 +282,7 @@ function KanbanColumn({
   nextStageName,
   showAddButton,
   onDuplicateTask,
+  onArtPreview,
   prefix,
 }: {
   stage: KanbanStage;
@@ -291,6 +294,7 @@ function KanbanColumn({
   nextStageName: string | null;
   showAddButton: boolean;
   onDuplicateTask?: (task: Task) => void;
+  onArtPreview?: (url: string) => void;
   prefix?: string;
 }) {
   const droppableId = prefix ? `${prefix}::${stage.name}` : stage.name;
@@ -326,6 +330,7 @@ function KanbanColumn({
             onAdvance={nextStageName ? () => onAdvanceTask(task, nextStageName) : undefined}
             nextStageLabel={nextStageName}
             onDuplicate={onDuplicateTask ? () => onDuplicateTask(task) : undefined}
+            onArtPreview={onArtPreview}
           />
         ))}
 
@@ -508,6 +513,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const [newDefaultDueDate, setNewDefaultDueDate] = useState('');
   const [newDefaultStatus, setNewDefaultStatus] = useState('');
   const [arteTab, setArteTab] = useState<'progress' | 'done'>('progress');
+  const [artPreviewUrl, setArtPreviewUrl] = useState<string | null>(null);
 
   // Open a specific task when navigated with ?taskId=xxx (e.g. from history bell)
   useEffect(() => {
@@ -522,6 +528,14 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, tasks, setSearchParams]);
+
+  // Fecha o lightbox de arte com Escape
+  useEffect(() => {
+    if (!artPreviewUrl) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setArtPreviewUrl(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [artPreviewUrl]);
 
 
   const [selectedClient, setSelectedClient] = useState<string>('all');
@@ -1006,6 +1020,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                             nextStageName={getNextStageName(stage.name)}
                             showAddButton={false}
                             onDuplicateTask={handleDuplicateTask}
+                            onArtPreview={setArtPreviewUrl}
                           />
                         </div>
                       );
@@ -1067,6 +1082,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                               nextStageName={getNextStageName(stage.name)}
                               showAddButton={stage.name === firstStageName}
                               onDuplicateTask={handleDuplicateTask}
+                              onArtPreview={setArtPreviewUrl}
                             />
                           </div>
                         ))}
@@ -1109,6 +1125,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                     nextStageName={getNextStageName(stage.name)}
                     showAddButton={stage.name === firstStageName}
                     onDuplicateTask={handleDuplicateTask}
+                    onArtPreview={setArtPreviewUrl}
                   />
                 </div>
               ))}
@@ -1132,7 +1149,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
         <DragOverlay>
           {activeTask && (
             <div className={cn('w-[180px] rounded-md border-l-[2px] bg-card py-1 px-1.5 shadow-lg', PRIORITY_COLORS[activeTask.priority])}>
-              <CardContent task={activeTask} clientName={getClientName(activeTask.clientId)} compact />
+              <CardContent task={activeTask} clientName={getClientName(activeTask.clientId)} compact onArtPreview={setArtPreviewUrl} />
             </div>
           )}
         </DragOverlay>
@@ -1165,6 +1182,29 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
         defaultStage={firstStageName || 'A fazer'}
         defaultClientId={selectedClient !== 'all' ? selectedClient : undefined}
       />
+
+      {/* Lightbox de arte (zoom no preview do card) */}
+      {artPreviewUrl && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 sm:p-8"
+          onClick={() => setArtPreviewUrl(null)}
+        >
+          <button
+            type="button"
+            className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+            onClick={(e) => { e.stopPropagation(); setArtPreviewUrl(null); }}
+            aria-label="Fechar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={artPreviewUrl}
+            alt="Arte em tamanho grande"
+            className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
