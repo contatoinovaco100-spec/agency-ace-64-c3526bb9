@@ -221,6 +221,40 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
+  // Realtime para tasks e calendar_events: mantém kanbans e calendário
+  // atualizados ao vivo quando outra pessoa cria/edita/move tarefas.
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('agency-data-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tasks' }, (payload) => {
+        const row = rowToTask(payload.new as any);
+        setTasks(prev => prev.some(t => t.id === row.id) ? prev : [...prev, row]);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tasks' }, (payload) => {
+        const row = rowToTask(payload.new as any);
+        setTasks(prev => prev.map(t => t.id === row.id ? row : t));
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'tasks' }, (payload) => {
+        const oldId = (payload.old as { id?: string })?.id;
+        if (oldId) setTasks(prev => prev.filter(t => t.id !== oldId));
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'calendar_events' }, (payload) => {
+        const ev = rowToEvent(payload.new as any);
+        setEvents(prev => prev.some(e => e.id === ev.id) ? prev : [...prev, ev]);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'calendar_events' }, (payload) => {
+        const ev = rowToEvent(payload.new as any);
+        setEvents(prev => prev.map(e => e.id === ev.id ? ev : e));
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'calendar_events' }, (payload) => {
+        const oldId = (payload.old as { id?: string })?.id;
+        if (oldId) setEvents(prev => prev.filter(e => e.id !== oldId));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
   const taskToRow = (t: Task) => ({
     id: t.id, client_id: t.clientId || null, title: t.title, description: t.description,
     assignee: t.assignee, priority: t.priority, due_date: t.dueDate || null, status: toDatabaseTaskStatus(t.status),
