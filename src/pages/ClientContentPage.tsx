@@ -120,6 +120,7 @@ function StatusBadge({ status, isArte }: { status: string; isArte?: boolean }) {
     'Programado':   { label: 'Programado',   cls: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',      icon: <Calendar className="h-3 w-3" /> },
     'Finalizado':   { label: isArte ? 'Arte pronta' : 'Finalizado', cls: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30', icon: <Sparkles className="h-3 w-3" /> },
     'Em revisão':   { label: 'Em revisão',   cls: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30', icon: <Clock className="h-3 w-3" /> },
+    'Revisão':      { label: 'Revisão',      cls: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30', icon: <Clock className="h-3 w-3" /> },
     'Em andamento': { label: 'Em andamento', cls: 'bg-primary/15 text-primary border-primary/30',                              icon: <Play className="h-3 w-3" /> },
     'default':      { label: status,         cls: 'bg-muted text-muted-foreground border-border',                              icon: <LayoutList className="h-3 w-3" /> },
   };
@@ -203,7 +204,7 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, o
   const videoName = isArte ? (task.title || 'Arte sem título') : (task.video_name || task.title || 'Sem título');
   const isPosted = task.status === 'Postado';
   const isProgramado = task.status === 'Programado';
-  const isFinalizado = task.status === 'Finalizado' || task.status === 'Em revisão';
+  const isFinalizado = task.status === 'Finalizado' || task.status === 'Em revisão' || task.status === 'Revisão';
 
   const displayDate = task.post_date || task.scheduled_date || task.due_date;
   const formattedDate = displayDate
@@ -681,11 +682,16 @@ export default function ClientContentPage() {
     if (t.status === 'Concluído') return false;
     if (t.status === 'Postado') return false;
     if (isArte && t.status !== 'Finalizado' && t.status !== 'Em revisão') return false;
+    // Vídeos aguardando aprovação do cliente sempre aparecem, mesmo com data passada.
+    const awaitingApproval = !isArte && (t.status === 'Revisão' || t.status === 'Em revisão' || t.status === 'Finalizado');
     const taskDate = t.post_date || t.scheduled_date || t.due_date;
     if (!taskDate) return true;
-    const date = new Date(taskDate);
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    if (date < today && !isInternal && !isArte) return false;
+    // Compara só a data (YYYY-MM-DD) no fuso local — evita que tarefas com entrega
+    // hoje sejam tratadas como vencidas (new Date('YYYY-MM-DD') vira meia-noite UTC).
+    const dateStr = String(taskDate).slice(0, 10);
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (dateStr < todayStr && !isInternal && !isArte && !awaitingApproval) return false;
     return true;
   });
   const postedTasks = tasks.filter(t => t.status === 'Postado');
