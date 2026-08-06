@@ -462,9 +462,36 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
           </div>
           </>)}
 
-
+          {/* Referências (Arte) — disponível já na criação do card */}
+          {isNew && form.taskType === 'Arte' && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Link className="h-3.5 w-3.5" /> Referências (links, inspirações, briefings)
+                </Label>
+                <Textarea
+                  rows={4}
+                  value={form.videoReferences || ''}
+                  onChange={e => setForm({ ...form, videoReferences: e.target.value })}
+                  placeholder="Cole links de referência ou inspiração para a arte..."
+                />
+                <div>
+                  <Label className="text-xs text-muted-foreground">Legenda</Label>
+                  <Textarea
+                    rows={3}
+                    value={(form as any).caption || ''}
+                    onChange={e => setForm({ ...form, caption: e.target.value } as any)}
+                    placeholder="Escreva a legenda do post..."
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           {/* ── Tabs: Checklist / Comments / Attachments / References ── */}
+
           {!isNew && (
             <>
               <Separator />

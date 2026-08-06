@@ -17,6 +17,7 @@ import { resolveVideoUrl } from '@/lib/videoUrl';
 import { toast } from 'sonner';
 
 function ResolvedVideoSection({ url, fileName, reloadKey }: { url: string; fileName: string; reloadKey: number }) {
+  const [localReload, setLocalReload] = useState(0);
   const [resolved, setResolved] = useState(url);
   useEffect(() => {
     let cancelled = false;
@@ -27,11 +28,11 @@ function ResolvedVideoSection({ url, fileName, reloadKey }: { url: string; fileN
 
   return (
     <div className="space-y-3">
-      <UniversalVideoPlayer src={resolved} reloadKey={reloadKey} />
+      <UniversalVideoPlayer src={resolved} reloadKey={reloadKey + localReload} />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">🎬 Vídeo finalizado — assista e aprove antes da publicação</p>
         <div className="flex items-center gap-3 text-xs font-semibold text-primary">
-          <button type="button" onClick={() => setVideoReloadKey(k => k + 1)} className="inline-flex items-center gap-1 hover:text-primary/80 transition-colors">
+          <button type="button" onClick={() => setLocalReload(k => k + 1)} className="inline-flex items-center gap-1 hover:text-primary/80 transition-colors">
             <RefreshCw className="w-3.5 h-3.5" /> Recarregar
           </button>
           <button type="button" onClick={async () => {
