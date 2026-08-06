@@ -348,7 +348,7 @@ function KanbanColumn({
 }
 
 // ── Finalizado / Concluído Drop Zone + Client Folders ─────
-function ArchiveDraggableItem({ task, onClick }: { task: Task; onClick: () => void }) {
+function ArchiveDraggableItem({ task, onClick, onReopen }: { task: Task; onClick: () => void; onReopen?: () => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
@@ -378,12 +378,22 @@ function ArchiveDraggableItem({ task, onClick }: { task: Task; onClick: () => vo
       }}
       onClick={handleClick}
       className={cn(
-        'flex items-center gap-2 rounded px-2 py-1.5 cursor-grab hover:bg-secondary/30 transition-colors active:cursor-grabbing',
+        'group flex items-center gap-2 rounded px-2 py-1.5 cursor-grab hover:bg-secondary/30 transition-colors active:cursor-grabbing',
         isDragging && 'opacity-40'
       )}
     >
       <div className={cn('h-1.5 w-1.5 rounded-full', PRIORITY_COLORS[task.priority]?.replace('border-l-', 'bg-') || 'bg-muted')} />
-      <span className="text-xs text-foreground truncate">{task.videoName || task.title || 'Sem título'}</span>
+      <span className="flex-1 text-xs text-foreground truncate">{task.videoName || task.title || 'Sem título'}</span>
+      {onReopen && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onReopen(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          title="Voltar para alteração"
+          className="flex h-5 shrink-0 items-center gap-1 rounded bg-warning/15 px-1.5 text-[9px] font-semibold text-warning opacity-0 transition-opacity hover:bg-warning/25 group-hover:opacity-100"
+        >
+          <Undo2 className="h-3 w-3" /> Reabrir
+        </button>
+      )}
     </div>
   );
 }
