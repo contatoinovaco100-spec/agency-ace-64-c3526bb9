@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { todaySP, normalizeDate, dateGroupMeta, formatFullDate } from '@/lib/kanbanDateGroups';
+import { todaySP, normalizeDate, dateGroupMeta, formatFullDate, addDays } from '@/lib/kanbanDateGroups';
 import TaskDetailPanel from '@/components/tasks/TaskDetailPanel';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import { useKanbanStages, colorClasses, KanbanStage } from '@/hooks/useKanbanStages';
@@ -689,13 +689,16 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredTasks, allColumnNames.join('|'), taskTypeFilter]);
 
-  // Agrupamento por data de entrega (somente modo agrupado): Atrasadas → datas →
-  // Sem prazo. Tarefas em "Finalizado" ficam na aba isolada "Finalizadas".
+  // Agrupamento por data de entrega (somente modo agrupado): Atrasadas → Hoje →
+  // Amanhã → Próximos dias → Sem prazo. Tarefas em "Finalizado" ficam na aba
+  // isolada "Finalizadas".
   const dateGroups = useMemo<DateGroup[]>(() => {
     if (!groupedByDueDate) return [];
     const today = todaySP();
+    const tomorrow = addDays(today, 1);
     const byDate = new Map<string, Task[]>();
     const late: Task[] = [];
+    const future: Task[] = [];
     const noDate: Task[] = [];
 
     filteredTasks.forEach(t => {
@@ -707,9 +710,11 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
         noDate.push(t);
       } else if (d < today) {
         late.push(t);
-      } else {
+      } else if (d === today || d === tomorrow) {
         if (!byDate.has(d)) byDate.set(d, []);
         byDate.get(d)!.push(t);
+      } else {
+        future.push(t);
       }
     });
 
@@ -734,10 +739,17 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     if (late.length > 0) {
       result.push(makeGroup('late', 'Atrasadas', `Vencidas antes de ${formatFullDate(today)}`, null, late));
     }
-    [...byDate.keys()].sort().forEach(dk => {
+    [today, tomorrow].forEach(dk => {
+      const tasks = byDate.get(dk);
+      if (!tasks || tasks.length === 0) return;
       const meta = dateGroupMeta(dk, today);
-      result.push(makeGroup(dk, meta.label, meta.subtitle, dk, byDate.get(dk)!));
+      result.push(makeGroup(dk, meta.label, meta.subtitle, dk, tasks));
     });
+    if (future.length > 0) {
+      const futureStart = addDays(today, 2);
+      const futureSubtitle = `A partir de ${new Date(`${futureStart}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`;
+      result.push(makeGroup('future', 'Próximos dias', futureSubtitle, futureStart, future));
+    }
     if (noDate.length > 0) {
       result.push(makeGroup('nodate', 'Sem prazo', 'Defina a data de entrega no card', null, noDate));
     }
@@ -785,11 +797,17 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
         if (finalizadoStageNames.has(col)) return 'finalizadas';
         const d = normalizeDate(t.dueDate);
         if (!d) return 'nodate';
-        return d < today ? 'late' : d;
+        if (d < today) return 'late';
+        if (d === today || d === addDays(today, 1)) return d;
+        return 'future';
       };
       const dueDateForGroup = (groupKey: string, currentDate: string): string | null => {
         if (groupKey === 'nodate') return '';
         if (groupKey === 'late' || groupKey === 'history' || groupKey === 'finalizadas') return null;
+        if (groupKey === 'future') {
+          const cd = normalizeDate(currentDate);
+          return cd && cd > addDays(today, 1) ? cd : addDays(today, 2);
+        }
         return groupKey;
       };
 
