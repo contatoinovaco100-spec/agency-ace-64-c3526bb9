@@ -1150,6 +1150,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                   accentClass="border-muted-foreground bg-muted/30"
                   iconColorClass="text-muted-foreground"
                   defaultOpen={false}
+                  onReopenTask={handleReopenTask}
                 />
               ))}
             </div>
