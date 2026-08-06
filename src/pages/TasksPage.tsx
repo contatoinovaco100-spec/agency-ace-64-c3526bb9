@@ -622,6 +622,18 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     return dbStages[idx + 1].name;
   };
 
+  /** Reabre uma tarefa finalizada/concluída: volta para a etapa anterior (alteração). */
+  const handleReopenTask = (task: Task) => {
+    const current = mapStatusToColumn(task.status as string);
+    const idx = dbStages.findIndex(s => s.name === current);
+    const target = idx > 0 ? dbStages[idx - 1].name : (kanbanStages[0]?.name || dbStages[0]?.name);
+    if (target) moveTaskToStage(task.id, target);
+  };
+
+  const isFinalStage = (name: string) =>
+    finalizadoStageNames.has(name) || archiveStageNames.has(name);
+
+
   const cancelledClientIds = useMemo(
     () => new Set(clients.filter(c => c.status === 'Cancelado').map(c => c.id)),
     [clients],
