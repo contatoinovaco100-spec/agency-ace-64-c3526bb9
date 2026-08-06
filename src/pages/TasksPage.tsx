@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { useAgency } from '@/contexts/AgencyContext';
 import { Task } from '@/types/agency';
-import { Plus, Filter, Search, X, Users, ChevronDown, ChevronLeft, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film, FolderOpen, FileSpreadsheet } from 'lucide-react';
+import { Plus, Filter, Search, X, Users, ChevronDown, ChevronLeft, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film, FolderOpen, FileSpreadsheet, Undo2 } from 'lucide-react';
 import { BulkImportDialog } from '@/components/tasks/BulkImportDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -205,10 +205,11 @@ function CardContent({ task, clientName, compact, onArtPreview }: {
 
 // ── Draggable Card ─────────────────────────────────────────
 function DraggableCard({
-  task, onClick, clientName, borderClass, onAdvance, nextStageLabel, onDuplicate, onArtPreview,
+  task, onClick, clientName, borderClass, onAdvance, nextStageLabel, onDuplicate, onArtPreview, onReopen,
 }: {
   task: Task; onClick: () => void; clientName?: string; borderClass: string;
   onAdvance?: () => void; nextStageLabel?: string | null; onDuplicate?: () => void; onArtPreview?: (urls: string[], index: number) => void;
+  onReopen?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
@@ -267,6 +268,16 @@ function DraggableCard({
           <CheckCircle2 className="h-3 w-3" /> → {nextStageLabel}
         </button>
       )}
+      {onReopen && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onReopen(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          title="Voltar para alteração"
+          className="mt-1 flex w-full items-center justify-center gap-1 rounded bg-warning/10 py-0.5 text-[9px] font-semibold text-warning transition-colors hover:bg-warning/20"
+        >
+          <Undo2 className="h-3 w-3" /> Voltar p/ alteração
+        </button>
+      )}
     </div>
   );
 }
@@ -284,6 +295,7 @@ function KanbanColumn({
   onDuplicateTask,
   onArtPreview,
   prefix,
+  onReopenTask,
 }: {
   stage: KanbanStage;
   tasks: Task[];
@@ -296,6 +308,7 @@ function KanbanColumn({
   onDuplicateTask?: (task: Task) => void;
   onArtPreview?: (urls: string[], index: number) => void;
   prefix?: string;
+  onReopenTask?: (task: Task) => void;
 }) {
   const droppableId = prefix ? `${prefix}::${stage.name}` : stage.name;
   const { setNodeRef, isOver } = useDroppable({ id: droppableId });
@@ -331,7 +344,9 @@ function KanbanColumn({
             nextStageLabel={nextStageName}
             onDuplicate={onDuplicateTask ? () => onDuplicateTask(task) : undefined}
             onArtPreview={onArtPreview}
+            onReopen={onReopenTask ? () => onReopenTask(task) : undefined}
           />
+
         ))}
 
         {showAddButton && (
@@ -348,7 +363,7 @@ function KanbanColumn({
 }
 
 // ── Finalizado / Concluído Drop Zone + Client Folders ─────
-function ArchiveDraggableItem({ task, onClick }: { task: Task; onClick: () => void }) {
+function ArchiveDraggableItem({ task, onClick, onReopen }: { task: Task; onClick: () => void; onReopen?: () => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
@@ -378,12 +393,22 @@ function ArchiveDraggableItem({ task, onClick }: { task: Task; onClick: () => vo
       }}
       onClick={handleClick}
       className={cn(
-        'flex items-center gap-2 rounded px-2 py-1.5 cursor-grab hover:bg-secondary/30 transition-colors active:cursor-grabbing',
+        'group flex items-center gap-2 rounded px-2 py-1.5 cursor-grab hover:bg-secondary/30 transition-colors active:cursor-grabbing',
         isDragging && 'opacity-40'
       )}
     >
       <div className={cn('h-1.5 w-1.5 rounded-full', PRIORITY_COLORS[task.priority]?.replace('border-l-', 'bg-') || 'bg-muted')} />
-      <span className="text-xs text-foreground truncate">{task.videoName || task.title || 'Sem título'}</span>
+      <span className="flex-1 text-xs text-foreground truncate">{task.videoName || task.title || 'Sem título'}</span>
+      {onReopen && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onReopen(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          title="Voltar para alteração"
+          className="flex h-5 shrink-0 items-center gap-1 rounded bg-warning/15 px-1.5 text-[9px] font-semibold text-warning opacity-0 transition-opacity hover:bg-warning/25 group-hover:opacity-100"
+        >
+          <Undo2 className="h-3 w-3" /> Reabrir
+        </button>
+      )}
     </div>
   );
 }
@@ -398,6 +423,7 @@ function ArchiveDropZone({
   accentClass,
   iconColorClass,
   defaultOpen,
+  onReopenTask,
 }: {
   id: string;
   label: string;
@@ -408,6 +434,7 @@ function ArchiveDropZone({
   accentClass: string;
   iconColorClass: string;
   defaultOpen?: boolean;
+  onReopenTask?: (task: Task) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});
@@ -465,7 +492,7 @@ function ArchiveDropZone({
                 {isOpen && (
                   <div className="border-t border-border p-2 space-y-1.5">
                     {clientTasks.map(t => (
-                      <ArchiveDraggableItem key={t.id} task={t} onClick={() => onCardClick(t)} />
+                      <ArchiveDraggableItem key={t.id} task={t} onClick={() => onCardClick(t)} onReopen={onReopenTask ? () => onReopenTask(t) : undefined} />
                     ))}
                   </div>
                 )}
@@ -594,6 +621,18 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     if (idx < 0 || idx >= dbStages.length - 1) return null;
     return dbStages[idx + 1].name;
   };
+
+  /** Reabre uma tarefa finalizada/concluída: volta para a etapa anterior (alteração). */
+  const handleReopenTask = (task: Task) => {
+    const current = mapStatusToColumn(task.status as string);
+    const idx = dbStages.findIndex(s => s.name === current);
+    const target = idx > 0 ? dbStages[idx - 1].name : (kanbanStages[0]?.name || dbStages[0]?.name);
+    if (target) moveTaskToStage(task.id, target);
+  };
+
+  const isFinalStage = (name: string) =>
+    finalizadoStageNames.has(name) || archiveStageNames.has(name);
+
 
   const cancelledClientIds = useMemo(
     () => new Set(clients.filter(c => c.status === 'Cancelado').map(c => c.id)),
@@ -1027,6 +1066,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                             showAddButton={false}
                             onDuplicateTask={handleDuplicateTask}
                             onArtPreview={openArtPreview}
+                            onReopenTask={isFinalStage(stage.name) ? handleReopenTask : undefined}
                           />
                         </div>
                       );
@@ -1089,6 +1129,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                               showAddButton={stage.name === firstStageName}
                               onDuplicateTask={handleDuplicateTask}
                               onArtPreview={openArtPreview}
+                              onReopenTask={isFinalStage(stage.name) ? handleReopenTask : undefined}
                             />
                           </div>
                         ))}
@@ -1109,6 +1150,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                   accentClass="border-muted-foreground bg-muted/30"
                   iconColorClass="text-muted-foreground"
                   defaultOpen={false}
+                  onReopenTask={handleReopenTask}
                 />
               ))}
             </div>
@@ -1132,6 +1174,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                     showAddButton={stage.name === firstStageName}
                     onDuplicateTask={handleDuplicateTask}
                     onArtPreview={openArtPreview}
+                    onReopenTask={isFinalStage(stage.name) ? handleReopenTask : undefined}
                   />
                 </div>
               ))}
@@ -1148,6 +1191,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                 accentClass="border-muted-foreground bg-muted/30"
                 iconColorClass="text-muted-foreground"
                 defaultOpen={false}
+                onReopenTask={handleReopenTask}
               />
             ))}
           </>
