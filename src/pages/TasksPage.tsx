@@ -507,6 +507,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [newDefaultDueDate, setNewDefaultDueDate] = useState('');
   const [newDefaultStatus, setNewDefaultStatus] = useState('');
+  const [arteTab, setArteTab] = useState<'progress' | 'done'>('progress');
 
   // Open a specific task when navigated with ?taskId=xxx (e.g. from history bell)
   useEffect(() => {
@@ -550,6 +551,15 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const archiveStages = useMemo(
     () => dbStages.filter(s => archiveStageNames.has(s.name)),
     [dbStages, archiveStageNames],
+  );
+  // "Finalizado" é isolado em uma aba própria destacada (modo agrupado do kanban de artes).
+  const finalizadoStageNames = useMemo(
+    () => new Set(dbStages.filter(s => s.name.trim().toLowerCase() === 'finalizado').map(s => s.name)),
+    [dbStages],
+  );
+  const progressStages = useMemo(
+    () => kanbanStages.filter(s => !finalizadoStageNames.has(s.name)),
+    [kanbanStages, finalizadoStageNames],
   );
   const allColumnNames = dbStages.map(s => s.name);
 
@@ -621,27 +631,20 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   }, [filteredTasks, allColumnNames.join('|'), taskTypeFilter]);
 
   // Agrupamento por data de entrega (somente modo agrupado): Atrasadas → datas →
-  // Sem prazo → Histórico. Finalizadas com data no passado/sem data vão ao Histórico.
+  // Sem prazo. Tarefas em "Finalizado" ficam na aba isolada "Finalizadas".
   const dateGroups = useMemo<DateGroup[]>(() => {
     if (!groupedByDueDate) return [];
     const today = todaySP();
     const byDate = new Map<string, Task[]>();
     const late: Task[] = [];
     const noDate: Task[] = [];
-    const history: Task[] = [];
 
     filteredTasks.forEach(t => {
       const col = mapStatusToColumn(t.status);
       if (col === 'Concluído') return; // arquivo interno (zona de drop separada)
+      if (finalizadoStageNames.has(col)) return; // isoladas na aba Finalizadas
       const d = normalizeDate(t.dueDate);
-      if (col === 'Finalizado') {
-        if (d && d >= today) {
-          if (!byDate.has(d)) byDate.set(d, []);
-          byDate.get(d)!.push(t);
-        } else {
-          history.push(t);
-        }
-      } else if (!d) {
+      if (!d) {
         noDate.push(t);
       } else if (d < today) {
         late.push(t);
@@ -659,7 +662,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
       tasks: Task[],
     ): DateGroup => {
       const columns: Record<string, Task[]> = {};
-      kanbanStages.forEach(s => (columns[s.name] = []));
+      progressStages.forEach(s => (columns[s.name] = []));
       tasks.forEach(t => {
         const col = mapStatusToColumn(t.status);
         if (columns[col]) columns[col].push(t);
@@ -679,11 +682,26 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     if (noDate.length > 0) {
       result.push(makeGroup('nodate', 'Sem prazo', 'Defina a data de entrega no card', null, noDate));
     }
-    if (history.length > 0) {
-      result.push(makeGroup('history', 'Histórico', 'Tarefas finalizadas antigas', null, history));
-    }
     return result;
-  }, [filteredTasks, mapStatusToColumn, kanbanStages, groupedByDueDate]);
+  }, [filteredTasks, mapStatusToColumn, progressStages, finalizadoStageNames, groupedByDueDate]);
+
+  // Tarefas na etapa "Finalizado" (para a aba isolada), ordenadas por data de entrega.
+  const finalizadasTasks = useMemo(() => {
+    if (!groupedByDueDate) return [];
+    return filteredTasks
+      .filter(t => finalizadoStageNames.has(mapStatusToColumn(t.status)))
+      .sort((a, b) => {
+        const d1 = a.dueDate || a.postDate || '';
+        const d2 = b.dueDate || b.postDate || '';
+        if (!d1 && !d2) return 0;
+        if (!d1) return 1;
+        if (!d2) return -1;
+        return d1.localeCompare(d2);
+      });
+  }, [filteredTasks, mapStatusToColumn, finalizadoStageNames, groupedByDueDate]);
+
+  const finalizadasCount = finalizadasTasks.length;
+  const productionCount = filteredTasks.length - finalizadasCount;
 
   const activeTask = activeId ? tasks.find(t => t.id === activeId) : null;
 
@@ -705,14 +723,14 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
       const groupKeyForTask = (t: Task): string => {
         const col = mapStatusToColumn(t.status);
         if (col === 'Concluído') return 'archive';
+        if (finalizadoStageNames.has(col)) return 'finalizadas';
         const d = normalizeDate(t.dueDate);
-        if (col === 'Finalizado') return d && d >= today ? d : 'history';
         if (!d) return 'nodate';
         return d < today ? 'late' : d;
       };
       const dueDateForGroup = (groupKey: string, currentDate: string): string | null => {
         if (groupKey === 'nodate') return '';
-        if (groupKey === 'late' || groupKey === 'history') return null;
+        if (groupKey === 'late' || groupKey === 'history' || groupKey === 'finalizadas') return null;
         return groupKey;
       };
 
@@ -920,84 +938,159 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
         )}
       </div>
 
+      {/* Aba isolada de artes finalizadas */}
+      {groupedByDueDate && (
+        <div className="flex w-fit items-center gap-1 rounded-lg border border-border bg-card/70 p-1">
+          <button
+            type="button"
+            onClick={() => setArteTab('progress')}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+              arteTab === 'progress' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            Em produção
+            <span className={cn('flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums', arteTab === 'progress' ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-secondary text-muted-foreground')}>
+              {productionCount}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setArteTab('done')}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+              arteTab === 'done' ? 'bg-success text-white' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Finalizadas
+            <span className={cn('flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums', arteTab === 'done' ? 'bg-white/20 text-white' : 'bg-success/15 text-success')}>
+              {finalizadasCount}
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Kanban board */}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {groupedByDueDate ? (
-          <div className="space-y-5">
-            {dateGroups.length === 0 && (
-              <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-                Nenhuma tarefa encontrada para os filtros atuais.
-              </div>
-            )}
-            {dateGroups.map(group => {
-              const isCollapsed = collapsedGroups[group.key] ?? group.key === 'history';
-              return (
-                <div key={group.key} className="space-y-2">
-                  <div className="flex items-center gap-2 rounded-lg border border-primary/25 bg-card/70 px-3 py-2">
-                    <button
-                      type="button"
-                      onClick={() => toggleGroup(group.key)}
-                      className="flex min-w-0 items-center gap-2 text-left"
-                      title={isCollapsed ? 'Expandir seção' : 'Recolher seção'}
-                    >
-                      <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', isCollapsed && '-rotate-90')} />
-                      <span className="text-sm font-bold uppercase tracking-wide text-foreground">{group.label}</span>
-                      <span className="hidden sm:inline text-xs text-muted-foreground">· {group.subtitle}</span>
-                      <span className="ml-1 flex h-5 min-w-[22px] items-center justify-center rounded-full bg-primary/15 px-1.5 text-[10px] font-bold tabular-nums text-primary">
-                        {group.tasks.length}
-                      </span>
-                    </button>
-                    <div className="ml-auto flex items-center gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 gap-1 text-xs text-primary hover:bg-primary/10"
-                        onClick={() => openNewForGroup(group)}
-                        title={`Nova tarefa com entrega ${group.dateStr ? `em ${group.subtitle}` : 'sem prazo'}`}
-                      >
-                        <Plus className="h-3.5 w-3.5" /> Nova
-                      </Button>
-                    </div>
+          arteTab === 'done' ? (
+            <div className="space-y-5">
+              {finalizadasTasks.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+                  Nenhuma arte finalizada ainda.
+                </div>
+              ) : (
+                <div className="space-y-2 rounded-xl border border-success/40 bg-success/5 p-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-success" />
+                    <span className="text-sm font-bold uppercase tracking-wide text-foreground">Finalizadas</span>
+                    <span className="hidden sm:inline text-xs text-muted-foreground">Prontas para o cliente — arraste de volta para refazer</span>
+                    <span className="ml-auto flex h-5 min-w-[22px] items-center justify-center rounded-full bg-success/20 px-1.5 text-[10px] font-bold tabular-nums text-success">
+                      {finalizadasTasks.length}
+                    </span>
                   </div>
-
-                  {!isCollapsed && (
-                    <div className="flex gap-2 overflow-x-auto pb-2 scroller-hide">
-                      {kanbanStages.map(stage => (
-                        <div key={`${group.key}-${stage.id}`} className="min-w-[220px] lg:min-w-0 lg:flex-1 flex flex-col">
+                  <div className="flex gap-2 overflow-x-auto pb-2 scroller-hide">
+                    {kanbanStages.map(stage => {
+                      const isDone = finalizadoStageNames.has(stage.name);
+                      return (
+                        <div key={stage.id} className="min-w-[220px] lg:min-w-0 lg:flex-1 flex flex-col">
                           <KanbanColumn
-                            prefix={`GROUP::${group.key}`}
+                            prefix="GROUP::finalizadas"
                             stage={stage}
-                            tasks={group.columns[stage.name] || []}
+                            tasks={isDone ? finalizadasTasks : []}
                             onCardClick={openCard}
-                            onAdd={() => openNewForGroup(group)}
+                            onAdd={() => {}}
                             getClientName={getClientName}
                             onAdvanceTask={(task, nextStage) => moveTaskToStage(task.id, nextStage)}
                             nextStageName={getNextStageName(stage.name)}
-                            showAddButton={stage.name === firstStageName}
+                            showAddButton={false}
                             onDuplicateTask={handleDuplicateTask}
                           />
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      );
+                    })}
+                  </div>
                 </div>
-              );
-            })}
-            {archiveStages.map(stage => (
-              <ArchiveDropZone
-                key={stage.id}
-                id={stage.name}
-                label={`${stage.name}s (arquivo interno)`}
-                helperText="Ocultos do cliente"
-                tasks={tasksByColumn[stage.name] || []}
-                onCardClick={openCard}
-                getClientName={getClientName}
-                accentClass="border-muted-foreground bg-muted/30"
-                iconColorClass="text-muted-foreground"
-                defaultOpen={false}
-              />
-            ))}
-          </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {dateGroups.length === 0 && (
+                <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+                  Nenhuma tarefa encontrada para os filtros atuais.
+                </div>
+              )}
+              {dateGroups.map(group => {
+                const isCollapsed = collapsedGroups[group.key] ?? false;
+                return (
+                  <div key={group.key} className="space-y-2">
+                    <div className="flex items-center gap-2 rounded-lg border border-primary/25 bg-card/70 px-3 py-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(group.key)}
+                        className="flex min-w-0 items-center gap-2 text-left"
+                        title={isCollapsed ? 'Expandir seção' : 'Recolher seção'}
+                      >
+                        <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', isCollapsed && '-rotate-90')} />
+                        <span className="text-sm font-bold uppercase tracking-wide text-foreground">{group.label}</span>
+                        <span className="hidden sm:inline text-xs text-muted-foreground">· {group.subtitle}</span>
+                        <span className="ml-1 flex h-5 min-w-[22px] items-center justify-center rounded-full bg-primary/15 px-1.5 text-[10px] font-bold tabular-nums text-primary">
+                          {group.tasks.length}
+                        </span>
+                      </button>
+                      <div className="ml-auto flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 gap-1 text-xs text-primary hover:bg-primary/10"
+                          onClick={() => openNewForGroup(group)}
+                          title={`Nova tarefa com entrega ${group.dateStr ? `em ${group.subtitle}` : 'sem prazo'}`}
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Nova
+                        </Button>
+                      </div>
+                    </div>
+
+                    {!isCollapsed && (
+                      <div className="flex gap-2 overflow-x-auto pb-2 scroller-hide">
+                        {progressStages.map(stage => (
+                          <div key={`${group.key}-${stage.id}`} className="min-w-[220px] lg:min-w-0 lg:flex-1 flex flex-col">
+                            <KanbanColumn
+                              prefix={`GROUP::${group.key}`}
+                              stage={stage}
+                              tasks={group.columns[stage.name] || []}
+                              onCardClick={openCard}
+                              onAdd={() => openNewForGroup(group)}
+                              getClientName={getClientName}
+                              onAdvanceTask={(task, nextStage) => moveTaskToStage(task.id, nextStage)}
+                              nextStageName={getNextStageName(stage.name)}
+                              showAddButton={stage.name === firstStageName}
+                              onDuplicateTask={handleDuplicateTask}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {archiveStages.map(stage => (
+                <ArchiveDropZone
+                  key={stage.id}
+                  id={stage.name}
+                  label={`${stage.name}s (arquivo interno)`}
+                  helperText="Ocultos do cliente"
+                  tasks={tasksByColumn[stage.name] || []}
+                  onCardClick={openCard}
+                  getClientName={getClientName}
+                  accentClass="border-muted-foreground bg-muted/30"
+                  iconColorClass="text-muted-foreground"
+                  defaultOpen={false}
+                />
+              ))}
+            </div>
+          )
         ) : (
           <>
             <div
