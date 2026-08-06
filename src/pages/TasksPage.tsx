@@ -1129,6 +1129,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                               showAddButton={stage.name === firstStageName}
                               onDuplicateTask={handleDuplicateTask}
                               onArtPreview={openArtPreview}
+                              onReopenTask={isFinalStage(stage.name) ? handleReopenTask : undefined}
                             />
                           </div>
                         ))}
