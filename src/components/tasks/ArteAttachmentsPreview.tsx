@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Download, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Download, Image as ImageIcon, Loader2, ZoomIn } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -12,8 +12,8 @@ export default function ArteAttachmentsPreview({
 }: {
   taskId: string;
   compact?: boolean;
-  /** Opcional: dispara com a URL da imagem preview (ex.: abrir lightbox). */
-  onPreviewClick?: (url: string) => void;
+  /** Opcional: dispara com as URLs de todas as imagens e o índice da clicada (ex.: abrir lightbox). */
+  onPreviewClick?: (urls: string[], index: number) => void;
 }) {
   const [items, setItems] = useState<PreparedAttachment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,51 +108,46 @@ export default function ArteAttachmentsPreview({
 
   if (!items.length) return null;
 
-  const previewItem = items.find((i) => i.isImage && i.signedUrl);
+  const images = items.filter((i) => i.isImage && i.signedUrl);
+  const imageUrls = images.map((i) => i.signedUrl as string);
 
   return (
     <div
       className={cn("space-y-2", compact ? "mt-1" : "mt-2")}
       onPointerDown={(e) => e.stopPropagation()}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (previewItem?.signedUrl) onPreviewClick?.(previewItem.signedUrl);
-      }}
+      onClick={(e) => e.stopPropagation()}
     >
-      {previewItem && (
-        <div className={cn("relative overflow-hidden rounded-md border border-border bg-muted/50", compact && "h-10")}>
-           <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted/80 to-muted animate-pulse" />
-           <img
-             src={previewItem.signedUrl}
-             alt={previewItem.name}
-             className={cn(
-               "relative",
-               compact ? 'h-10 w-full object-cover' : 'max-h-72 w-full object-contain bg-black/40'
-             )}
-             loading="eager"
-             decoding="async"
-             fetchPriority="high"
-           />
-          {!compact && (
+      {images.length > 0 && (
+        <div className={cn("flex gap-1.5", compact ? "flex-nowrap overflow-x-auto scroller-hide" : "flex-wrap")}>
+          {images.map((img, idx) => (
             <button
+              key={img.id}
               type="button"
-              onClick={(e) => handleDownload(previewItem, e)}
-              disabled={downloadingId === previewItem.id}
-              className="absolute right-1.5 top-1.5 z-10 inline-flex items-center gap-1 rounded bg-black/70 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur hover:bg-black/85 disabled:opacity-60"
-              title="Baixar em qualidade original"
+              title={`Ampliar: ${img.name}`}
+              onClick={(e) => { e.stopPropagation(); onPreviewClick?.(imageUrls, idx); }}
+              className="group/img relative overflow-hidden rounded-md border border-border bg-muted/50 transition-colors hover:border-primary/50"
             >
-              {downloadingId === previewItem.id ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Download className="h-3 w-3" />
-              )}
-              Baixar
+              <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted/80 to-muted animate-pulse" />
+              <img
+                src={img.signedUrl}
+                alt={img.name}
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+                className={cn(
+                  "relative object-cover",
+                  compact ? "h-12 w-12" : "h-24 w-24"
+                )}
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-opacity group-hover/img:bg-black/30 group-hover/img:opacity-100">
+                <ZoomIn className={cn("text-white", compact ? "h-4 w-4" : "h-6 w-6")} />
+              </div>
             </button>
-          )}
+          ))}
         </div>
       )}
 
-      {items.length > 1 && (
+      {items.length > 0 && (
         <div className={cn("flex flex-wrap gap-1", compact && "mt-1")}>
           {items.map((a) => (
             <button

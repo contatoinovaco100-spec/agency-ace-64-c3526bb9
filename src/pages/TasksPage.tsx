@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { useAgency } from '@/contexts/AgencyContext';
 import { Task } from '@/types/agency';
-import { Plus, Filter, Search, X, Users, ChevronDown, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film, FolderOpen, FileSpreadsheet } from 'lucide-react';
+import { Plus, Filter, Search, X, Users, ChevronDown, ChevronLeft, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film, FolderOpen, FileSpreadsheet } from 'lucide-react';
 import { BulkImportDialog } from '@/components/tasks/BulkImportDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,7 +65,7 @@ function buildStatusToColumn(columnNames: string[]) {
 
 // ── Card Content (shared between card and overlay) ─────────
 function CardContent({ task, clientName, compact, onArtPreview }: {
-  task: Task; clientName?: string; compact?: boolean; onArtPreview?: (url: string) => void;
+  task: Task; clientName?: string; compact?: boolean; onArtPreview?: (urls: string[], index: number) => void;
 }) {
   const displayName = task.videoName || task.title || 'Sem título';
   const isArte = task.taskType === 'Arte';
@@ -208,7 +208,7 @@ function DraggableCard({
   task, onClick, clientName, borderClass, onAdvance, nextStageLabel, onDuplicate, onArtPreview,
 }: {
   task: Task; onClick: () => void; clientName?: string; borderClass: string;
-  onAdvance?: () => void; nextStageLabel?: string | null; onDuplicate?: () => void; onArtPreview?: (url: string) => void;
+  onAdvance?: () => void; nextStageLabel?: string | null; onDuplicate?: () => void; onArtPreview?: (urls: string[], index: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
@@ -294,7 +294,7 @@ function KanbanColumn({
   nextStageName: string | null;
   showAddButton: boolean;
   onDuplicateTask?: (task: Task) => void;
-  onArtPreview?: (url: string) => void;
+  onArtPreview?: (urls: string[], index: number) => void;
   prefix?: string;
 }) {
   const droppableId = prefix ? `${prefix}::${stage.name}` : stage.name;
@@ -513,7 +513,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const [newDefaultDueDate, setNewDefaultDueDate] = useState('');
   const [newDefaultStatus, setNewDefaultStatus] = useState('');
   const [arteTab, setArteTab] = useState<'progress' | 'done'>('progress');
-  const [artPreviewUrl, setArtPreviewUrl] = useState<string | null>(null);
+  const [artPreview, setArtPreview] = useState<{ urls: string[]; index: number } | null>(null);
 
   // Open a specific task when navigated with ?taskId=xxx (e.g. from history bell)
   useEffect(() => {
@@ -529,13 +529,19 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     }
   }, [searchParams, tasks, setSearchParams]);
 
-  // Fecha o lightbox de arte com Escape
+  // Lightbox de arte: fecha com Escape e navega com setas
   useEffect(() => {
-    if (!artPreviewUrl) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setArtPreviewUrl(null); };
+    if (!artPreview) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setArtPreview(null);
+      else if (e.key === 'ArrowLeft') setArtPreview(p => p ? { ...p, index: (p.index - 1 + p.urls.length) % p.urls.length } : p);
+      else if (e.key === 'ArrowRight') setArtPreview(p => p ? { ...p, index: (p.index + 1) % p.urls.length } : p);
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [artPreviewUrl]);
+  }, [artPreview]);
+
+  const openArtPreview = (urls: string[], index: number) => setArtPreview({ urls, index });
 
 
   const [selectedClient, setSelectedClient] = useState<string>('all');
@@ -1020,7 +1026,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                             nextStageName={getNextStageName(stage.name)}
                             showAddButton={false}
                             onDuplicateTask={handleDuplicateTask}
-                            onArtPreview={setArtPreviewUrl}
+                            onArtPreview={openArtPreview}
                           />
                         </div>
                       );
@@ -1082,7 +1088,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                               nextStageName={getNextStageName(stage.name)}
                               showAddButton={stage.name === firstStageName}
                               onDuplicateTask={handleDuplicateTask}
-                              onArtPreview={setArtPreviewUrl}
+                              onArtPreview={openArtPreview}
                             />
                           </div>
                         ))}
@@ -1125,7 +1131,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                     nextStageName={getNextStageName(stage.name)}
                     showAddButton={stage.name === firstStageName}
                     onDuplicateTask={handleDuplicateTask}
-                    onArtPreview={setArtPreviewUrl}
+                    onArtPreview={openArtPreview}
                   />
                 </div>
               ))}
@@ -1149,7 +1155,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
         <DragOverlay>
           {activeTask && (
             <div className={cn('w-[180px] rounded-md border-l-[2px] bg-card py-1 px-1.5 shadow-lg', PRIORITY_COLORS[activeTask.priority])}>
-              <CardContent task={activeTask} clientName={getClientName(activeTask.clientId)} compact onArtPreview={setArtPreviewUrl} />
+              <CardContent task={activeTask} clientName={getClientName(activeTask.clientId)} compact onArtPreview={openArtPreview} />
             </div>
           )}
         </DragOverlay>
@@ -1184,27 +1190,80 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
       />
 
       {/* Lightbox de arte (zoom no preview do card) */}
-      {artPreviewUrl && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 sm:p-8"
-          onClick={() => setArtPreviewUrl(null)}
-        >
-          <button
-            type="button"
-            className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
-            onClick={(e) => { e.stopPropagation(); setArtPreviewUrl(null); }}
-            aria-label="Fechar"
+      {artPreview && (() => {
+        const total = artPreview.urls.length;
+        const current = artPreview.urls[artPreview.index];
+        const go = (i: number) => setArtPreview({ urls: artPreview.urls, index: (i + total) % total });
+        return (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 sm:p-8"
+            onClick={() => setArtPreview(null)}
           >
-            <X className="h-5 w-5" />
-          </button>
-          <img
-            src={artPreviewUrl}
-            alt="Arte em tamanho grande"
-            className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+            <button
+              type="button"
+              className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+              onClick={(e) => { e.stopPropagation(); setArtPreview(null); }}
+              aria-label="Fechar"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="pointer-events-none absolute right-4 top-16 z-10 flex h-9 items-center rounded-full bg-black/60 px-3 text-xs font-semibold text-white">
+              {artPreview.index + 1} / {total}
+            </div>
+
+            {total > 1 && (
+              <button
+                type="button"
+                className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                onClick={(e) => { e.stopPropagation(); go(artPreview.index - 1); }}
+                aria-label="Arte anterior"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+            )}
+
+            <img
+              src={current}
+              alt="Arte em tamanho grande"
+              className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            {total > 1 && (
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                onClick={(e) => { e.stopPropagation(); go(artPreview.index + 1); }}
+                aria-label="Próxima arte"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            )}
+
+            {total > 1 && (
+              <div className="absolute bottom-4 left-1/2 z-10 flex max-w-full -translate-x-1/2 items-center gap-2 overflow-x-auto rounded-full bg-black/60 p-2 scroller-hide" onClick={(e) => e.stopPropagation()}>
+                {artPreview.urls.map((u, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); go(i); }}
+                    className={cn(
+                      "h-11 w-11 shrink-0 overflow-hidden rounded-md border-2 transition-all",
+                      i === artPreview.index
+                        ? "border-primary ring-2 ring-primary/40"
+                        : "border-white/15 opacity-60 hover:opacity-100"
+                    )}
+                    aria-label={`Arte ${i + 1}`}
+                  >
+                    <img src={u} alt={`Arte ${i + 1}`} className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
