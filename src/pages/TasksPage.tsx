@@ -1066,6 +1066,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                             showAddButton={false}
                             onDuplicateTask={handleDuplicateTask}
                             onArtPreview={openArtPreview}
+                            onReopenTask={isFinalStage(stage.name) ? handleReopenTask : undefined}
                           />
                         </div>
                       );
