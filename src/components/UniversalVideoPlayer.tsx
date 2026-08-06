@@ -206,7 +206,7 @@ export default function UniversalVideoPlayer({ src, poster, className = '', relo
             </div>
           )}
 
-          {slow && started && state !== 'error' && (
+          {slow && started && (
             <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-2 bg-black/80 px-4 py-3 text-center backdrop-blur-sm">
               <p className="text-xs text-gray-200">
                 <Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />
