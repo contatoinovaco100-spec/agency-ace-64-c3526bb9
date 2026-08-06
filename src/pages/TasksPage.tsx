@@ -295,6 +295,7 @@ function KanbanColumn({
   onDuplicateTask,
   onArtPreview,
   prefix,
+  onReopenTask,
 }: {
   stage: KanbanStage;
   tasks: Task[];
@@ -307,6 +308,7 @@ function KanbanColumn({
   onDuplicateTask?: (task: Task) => void;
   onArtPreview?: (urls: string[], index: number) => void;
   prefix?: string;
+  onReopenTask?: (task: Task) => void;
 }) {
   const droppableId = prefix ? `${prefix}::${stage.name}` : stage.name;
   const { setNodeRef, isOver } = useDroppable({ id: droppableId });
