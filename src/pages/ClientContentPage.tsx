@@ -17,6 +17,7 @@ import { resolveVideoUrl } from '@/lib/videoUrl';
 import { toast } from 'sonner';
 
 function ResolvedVideoSection({ url, fileName, reloadKey }: { url: string; fileName: string; reloadKey: number }) {
+  const [localReload, setLocalReload] = useState(0);
   const [resolved, setResolved] = useState(url);
   useEffect(() => {
     let cancelled = false;
