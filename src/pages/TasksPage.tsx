@@ -477,7 +477,7 @@ function ArchiveDropZone({
                 {isOpen && (
                   <div className="border-t border-border p-2 space-y-1.5">
                     {clientTasks.map(t => (
-                      <ArchiveDraggableItem key={t.id} task={t} onClick={() => onCardClick(t)} />
+                      <ArchiveDraggableItem key={t.id} task={t} onClick={() => onCardClick(t)} onReopen={onReopenTask ? () => onReopenTask(t) : undefined} />
                     ))}
                   </div>
                 )}
