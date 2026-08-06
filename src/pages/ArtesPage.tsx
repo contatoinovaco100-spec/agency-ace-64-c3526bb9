@@ -75,6 +75,7 @@ export default function ArtesPage() {
   return (
     <TasksPage
       taskTypeFilter="Arte"
+      groupedByDueDate
       pageTitle="Artes Estáticas"
       pageHint="Kanban exclusivo do designer — artes para feed, carrossel e estáticos"
       headerExtra={

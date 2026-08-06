@@ -25,6 +25,8 @@ interface Props {
   team: TeamMember[];
   defaultClientId?: string;
   defaultTaskType?: 'Arte' | 'Produção de Vídeo';
+  defaultDueDate?: string;
+  defaultStatus?: string;
   onSave: (task: Task) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onClose: () => void;
@@ -32,7 +34,7 @@ interface Props {
 
 const priorities = ['Alta', 'Média', 'Baixa'] as const;
 
-export default function TaskDetailPanel({ task, isNew, clients, team, defaultClientId, defaultTaskType, onSave, onDelete, onClose }: Props) {
+export default function TaskDetailPanel({ task, isNew, clients, team, defaultClientId, defaultTaskType, defaultDueDate, defaultStatus, onSave, onDelete, onClose }: Props) {
   const { getChecklist, upsertChecklistItem, deleteChecklistItem, getComments, addComment, getAttachments, addAttachment, deleteAttachment, getStageHistory } = useAgency();
 
   const [form, setForm] = useState<Partial<Task>>({});
@@ -54,7 +56,8 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
     } else {
       setForm({
         taskType: defaultTaskType || 'Produção de Vídeo',
-        status: 'Ideias / Backlog' as any,
+        status: (defaultStatus || 'Ideias / Backlog') as any,
+        dueDate: defaultDueDate || '',
         priority: 'Média',
         clientId: defaultClientId || '',
         videoName: '', title: '', description: '', assignee: '',
@@ -68,7 +71,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
       setComments([]);
       setAttachments([]);
     }
-  }, [task, defaultClientId, defaultTaskType]);
+  }, [task, defaultClientId, defaultTaskType, defaultDueDate, defaultStatus]);
 
   const loadData = async (id: string) => {
     const [ch, co, at, hi] = await Promise.all([getChecklist(id), getComments(id), getAttachments(id), getStageHistory(id)]);
@@ -91,7 +94,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         assignee: form.assignee || '',
         priority: (form.priority || 'Média') as any,
         dueDate: form.dueDate || '',
-        status: task?.status || ('Ideias / Backlog' as any),
+        status: (form.status || 'Ideias / Backlog') as any,
         taskType: (form.taskType || 'Produção de Vídeo') as any,
         videoName: form.videoName || '',
         platform: form.platform || '',
