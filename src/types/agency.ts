@@ -34,7 +34,7 @@ export interface Client {
   monthlyValue: number;
   scope: string;
   serviceType: ServiceType[];
-  accountManager: string;
+  accountManager: string[];
   status: ClientStatus;
   notes: string;
   cancelledAt?: string | null;

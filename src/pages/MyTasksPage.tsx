@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAgency } from '@/contexts/AgencyContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,7 @@ type QuickFilter = 'all' | 'today' | 'overdue' | 'week' | 'no_date' | 'open';
 
 export default function MyTasksPage() {
   const { user } = useAuth();
+  const { allowedClientIds, loading: agencyLoading } = useAgency();
   const [fullName, setFullName] = useState<string>('');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -60,7 +62,7 @@ export default function MyTasksPage() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || agencyLoading) return;
     (async () => {
       setLoading(true);
       const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle();
@@ -72,14 +74,19 @@ export default function MyTasksPage() {
         supabase.from('clients').select('id, company_name, status'),
       ]);
 
-      const mine = (t ?? []).filter((task: any) =>
+      const mine = (t ?? []).filter((task: Task) =>
         ROLE_FIELDS.some(f => (task[f] || '').trim().toLowerCase() === name.trim().toLowerCase())
+      ).filter((task: Task) =>
+        !allowedClientIds || !task.client_id || allowedClientIds.includes(task.client_id)
       );
+      const visibleClients = allowedClientIds
+        ? (c ?? []).filter((cl: Client) => allowedClientIds.includes(cl.id))
+        : (c ?? []);
       setTasks(mine as Task[]);
-      setClients((c ?? []) as Client[]);
+      setClients(visibleClients as Client[]);
       setLoading(false);
     })();
-  }, [user]);
+  }, [user, agencyLoading, allowedClientIds]);
 
   const moveTask = async (taskId: string, newStatus: string) => {
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));

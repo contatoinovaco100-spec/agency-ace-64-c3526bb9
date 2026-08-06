@@ -76,7 +76,7 @@ export default function ClientsPage() {
           monthly_value: Number(c.monthly_value) || 0,
           scope: c.scope_description || c.services || (c.plan_name ? `Plano ${c.plan_name}` : '') || existing?.scope || '',
           service_type: [],
-          account_manager: '',
+          account_manager: [],
           status: 'Ativo',
           notes: `Sincronizado do contrato "${c.title}".`,
         };
@@ -125,7 +125,7 @@ export default function ClientsPage() {
     c.contactName.toLowerCase().includes(search.toLowerCase())
   );
 
-  const openNew = () => { setEditing(null); setForm({ serviceType: [], scopeDetails: emptyScope }); setDialogOpen(true); };
+  const openNew = () => { setEditing(null); setForm({ serviceType: [], accountManager: [], scopeDetails: emptyScope }); setDialogOpen(true); };
   const openEdit = (c: Client) => { setEditing(c); setForm(c); setDialogOpen(true); };
 
   const handleSave = () => {
@@ -141,6 +141,11 @@ export default function ClientsPage() {
   const toggleService = (s: ServiceType) => {
     const current = form.serviceType || [];
     setForm({ ...form, serviceType: current.includes(s) ? current.filter(x => x !== s) : [...current, s] });
+  };
+
+  const toggleManager = (name: string) => {
+    const current = form.accountManager || [];
+    setForm({ ...form, accountManager: current.includes(name) ? current.filter(x => x !== name) : [...current, name] });
   };
 
   return (
@@ -236,7 +241,7 @@ export default function ClientsPage() {
                            <div><p className="text-caption text-muted-foreground">Email</p><p className="text-body text-foreground break-all">{client.email}</p></div>
                            <div><p className="text-caption text-muted-foreground">Telefone</p><p className="text-body text-foreground">{client.phone}</p></div>
                            <div><p className="text-caption text-muted-foreground">Início do contrato</p><p className="text-body text-foreground">{new Date(client.contractStartDate).toLocaleDateString('pt-BR')}</p></div>
-                           <div><p className="text-caption text-muted-foreground">Responsável</p><p className="text-body text-foreground">{client.accountManager}</p></div>
+                           <div><p className="text-caption text-muted-foreground">Responsável</p><p className="text-body text-foreground">{(client.accountManager || []).join(', ') || '—'}</p></div>
                          </div>
 
                          <div className="flex flex-wrap gap-1">
@@ -350,11 +355,17 @@ export default function ClientsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Responsável pela conta</Label>
-                <Select value={form.accountManager || ''} onValueChange={v => setForm({ ...form, accountManager: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>{team.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <Label>Responsável(is) pela conta</Label>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {team.map(m => {
+                    const active = (form.accountManager || []).includes(m.name);
+                    return (
+                      <button key={m.id} type="button" onClick={() => toggleManager(m.name)}
+                        className={`rounded-md px-3 py-1 text-caption font-medium transition-default ${active ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}`}
+                      >{m.name}</button>
+                    );
+                  })}
+                </div>
               </div>
               <div>
                 <Label>Status</Label>

@@ -31,7 +31,10 @@ export default function ReportsPage() {
 
   // Revenue by manager
   const managerRevenue: Record<string, number> = {};
-  activeClients.forEach(c => { managerRevenue[c.accountManager || 'Sem responsável'] = (managerRevenue[c.accountManager || 'Sem responsável'] || 0) + c.monthlyValue; });
+  activeClients.forEach(c => {
+    const managers = (c.accountManager || []).length > 0 ? c.accountManager : ['Sem responsável'];
+    managers.forEach(mgr => { managerRevenue[mgr] = (managerRevenue[mgr] || 0) + c.monthlyValue; });
+  });
   const managerData = Object.entries(managerRevenue).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value }));
 
   // Tasks by assignee
@@ -206,7 +209,7 @@ export default function ReportsPage() {
                     return (
                       <tr key={c.id} className="border-b border-border/30 hover:bg-secondary/30">
                         <td className="px-5 py-3 font-medium text-foreground">{c.companyName}</td>
-                        <td className="px-5 py-3 text-muted-foreground">{c.accountManager || '—'}</td>
+                        <td className="px-5 py-3 text-muted-foreground">{(c.accountManager || []).join(', ') || '—'}</td>
                         <td className="px-5 py-3 text-center tabular-nums">{ct.length}</td>
                         <td className="px-5 py-3 text-center tabular-nums">{cd.length}</td>
                         <td className="px-5 py-3 text-right tabular-nums font-semibold">{fmt(c.monthlyValue)}</td>

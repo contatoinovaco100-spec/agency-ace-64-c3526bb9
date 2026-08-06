@@ -12,6 +12,8 @@ interface AgencyContextType {
   team: TeamMember[];
   events: CalendarEvent[];
   loading: boolean;
+  /** IDs of clients the current user manages (null = no restriction). Non-admins see only their clients. */
+  allowedClientIds: string[] | null;
   addClient: (client: Client) => Promise<void>;
   updateClient: (client: Client) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
@@ -45,7 +47,7 @@ function rowToClient(row: Tables<'clients'>): Client {
     id: row.id, companyName: row.company_name, contactName: row.contact_name,
     email: row.email, phone: row.phone, contractStartDate: row.contract_start_date || '',
     monthlyValue: Number(row.monthly_value), scope: row.scope,
-    serviceType: row.service_type as ServiceType[], accountManager: row.account_manager,
+    serviceType: row.service_type as ServiceType[], accountManager: row.account_manager || [],
     status: row.status as Client['status'], notes: row.notes,
     cancelledAt: (row as any).cancelled_at || null,
     scopeDetails: {
@@ -63,7 +65,7 @@ function clientToRow(c: Client): TablesInsert<'clients'> {
     id: c.id, company_name: c.companyName, contact_name: c.contactName,
     email: c.email, phone: c.phone, contract_start_date: c.contractStartDate || null,
     monthly_value: c.monthlyValue, scope: c.scope, service_type: c.serviceType,
-    account_manager: c.accountManager, status: c.status, notes: c.notes,
+    account_manager: c.accountManager || [], status: c.status, notes: c.notes,
     scope_monthly_deliverables: c.scopeDetails?.monthlyDeliverables || [],
     scope_included_services: c.scopeDetails?.includedServices || [],
     scope_demand_limits: c.scopeDetails?.demandLimits || '',
@@ -127,6 +129,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [allowedClientIds, setAllowedClientIds] = useState<string[] | null>(null);
+  const [userFullName, setUserFullName] = useState('');
 
   // Check role & access
   useEffect(() => {
@@ -135,14 +138,40 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
       .then(({ data }) => {
         const admin = !!data && data.length > 0;
         setIsAdmin(admin);
-        setAllowedClientIds(null); // Everyone can see clients, but sensitive info is hidden in the UI
       });
+    supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle()
+      .then(({ data }) => setUserFullName(data?.full_name || ''));
   }, [user]);
+
+  // Non-admins only see the clients whose "Responsável pela conta" is themselves.
+  const visibleClientIds = useMemo<string[] | null>(() => {
+    if (!user || isAdmin) return null;
+    const name = userFullName.trim().toLowerCase();
+    if (!name) return [];
+    return allClients
+      .filter(c => (c.accountManager || []).some(m => m.trim().toLowerCase() === name))
+      .map(c => c.id);
+  }, [user, isAdmin, userFullName, allClients]);
+
+  useEffect(() => { setAllowedClientIds(visibleClientIds); }, [visibleClientIds]);
 
   // Filtered clients
   const clients = useMemo(() => {
-    return allClients;
-  }, [allClients]);
+    if (!allowedClientIds) return allClients;
+    return allClients.filter(c => allowedClientIds.includes(c.id));
+  }, [allowedClientIds, allClients]);
+
+  // Filtered tasks (clientless tasks stay visible to everyone)
+  const visibleTasks = useMemo(() => {
+    if (!allowedClientIds) return tasks;
+    return tasks.filter(t => !t.clientId || allowedClientIds.includes(t.clientId));
+  }, [allowedClientIds, tasks]);
+
+  // Filtered events (events without a client stay visible to everyone)
+  const visibleEvents = useMemo(() => {
+    if (!allowedClientIds) return events;
+    return events.filter(e => !e.clientId || allowedClientIds.includes(e.clientId));
+  }, [allowedClientIds, events]);
 
   const fetchAll = useCallback(async () => {
     if (!user) {
@@ -339,7 +368,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
       id: crypto.randomUUID(), companyName: lead.company, contactName: lead.name,
       email: lead.email, phone: lead.phone, contractStartDate: new Date().toISOString().split('T')[0],
       monthlyValue: clientData.monthlyValue || lead.estimatedValue, scope: clientData.scope || '',
-      serviceType: clientData.serviceType || [], accountManager: lead.assignee, status: 'Ativo',
+      serviceType: clientData.serviceType || [], accountManager: lead.assignee ? [lead.assignee] : [], status: 'Ativo',
       notes: lead.notes, scopeDetails: clientData.scopeDetails || { monthlyDeliverables: [], includedServices: [], demandLimits: '', platforms: [], strategicNotes: '' },
     };
     await addClient(newClient);
@@ -384,7 +413,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AgencyContext.Provider value={{
-      clients, tasks, leads, team, events, loading,
+      clients, tasks: visibleTasks, leads, team, events: visibleEvents, loading, allowedClientIds,
       addClient, updateClient, deleteClient,
       addTask, updateTask, deleteTask, moveTaskToStage, advanceVideoStage,
       addLead, updateLead, deleteLead, convertLeadToClient,

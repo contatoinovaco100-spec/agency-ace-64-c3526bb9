@@ -891,7 +891,7 @@ export default function Dashboard() {
                           <div className="min-w-0">
                             <p className="font-medium text-foreground truncate">{c.companyName}</p>
                             <p className="text-xs text-muted-foreground truncate">
-                              {c.contactName || '—'}{c.accountManager ? ` · ${c.accountManager}` : ''}
+                              {c.contactName || '—'}{c.accountManager?.length ? ` · ${c.accountManager.join(', ')}` : ''}
                             </p>
                           </div>
                         </div>

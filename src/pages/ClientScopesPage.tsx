@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useAgency } from "@/contexts/AgencyContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,19 +34,21 @@ const statusStyles: Record<string, string> = {
 
 export default function ClientScopesPage() {
   const queryClient = useQueryClient();
+  const { allowedClientIds } = useAgency();
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
   const [openClientId, setOpenClientId] = useState<string | null>(null);
   const formattedMonth = format(currentMonth, "yyyy-MM-dd");
 
   const { data: clients, isLoading: loadingClients } = useQuery({
-    queryKey: ["clients-for-scopes"],
+    queryKey: ["clients-for-scopes", allowedClientIds ?? "all"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
         .select("id, company_name, status, scope_monthly_deliverables, contract_start_date")
         .order("company_name");
       if (error) throw error;
-      return data as ClientRow[];
+      const rows = data as ClientRow[];
+      return allowedClientIds ? rows.filter(r => allowedClientIds.includes(r.id)) : rows;
     },
   });
 
