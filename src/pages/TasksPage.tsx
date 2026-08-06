@@ -268,6 +268,16 @@ function DraggableCard({
           <CheckCircle2 className="h-3 w-3" /> → {nextStageLabel}
         </button>
       )}
+      {onReopen && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onReopen(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          title="Voltar para alteração"
+          className="mt-1 flex w-full items-center justify-center gap-1 rounded bg-warning/10 py-0.5 text-[9px] font-semibold text-warning transition-colors hover:bg-warning/20"
+        >
+          <Undo2 className="h-3 w-3" /> Voltar p/ alteração
+        </button>
+      )}
     </div>
   );
 }
