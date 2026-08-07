@@ -205,6 +205,8 @@ export default function PublicPortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [ctaUrl, setCtaUrl] = useState('https://api.whatsapp.com/send/?phone=5502481474167');
+  const [instagramUrl, setInstagramUrl] = useState('https://www.instagram.com/inovalab.mov/');
   const heroRef = useRef<HTMLElement>(null);
   const heroInView = useInView(heroRef, { once: true });
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
