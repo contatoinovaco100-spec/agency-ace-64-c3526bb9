@@ -111,6 +111,7 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     fetchProjects();
+    fetchSettings();
 
     const channel = supabase
       .channel('portfolio-projects-admin')
