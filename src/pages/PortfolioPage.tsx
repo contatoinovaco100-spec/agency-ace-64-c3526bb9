@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, ExternalLink, Trash2, Film, Copy, Pencil, GripVertical } from 'lucide-react';
+import { Plus, ExternalLink, Trash2, Film, Copy, Pencil, GripVertical, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DndContext,
@@ -55,6 +55,35 @@ export default function PortfolioPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterCat, setFilterCat] = useState('all');
   const [form, setForm] = useState(emptyForm);
+  const [settings, setSettings] = useState({
+    id: '' as string,
+    cta_url: '',
+    instagram_url: '',
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  const fetchSettings = async () => {
+    const { data } = await (supabase as any)
+      .from('vitrine_settings').select('*').limit(1).maybeSingle();
+    if (data) setSettings({ id: data.id, cta_url: data.cta_url || '', instagram_url: data.instagram_url || '' });
+  };
+
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const payload = { cta_url: settings.cta_url.trim(), instagram_url: settings.instagram_url.trim(), updated_at: new Date().toISOString() };
+      const { error } = settings.id
+        ? await (supabase as any).from('vitrine_settings').update(payload).eq('id', settings.id)
+        : await (supabase as any).from('vitrine_settings').insert(payload);
+      if (error) throw error;
+      toast.success('Links da vitrine atualizados!');
+      fetchSettings();
+    } catch (err: any) {
+      toast.error('Erro ao salvar', { description: err.message });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -82,6 +111,7 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     fetchProjects();
+    fetchSettings();
 
     const channel = supabase
       .channel('portfolio-projects-admin')
@@ -236,6 +266,37 @@ export default function PortfolioPage() {
           </Dialog>
         </div>
       </div>
+
+      {/* Configurações da Vitrine */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <LinkIcon className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-semibold">Links dos botões da Vitrine</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <Label>Link do botão principal (CTA / WhatsApp)</Label>
+              <Input
+                value={settings.cta_url}
+                onChange={e => setSettings({ ...settings, cta_url: e.target.value })}
+                placeholder="https://api.whatsapp.com/send/?phone=55..."
+              />
+            </div>
+            <div>
+              <Label>Link do Instagram</Label>
+              <Input
+                value={settings.instagram_url}
+                onChange={e => setSettings({ ...settings, instagram_url: e.target.value })}
+                placeholder="https://www.instagram.com/..."
+              />
+            </div>
+          </div>
+          <Button onClick={saveSettings} disabled={savingSettings}>
+            {savingSettings ? 'Salvando...' : 'Salvar links'}
+          </Button>
+        </CardContent>
+      </Card>
 
       <div className="flex gap-2 flex-wrap">
         <Badge variant={filterCat === 'all' ? 'default' : 'outline'} className="cursor-pointer" onClick={() => setFilterCat('all')}>Todos</Badge>

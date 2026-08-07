@@ -3601,6 +3601,30 @@ export type Database = {
         }
         Relationships: []
       }
+      vitrine_settings: {
+        Row: {
+          created_at: string
+          cta_url: string
+          id: string
+          instagram_url: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cta_url?: string
+          id?: string
+          instagram_url?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cta_url?: string
+          id?: string
+          instagram_url?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       wa_conversations: {
         Row: {
           client_id: string | null
