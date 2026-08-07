@@ -55,6 +55,35 @@ export default function PortfolioPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterCat, setFilterCat] = useState('all');
   const [form, setForm] = useState(emptyForm);
+  const [settings, setSettings] = useState({
+    id: '' as string,
+    cta_url: '',
+    instagram_url: '',
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  const fetchSettings = async () => {
+    const { data } = await (supabase as any)
+      .from('vitrine_settings').select('*').limit(1).maybeSingle();
+    if (data) setSettings({ id: data.id, cta_url: data.cta_url || '', instagram_url: data.instagram_url || '' });
+  };
+
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const payload = { cta_url: settings.cta_url.trim(), instagram_url: settings.instagram_url.trim(), updated_at: new Date().toISOString() };
+      const { error } = settings.id
+        ? await (supabase as any).from('vitrine_settings').update(payload).eq('id', settings.id)
+        : await (supabase as any).from('vitrine_settings').insert(payload);
+      if (error) throw error;
+      toast.success('Links da vitrine atualizados!');
+      fetchSettings();
+    } catch (err: any) {
+      toast.error('Erro ao salvar', { description: err.message });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const fetchProjects = async () => {
     try {
