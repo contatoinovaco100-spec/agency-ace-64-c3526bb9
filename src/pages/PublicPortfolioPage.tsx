@@ -199,6 +199,17 @@ function InstagramPostCard({ post, index }: { post: IGPost; index: number }) {
   );
 }
 
+// Dispara a conversão do pixel do ChatGPT ao clicar no botão de orçamento
+const trackBudgetClick = (location: string) => {
+  try {
+    (window as any).oaiq?.('measure', 'registration_completed', {
+      type: 'customer_action',
+      event_source: 'vitrine',
+      location,
+    });
+  } catch { /* noop */ }
+};
+
 export default function PublicPortfolioPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [igPosts, setIgPosts] = useState<IGPost[]>([]);
