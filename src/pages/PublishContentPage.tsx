@@ -31,7 +31,9 @@ const JOB_STATUS_META: Record<string, { label: string; cls: string }> = {
 
 function formatJobDate(iso?: string) {
   if (!iso) return '';
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleDateString('pt-BR', {
+    timeZone: 'America/Sao_Paulo', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+  });
 }
 
 export default function PublishContentPage() {
@@ -429,7 +431,7 @@ export default function PublishContentPage() {
     try {
       const job = await publishingService.createJob({
         files, caption, firstComment,
-        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+        scheduledAt: scheduledAt || null,
         thumbnailUrl, accounts: selectedAccounts, onProgress: setProgress,
         postType,
         shareToFeed,

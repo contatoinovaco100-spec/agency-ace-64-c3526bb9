@@ -14,6 +14,7 @@ import {
   Image as ImageIcon, Film, Layers, RefreshCw, X, ExternalLink, Clock, ListChecks,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { toScheduledIso } from '@/services/publishing';
 
 interface QueueAccount {
   id: string;
@@ -142,7 +143,7 @@ export default function InstagramAutomationPage() {
         media_urls: urls,
         media_paths: paths,
         media_type: mediaType,
-        scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+        scheduled_at: toScheduledIso(scheduledAt),
         status: 'pendente',
       }));
 
@@ -230,7 +231,7 @@ export default function InstagramAutomationPage() {
               {post.media_urls.length > 1 && <Badge variant="outline" className="text-[10px]">{post.media_urls.length} mídias</Badge>}
               {post.scheduled_at && (
                 <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3 w-3" />{new Date(post.scheduled_at).toLocaleString('pt-BR')}
+                  <Clock className="h-3 w-3" />{new Date(post.scheduled_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                 </span>
               )}
               {done && <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px]">Publicado</Badge>}

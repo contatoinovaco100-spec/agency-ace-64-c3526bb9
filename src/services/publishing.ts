@@ -50,6 +50,20 @@ async function toInstagramJpeg(file: File): Promise<File> {
   return new File([blob], 'post.jpg', { type: 'image/jpeg' });
 }
 
+/** Interpreta um valor datetime-local (sem fuso, ex.: "2026-08-07T15:30") como
+ *  horário de São Paulo (UTC-3, fixo desde 2019 — sem horário de verão) e
+ *  converte para ISO com Z. Strings que já têm fuso (Z ou ±HH:mm) são mantidas.
+ *  Assim, agendar "15:30" grava "18:30Z" independentemente do fuso do navegador. */
+export function toScheduledIso(value?: string | null): string | null {
+  if (!value) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const hasTz = /[zZ]|[+-]\d{2}:?\d{2}$/.test(raw);
+  const withOffset = hasTz ? raw : `${raw}:00-03:00`;
+  const d = new Date(withOffset);
+  return isNaN(d.getTime()) ? raw : d.toISOString();
+}
+
 export const publishingService = {
   /** Faz upload do vídeo UMA única vez e cria o job + fila de destinos. */
   async createJob(input: CreateJobInput): Promise<PublishJob> {
@@ -81,13 +95,9 @@ export const publishingService = {
 
     const { data: userData } = await supabase.auth.getUser();
 
-    // Normaliza a data agendada para UTC (ISO com Z). O campo datetime-local
-    // envia "2026-08-07T15:30" (horário local, sem fuso) — sem a conversão, o
-    // cron (que compara strings em UTC) entenderia o horário 3h antes.
-    const scheduledIso = input.scheduledAt ? (() => {
-      const d = new Date(input.scheduledAt);
-      return isNaN(d.getTime()) ? input.scheduledAt : d.toISOString();
-    })() : null;
+    // Normaliza a data agendada para UTC (ISO com Z), interpretando valores
+    // sem fuso (datetime-local) como horário de São Paulo.
+    const scheduledIso = toScheduledIso(input.scheduledAt);
 
 
     const { data: job, error } = await supabase
