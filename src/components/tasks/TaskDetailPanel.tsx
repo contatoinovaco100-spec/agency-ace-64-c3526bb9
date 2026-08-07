@@ -462,41 +462,11 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
           </div>
           </>)}
 
-          {/* Referências (Arte) — disponível já na criação do card */}
-          {isNew && form.taskType === 'Arte' && (
-            <>
-              <Separator />
-              <div className="space-y-3">
-                <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <Link className="h-3.5 w-3.5" /> Referências (links, inspirações, briefings)
-                </Label>
-                <Textarea
-                  rows={4}
-                  value={form.videoReferences || ''}
-                  onChange={e => setForm({ ...form, videoReferences: e.target.value })}
-                  placeholder="Cole links de referência ou inspiração para a arte..."
-                />
-                <div>
-                  <Label className="text-xs text-muted-foreground">Legenda</Label>
-                  <Textarea
-                    rows={3}
-                    value={(form as any).caption || ''}
-                    onChange={e => setForm({ ...form, caption: e.target.value } as any)}
-                    placeholder="Escreva a legenda do post..."
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            </>
-          )}
+          {/* ── Tabs: Referências / Legenda / Check / Notas / Arq / Hist ── */}
 
-          {/* ── Tabs: Checklist / Comments / Attachments / References ── */}
-
-          {!isNew && (
-            <>
-              <Separator />
-              <Tabs defaultValue={form.taskType === 'Arte' ? 'references' : 'checklist'} className="w-full">
-                <TabsList className="w-full h-auto flex-wrap gap-0.5">
+          <Separator />
+          <Tabs defaultValue={form.taskType === 'Arte' ? 'references' : 'checklist'} className="w-full">
+            <TabsList className="w-full h-auto flex-wrap gap-0.5">
                   {form.taskType === 'Arte' && (
                     <TabsTrigger value="references" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><Link className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Refs</TabsTrigger>
                   )}
@@ -569,20 +539,26 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
 
                 {/* Checklist */}
                 <TabsContent value="checklist" className="space-y-2 mt-3">
-                  {checklist.map(item => (
-                    <div key={item.id} className="flex items-center gap-3 rounded-md bg-secondary/30 px-3 py-2">
-                      <Checkbox checked={item.checked} onCheckedChange={() => toggleCheck(item)} />
-                      <span className={cn('flex-1 text-sm', item.checked && 'line-through text-muted-foreground')}>{item.label}</span>
-                      <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive/60 hover:text-destructive" onClick={() => removeCheckItem(item.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  {checklist.length === 0 && <p className="text-sm text-muted-foreground">Nenhum item no checklist.</p>}
-                  <div className="flex gap-2">
-                    <Input placeholder="Novo item..." value={newCheckLabel} onChange={e => setNewCheckLabel(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCheckItem()} className="h-8 text-sm" />
-                    <Button size="sm" variant="outline" onClick={addCheckItem} disabled={!newCheckLabel.trim()}>Adicionar</Button>
-                  </div>
+                  {isNew ? (
+                    <p className="text-sm text-muted-foreground">Salve o card para adicionar itens de check.</p>
+                  ) : (
+                    <>
+                      {checklist.map(item => (
+                        <div key={item.id} className="flex items-center gap-3 rounded-md bg-secondary/30 px-3 py-2">
+                          <Checkbox checked={item.checked} onCheckedChange={() => toggleCheck(item)} />
+                          <span className={cn('flex-1 text-sm', item.checked && 'line-through text-muted-foreground')}>{item.label}</span>
+                          <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive/60 hover:text-destructive" onClick={() => removeCheckItem(item.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      {checklist.length === 0 && <p className="text-sm text-muted-foreground">Nenhum item no checklist.</p>}
+                      <div className="flex gap-2">
+                        <Input placeholder="Novo item..." value={newCheckLabel} onChange={e => setNewCheckLabel(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCheckItem()} className="h-8 text-sm" />
+                        <Button size="sm" variant="outline" onClick={addCheckItem} disabled={!newCheckLabel.trim()}>Adicionar</Button>
+                      </div>
+                    </>
+                  )}
                 </TabsContent>
 
                 {/* Comments */}
@@ -601,17 +577,23 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                     ))}
                     {comments.length === 0 && <p className="text-sm text-muted-foreground">Nenhum comentário.</p>}
                   </div>
-                  <Separator />
-                  <div className="space-y-2">
-                    <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={commentAuthor} onChange={e => setCommentAuthor(e.target.value)}>
-                      <option value="">Selecione seu nome</option>
-                      {team.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
-                    </select>
-                    <div className="flex gap-2">
-                      <Input placeholder="Escreva um comentário... Use @nome" value={newComment} onChange={e => setNewComment(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddComment()} />
-                      <Button size="icon" onClick={handleAddComment} disabled={!newComment.trim() || !commentAuthor}><Send className="h-4 w-4" /></Button>
-                    </div>
-                  </div>
+                  {isNew ? (
+                    <p className="text-sm text-muted-foreground">Salve o card para adicionar notas.</p>
+                  ) : (
+                    <>
+                      <Separator />
+                      <div className="space-y-2">
+                        <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={commentAuthor} onChange={e => setCommentAuthor(e.target.value)}>
+                          <option value="">Selecione seu nome</option>
+                          {team.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+                        </select>
+                        <div className="flex gap-2">
+                          <Input placeholder="Escreva um comentário... Use @nome" value={newComment} onChange={e => setNewComment(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddComment()} />
+                          <Button size="icon" onClick={handleAddComment} disabled={!newComment.trim() || !commentAuthor}><Send className="h-4 w-4" /></Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </TabsContent>
 
                 {/* Attachments */}
@@ -660,24 +642,32 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                     })}
                     {attachments.length === 0 && <p className="text-sm text-muted-foreground">Nenhum anexo.</p>}
                   </div>
-                  <div className="flex gap-2">
-                    <label className="flex-1">
-                      <input type="file" className="hidden" onChange={handleFileUpload} />
-                      <Button variant="outline" className="w-full gap-2" asChild><span><Upload className="h-4 w-4" /> Upload</span></Button>
-                    </label>
-                    <Button variant="outline" className="gap-2" onClick={() => setShowLinkInput(!showLinkInput)}><Link className="h-4 w-4" /> Link</Button>
-                  </div>
-                  {showLinkInput && (
-                    <div className="flex gap-2">
-                      <Input placeholder="Cole o link aqui..." value={linkUrl} onChange={e => setLinkUrl(e.target.value)} />
-                      <Button onClick={handleAddLink}>Adicionar</Button>
-                    </div>
+                  {isNew ? (
+                    <p className="text-sm text-muted-foreground">Salve o card para anexar arquivos ou links.</p>
+                  ) : (
+                    <>
+                      <div className="flex gap-2">
+                        <label className="flex-1">
+                          <input type="file" className="hidden" onChange={handleFileUpload} />
+                          <Button variant="outline" className="w-full gap-2" asChild><span><Upload className="h-4 w-4" /> Upload</span></Button>
+                        </label>
+                        <Button variant="outline" className="gap-2" onClick={() => setShowLinkInput(!showLinkInput)}><Link className="h-4 w-4" /> Link</Button>
+                      </div>
+                      {showLinkInput && (
+                        <div className="flex gap-2">
+                          <Input placeholder="Cole o link aqui..." value={linkUrl} onChange={e => setLinkUrl(e.target.value)} />
+                          <Button onClick={handleAddLink}>Adicionar</Button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </TabsContent>
 
                 {/* History */}
                 <TabsContent value="history" className="space-y-2 mt-3">
-                  {stageHistory.length === 0 ? (
+                  {isNew ? (
+                    <p className="text-sm text-muted-foreground">O histórico de movimentações aparece após salvar o card.</p>
+                  ) : stageHistory.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Nenhuma movimentação registrada ainda.</p>
                   ) : (
                     <div className="space-y-2 max-h-[300px] overflow-y-auto">
@@ -698,8 +688,6 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                   )}
                 </TabsContent>
               </Tabs>
-            </>
-          )}
         </div>
       </div>
 
