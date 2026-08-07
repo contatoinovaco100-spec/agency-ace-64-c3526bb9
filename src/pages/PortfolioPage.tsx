@@ -237,6 +237,37 @@ export default function PortfolioPage() {
         </div>
       </div>
 
+      {/* Configurações da Vitrine */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <LinkIcon className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-semibold">Links dos botões da Vitrine</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <Label>Link do botão principal (CTA / WhatsApp)</Label>
+              <Input
+                value={settings.cta_url}
+                onChange={e => setSettings({ ...settings, cta_url: e.target.value })}
+                placeholder="https://api.whatsapp.com/send/?phone=55..."
+              />
+            </div>
+            <div>
+              <Label>Link do Instagram</Label>
+              <Input
+                value={settings.instagram_url}
+                onChange={e => setSettings({ ...settings, instagram_url: e.target.value })}
+                placeholder="https://www.instagram.com/..."
+              />
+            </div>
+          </div>
+          <Button onClick={saveSettings} disabled={savingSettings}>
+            {savingSettings ? 'Salvando...' : 'Salvar links'}
+          </Button>
+        </CardContent>
+      </Card>
+
       <div className="flex gap-2 flex-wrap">
         <Badge variant={filterCat === 'all' ? 'default' : 'outline'} className="cursor-pointer" onClick={() => setFilterCat('all')}>Todos</Badge>
         {CATEGORIES.map(c => (
