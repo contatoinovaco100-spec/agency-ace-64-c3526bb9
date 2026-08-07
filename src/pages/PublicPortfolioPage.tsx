@@ -248,6 +248,13 @@ export default function PublicPortfolioPage() {
       (window as any).oaiq?.('measure', 'registration_completed', { type: 'customer_action' });
     } catch { /* noop */ }
 
+    // Links configuráveis dos botões (aba Portfólio > Configurações da Vitrine)
+    (async () => {
+      const { data } = await (supabase as any)
+        .from('vitrine_settings').select('cta_url, instagram_url').limit(1).maybeSingle();
+      if (data?.cta_url) setCtaUrl(data.cta_url);
+      if (data?.instagram_url) setInstagramUrl(data.instagram_url);
+    })();
 
 
     const channel = supabase
