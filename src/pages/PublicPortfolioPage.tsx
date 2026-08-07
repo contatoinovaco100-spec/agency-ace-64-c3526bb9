@@ -275,7 +275,7 @@ export default function PublicPortfolioPage() {
           </div>
           <div className="flex items-center gap-2 md:gap-3">
             <a
-              href="https://www.instagram.com/inovalab.mov/"
+              href={instagramUrl}
               target="_blank"
               rel="noreferrer"
               aria-label="Instagram"
@@ -284,7 +284,7 @@ export default function PublicPortfolioPage() {
               <Instagram className="h-4 w-4" />
             </a>
             <a
-              href="https://api.whatsapp.com/send/?phone=5502481474167"
+              href={ctaUrl}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-semibold bg-[#bff720] text-black hover:bg-[#d4ff5c] transition-all hover:scale-[1.03]"
@@ -385,7 +385,7 @@ export default function PublicPortfolioPage() {
             transition={{ duration: 0.8, delay: 0.45 }}
           >
             <a
-              href="https://api.whatsapp.com/send/?phone=5502481474167"
+              href={ctaUrl}
               target="_blank"
               rel="noreferrer"
               className="group flex items-center gap-2 px-7 md:px-9 py-3.5 md:py-4 rounded-full text-sm font-bold bg-[#bff720] text-black hover:bg-[#d4ff5c] transition-all hover:scale-[1.04] shadow-[0_0_40px_rgba(191,247,32,0.25)]"
@@ -683,7 +683,7 @@ export default function PublicPortfolioPage() {
             transition={{ duration: 0.8, delay: 0.3 }}
           >
             <a
-              href="https://api.whatsapp.com/send/?phone=5502481474167"
+              href={ctaUrl}
               target="_blank"
               rel="noreferrer"
               className="group flex items-center gap-2 px-8 md:px-10 py-4 rounded-full text-sm font-bold bg-[#bff720] text-black hover:bg-[#d4ff5c] transition-all hover:scale-[1.04] shadow-[0_0_40px_rgba(191,247,32,0.25)]"
@@ -692,7 +692,7 @@ export default function PublicPortfolioPage() {
               <ArrowUpRight className="h-4 w-4 -ml-1 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
             </a>
             <a
-              href="https://www.instagram.com/inovalab.mov/"
+              href={instagramUrl}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-2 px-8 md:px-10 py-4 rounded-full text-sm font-semibold border border-white/10 text-white/70 hover:border-[#bff720]/30 hover:text-[#bff720] transition-all"
@@ -708,10 +708,10 @@ export default function PublicPortfolioPage() {
         <div className="max-w-7xl mx-auto px-5 md:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <img src={logoInova} alt="INOVA Co." className="h-5 brightness-0 invert opacity-30" />
           <div className="flex items-center gap-5">
-            <a href="https://www.instagram.com/inovalab.mov/" target="_blank" rel="noreferrer" aria-label="Instagram" className="text-white/25 hover:text-[#bff720] transition-colors">
+            <a href={instagramUrl} target="_blank" rel="noreferrer" aria-label="Instagram" className="text-white/25 hover:text-[#bff720] transition-colors">
               <Instagram className="h-4 w-4" />
             </a>
-            <a href="https://api.whatsapp.com/send/?phone=5502481474167" target="_blank" rel="noreferrer" aria-label="WhatsApp" className="text-white/25 hover:text-[#bff720] transition-colors">
+            <a href={ctaUrl} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="text-white/25 hover:text-[#bff720] transition-colors">
               <MessageCircle className="h-4 w-4" />
             </a>
           </div>
