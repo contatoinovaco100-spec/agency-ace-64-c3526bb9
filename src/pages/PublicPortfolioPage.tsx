@@ -199,6 +199,17 @@ function InstagramPostCard({ post, index }: { post: IGPost; index: number }) {
   );
 }
 
+// Dispara a conversão do pixel do ChatGPT ao clicar no botão de orçamento
+const trackBudgetClick = (location: string) => {
+  try {
+    (window as any).oaiq?.('measure', 'registration_completed', {
+      type: 'customer_action',
+      event_source: 'vitrine',
+      location,
+    });
+  } catch { /* noop */ }
+};
+
 export default function PublicPortfolioPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [igPosts, setIgPosts] = useState<IGPost[]>([]);
@@ -245,7 +256,7 @@ export default function PublicPortfolioPage() {
 
     // OpenAI (ChatGPT) pixel — evento da vitrine
     try {
-      (window as any).oaiq?.('measure', 'registration_completed', { type: 'customer_action' });
+      (window as any).oaiq?.('measure', 'page_view', { type: 'page_view', event_source: 'vitrine' });
     } catch { /* noop */ }
 
     // Links configuráveis dos botões (aba Portfólio > Configurações da Vitrine)
@@ -294,6 +305,7 @@ export default function PublicPortfolioPage() {
             </a>
             <a
               href={ctaUrl}
+              onClick={() => trackBudgetClick('header')}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-semibold bg-[#bff720] text-black hover:bg-[#d4ff5c] transition-all hover:scale-[1.03]"
@@ -395,6 +407,7 @@ export default function PublicPortfolioPage() {
           >
             <a
               href={ctaUrl}
+              onClick={() => trackBudgetClick('hero')}
               target="_blank"
               rel="noreferrer"
               className="group flex items-center gap-2 px-7 md:px-9 py-3.5 md:py-4 rounded-full text-sm font-bold bg-[#bff720] text-black hover:bg-[#d4ff5c] transition-all hover:scale-[1.04] shadow-[0_0_40px_rgba(191,247,32,0.25)]"
@@ -693,6 +706,7 @@ export default function PublicPortfolioPage() {
           >
             <a
               href={ctaUrl}
+              onClick={() => trackBudgetClick('cta_final')}
               target="_blank"
               rel="noreferrer"
               className="group flex items-center gap-2 px-8 md:px-10 py-4 rounded-full text-sm font-bold bg-[#bff720] text-black hover:bg-[#d4ff5c] transition-all hover:scale-[1.04] shadow-[0_0_40px_rgba(191,247,32,0.25)]"
@@ -720,7 +734,7 @@ export default function PublicPortfolioPage() {
             <a href={instagramUrl} target="_blank" rel="noreferrer" aria-label="Instagram" className="text-white/25 hover:text-[#bff720] transition-colors">
               <Instagram className="h-4 w-4" />
             </a>
-            <a href={ctaUrl} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="text-white/25 hover:text-[#bff720] transition-colors">
+            <a href={ctaUrl} onClick={() => trackBudgetClick('footer')} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="text-white/25 hover:text-[#bff720] transition-colors">
               <MessageCircle className="h-4 w-4" />
             </a>
           </div>
