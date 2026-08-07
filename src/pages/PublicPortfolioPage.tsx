@@ -241,6 +241,13 @@ export default function PublicPortfolioPage() {
   useEffect(() => {
     loadData();
 
+    // OpenAI (ChatGPT) pixel — evento da vitrine
+    try {
+      (window as any).oaiq?.('measure', 'registration_completed', { type: 'customer_action' });
+    } catch { /* noop */ }
+
+
+
     const channel = supabase
       .channel('portfolio-projects-public')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'portfolio_projects' }, () => loadData())

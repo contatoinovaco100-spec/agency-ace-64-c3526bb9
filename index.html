@@ -48,7 +48,14 @@
       @keyframes il-spin { to { transform: rotate(360deg); } }
       #root:not(:empty) + #initial-loader { display: none; }
     </style>
+
+    <!-- OpenAI (ChatGPT) Pixel -->
+    <script>
+      window.oaiq = window.oaiq || function () { (window.oaiq.q = window.oaiq.q || []).push(arguments); };
+    </script>
+    <script async src="https://static.oai.marketing/oai.js"></script>
   </head>
+
 
   <body>
     <div id="root"></div>
