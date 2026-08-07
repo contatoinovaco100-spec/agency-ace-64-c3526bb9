@@ -428,9 +428,9 @@ export default function PublishContentPage() {
     setProgress(5);
     try {
       const job = await publishingService.createJob({
-        files, caption, firstComment, scheduledAt: scheduledAt || null,
+        files, caption, firstComment,
+        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
         thumbnailUrl, accounts: selectedAccounts, onProgress: setProgress,
-
         postType,
         shareToFeed,
         collaborators: collaborators.split(',').map(s => s.trim()).filter(Boolean),

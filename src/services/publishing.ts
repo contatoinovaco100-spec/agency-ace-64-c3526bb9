@@ -81,6 +81,14 @@ export const publishingService = {
 
     const { data: userData } = await supabase.auth.getUser();
 
+    // Normaliza a data agendada para UTC (ISO com Z). O campo datetime-local
+    // envia "2026-08-07T15:30" (horário local, sem fuso) — sem a conversão, o
+    // cron (que compara strings em UTC) entenderia o horário 3h antes.
+    const scheduledIso = input.scheduledAt ? (() => {
+      const d = new Date(input.scheduledAt);
+      return isNaN(d.getTime()) ? input.scheduledAt : d.toISOString();
+    })() : null;
+
 
     const { data: job, error } = await supabase
       .from(JOBS)
@@ -93,7 +101,7 @@ export const publishingService = {
         caption: input.caption,
         first_comment: input.firstComment ?? '',
         thumbnail_url: input.thumbnailUrl ?? '',
-        scheduled_at: input.scheduledAt || null,
+        scheduled_at: scheduledIso,
         status: input.scheduledAt ? 'scheduled' : 'pending',
         post_type: input.postType ?? 'auto',
         share_to_feed: input.shareToFeed !== false,
