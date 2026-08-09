@@ -88,6 +88,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   };
 
   const handleSave = async () => {
+    setValidationAttempted(true);
     const isArte = form.taskType === 'Arte';
     const required: { label: string; value?: string }[] = [
       { label: 'Nome da tarefa', value: form.videoName || form.title },
@@ -108,13 +109,8 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         { label: 'Referências', value: form.videoReferences },
       ]),
     ];
-    const missing = required.filter(f => !(f.value || '').toString().trim()).map(f => f.label);
-    if (missing.length > 0) {
-      toast.error('Preencha todos os campos para criar o card', {
-        description: `Faltando: ${missing.join(', ')}`,
-      });
-      return;
-    }
+    const missing = required.filter(f => !(f.value || '').toString().trim());
+    if (missing.length > 0) return;
     setSaving(true);
 
     try {
