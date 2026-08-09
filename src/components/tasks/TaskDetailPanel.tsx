@@ -242,12 +242,12 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
           {/* ── Core fields ── */}
           <div className="grid gap-3 sm:gap-4">
             <div>
-              <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Nome da tarefa / vídeo</Label>
-              <Input value={form.videoName || form.title || ''} onChange={e => setForm({ ...form, videoName: e.target.value, title: e.target.value })} placeholder="Ex: Reels de lançamento" className="mt-1" />
+              <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.videoName || form.title))}>Nome da tarefa / vídeo</Label>
+              <Input value={form.videoName || form.title || ''} onChange={e => setForm({ ...form, videoName: e.target.value, title: e.target.value })} placeholder="Ex: Reels de lançamento" className={cn('mt-1', fieldClass(form.videoName || form.title))} />
             </div>
             <div>
-              <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Descrição</Label>
-              <Textarea rows={2} value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Descreva a tarefa..." className="mt-1" />
+              <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.description))}>Descrição</Label>
+              <Textarea rows={2} value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Descreva a tarefa..." className={cn('mt-1', fieldClass(form.description))} />
             </div>
             <div>
               <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Tipo de entrega</Label>
@@ -267,41 +267,41 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
               <div>
-                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Cliente</Label>
+                <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.clientId))}>Cliente</Label>
                 <Select value={form.clientId || ''} onValueChange={v => setForm({ ...form, clientId: v })}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger className={cn('mt-1', fieldClass(form.clientId))}><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.companyName}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Responsável</Label>
+                <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.assignee))}>Responsável</Label>
                 <Select value={form.assignee || ''} onValueChange={v => setForm({ ...form, assignee: v })}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger className={cn('mt-1', fieldClass(form.assignee))}><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>{team.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
               <div>
-                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Prioridade</Label>
+                <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.priority))}>Prioridade</Label>
                 <Select value={form.priority || 'Média'} onValueChange={v => setForm({ ...form, priority: v as any })}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className={cn('mt-1', fieldClass(form.priority))}><SelectValue /></SelectTrigger>
                   <SelectContent>{priorities.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Data de entrega</Label>
-                <Input type="date" value={form.dueDate || ''} onChange={e => setForm({ ...form, dueDate: e.target.value })} className="mt-1" />
+                <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.dueDate))}>Data de entrega</Label>
+                <Input type="date" value={form.dueDate || ''} onChange={e => setForm({ ...form, dueDate: e.target.value })} className={cn('mt-1', fieldClass(form.dueDate))} />
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
               <div>
-                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Data de postagem</Label>
-                <Input type="date" value={form.postDate || ''} onChange={e => setForm({ ...form, postDate: e.target.value })} className="mt-1" />
+                <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.postDate))}>Data de postagem</Label>
+                <Input type="date" value={form.postDate || ''} onChange={e => setForm({ ...form, postDate: e.target.value })} className={cn('mt-1', fieldClass(form.postDate))} />
               </div>
               <div>
-                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Hora de postagem</Label>
-                <Input type="time" value={form.postTime || ''} onChange={e => setForm({ ...form, postTime: e.target.value })} className="mt-1" />
+                <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.postTime))}>Hora de postagem</Label>
+                <Input type="time" value={form.postTime || ''} onChange={e => setForm({ ...form, postTime: e.target.value })} className={cn('mt-1', fieldClass(form.postTime))} />
               </div>
             </div>
           </div>
