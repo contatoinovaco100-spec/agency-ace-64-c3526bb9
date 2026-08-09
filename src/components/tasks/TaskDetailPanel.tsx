@@ -317,27 +317,27 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
             </h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-3">
               <div>
-                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Plataforma</Label>
+                <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.platform))}>Plataforma</Label>
                 <Select value={form.platform || ''} onValueChange={v => setForm({ ...form, platform: v })}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger className={cn('mt-1', fieldClass(form.platform))}><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     {['Instagram', 'TikTok', 'YouTube', 'Facebook', 'LinkedIn', 'Outro'].map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Formato</Label>
+                <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.format))}>Formato</Label>
                 <Select value={form.format || ''} onValueChange={v => setForm({ ...form, format: v })}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger className={cn('mt-1', fieldClass(form.format))}><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     {['Reels', 'Story', 'Shorts', 'Feed', 'Longo', 'Outro'].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Objetivo</Label>
+                <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.videoObjective))}>Objetivo</Label>
                 <Select value={form.videoObjective || ''} onValueChange={v => setForm({ ...form, videoObjective: v })}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger className={cn('mt-1', fieldClass(form.videoObjective))}><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     {['Vendas', 'Engajamento', 'Autoridade', 'Educação', 'Entretenimento'].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
@@ -375,20 +375,20 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               </div>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Ideia do vídeo</Label>
-              <Textarea rows={2} value={form.videoIdea || ''} onChange={e => setForm({ ...form, videoIdea: e.target.value })} placeholder="Descreva a ideia..." className="mt-1" />
+              <Label className={cn("text-xs", labelClass(form.videoIdea))}>Ideia do vídeo</Label>
+              <Textarea rows={2} value={form.videoIdea || ''} onChange={e => setForm({ ...form, videoIdea: e.target.value })} placeholder="Descreva a ideia..." className={cn('mt-1', fieldClass(form.videoIdea))} />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Roteiro</Label>
-              <Textarea rows={3} value={form.fullScript || ''} onChange={e => setForm({ ...form, fullScript: e.target.value })} placeholder="Cole o roteiro aqui..." className="mt-1" />
+              <Label className={cn("text-xs", labelClass(form.fullScript))}>Roteiro</Label>
+              <Textarea rows={3} value={form.fullScript || ''} onChange={e => setForm({ ...form, fullScript: e.target.value })} placeholder="Cole o roteiro aqui..." className={cn('mt-1', fieldClass(form.fullScript))} />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Referências (links)</Label>
-              <Textarea rows={2} value={form.videoReferences || ''} onChange={e => setForm({ ...form, videoReferences: e.target.value })} placeholder="Links de referência..." className="mt-1" />
+              <Label className={cn("text-xs", labelClass(form.videoReferences))}>Referências (links)</Label>
+              <Textarea rows={2} value={form.videoReferences || ''} onChange={e => setForm({ ...form, videoReferences: e.target.value })} placeholder="Links de referência..." className={cn('mt-1', fieldClass(form.videoReferences))} />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Legenda</Label>
-              <Textarea rows={2} value={form.caption || ''} onChange={e => setForm({ ...form, caption: e.target.value })} placeholder="Legenda do post..." className="mt-1" />
+              <Label className={cn("text-xs", labelClass(form.caption))}>Legenda</Label>
+              <Textarea rows={2} value={form.caption || ''} onChange={e => setForm({ ...form, caption: e.target.value })} placeholder="Legenda do post..." className={cn('mt-1', fieldClass(form.caption))} />
             </div>
 
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
