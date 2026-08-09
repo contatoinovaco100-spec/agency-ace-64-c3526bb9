@@ -514,8 +514,8 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                 {form.taskType === 'Arte' && (
                   <TabsContent value="references" className="space-y-3 mt-3">
                     <div>
-                      <Label className="text-xs text-muted-foreground">Referências (links, inspirações, briefings)</Label>
-                      <Textarea rows={4} value={form.videoReferences || ''} onChange={e => setForm({ ...form, videoReferences: e.target.value })} placeholder="Cole links de referência ou inspiração para a arte..." className="mt-1" />
+                      <Label className={cn("text-xs", labelClass(form.videoReferences))}>Referências (links, inspirações, briefings)</Label>
+                      <Textarea rows={4} value={form.videoReferences || ''} onChange={e => setForm({ ...form, videoReferences: e.target.value })} placeholder="Cole links de referência ou inspiração para a arte..." className={cn('mt-1', fieldClass(form.videoReferences))} />
                     </div>
                     {form.videoReferences && (
                       <div className="space-y-1">
