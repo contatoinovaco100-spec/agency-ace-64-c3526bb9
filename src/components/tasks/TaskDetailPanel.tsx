@@ -82,9 +82,35 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   };
 
   const handleSave = async () => {
-    const name = form.videoName || form.title;
-    if (!name) { toast.error('Informe o nome da tarefa'); return; }
+    const isArte = form.taskType === 'Arte';
+    const required: { label: string; value?: string }[] = [
+      { label: 'Nome da tarefa', value: form.videoName || form.title },
+      { label: 'Descrição', value: form.description },
+      { label: 'Cliente', value: form.clientId },
+      { label: 'Responsável', value: form.assignee },
+      { label: 'Prioridade', value: form.priority },
+      { label: 'Data de entrega', value: form.dueDate },
+      { label: 'Data de postagem', value: form.postDate },
+      { label: 'Hora de postagem', value: form.postTime },
+      { label: 'Legenda', value: form.caption },
+      ...(isArte ? [] : [
+        { label: 'Plataforma', value: form.platform },
+        { label: 'Formato', value: form.format },
+        { label: 'Objetivo', value: form.videoObjective },
+        { label: 'Ideia do vídeo', value: form.videoIdea },
+        { label: 'Roteiro', value: form.fullScript },
+        { label: 'Referências', value: form.videoReferences },
+      ]),
+    ];
+    const missing = required.filter(f => !(f.value || '').toString().trim()).map(f => f.label);
+    if (missing.length > 0) {
+      toast.error('Preencha todos os campos para criar o card', {
+        description: `Faltando: ${missing.join(', ')}`,
+      });
+      return;
+    }
     setSaving(true);
+
     try {
       const data: Task = {
         id: task?.id || crypto.randomUUID(),
