@@ -145,6 +145,8 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         rawFootageUrl: form.rawFootageUrl || '',
         postDate: form.postDate || '',
         postTime: form.postTime || '',
+        caption: form.caption || '',
+
       };
       await onSave(data);
     } catch (err) {
