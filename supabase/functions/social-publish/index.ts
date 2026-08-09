@@ -17,14 +17,19 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
 
-    const anon = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-    );
-    const { data: claimsData, error: claimsError } = await anon.auth.getClaims(
-      authHeader.replace("Bearer ", ""),
-    );
-    if (claimsError || !claimsData?.claims) return json({ error: "Unauthorized" }, 401);
+    const token = authHeader.replace("Bearer ", "").trim();
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    // Chamadas internas (cron / process-scheduled-publish) usam a service role key.
+    const isInternal = token === serviceKey;
+
+    if (!isInternal) {
+      const anon = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+      );
+      const { data: claimsData, error: claimsError } = await anon.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) return json({ error: "Unauthorized" }, 401);
+    }
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
