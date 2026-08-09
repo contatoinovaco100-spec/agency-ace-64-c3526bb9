@@ -48,8 +48,14 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [newCheckLabel, setNewCheckLabel] = useState('');
   const [saving, setSaving] = useState(false);
+  const [validationAttempted, setValidationAttempted] = useState(false);
+
+  const isInvalidField = (value?: unknown) => validationAttempted && !String(value ?? '').trim();
+  const fieldClass = (value?: unknown) => isInvalidField(value) ? 'border-destructive ring-1 ring-destructive/40 focus-visible:ring-destructive' : '';
+  const labelClass = (value?: unknown) => isInvalidField(value) ? 'text-destructive' : 'text-muted-foreground';
 
   useEffect(() => {
+    setValidationAttempted(false);
     if (task) {
       setForm({ ...task });
       loadData(task.id);
