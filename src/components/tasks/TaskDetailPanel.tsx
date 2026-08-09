@@ -357,9 +357,10 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               <Textarea rows={2} value={form.videoReferences || ''} onChange={e => setForm({ ...form, videoReferences: e.target.value })} placeholder="Links de referência..." className="mt-1" />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Observações</Label>
-              <Textarea rows={2} value={form.observations || ''} onChange={e => setForm({ ...form, observations: e.target.value })} placeholder="Notas adicionais..." className="mt-1" />
+              <Label className="text-xs text-muted-foreground">Legenda</Label>
+              <Textarea rows={2} value={form.caption || ''} onChange={e => setForm({ ...form, caption: e.target.value })} placeholder="Legenda do post..." className="mt-1" />
             </div>
+
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
               <Label className="text-[10px] sm:text-xs text-amber-500 uppercase tracking-wider font-semibold flex items-center gap-1.5">
                 <FolderOpen className="h-3 w-3" /> Material bruto (pasta do Drive)
