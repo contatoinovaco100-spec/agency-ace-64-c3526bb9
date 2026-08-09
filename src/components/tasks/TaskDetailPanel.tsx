@@ -502,7 +502,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                     <TabsTrigger value="references" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><Link className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Refs</TabsTrigger>
                   )}
                   {form.taskType === 'Arte' && (
-                    <TabsTrigger value="caption" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Legenda</TabsTrigger>
+                    <TabsTrigger value="caption" className={cn('flex-1 gap-1 text-[10px] sm:text-xs py-1.5', isInvalidField(form.caption) && 'text-destructive border-destructive')}><FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Legenda</TabsTrigger>
                   )}
                   <TabsTrigger value="checklist" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><CheckSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Check</TabsTrigger>
                   <TabsTrigger value="comments" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><MessageSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Notas ({comments.length})</TabsTrigger>
