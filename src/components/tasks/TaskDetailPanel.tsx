@@ -82,9 +82,35 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   };
 
   const handleSave = async () => {
-    const name = form.videoName || form.title;
-    if (!name) { toast.error('Informe o nome da tarefa'); return; }
+    const isArte = form.taskType === 'Arte';
+    const required: { label: string; value?: string }[] = [
+      { label: 'Nome da tarefa', value: form.videoName || form.title },
+      { label: 'Descrição', value: form.description },
+      { label: 'Cliente', value: form.clientId },
+      { label: 'Responsável', value: form.assignee },
+      { label: 'Prioridade', value: form.priority },
+      { label: 'Data de entrega', value: form.dueDate },
+      { label: 'Data de postagem', value: form.postDate },
+      { label: 'Hora de postagem', value: form.postTime },
+      { label: 'Legenda', value: form.caption },
+      ...(isArte ? [] : [
+        { label: 'Plataforma', value: form.platform },
+        { label: 'Formato', value: form.format },
+        { label: 'Objetivo', value: form.videoObjective },
+        { label: 'Ideia do vídeo', value: form.videoIdea },
+        { label: 'Roteiro', value: form.fullScript },
+        { label: 'Referências', value: form.videoReferences },
+      ]),
+    ];
+    const missing = required.filter(f => !(f.value || '').toString().trim()).map(f => f.label);
+    if (missing.length > 0) {
+      toast.error('Preencha todos os campos para criar o card', {
+        description: `Faltando: ${missing.join(', ')}`,
+      });
+      return;
+    }
     setSaving(true);
+
     try {
       const data: Task = {
         id: task?.id || crypto.randomUUID(),
@@ -119,6 +145,8 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         rawFootageUrl: form.rawFootageUrl || '',
         postDate: form.postDate || '',
         postTime: form.postTime || '',
+        caption: form.caption || '',
+
       };
       await onSave(data);
     } catch (err) {
@@ -357,9 +385,10 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               <Textarea rows={2} value={form.videoReferences || ''} onChange={e => setForm({ ...form, videoReferences: e.target.value })} placeholder="Links de referência..." className="mt-1" />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Observações</Label>
-              <Textarea rows={2} value={form.observations || ''} onChange={e => setForm({ ...form, observations: e.target.value })} placeholder="Notas adicionais..." className="mt-1" />
+              <Label className="text-xs text-muted-foreground">Legenda</Label>
+              <Textarea rows={2} value={form.caption || ''} onChange={e => setForm({ ...form, caption: e.target.value })} placeholder="Legenda do post..." className="mt-1" />
             </div>
+
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
               <Label className="text-[10px] sm:text-xs text-amber-500 uppercase tracking-wider font-semibold flex items-center gap-1.5">
                 <FolderOpen className="h-3 w-3" /> Material bruto (pasta do Drive)
