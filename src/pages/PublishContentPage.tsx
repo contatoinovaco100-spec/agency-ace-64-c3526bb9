@@ -8,11 +8,13 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Clock, Film, History, Loader2, RefreshCw, Send, Timer, Trash2, Upload, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountSelector } from '@/components/social/AccountSelector';
 import { TargetStatusList } from '@/components/social/TargetStatusList';
 import { ManualPublishPanel } from '@/components/social/ManualPublishPanel';
+import { PublishedPlannerTab } from '@/components/social/PublishedPlannerTab';
 
 import { useSocialAccounts } from '@/hooks/useSocialAccounts';
 import { usePublishJobs } from '@/hooks/usePublishJobs';
@@ -531,6 +533,13 @@ export default function PublishContentPage() {
         </p>
       </div>
 
+      <Tabs defaultValue="publicar">
+        <TabsList>
+          <TabsTrigger value="publicar">Publicar</TabsTrigger>
+          <TabsTrigger value="planner">Planner</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="publicar" className="mt-4">
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         <div className="min-w-0 space-y-4">
           <Card>
@@ -1088,8 +1097,13 @@ export default function PublishContentPage() {
           </Card>
         )}
         </div>
+        </div>
+        </TabsContent>
 
-      </div>
+        <TabsContent value="planner" className="mt-4">
+          <PublishedPlannerTab />
+        </TabsContent>
+      </Tabs>
 
     </div>
   );
