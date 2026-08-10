@@ -286,36 +286,6 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               )}
             </div>
 
-            {form.taskType === 'Arte' && (
-              <div className="space-y-1.5 rounded-lg border border-pink-500/25 bg-pink-500/5 p-3">
-                <Label className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400 uppercase tracking-wider font-semibold">
-                  Opções de formato da arte
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { id: 'Stories', label: 'Stories', icon: '📱' },
-                    { id: 'Feed', label: 'Feed', icon: '🖼️' },
-                    { id: 'Carrossel', label: 'Carrossel', icon: '🎠' },
-                  ].map(item => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setForm({ ...form, format: item.id })}
-                      className={cn(
-                        'flex flex-1 min-w-[90px] items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold border transition-all',
-                        form.format === item.id
-                          ? 'bg-pink-600 text-white border-pink-600 shadow-sm scale-[1.02]'
-                          : 'bg-background border-border text-muted-foreground hover:bg-muted hover:text-foreground'
-                      )}
-                    >
-                      <span>{item.icon}</span>
-                      <span>{item.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <p className="mt-0.5 text-[10px] text-muted-foreground">
               Tarefas marcadas como "Arte estática" aparecem na aba <span className="font-semibold text-foreground">Artes Estáticas</span> em vez do Kanban de Tarefas.
             </p>
