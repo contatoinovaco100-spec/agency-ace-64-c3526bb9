@@ -41,6 +41,7 @@ interface ArteTask {
   client_name: string | null;
   post_date: string | null;
   post_time: string | null;
+  format?: string | null;
   created_at: string;
 }
 
@@ -273,11 +274,18 @@ function TaskCard({ task, onOpen }: { task: ArteTask; onOpen: () => void }) {
         <h3 className="text-sm font-semibold leading-snug text-foreground group-hover:text-primary">
           {task.title || 'Sem título'}
         </h3>
-        {task.priority && (
-          <span className={`shrink-0 rounded border px-2 py-0.5 text-[10px] font-bold uppercase ${PRIORITY_COLORS[task.priority] || 'bg-muted text-muted-foreground border-border'}`}>
-            {task.priority}
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-1 shrink-0">
+          {task.format && (
+            <span className="rounded border border-purple-500/30 bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold text-purple-600 dark:text-purple-300">
+              {task.format === 'Stories' ? '📱 Stories' : task.format === 'Feed' ? '🖼️ Feed' : task.format === 'Carrossel' ? '🎠 Carrossel' : task.format}
+            </span>
+          )}
+          {task.priority && (
+            <span className={`rounded border px-2 py-0.5 text-[10px] font-bold uppercase ${PRIORITY_COLORS[task.priority] || 'bg-muted text-muted-foreground border-border'}`}>
+              {task.priority}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Art preview thumbnail */}
@@ -422,6 +430,11 @@ function TaskDetailModal({ task, onClose, onOpenLightbox }: { task: ArteTask; on
             <span className={`rounded border px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_COLORS[task.status] || 'bg-muted text-muted-foreground border-border'}`}>
               {task.status}
             </span>
+            {task.format && (
+              <span className="rounded border border-purple-500/30 bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold text-purple-600 dark:text-purple-300">
+                {task.format === 'Stories' ? '📱 Stories' : task.format === 'Feed' ? '🖼️ Feed' : task.format === 'Carrossel' ? '🎠 Carrossel' : task.format}
+              </span>
+            )}
             {task.priority && (
               <span className={`rounded border px-2 py-0.5 text-[10px] font-bold uppercase ${PRIORITY_COLORS[task.priority] || 'bg-muted text-muted-foreground border-border'}`}>
                 <Flag className="mr-1 inline h-3 w-3" />{task.priority}

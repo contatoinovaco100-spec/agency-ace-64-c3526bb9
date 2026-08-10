@@ -249,22 +249,76 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.description))}>Descrição</Label>
               <Textarea rows={2} value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Descreva a tarefa..." className={cn('mt-1', fieldClass(form.description))} />
             </div>
-            <div>
-              <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Tipo de entrega</Label>
-              <Select
-                value={form.taskType === 'Arte' ? 'Arte' : 'Produção de Vídeo'}
-                onValueChange={v => setForm({ ...form, taskType: v as any })}
-              >
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Produção de Vídeo">📹 Reels / Vídeo</SelectItem>
-                  <SelectItem value="Arte">🎨 Arte estática</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                Tarefas marcadas como "Arte estática" aparecem na aba <span className="font-semibold text-foreground">Artes Estáticas</span> em vez do Kanban de Tarefas.
-              </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
+              <div>
+                <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Tipo de entrega</Label>
+                <Select
+                  value={form.taskType === 'Arte' ? 'Arte' : 'Produção de Vídeo'}
+                  onValueChange={v => setForm({ ...form, taskType: v as any })}
+                >
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Produção de Vídeo">📹 Reels / Vídeo</SelectItem>
+                    <SelectItem value="Arte">🎨 Arte estática</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {form.taskType === 'Arte' && (
+                <div>
+                  <Label className="text-[10px] sm:text-xs font-semibold text-pink-600 dark:text-pink-400 uppercase tracking-wider">
+                    Formato da Arte *
+                  </Label>
+                  <Select value={form.format || ''} onValueChange={v => setForm({ ...form, format: v })}>
+                    <SelectTrigger className="mt-1 border-pink-500/40 focus:ring-pink-500">
+                      <SelectValue placeholder="Selecione o formato" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Stories">📱 Stories</SelectItem>
+                      <SelectItem value="Feed">🖼️ Feed</SelectItem>
+                      <SelectItem value="Carrossel">🎠 Carrossel</SelectItem>
+                      {form.format && !['Stories', 'Feed', 'Carrossel'].includes(form.format) && (
+                        <SelectItem value={form.format}>{form.format}</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
+
+            {form.taskType === 'Arte' && (
+              <div className="space-y-1.5 rounded-lg border border-pink-500/25 bg-pink-500/5 p-3">
+                <Label className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400 uppercase tracking-wider font-semibold">
+                  Opções de formato da arte
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: 'Stories', label: 'Stories', icon: '📱' },
+                    { id: 'Feed', label: 'Feed', icon: '🖼️' },
+                    { id: 'Carrossel', label: 'Carrossel', icon: '🎠' },
+                  ].map(item => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setForm({ ...form, format: item.id })}
+                      className={cn(
+                        'flex flex-1 min-w-[90px] items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold border transition-all',
+                        form.format === item.id
+                          ? 'bg-pink-600 text-white border-pink-600 shadow-sm scale-[1.02]'
+                          : 'bg-background border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+                      )}
+                    >
+                      <span>{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="mt-0.5 text-[10px] text-muted-foreground">
+              Tarefas marcadas como "Arte estática" aparecem na aba <span className="font-semibold text-foreground">Artes Estáticas</span> em vez do Kanban de Tarefas.
+            </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
               <div>
                 <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.clientId))}>Cliente</Label>

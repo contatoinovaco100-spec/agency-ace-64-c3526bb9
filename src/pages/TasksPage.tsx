@@ -125,10 +125,22 @@ function CardContent({ task, clientName, compact, onArtPreview }: {
         )}
         {isArte && <ArteAttachmentsPreview taskId={task.id} compact={false} onPreviewClick={onArtPreview} />}
         <div className="mt-1.5 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className={cn('rounded px-1 py-[1px] text-[9px] font-semibold leading-tight', PRIORITY_BADGE[task.priority])}>
               {task.priority}
             </span>
+            {task.format && (
+              <span className={cn(
+                'rounded px-1.5 py-[1px] text-[9px] font-semibold leading-tight border inline-flex items-center gap-0.5',
+                task.format === 'Stories' ? 'bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30' :
+                task.format === 'Feed' ? 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30' :
+                task.format === 'Carrossel' ? 'bg-pink-500/15 text-pink-600 dark:text-pink-300 border-pink-500/30' :
+                'bg-muted text-muted-foreground border-border'
+              )}>
+                {task.format === 'Stories' ? '📱 ' : task.format === 'Feed' ? '🖼️ ' : task.format === 'Carrossel' ? '🎠 ' : ''}
+                {task.format}
+              </span>
+            )}
             {task.approvedByClient && (
               <span className="inline-flex items-center gap-0.5 rounded bg-green-500/15 px-1.5 py-[1px] text-[9px] font-bold text-green-600 dark:text-green-400 border border-green-500/30" title={`Aprovado pelo cliente em ${task.approvedAt ? new Date(task.approvedAt).toLocaleDateString('pt-BR') : ''}`}>
                 <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
