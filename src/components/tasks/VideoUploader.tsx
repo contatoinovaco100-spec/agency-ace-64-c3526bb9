@@ -14,7 +14,7 @@ interface Props {
 
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://coblfehkclfjofrshlwl.supabase.co';
-const MAX_MB = 500;
+const MAX_MB = 4096;
 
 const fmtSize = (b: number) => b > 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${(b / 1024).toFixed(0)} KB`;
 
@@ -60,7 +60,7 @@ export default function VideoUploader({ taskId, currentUrl, onUploaded, onDelete
       return;
     }
     if (file.size > MAX_MB * 1024 * 1024) {
-      toast.error(`Vídeo excede ${MAX_MB}MB. Reduza a resolução (ex: 1080p ou 720p) antes de subir.`);
+      toast.error(`Vídeo excede ${MAX_MB}MB. Envie um arquivo menor.`);
       return;
     }
 
@@ -235,7 +235,7 @@ export default function VideoUploader({ taskId, currentUrl, onUploaded, onDelete
                 Arraste o vídeo aqui ou <span className="text-primary underline">clique para escolher</span>
               </p>
               <p className="text-[11px] text-muted-foreground mt-1">
-                MP4 (H.264) até {MAX_MB}MB · O cliente assiste direto na página, sem baixar
+                MP4 (H.264) até {MAX_MB}MB · Envie na resolução original · O cliente assiste direto na página, sem baixar
               </p>
             </div>
           </>
@@ -254,11 +254,11 @@ export default function VideoUploader({ taskId, currentUrl, onUploaded, onDelete
 
       <div className="rounded-md bg-muted/30 border border-border p-2.5 text-[10.5px] text-muted-foreground leading-relaxed">
         <p className="flex items-center gap-1.5 font-semibold text-foreground mb-1">
-          <Film className="h-3 w-3 text-primary" /> Para reprodução mais leve
+          <Film className="h-3 w-3 text-primary" /> Qualidade preservada
         </p>
-        Exporte em <b>MP4 H.264</b>, resolução <b>1080p ou 720p</b>, bitrate ~4–6 Mbps.
-        Reels/Stories verticais podem sair em 720×1280. O player usa <i>streaming por partes</i>,
-        então o cliente já começa a assistir sem baixar o arquivo inteiro.
+        Envie o vídeo na <b>resolução e qualidade originais</b> — o arquivo é entregue ao cliente
+        exatamente como foi produzido. O player usa <i>streaming por partes</i>, então o cliente já
+        começa a assistir sem baixar o arquivo inteiro.
       </div>
     </div>
   );
