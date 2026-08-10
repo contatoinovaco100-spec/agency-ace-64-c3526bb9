@@ -19,7 +19,7 @@ interface AgencyContextType {
   deleteClient: (id: string) => Promise<void>;
   addTask: (task: Task) => Promise<void>;
   updateTask: (task: Task) => Promise<void>;
-  moveTaskToStage: (taskId: string, newStatus: string) => Promise<void>;
+  moveTaskToStage: (taskId: string, newStatus: string, extra?: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   advanceVideoStage: (task: Task, changedBy: string) => Promise<void>;
   addLead: (lead: Lead) => Promise<void>;
@@ -325,17 +325,22 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Move a task between kanban stages. Only updates the `status` column to avoid
-  // failing when other columns aren't present in the production schema.
-  const moveTaskToStage = async (taskId: string, newStatus: string) => {
+  // Move a task between kanban stages. Only updates the columns that actually
+  // changed (status + optional fields) to avoid failing or overwriting when the
+  // card doesn't have all its information filled in yet.
+  const moveTaskToStage = async (taskId: string, newStatus: string, extra?: Partial<Task>) => {
     const prevTask = tasks.find(x => x.id === taskId);
     if (!prevTask) return;
-    const updated = { ...prevTask, status: newStatus as Task['status'] };
+    const updated = { ...prevTask, status: newStatus as Task['status'], ...extra };
     // Optimistic update: reflect the change in UI immediately.
     setTasks(prev => prev.map(x => x.id === taskId ? updated : x));
+    // Build a targeted patch — never send the whole row, so a card can be moved
+    // without having all the mandatory fields filled.
+    const row: { status: string; due_date?: string | null } = { status: toDatabaseTaskStatus(newStatus) };
+    if (extra && 'dueDate' in extra) row.due_date = extra.dueDate || null;
     const { error } = await supabase
       .from('tasks')
-      .update({ status: toDatabaseTaskStatus(newStatus) })
+      .update(row)
       .eq('id', taskId);
     if (error) {
       // Rollback if the database update fails.

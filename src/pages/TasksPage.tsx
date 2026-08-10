@@ -868,7 +868,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
       if (!statusChanged && !dateChanged) return;
       try {
         if (dateChanged) {
-          await updateTask({ ...task, status: newColumn as Task['status'], dueDate: newDueDate || '' });
+          await moveTaskToStage(taskId, newColumn, { dueDate: newDueDate || '' });
         } else {
           await moveTaskToStage(taskId, newColumn);
         }
