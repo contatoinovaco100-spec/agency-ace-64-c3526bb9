@@ -51,6 +51,7 @@ const byPriority = (a: Task, b: Task) =>
 function buildStatusToColumn(columnNames: string[]) {
   const set = new Set(columnNames);
   return (status: string): string => {
+    if (!status) return columnNames[0] || '';
     if (set.has(status)) return status;
     const legacy: Record<string, string> = {
       'A fazer': 'Ideias / Backlog',
@@ -59,10 +60,15 @@ function buildStatusToColumn(columnNames: string[]) {
       'Em direção': 'Em Direção',
       'Em gravação': 'Em Gravação',
       'Em edição': 'Em Edição',
+      'Concluido': 'Concluído',
+      'concluido': 'Concluído',
+      'concluído': 'Concluído',
+      'finalizado': 'Finalizado',
+      'Finalizadas': 'Finalizado',
     };
     const mapped = legacy[status];
     if (mapped && set.has(mapped)) return mapped;
-    return columnNames[0] || status;
+    return status;
   };
 }
 
@@ -545,12 +551,12 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const { stages: allDbStages } = useKanbanStages(board);
   const { isEditor } = useJobTitle();
   const { isAdmin: isAdminUser } = useUserRole();
-  // Editor (cargo) no kanban de vídeo enxerga somente de "Em edição" até "Finalizado".
+  // Editor (cargo) no kanban de vídeo enxerga de "Em edição" em diante.
   const dbStages = useMemo(() => {
     if (!isEditor || isAdminUser || board !== 'tasks') return allDbStages;
     const idx = allDbStages.findIndex(s => s.name.trim().toLowerCase().startsWith('em edi'));
     if (idx < 0) return allDbStages;
-    return allDbStages.slice(idx).filter(s => s.name !== 'Concluído');
+    return allDbStages.slice(idx);
   }, [allDbStages, isEditor, isAdminUser, board]);
 
 
