@@ -105,9 +105,6 @@ function CardContent({ task, clientName, compact, onArtPreview }: {
         {clientName && (
           <p className="mt-0.5 text-[10px] text-primary/70 font-medium truncate">{clientName}</p>
         )}
-        {task.description && (
-          <p className="mt-0.5 text-[10px] text-muted-foreground line-clamp-1">{task.description}</p>
-        )}
         {task.videoUrl && (
           <a
             href={task.videoUrl}

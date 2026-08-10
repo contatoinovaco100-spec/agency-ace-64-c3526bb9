@@ -47,6 +47,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [newCheckLabel, setNewCheckLabel] = useState('');
+  const [refLinkInput, setRefLinkInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [validationAttempted, setValidationAttempted] = useState(false);
 
@@ -178,6 +179,20 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
     await deleteChecklistItem(id);
     setChecklist(prev => prev.filter(i => i.id !== id));
   };
+
+  const refLinks = (form.videoReferences || '').split('\n').map(s => s.trim()).filter(Boolean);
+  const addRefLink = () => {
+    const link = refLinkInput.trim();
+    if (!link) return;
+    setForm({ ...form, videoReferences: [...refLinks, link].join('\n') });
+    setRefLinkInput('');
+  };
+  const removeRefLink = (idx: number) => {
+    const next = [...refLinks];
+    next.splice(idx, 1);
+    setForm({ ...form, videoReferences: next.join('\n') });
+  };
+  const normalizeLink = (link: string) => link.startsWith('http') ? link : `https://${link}`;
 
   // Comments
   const handleAddComment = async () => {
@@ -523,7 +538,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
           <Tabs defaultValue={form.taskType === 'Arte' ? 'references' : 'checklist'} className="w-full">
             <TabsList className="w-full h-auto flex-wrap gap-0.5">
                   {form.taskType === 'Arte' && (
-                    <TabsTrigger value="references" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><Link className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Refs</TabsTrigger>
+                    <TabsTrigger value="references" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><Link className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Link ref</TabsTrigger>
                   )}
                   {form.taskType === 'Arte' && (
                     <TabsTrigger value="caption" className={cn('flex-1 gap-1 text-[10px] sm:text-xs py-1.5', isInvalidField(form.caption) && 'text-destructive border-destructive')}><FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Legenda</TabsTrigger>
@@ -534,28 +549,50 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                   <TabsTrigger value="history" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><History className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Hist ({stageHistory.length})</TabsTrigger>
                 </TabsList>
 
-                {/* Referências (Arte) */}
+                {/* Link de referência (Arte) */}
                 {form.taskType === 'Arte' && (
                   <TabsContent value="references" className="space-y-3 mt-3">
                     <div>
-                      <Label className={cn("text-xs", labelClass(form.videoReferences))}>Referências (links, inspirações, briefings)</Label>
-                      <Textarea rows={4} value={form.videoReferences || ''} onChange={e => setForm({ ...form, videoReferences: e.target.value })} placeholder="Cole links de referência ou inspiração para a arte..." className={cn('mt-1', fieldClass(form.videoReferences))} />
+                      <Label className="text-xs">Link de referência</Label>
+                      <div className="mt-1 flex gap-2">
+                        <Input
+                          placeholder="Cole aqui o link de referência..."
+                          value={refLinkInput}
+                          onChange={e => setRefLinkInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addRefLink(); } }}
+                        />
+                        <Button type="button" variant="outline" onClick={addRefLink} disabled={!refLinkInput.trim()}>Adicionar</Button>
+                      </div>
+                      <p className="mt-1 text-[11px] text-muted-foreground">O link fica salvo no card e fica fácil de acessar depois.</p>
                     </div>
-                    {form.videoReferences && (
+                    {refLinks.length > 0 ? (
                       <div className="space-y-1">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Links</p>
-                        {form.videoReferences.split('\n').filter(Boolean).map((line, i) => (
-                          <a
-                            key={i}
-                            href={line.trim().startsWith('http') ? line.trim() : `https://${line.trim()}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block text-sm text-primary underline underline-offset-2 hover:text-primary/80 break-all"
-                          >
-                            {line.trim()}
-                          </a>
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Links salvos</p>
+                        {refLinks.map((link, i) => (
+                          <div key={i} className="flex items-center gap-2 rounded-md bg-secondary/30 px-2 py-1">
+                            <a
+                              href={normalizeLink(link)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 text-sm text-primary underline underline-offset-2 hover:text-primary/80 break-all"
+                            >
+                              {link}
+                            </a>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 shrink-0 text-destructive/70 hover:text-destructive"
+                              onClick={() => removeRefLink(i)}
+                              title="Remover link"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         ))}
                       </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Nenhum link de referência adicionado.</p>
                     )}
                   </TabsContent>
                 )}
