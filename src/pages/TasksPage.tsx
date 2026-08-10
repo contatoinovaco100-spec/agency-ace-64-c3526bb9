@@ -15,6 +15,9 @@ import { todaySP, normalizeDate, dateGroupMeta, formatFullDate, addDays } from '
 import TaskDetailPanel from '@/components/tasks/TaskDetailPanel';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import { useKanbanStages, colorClasses, KanbanStage } from '@/hooks/useKanbanStages';
+import { useJobTitle } from '@/hooks/useJobTitle';
+import { useUserRole } from '@/hooks/useUserRole';
+
 import {
   DndContext,
   DragOverlay,
@@ -527,7 +530,17 @@ interface DateGroup {
 export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerExtra, groupedByDueDate }: TasksPageProps = {}) {
   const { tasks, clients, team, addTask, updateTask, deleteTask, moveTaskToStage, refresh } = useAgency();
   const board = taskTypeFilter === 'Arte' ? 'artes' : 'tasks';
-  const { stages: dbStages } = useKanbanStages(board);
+  const { stages: allDbStages } = useKanbanStages(board);
+  const { isEditor } = useJobTitle();
+  const { isAdmin: isAdminUser } = useUserRole();
+  // Editor (cargo) no kanban de vídeo enxerga somente de "Em edição" até "Finalizado".
+  const dbStages = useMemo(() => {
+    if (!isEditor || isAdminUser || board !== 'tasks') return allDbStages;
+    const idx = allDbStages.findIndex(s => s.name.trim().toLowerCase().startsWith('em edi'));
+    if (idx < 0) return allDbStages;
+    return allDbStages.slice(idx).filter(s => s.name !== 'Concluído');
+  }, [allDbStages, isEditor, isAdminUser, board]);
+
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
