@@ -15,8 +15,6 @@ import { todaySP, normalizeDate, dateGroupMeta, formatFullDate, addDays } from '
 import TaskDetailPanel from '@/components/tasks/TaskDetailPanel';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import { useKanbanStages, colorClasses, KanbanStage } from '@/hooks/useKanbanStages';
-import { useJobTitle } from '@/hooks/useJobTitle';
-import { useUserRole } from '@/hooks/useUserRole';
 
 import {
   DndContext,
@@ -546,15 +544,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const { tasks, clients, team, addTask, updateTask, deleteTask, moveTaskToStage, refresh } = useAgency();
   const board = taskTypeFilter === 'Arte' ? 'artes' : 'tasks';
   const { stages: allDbStages } = useKanbanStages(board);
-  const { isEditor } = useJobTitle();
-  const { isAdmin: isAdminUser } = useUserRole();
-  // Editor (cargo) no kanban de vídeo enxerga de "Em edição" em diante.
-  const dbStages = useMemo(() => {
-    if (!isEditor || isAdminUser || board !== 'tasks') return allDbStages;
-    const idx = allDbStages.findIndex(s => s.name.trim().toLowerCase().startsWith('em edi'));
-    if (idx < 0) return allDbStages;
-    return allDbStages.slice(idx);
-  }, [allDbStages, isEditor, isAdminUser, board]);
+  const dbStages = allDbStages;
 
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
