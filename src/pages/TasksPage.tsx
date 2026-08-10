@@ -15,6 +15,9 @@ import { todaySP, normalizeDate, dateGroupMeta, formatFullDate, addDays } from '
 import TaskDetailPanel from '@/components/tasks/TaskDetailPanel';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import { useKanbanStages, colorClasses, KanbanStage } from '@/hooks/useKanbanStages';
+import { useJobTitle } from '@/hooks/useJobTitle';
+import { useUserRole } from '@/hooks/useUserRole';
+
 import {
   DndContext,
   DragOverlay,
