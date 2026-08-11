@@ -779,7 +779,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                     <>
                       <div className="flex gap-2">
                         <label className="flex-1">
-                          <input type="file" className="hidden" onChange={handleFileUpload} />
+                          <input type="file" multiple className="hidden" onChange={handleFileUpload} />
                           <Button variant="outline" className="w-full gap-2" asChild><span><Upload className="h-4 w-4" /> Upload</span></Button>
                         </label>
                         <Button variant="outline" className="gap-2" onClick={() => setShowLinkInput(!showLinkInput)}><Link className="h-4 w-4" /> Link</Button>
