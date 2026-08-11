@@ -204,18 +204,57 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   };
 
   // Attachments
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !task) return;
-    const path = `${task.id}/${crypto.randomUUID()}-${file.name}`;
-    const { error } = await supabase.storage.from('task-attachments').upload(path, file);
-    if (error) { toast.error('Erro no upload'); return; }
-    const { data: urlData } = supabase.storage.from('task-attachments').getPublicUrl(path);
-    const att: TaskAttachment = { id: crypto.randomUUID(), taskId: task.id, fileName: file.name, fileUrl: urlData.publicUrl, fileType: file.type, createdAt: new Date().toISOString() };
-    await addAttachment(att);
-    setAttachments(prev => [...prev, att]);
-    toast.success('Arquivo enviado');
+  // Nomes de arquivo com acentos, espaços, emojis ou caracteres especiais quebravam
+  // o upload (InvalidKey no Storage). Aqui o nome é normalizado para a chave, mas o
+  // nome original continua sendo salvo para exibição.
+  const safeKey = (name: string) => {
+    const dot = name.lastIndexOf('.');
+    const base = (dot > 0 ? name.slice(0, dot) : name)
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 60) || 'arquivo';
+    const ext = (dot > 0 ? name.slice(dot + 1) : '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8);
+    return ext ? `${base}.${ext}` : base;
   };
+
+  const uploadOne = async (file: File, taskId: string) => {
+    if (file.size > 50 * 1024 * 1024) throw new Error(`${file.name}: máximo 50 MB`);
+    const path = `${taskId}/${crypto.randomUUID()}-${safeKey(file.name)}`;
+    const { error } = await supabase.storage.from('task-attachments').upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type || 'application/octet-stream',
+    });
+    if (error) throw new Error(`${file.name}: ${error.message}`);
+    const { data: urlData } = supabase.storage.from('task-attachments').getPublicUrl(path);
+    const att: TaskAttachment = { id: crypto.randomUUID(), taskId, fileName: file.name, fileUrl: urlData.publicUrl, fileType: file.type, createdAt: new Date().toISOString() };
+    await addAttachment(att);
+    return att;
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const input = e.target;
+    if (!files.length || !task) return;
+    const ok: TaskAttachment[] = [];
+    const fails: string[] = [];
+    for (const file of files) {
+      try {
+        ok.push(await uploadOne(file, task.id));
+      } catch (err: any) {
+        fails.push(err?.message || `${file.name}: falha no upload`);
+      }
+    }
+    if (ok.length) {
+      setAttachments(prev => [...prev, ...ok]);
+      toast.success(ok.length === 1 ? 'Arquivo enviado' : `${ok.length} arquivos enviados`);
+    }
+    if (fails.length) toast.error(fails.join(' • '));
+    input.value = '';
+  };
+
 
   const handleAddLink = async () => {
     if (!linkUrl.trim() || !task) return;
@@ -740,7 +779,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                     <>
                       <div className="flex gap-2">
                         <label className="flex-1">
-                          <input type="file" className="hidden" onChange={handleFileUpload} />
+                          <input type="file" multiple className="hidden" onChange={handleFileUpload} />
                           <Button variant="outline" className="w-full gap-2" asChild><span><Upload className="h-4 w-4" /> Upload</span></Button>
                         </label>
                         <Button variant="outline" className="gap-2" onClick={() => setShowLinkInput(!showLinkInput)}><Link className="h-4 w-4" /> Link</Button>
