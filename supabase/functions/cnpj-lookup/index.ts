@@ -34,9 +34,15 @@ serve(async (req) => {
     url.searchParams.set('registrations', 'BR');
     url.searchParams.set('geocoding', 'true');
 
-    const res = await fetch(url.toString(), {
-      headers: { Authorization: apiKey },
+    let res = await fetch(url.toString(), {
+      headers: { Authorization: apiKey.trim() },
     });
+
+    // Fallback: API pública gratuita do CNPJá (limite de requisições menor)
+    if (res.status === 401 || res.status === 403) {
+      console.warn('cnpja: chave rejeitada, usando open.cnpja.com');
+      res = await fetch(`https://open.cnpja.com/office/${raw}`);
+    }
 
     const text = await res.text();
     if (!res.ok) {
