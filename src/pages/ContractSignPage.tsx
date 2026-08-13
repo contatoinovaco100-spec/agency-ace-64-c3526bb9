@@ -341,19 +341,19 @@ export default function ContractSignPage() {
               <p>Pelo presente instrumento particular de prestação de serviços, de um lado:</p>
 
               <div className="rounded-lg bg-gray-50 p-4 not-prose">
-                <p className="text-sm font-semibold text-gray-900">CONTRATANTE (Prestador):</p>
-                <p className="text-sm text-gray-600">{contract.contractor_name}</p>
-                {contract.contractor_cpf_cnpj && <p className="text-sm text-gray-600">CPF/CNPJ: {contract.contractor_cpf_cnpj}</p>}
-                {contract.contractor_address && <p className="text-sm text-gray-600">Endereço: {contract.contractor_address}</p>}
-              </div>
-
-              <div className="rounded-lg bg-gray-50 p-4 not-prose">
-                <p className="text-sm font-semibold text-gray-900">CONTRATADO (Cliente):</p>
+                <p className="text-sm font-semibold text-gray-900">CONTRATANTE (Cliente):</p>
                 <p className="text-sm text-gray-600">{contract.client_company || contract.client_name}</p>
                 {contract.client_company && contract.client_name && <p className="text-sm text-gray-600">Responsável: {contract.client_name}</p>}
                 {contract.client_cpf_cnpj && <p className="text-sm text-gray-600">CPF/CNPJ: {contract.client_cpf_cnpj}</p>}
                 {contract.client_email && <p className="text-sm text-gray-600">Email: {contract.client_email}</p>}
                 {contract.client_address && <p className="text-sm text-gray-600">Endereço: {contract.client_address}</p>}
+              </div>
+
+              <div className="rounded-lg bg-gray-50 p-4 not-prose">
+                <p className="text-sm font-semibold text-gray-900">CONTRATADO (Prestador):</p>
+                <p className="text-sm text-gray-600">{contract.contractor_name}</p>
+                {contract.contractor_cpf_cnpj && <p className="text-sm text-gray-600">CPF/CNPJ: {contract.contractor_cpf_cnpj}</p>}
+                {contract.contractor_address && <p className="text-sm text-gray-600">Endereço: {contract.contractor_address}</p>}
               </div>
 
               <p>Têm entre si justo e contratado o seguinte:</p>
@@ -388,7 +388,7 @@ export default function ContractSignPage() {
 
               <h3 className="font-bold text-gray-900">{deliverables.length > 0 ? 'CLÁUSULA 3ª' : 'CLÁUSULA 2ª'} - DO VALOR E PAGAMENTO</h3>
               <p>
-                O CONTRATADO pagará ao CONTRATANTE o valor mensal de{' '}
+                O CONTRATANTE pagará ao CONTRATADO o valor mensal de{' '}
                 <strong>R$ {Number(contract.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>{' '}
                 (reais), com vencimento todo dia <strong>{contract.payment_due_day}</strong> de cada mês.
               </p>
@@ -403,12 +403,12 @@ export default function ContractSignPage() {
 
               <h3 className="font-bold text-gray-900">{deliverables.length > 0 ? 'CLÁUSULA 5ª' : 'CLÁUSULA 4ª'} - DA RESCISÃO ANTECIPADA</h3>
               <p>
-                Caso o CONTRATADO solicite o cancelamento antes do prazo mínimo de permanência, será aplicada multa rescisória correspondente a 30% do valor restante do contrato, a título de compensação pelos serviços contratados e planejamento realizado.
+                Caso o CONTRATANTE solicite o cancelamento antes do prazo mínimo de permanência, será aplicada multa rescisória correspondente a 30% do valor restante do contrato, a título de compensação pelos serviços contratados e planejamento realizado.
               </p>
 
               <h3 className="font-bold text-gray-900">{deliverables.length > 0 ? 'CLÁUSULA 6ª' : 'CLÁUSULA 5ª'} - RESPONSABILIDADE DO CLIENTE</h3>
               <p>
-                Caso o CONTRATADO não disponibilize agenda para captação de conteúdo ou não envie materiais necessários para produção dentro do mês vigente, as entregas poderão ser reajustadas ou reagendadas conforme disponibilidade da equipe, sem obrigação de compensação de entregas acumuladas.
+                Caso o CONTRATANTE não disponibilize agenda para captação de conteúdo ou não envie materiais necessários para produção dentro do mês vigente, as entregas poderão ser reajustadas ou reagendadas conforme disponibilidade da equipe, sem obrigação de compensação de entregas acumuladas.
               </p>
 
               <h3 className="font-bold text-gray-900">{deliverables.length > 0 ? 'CLÁUSULA 7ª' : 'CLÁUSULA 6ª'} - DO SIGILO</h3>

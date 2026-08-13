@@ -129,8 +129,8 @@ export async function generateContractPdf(
       doc.text(addrLines, x, yy);
     }
   };
-  drawParty(margin, 'CONTRATANTE (PRESTADOR)', c.contractor_name, c.contractor_cpf_cnpj, c.contractor_address);
-  drawParty(margin + colW + 6, 'CONTRATADO (CLIENTE)', c.client_company || c.client_name, c.client_cpf_cnpj, c.client_address, c.client_email);
+  drawParty(margin, 'CONTRATANTE (CLIENTE)', c.client_company || c.client_name, c.client_cpf_cnpj, c.client_address, c.client_email);
+  drawParty(margin + colW + 6, 'CONTRATADO (PRESTADOR)', c.contractor_name, c.contractor_cpf_cnpj, c.contractor_address);
   y += 36;
 
   doc.setDrawColor(220, 220, 220);
@@ -216,7 +216,7 @@ export async function generateContractPdf(
 
   section(
     `${next()} - DO VALOR E PAGAMENTO`,
-    `O CONTRATADO pagará ao CONTRATANTE o valor mensal de ${formatBRL(c.monthly_value)} (reais), com vencimento todo dia ${c.payment_due_day} de cada mês.`,
+    `O CONTRATANTE pagará ao CONTRATADO o valor mensal de ${formatBRL(c.monthly_value)} (reais), com vencimento todo dia ${c.payment_due_day} de cada mês.`,
   );
 
   section(
@@ -226,12 +226,12 @@ export async function generateContractPdf(
 
   section(
     `${next()} - DA RESCISÃO ANTECIPADA`,
-    'Caso o CONTRATADO solicite o cancelamento antes do prazo mínimo de permanência, será aplicada multa rescisória correspondente a 30% do valor restante do contrato, a título de compensação pelos serviços contratados e planejamento realizado.',
+    'Caso o CONTRATANTE solicite o cancelamento antes do prazo mínimo de permanência, será aplicada multa rescisória correspondente a 30% do valor restante do contrato, a título de compensação pelos serviços contratados e planejamento realizado.',
   );
 
   section(
     `${next()} - RESPONSABILIDADE DO CLIENTE`,
-    'Caso o CONTRATADO não disponibilize agenda para captação de conteúdo ou não envie materiais necessários para produção dentro do mês vigente, as entregas poderão ser reajustadas ou reagendadas conforme disponibilidade da equipe, sem obrigação de compensação de entregas acumuladas.',
+    'Caso o CONTRATANTE não disponibilize agenda para captação de conteúdo ou não envie materiais necessários para produção dentro do mês vigente, as entregas poderão ser reajustadas ou reagendadas conforme disponibilidade da equipe, sem obrigação de compensação de entregas acumuladas.',
   );
 
   section(
