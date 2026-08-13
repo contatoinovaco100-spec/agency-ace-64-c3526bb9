@@ -12,6 +12,16 @@ function jsonResponse(data: unknown, status = 200) {
   });
 }
 
+function isMobilePhone(phone: string | null): boolean {
+  if (!phone) return false;
+  const digits = phone.replace(/\D/g, '');
+  // Brazilian mobile: DDD (2 digits) + 9 digits (starting with 9) = 11 digits
+  // Landline: DDD (2 digits) + 8 digits = 10 digits
+  if (digits.length === 11 && digits[2] === '9') return true;
+  if (digits.length === 13 && digits.startsWith('55') && digits[4] === '9') return true;
+  return false;
+}
+
 function normalizeCnpjData(raw: any, source: 'brasilapi' | 'receitaws') {
   if (source === 'brasilapi') {
     const ddd = raw.ddd_telefone_1 || '';
@@ -203,7 +213,7 @@ async function searchByLocation(city: string, uf: string, activity: string, bair
     porte: e?.porte || null,
     capital_social: e?.capital_social || null,
     natureza_juridica: e?.natureza_juridica || null,
-  }));
+  })).filter(item => isMobilePhone(item.telefone));
 
   const total = cddData?.total || items.length;
 

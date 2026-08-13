@@ -91,8 +91,16 @@ function buildAddress(d: CnpjData) {
   ].filter(Boolean).join(', ') || null;
 }
 
+function isMobilePhone(phone: string | null | undefined): boolean {
+  if (!phone) return false;
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 11 && digits[2] === '9') return true;
+  if (digits.length === 13 && digits.startsWith('55') && digits[4] === '9') return true;
+  return false;
+}
+
 function buildWhatsAppLink(tel: string | null | undefined): string | null {
-  if (!tel) return null;
+  if (!tel || !isMobilePhone(tel)) return null;
   const digits = tel.replace(/\D/g, '');
   if (digits.length < 10) return null;
   const phone = digits.startsWith('55') ? digits : `55${digits}`;
@@ -435,7 +443,7 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [contactedIds, setContactedIds] = useState<Set<string>>(new Set());
 
-  const filteredResults = results.filter(d => d.telefone);
+  const filteredResults = results.filter(d => isMobilePhone(d.telefone));
   const allSelected = filteredResults.length > 0 && filteredResults.every(d => selectedIds.has(d.cnpj));
 
   function toggleSelect(cnpj: string) {
