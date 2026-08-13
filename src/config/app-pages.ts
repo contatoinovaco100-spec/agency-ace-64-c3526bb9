@@ -3,7 +3,7 @@ import {
   Shield, FileText, BarChart3,   Film, Clapperboard, Palette, Play,
   LayoutList, Bot, Sparkles, Settings, Bell, Calendar, CalendarDays,
   MessageSquare, TrendingUp, Images, BookOpen, CalculatorIcon,
-  Gift, Link2, ListChecks, Search,, Wallet, Network, Layers, KeyRound, UsersRound, Trophy,
+  Gift, Link2, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy,
 } from 'lucide-react';
 
 export type PageCategory =
