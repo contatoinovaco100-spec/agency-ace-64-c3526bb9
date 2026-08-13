@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Search, Building2, MapPin, Phone, Mail, Calendar, Briefcase,
   DollarSign, Copy, CheckCircle2, Loader2, AlertCircle, X,
   ChevronRight, ChevronLeft, Filter, Globe, MessageCircle, ExternalLink,
+  Download, Save, CheckSquare, Square, Map, Database, RefreshCw,
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://coblfehkclfjofrshlwl.supabase.co';
@@ -100,6 +101,32 @@ function buildInstagramSearch(name: string): string {
   return `https://www.google.com/search?q=${encodeURIComponent(name + ' Instagram')}`;
 }
 
+function exportCsv(items: CnpjData[]) {
+  const headers = ['CNPJ','Razão Social','Nome Fantasia','Atividade','Telefone','Email','Bairro','Cidade','UF','Endereço','CEP','Porte','Capital Social','Data Abertura','Situação'];
+  const rows = items.map(d => [
+    d.cnpj, d.razao_social, d.nome_fantasia || '', d.atividade_principal || '',
+    d.telefone || '', d.email || '', d.bairro || '', d.municipio || '', d.uf || '',
+    [d.logradouro, d.numero, d.complemento].filter(Boolean).join(' '),
+    d.cep || '', d.porte || '', d.capital_social || '', d.data_abertura || '', d.situacao_cadastral || '',
+  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+  const csv = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `empresas_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function getLeadCount(): number {
+  try { return parseInt(localStorage.getItem('cnpj_lead_count') || '0', 10); } catch { return 0; }
+}
+
+function setLeadCount(n: number) {
+  try { localStorage.setItem('cnpj_lead_count', String(n)); } catch {}
+}
+
 /* ─── Sub-components ─────────────────────────────────────────────────────── */
 
 function SituacaoBadge({ s }: { s?: string | null }) {
@@ -152,16 +179,27 @@ function InfoRow({ icon: Icon, label, value, copy }: {
   );
 }
 
-function CnpjCard({ d, expanded, onToggle }: {
-  d: CnpjData; expanded: boolean; onToggle: () => void;
+function CnpjCard({ d, expanded, onToggle, selected, onSelect, onSaveLead }: {
+  d: CnpjData;
+  expanded: boolean;
+  onToggle: () => void;
+  selected?: boolean;
+  onSelect?: () => void;
+  onSaveLead?: (d: CnpjData) => void;
 }) {
   return (
-    <div className="rounded-xl bg-zinc-900/80 border border-zinc-800 overflow-hidden transition-all">
-      {/* Header — always visible */}
+    <div className={`rounded-xl bg-zinc-900/80 border overflow-hidden transition-all ${selected ? 'border-[#BFF720]/50 bg-[#BFF720]/5' : 'border-zinc-800'}`}>
       <button
         onClick={onToggle}
         className="w-full text-left p-4 flex items-start gap-3 hover:bg-white/3 transition-colors"
       >
+        {onSelect && (
+          <div className="mt-1 shrink-0" onClick={e => { e.stopPropagation(); onSelect(); }}>
+            {selected
+              ? <CheckSquare className="w-4.5 h-4.5 text-[#BFF720]" />
+              : <Square className="w-4.5 h-4.5 text-zinc-600 hover:text-zinc-400" />}
+          </div>
+        )}
         <div className="p-2 rounded-lg bg-[#BFF720]/10 border border-[#BFF720]/20 shrink-0 mt-0.5">
           <Building2 className="w-4 h-4 text-[#BFF720]" />
         </div>
@@ -179,6 +217,11 @@ function CnpjCard({ d, expanded, onToggle }: {
               <Phone className="w-3 h-3" /> {d.telefone}
             </p>
           )}
+          {d.bairro && (
+            <p className="text-xs text-zinc-500 mt-0.5 flex items-center gap-1">
+              <MapPin className="w-3 h-3" /> {d.bairro}
+            </p>
+          )}
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
           <SituacaoBadge s={d.situacao_cadastral} />
@@ -186,10 +229,10 @@ function CnpjCard({ d, expanded, onToggle }: {
         </div>
       </button>
 
-      {/* Expanded details */}
       {expanded && (
         <div className="px-4 pb-4 border-t border-white/5 pt-3">
           <InfoRow icon={MapPin}     label="Endereço"     value={buildAddress(d)} copy />
+          <InfoRow icon={MapPin}     label="Bairro"       value={d.bairro}        copy />
           <InfoRow icon={Phone}      label="Telefone"     value={d.telefone}      copy />
           <InfoRow icon={Mail}       label="E-mail"       value={d.email}         copy />
           <InfoRow icon={Calendar}   label="Abertura"     value={d.data_abertura} />
@@ -197,28 +240,38 @@ function CnpjCard({ d, expanded, onToggle }: {
           <InfoRow icon={Building2}  label="Porte"        value={d.porte} />
           <InfoRow icon={DollarSign} label="Capital social" value={formatCurrency(d.capital_social)} />
 
-          {/* Social buttons */}
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5 flex-wrap">
             {buildWhatsAppLink(d.telefone) && (
               <a
                 href={buildWhatsAppLink(d.telefone)!}
-                target="_blank"
-                rel="noopener noreferrer"
+                target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 text-xs font-medium hover:bg-emerald-600/30 transition-colors"
               >
-                <MessageCircle className="w-3.5 h-3.5" />
-                WhatsApp
+                <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
               </a>
             )}
             <a
               href={buildInstagramSearch(d.nome_fantasia || d.razao_social)}
-              target="_blank"
-              rel="noopener noreferrer"
+              target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-pink-600/20 border border-pink-500/30 text-pink-400 text-xs font-medium hover:bg-pink-600/30 transition-colors"
             >
-              <ExternalLink className="w-3.5 h-3.5" />
-              Instagram
+              <ExternalLink className="w-3.5 h-3.5" /> Instagram
             </a>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(buildAddress(d) || '')}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-400 text-xs font-medium hover:bg-blue-600/30 transition-colors"
+            >
+              <Map className="w-3.5 h-3.5" /> Mapa
+            </a>
+            {onSaveLead && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onSaveLead(d); }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#BFF720]/15 border border-[#BFF720]/30 text-[#BFF720] text-xs font-medium hover:bg-[#BFF720]/25 transition-colors"
+              >
+                <Save className="w-3.5 h-3.5" /> Salvar Lead
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -296,6 +349,9 @@ function LookupTab() {
                 <p className="text-sm font-mono text-zinc-500 mt-1">
                   {formatCnpj((result.cnpj || input).replace(/\D/g, ''))}
                 </p>
+                {result.atividade_principal && (
+                  <p className="text-xs text-[#BFF720] mt-1 font-medium">{result.atividade_principal}</p>
+                )}
               </div>
               <SituacaoBadge s={result.situacao_cadastral} />
             </div>
@@ -307,6 +363,7 @@ function LookupTab() {
             <InfoRow icon={Building2}  label="Porte"                value={result.porte} />
             <InfoRow icon={DollarSign} label="Capital social"       value={formatCurrency(result.capital_social)} />
             <InfoRow icon={MapPin}     label="Endereço"             value={buildAddress(result)} copy />
+            <InfoRow icon={MapPin}     label="Bairro"               value={result.bairro}        copy />
             <InfoRow icon={Phone}      label="Telefone"             value={result.telefone}      copy />
             <InfoRow icon={Mail}       label="E-mail"               value={result.email}         copy />
           </div>
@@ -327,10 +384,11 @@ function LookupTab() {
 
 /* ─── Tab: Search by location ────────────────────────────────────────────── */
 
-function LocationTab() {
+function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refreshLeadCount: () => void }) {
   const [city, setCity] = useState('');
   const [uf, setUf] = useState('');
   const [activity, setActivity] = useState('');
+  const [bairro, setBairro] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<CnpjData[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -341,12 +399,89 @@ function LocationTab() {
   const [searched, setSearched] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [savingLeads, setSavingLeads] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+
+  const filteredResults = results.filter(d => d.telefone);
+  const allSelected = filteredResults.length > 0 && filteredResults.every(d => selectedIds.has(d.cnpj));
+
+  function toggleSelect(cnpj: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(cnpj)) next.delete(cnpj);
+      else next.add(cnpj);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredResults.map(d => d.cnpj)));
+    }
+  }
+
+  async function saveLeadsToSupabase(items: CnpjData[]) {
+    setSavingLeads(true);
+    setSaveMsg(null);
+    try {
+      const rows = items.map(d => ({
+        cnpj: d.cnpj.replace(/\D/g, ''),
+        razao_social: d.razao_social,
+        nome_fantasia: d.nome_fantasia,
+        atividade_principal: d.atividade_principal,
+        telefone: d.telefone,
+        email: d.email,
+        bairro: d.bairro,
+        municipio: d.municipio,
+        uf: d.uf,
+        logradouro: d.logradouro,
+        numero: d.numero,
+        complemento: d.complemento,
+        cep: d.cep,
+        porte: d.porte,
+        capital_social: d.capital_social,
+        data_abertura: d.data_abertura,
+        natureza_juridica: d.natureza_juridica,
+        situacao_cadastral: d.situacao_cadastral,
+        source: 'consulta-cnpj',
+        status: 'novo',
+      }));
+
+      const { error: upsertErr } = await supabase
+        .from('leads' as any)
+        .upsert(rows, { onConflict: 'cnpj', ignoreDuplicates: false });
+
+      if (upsertErr) throw upsertErr;
+
+      const saved = rows.length;
+      setLeadCount(getLeadCount() + saved);
+      refreshLeadCount();
+      setSaveMsg(`${saved} lead${saved !== 1 ? 's' : ''} salvo${saved !== 1 ? 's' : ''} com sucesso!`);
+      setSelectedIds(new Set());
+      setTimeout(() => setSaveMsg(null), 4000);
+    } catch (err: any) {
+      setSaveMsg(`Erro ao salvar: ${err?.message || 'desconhecido'}`);
+      setTimeout(() => setSaveMsg(null), 5000);
+    } finally {
+      setSavingLeads(false);
+    }
+  }
+
+  function saveSingleLead(d: CnpjData) {
+    saveLeadsToSupabase([d]);
+  }
+
   async function doSearch(p: number) {
     if (!city.trim() || !uf.trim()) { setError('Informe cidade e estado.'); return; }
     setLoading(true); setError(null);
     try {
       const data = await invokeFunction('consulta-cnpj', {
-        action: 'search', city: city.trim(), uf: uf.trim(), activity: activity.trim(), page: p,
+        action: 'search', city: city.trim(), uf: uf.trim(),
+        activity: activity.trim(), bairro: bairro.trim(), page: p,
       });
       if (data?.error) throw new Error(data.error);
       setResults(data.items || []);
@@ -355,6 +490,7 @@ function LocationTab() {
       setPage(p);
       setSearched(true);
       setExpandedId(null);
+      setSelectedIds(new Set());
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     } catch (err: any) {
       setError(err?.message || 'Erro ao buscar empresas. Tente novamente.');
@@ -366,11 +502,12 @@ function LocationTab() {
     doSearch(1);
   }
 
+  const selectedItems = filteredResults.filter(d => selectedIds.has(d.cnpj));
+
   return (
     <div>
       <form onSubmit={handleSubmit} className="space-y-3 mb-6">
         <div className="grid grid-cols-[1fr_auto] gap-3">
-          {/* City */}
           <div className="relative">
             <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
             <input
@@ -380,7 +517,6 @@ function LocationTab() {
               className="w-full pl-10 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-[#BFF720]/50 focus:ring-2 focus:ring-[#BFF720]/20 transition-all text-sm"
             />
           </div>
-          {/* UF select */}
           <select
             value={uf} onChange={e => setUf(e.target.value)}
             className="px-4 py-3.5 bg-zinc-900/80 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-[#BFF720]/50 focus:ring-2 focus:ring-[#BFF720]/20 transition-all text-sm w-24 appearance-none cursor-pointer"
@@ -390,15 +526,25 @@ function LocationTab() {
           </select>
         </div>
 
-        {/* Activity filter (optional) */}
-        <div className="relative">
-          <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-          <input
-            type="text" value={activity}
-            onChange={e => setActivity(e.target.value)}
-            placeholder="Atividade / CNAE (opcional — ex.: marketing, 7319-0)"
-            className="w-full pl-10 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-[#BFF720]/50 focus:ring-2 focus:ring-[#BFF720]/20 transition-all text-sm"
-          />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="relative">
+            <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <input
+              type="text" value={activity}
+              onChange={e => setActivity(e.target.value)}
+              placeholder="Atividade / CNAE (opcional)"
+              className="w-full pl-10 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-[#BFF720]/50 focus:ring-2 focus:ring-[#BFF720]/20 transition-all text-sm"
+            />
+          </div>
+          <div className="relative">
+            <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <input
+              type="text" value={bairro}
+              onChange={e => setBairro(e.target.value)}
+              placeholder="Bairro (opcional)"
+              className="w-full pl-10 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-[#BFF720]/50 focus:ring-2 focus:ring-[#BFF720]/20 transition-all text-sm"
+            />
+          </div>
         </div>
 
         <button type="submit" disabled={loading || !city.trim() || !uf.trim()}
@@ -410,40 +556,76 @@ function LocationTab() {
 
       {error && <ErrorBanner msg={error} onDismiss={() => setError(null)} />}
 
-      {/* Results */}
       <div ref={resultsRef}>
         {searched && !loading && (
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm text-zinc-300 font-medium">
-                {municipioFound}
-              </p>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                {results.length > 0
-                  ? `${results.length} empresa${results.length !== 1 ? 's' : ''} encontrada${results.length !== 1 ? 's' : ''}${total > results.length ? ` (total: ${total})` : ''}`
-                  : 'Nenhuma empresa encontrada'}
-              </p>
+          <div className="mb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-zinc-300 font-medium">{municipioFound}</p>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  {filteredResults.length > 0
+                    ? `${filteredResults.length} empresa${filteredResults.length !== 1 ? 's' : ''} com WhatsApp${total > results.length ? ` (total: ${total})` : ''}`
+                    : 'Nenhuma empresa com WhatsApp encontrada'}
+                </p>
+              </div>
+              {total > results.length && (
+                <span className="text-xs text-zinc-600">Pág. {page}</span>
+              )}
             </div>
-            {total > results.length && (
-              <span className="text-xs text-zinc-600">Pág. {page}</span>
+
+            {/* Action bar */}
+            {filteredResults.length > 0 && (
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
+                <button
+                  onClick={() => exportCsv(filteredResults)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-medium hover:bg-zinc-700 hover:text-white transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" /> CSV
+                </button>
+                <button
+                  onClick={toggleSelectAll}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-medium hover:bg-zinc-700 hover:text-white transition-colors"
+                >
+                  {allSelected ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+                  {allSelected ? 'Desmarcar' : 'Selecionar'}
+                </button>
+                {selectedIds.size > 0 && (
+                  <button
+                    onClick={() => saveLeadsToSupabase(selectedItems)}
+                    disabled={savingLeads}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#BFF720]/15 border border-[#BFF720]/30 text-[#BFF720] text-xs font-medium hover:bg-[#BFF720]/25 transition-colors disabled:opacity-50"
+                  >
+                    {savingLeads ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    Salvar {selectedIds.size} lead{selectedIds.size !== 1 ? 's' : ''}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {saveMsg && (
+              <div className={`mt-3 p-3 rounded-lg text-xs font-medium ${saveMsg.includes('Erro') ? 'bg-red-500/10 border border-red-500/20 text-red-400' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'}`}>
+                {saveMsg}
+              </div>
             )}
           </div>
         )}
 
-        {results.length > 0 && (
+        {filteredResults.length > 0 && (
           <>
             <div className="space-y-2">
-              {results.filter(d => d.telefone).map(d => (
+              {filteredResults.map(d => (
                 <CnpjCard
                   key={d.cnpj}
                   d={d}
                   expanded={expandedId === d.cnpj}
                   onToggle={() => setExpandedId(prev => prev === d.cnpj ? null : d.cnpj)}
+                  selected={selectedIds.has(d.cnpj)}
+                  onSelect={() => toggleSelect(d.cnpj)}
+                  onSaveLead={saveSingleLead}
                 />
               ))}
             </div>
 
-            {/* Pagination */}
             <div className="flex items-center justify-center gap-3 mt-6">
               <button
                 onClick={() => doSearch(page - 1)}
@@ -464,6 +646,14 @@ function LocationTab() {
           </>
         )}
 
+        {searched && !loading && results.length > 0 && filteredResults.length === 0 && (
+          <div className="text-center py-12 text-zinc-600">
+            <Phone className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">Nenhuma empresa com telefone encontrada nessa busca.</p>
+            <p className="text-xs mt-1 opacity-70">Tente ampliar a busca ou remover filtros.</p>
+          </div>
+        )}
+
         {searched && !loading && results.length === 0 && (
           <div className="text-center py-12 text-zinc-600">
             <Building2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -482,17 +672,20 @@ type TabKey = 'cnpj' | 'location';
 
 export default function ConsultaCnpjPage() {
   const [tab, setTab] = useState<TabKey>('cnpj');
+  const [leadCount, setLeadCountState] = useState(getLeadCount());
+
+  const refreshLeadCount = useCallback(() => {
+    setLeadCountState(getLeadCount());
+  }, []);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-[Inter,system-ui,sans-serif]">
-      {/* Ambient glows */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-[#BFF720]/5 blur-[120px]" />
         <div className="absolute -bottom-60 -right-60 w-[700px] h-[700px] rounded-full bg-lime-400/3 blur-[140px]" />
       </div>
 
       <div className="relative z-10 max-w-2xl mx-auto px-4 py-12 sm:py-20">
-        {/* Header */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#BFF720]/10 border border-[#BFF720]/20 mb-4 shadow-[0_0_30px_rgba(191,247,32,0.15)]">
             <Building2 className="w-7 h-7 text-[#BFF720]" />
@@ -503,9 +696,16 @@ export default function ConsultaCnpjPage() {
           <p className="text-zinc-400 text-base max-w-md mx-auto">
             Pesquise qualquer empresa brasileira por CNPJ ou explore empresas por localização.
           </p>
+          {leadCount > 0 && (
+            <div className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-full bg-[#BFF720]/10 border border-[#BFF720]/20">
+              <Database className="w-3.5 h-3.5 text-[#BFF720]" />
+              <span className="text-xs font-medium text-[#BFF720]">
+                {leadCount} lead{leadCount !== 1 ? 's' : ''} salvo{leadCount !== 1 ? 's' : ''}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Tabs */}
         <div className="flex bg-zinc-900/60 border border-zinc-800 rounded-2xl p-1 mb-8 gap-1">
           {([
             { key: 'cnpj' as TabKey,     icon: Search,   label: 'Buscar por CNPJ' },
@@ -526,13 +726,11 @@ export default function ConsultaCnpjPage() {
           ))}
         </div>
 
-        {/* Tab content */}
         {tab === 'cnpj'     && <LookupTab />}
-        {tab === 'location' && <LocationTab />}
+        {tab === 'location' && <LocationTab leadCount={leadCount} refreshLeadCount={refreshLeadCount} />}
 
-        {/* Powered by note */}
         <p className="text-center text-xs text-zinc-700 mt-10">
-          Dados da Receita Federal via BrasilAPI &amp; CNPJ.ws · Atualização periódica
+          Dados da Receita Federal via BrasilAPI &amp; Casa dos Dados · Atualização periódica
         </p>
       </div>
     </div>

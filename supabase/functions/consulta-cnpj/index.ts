@@ -5,8 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -39,7 +37,6 @@ function normalizeCnpjData(raw: any, source: 'brasilapi' | 'receitaws') {
       capital_social: raw.capital_social ?? null,
     };
   }
-  // receitaws
   return {
     cnpj: raw.cnpj,
     razao_social: raw.nome,
@@ -62,15 +59,12 @@ function normalizeCnpjData(raw: any, source: 'brasilapi' | 'receitaws') {
   };
 }
 
-// ── Action: lookup by CNPJ ─────────────────────────────────────────────────
-
 async function lookupByCnpj(cnpj: string) {
   const digits = cnpj.replace(/\D/g, '');
   if (digits.length !== 14) {
     return jsonResponse({ error: 'CNPJ deve ter 14 dígitos.' }, 400);
   }
 
-  // Try BrasilAPI first
   try {
     const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`, {
       headers: { Accept: 'application/json' },
@@ -84,7 +78,6 @@ async function lookupByCnpj(cnpj: string) {
     }
     throw new Error(`BrasilAPI ${res.status}`);
   } catch (_) {
-    // Fallback: ReceitaWS
     const res2 = await fetch(`https://receitaws.com.br/v1/cnpj/${digits}`, {
       headers: { Accept: 'application/json' },
     });
@@ -96,8 +89,6 @@ async function lookupByCnpj(cnpj: string) {
     return jsonResponse({ data: normalizeCnpjData(raw2, 'receitaws'), source: 'receitaws' });
   }
 }
-
-// ── Action: search by location ─────────────────────────────────────────────
 
 async function enrichCnpj(cnpj: string): Promise<Record<string, unknown> | null> {
   try {
@@ -133,7 +124,7 @@ async function enrichCnpj(cnpj: string): Promise<Record<string, unknown> | null>
   }
 }
 
-async function searchByLocation(city: string, uf: string, activity: string, page: number) {
+async function searchByLocation(city: string, uf: string, activity: string, bairro: string, page: number) {
   if (!city?.trim() || !uf?.trim()) {
     return jsonResponse({ error: 'Cidade e UF são obrigatórios.' }, 400);
   }
@@ -141,7 +132,6 @@ async function searchByLocation(city: string, uf: string, activity: string, page
   const ufUpper = uf.trim().toUpperCase();
   const cityUpper = city.trim().toUpperCase();
 
-  // Search via Casa dos Dados public API (no key required)
   const payload: any = {
     situacao_cadastral: ['ATIVA'],
     uf: [ufUpper],
@@ -154,7 +144,7 @@ async function searchByLocation(city: string, uf: string, activity: string, page
     com_contato_telefonico: true,
     somente_fixo: false,
     somente_celular: false,
-   somente_matriz: false,
+    somente_matriz: false,
     somente_filial: false,
     limite: 20,
     pagina: page || 1,
@@ -162,6 +152,10 @@ async function searchByLocation(city: string, uf: string, activity: string, page
 
   if (activity?.trim()) {
     payload.codigo_atividade_principal = [activity.trim()];
+  }
+
+  if (bairro?.trim()) {
+    payload.bairro = [bairro.trim().toUpperCase()];
   }
 
   const cddRes = await fetch(
@@ -182,7 +176,6 @@ async function searchByLocation(city: string, uf: string, activity: string, page
   const cddData = await cddRes.json();
   const rawItems: any[] = cddData?.cnpjs || cddData?.data?.cnpj || [];
 
-  // Enrich each CNPJ with full data from BrasilAPI (parallel, max 20)
   const cnpjs = rawItems.map((e: any) => e.cnpj).filter(Boolean).slice(0, 20);
   const enriched = await Promise.all(cnpjs.map((c: string) => enrichCnpj(c)));
 
@@ -219,7 +212,14 @@ async function searchByLocation(city: string, uf: string, activity: string, page
   });
 }
 
-// ── Main handler ───────────────────────────────────────────────────────────
+async function enrichBulk(cnpjs: string[]) {
+  if (!Array.isArray(cnpjs) || cnpjs.length === 0) {
+    return jsonResponse({ error: 'Envie uma lista de CNPJs.' }, 400);
+  }
+  const clean = cnpjs.map(c => c.replace(/\D/g, '')).filter(c => c.length === 14).slice(0, 50);
+  const results = await Promise.all(clean.map(c => enrichCnpj(c)));
+  return jsonResponse({ items: results.filter(Boolean) });
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -233,7 +233,11 @@ serve(async (req) => {
     }
 
     if (action === 'search') {
-      return await searchByLocation(body.city, body.uf, body.activity, body.page || 1);
+      return await searchByLocation(body.city, body.uf, body.activity, body.bairro, body.page || 1);
+    }
+
+    if (action === 'enrich') {
+      return await enrichBulk(body.cnpjs || []);
     }
 
     return jsonResponse({ error: `Ação desconhecida: ${action}` }, 400);
