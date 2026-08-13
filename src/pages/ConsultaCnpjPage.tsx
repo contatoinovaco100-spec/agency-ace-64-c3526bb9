@@ -172,7 +172,12 @@ function CnpjCard({ d, expanded, onToggle }: {
           )}
           <p className="text-xs font-mono text-zinc-500 mt-0.5">{formatCnpj(d.cnpj.replace(/\D/g, ''))}</p>
           {d.atividade_principal && (
-            <p className="text-xs text-zinc-500 mt-0.5 truncate">{d.atividade_principal}</p>
+            <p className="text-xs text-[#BFF720] mt-1 truncate font-medium">{d.atividade_principal}</p>
+          )}
+          {d.telefone && (
+            <p className="text-xs text-emerald-400 mt-0.5 flex items-center gap-1">
+              <Phone className="w-3 h-3" /> {d.telefone}
+            </p>
           )}
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
@@ -428,7 +433,7 @@ function LocationTab() {
         {results.length > 0 && (
           <>
             <div className="space-y-2">
-              {results.map(d => (
+              {results.filter(d => d.telefone).map(d => (
                 <CnpjCard
                   key={d.cnpj}
                   d={d}

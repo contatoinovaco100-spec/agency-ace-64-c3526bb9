@@ -151,7 +151,7 @@ async function searchByLocation(city: string, uf: string, activity: string, page
     com_email: false,
     inverter_municipio: false,
     apenas_mei: false,
-    com_contato_telefonico: false,
+    com_contato_telefonico: true,
     somente_fixo: false,
     somente_celular: false,
    somente_matriz: false,
