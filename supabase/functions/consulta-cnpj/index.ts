@@ -147,7 +147,7 @@ async function searchByLocation(city: string, uf: string, activity: string, bair
     apenas_mei: false,
     com_contato_telefonico: true,
     somente_fixo: false,
-    somente_celular: false,
+    somente_celular: true,
     somente_matriz: false,
     somente_filial: false,
     limite: 20,
