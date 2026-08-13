@@ -1,14 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const CNPJA_API_KEY = 'c5291e75-f87c-442c-a3df-2faa02f9dd2e-908b73da-d949-47b1-829c-715e3f60af9d';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -17,15 +14,6 @@ function jsonResponse(data: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
-}
-
-async function getApiKey(): Promise<string | null> {
-  const { data } = await supabase
-    .from('app_config')
-    .select('value')
-    .eq('key', 'CNPJA_API_KEY')
-    .single();
-  return data?.value ?? null;
 }
 
 function normalizeCnpjData(raw: any, source: 'brasilapi' | 'receitaws') {
@@ -118,7 +106,7 @@ async function searchByLocation(city: string, uf: string, activity: string, page
     return jsonResponse({ error: 'Cidade e UF são obrigatórios.' }, 400);
   }
 
-  const apiKey = await getApiKey();
+  const apiKey = Deno.env.get('CNPJA_API_KEY') || CNPJA_API_KEY;
   if (!apiKey) {
     return jsonResponse({ error: 'Chave da API CNPJá não configurada. Execute o SQL de setup.' }, 500);
   }
