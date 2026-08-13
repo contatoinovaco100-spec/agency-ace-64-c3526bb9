@@ -99,6 +99,40 @@ async function lookupByCnpj(cnpj: string) {
 
 // ── Action: search by location ─────────────────────────────────────────────
 
+async function enrichCnpj(cnpj: string): Promise<Record<string, unknown> | null> {
+  try {
+    const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return null;
+    const raw = await res.json();
+    const ddd = raw.ddd_telefone_1 || '';
+    const tel = raw.telefone_1 || '';
+    return {
+      cnpj: raw.cnpj,
+      razao_social: raw.razao_social,
+      nome_fantasia: raw.nome_fantasia || null,
+      situacao_cadastral: raw.descricao_situacao_cadastral || null,
+      data_abertura: raw.data_inicio_atividade || null,
+      natureza_juridica: raw.natureza_juridica || null,
+      atividade_principal: raw.cnae_fiscal_descricao || null,
+      logradouro: raw.logradouro || null,
+      numero: raw.numero || null,
+      complemento: raw.complemento || null,
+      bairro: raw.bairro || null,
+      municipio: raw.municipio || null,
+      uf: raw.uf || null,
+      cep: raw.cep || null,
+      email: raw.email || null,
+      telefone: ddd && tel ? `(${ddd}) ${tel}` : ddd || tel || null,
+      porte: raw.porte || null,
+      capital_social: raw.capital_social ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function searchByLocation(city: string, uf: string, activity: string, page: number) {
   if (!city?.trim() || !uf?.trim()) {
     return jsonResponse({ error: 'Cidade e UF são obrigatórios.' }, 400);
@@ -146,32 +180,31 @@ async function searchByLocation(city: string, uf: string, activity: string, page
   }
 
   const cddData = await cddRes.json();
+  const rawItems: any[] = cddData?.cnpjs || cddData?.data?.cnpj || [];
 
-  const rawItems = cddData?.cnpjs || cddData?.data?.cnpj || [];
+  // Enrich each CNPJ with full data from BrasilAPI (parallel, max 20)
+  const cnpjs = rawItems.map((e: any) => e.cnpj).filter(Boolean).slice(0, 20);
+  const enriched = await Promise.all(cnpjs.map((c: string) => enrichCnpj(c)));
 
-  const items = rawItems.map((e: any) => ({
-    cnpj: e.cnpj || '',
-    razao_social: e.razao_social || '—',
-    nome_fantasia: e.nome_fantasia || null,
-    situacao_cadastral: typeof e.situacao_cadastral === 'object'
-      ? e.situacao_cadastral?.situacao_atual || 'ATIVA'
-      : e.situacao_cadastral || 'ATIVA',
-    data_abertura: e.data_abertura || null,
-    atividade_principal: e.atividade_principal?.text || e.descricao_atividade_principal || null,
-    logradouro: e.logradouro || e.endereco?.logradouro || null,
-    numero: e.numero || e.endereco?.numero || null,
-    complemento: e.complemento || e.endereco?.complemento || null,
-    bairro: e.bairro || e.endereco?.bairro || null,
-    municipio: e.municipio || e.endereco?.municipio || cityUpper,
-    uf: e.uf || e.endereco?.uf || ufUpper,
-    cep: e.cep || e.endereco?.cep || null,
-    email: e.email || null,
-    telefone: e.ddd_telefone_1
-      ? `(${e.ddd_telefone_1}) ${e.telefone_1 || ''}`.trim()
-      : null,
-    porte: e.porte || null,
-    capital_social: e.capital_social || null,
-    natureza_juridica: e.natureza_juridica || null,
+  const items = enriched.map((e, i) => ({
+    cnpj: cnpjs[i],
+    razao_social: e?.razao_social || rawItems[i]?.razao_social || '—',
+    nome_fantasia: e?.nome_fantasia || rawItems[i]?.nome_fantasia || null,
+    situacao_cadastral: e?.situacao_cadastral || 'ATIVA',
+    data_abertura: e?.data_abertura || null,
+    atividade_principal: e?.atividade_principal || null,
+    logradouro: e?.logradouro || null,
+    numero: e?.numero || null,
+    complemento: e?.complemento || null,
+    bairro: e?.bairro || null,
+    municipio: e?.municipio || cityUpper,
+    uf: e?.uf || ufUpper,
+    cep: e?.cep || null,
+    email: e?.email || null,
+    telefone: e?.telefone || null,
+    porte: e?.porte || null,
+    capital_social: e?.capital_social || null,
+    natureza_juridica: e?.natureza_juridica || null,
   }));
 
   const total = cddData?.total || items.length;
@@ -182,7 +215,7 @@ async function searchByLocation(city: string, uf: string, activity: string, page
     uf: ufUpper,
     page: page || 1,
     total,
-    source: 'casadosdados',
+    source: 'casadosdados+brasilapi',
   });
 }
 
