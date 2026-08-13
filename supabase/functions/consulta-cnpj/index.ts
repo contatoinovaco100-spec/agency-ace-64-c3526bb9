@@ -5,8 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const CNPJA_API_KEY = 'c5291e75-f87c-442c-a3df-2faa02f9dd2e-908b73da-d949-47b1-829c-715e3f60af9d';
-
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function jsonResponse(data: unknown, status = 200) {
@@ -106,97 +104,85 @@ async function searchByLocation(city: string, uf: string, activity: string, page
     return jsonResponse({ error: 'Cidade e UF são obrigatórios.' }, 400);
   }
 
-  const apiKey = Deno.env.get('CNPJA_API_KEY') || CNPJA_API_KEY;
-  if (!apiKey) {
-    return jsonResponse({ error: 'Chave da API CNPJá não configurada. Execute o SQL de setup.' }, 500);
-  }
-
   const ufUpper = uf.trim().toUpperCase();
-  const cityTrim = city.trim();
+  const cityUpper = city.trim().toUpperCase();
 
-  // 1. Validate city exists via IBGE
-  const ibgeRes = await fetch(
-    `https://servicodados.ibge.gov.br/api/v1/localidades/municipios?nome=${encodeURIComponent(cityTrim)}`,
-    { headers: { Accept: 'application/json' } }
-  );
-  if (!ibgeRes.ok) throw new Error('Falha ao buscar código do município no IBGE.');
-  const municipios: any[] = await ibgeRes.json();
-
-  const match = municipios.find(
-    (m: any) =>
-      m.microrregiao?.mesorregiao?.UF?.sigla?.toUpperCase() === ufUpper ||
-      m['regiao-imediata']?.['regiao-intermediaria']?.UF?.sigla?.toUpperCase() === ufUpper
-  ) || municipios[0];
-
-  if (!match) {
-    return jsonResponse({ error: `Município "${cityTrim}" não encontrado no estado ${ufUpper}.` }, 404);
-  }
-
-  // 2. Search via CNPJá API
-  const url = new URL('https://api.cnpja.com/office');
-  url.searchParams.set('address.state.in', ufUpper);
-  url.searchParams.set('address.city.in', cityTrim);
-  url.searchParams.set('status.in', '2'); // ATIVA
-  url.searchParams.set('head.eq', 'true'); // Matriz
-  url.searchParams.set('limit', '20');
-  url.searchParams.set('page', String(page || 1));
+  // Search via Casa dos Dados public API (no key required)
+  const payload: any = {
+    situacao_cadastral: ['ATIVA'],
+    uf: [ufUpper],
+    municipio: [cityUpper],
+    exclui_mei: false,
+    excluir_mei: false,
+    com_email: false,
+    inverter_municipio: false,
+    apenas_mei: false,
+    com_contato_telefonico: false,
+    somente_fixo: false,
+    somente_celular: false,
+   somente_matriz: false,
+    somente_filial: false,
+    limite: 20,
+    pagina: page || 1,
+  };
 
   if (activity?.trim()) {
-    url.searchParams.set('mainActivity.in', activity.trim());
+    payload.codigo_atividade_principal = [activity.trim()];
   }
 
-  const cnpjaRes = await fetch(url.toString(), {
-    headers: { Authorization: apiKey.trim(), Accept: 'application/json' },
-  });
+  const cddRes = await fetch(
+    'https://api.casadosdados.com.br/v5/public/cnpj/pesquisa',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }
+  );
 
-  if (!cnpjaRes.ok) {
-    const errText = await cnpjaRes.text();
-    console.error('CNPJá search error:', cnpjaRes.status, errText);
-    if (cnpjaRes.status === 401 || cnpjaRes.status === 403) {
-      return jsonResponse({ error: 'Chave da API CNPJá inválida ou sem permissão para busca.' }, 403);
-    }
-    if (cnpjaRes.status === 429) {
-      return jsonResponse({ error: 'Limite de consultas atingido. Tente novamente em instantes.' }, 429);
-    }
+  if (!cddRes.ok) {
+    const errText = await cddRes.text();
+    console.error('Casa dos Dados error:', cddRes.status, errText);
     throw new Error('Falha ao buscar empresas. Tente novamente em instantes.');
   }
 
-  const cnpjaData = await cnpjaRes.json();
+  const cddData = await cddRes.json();
 
-  // Normalize CNPJá response to expected format
-  const items = (cnpjaData || []).map((e: any) => ({
-    cnpj: e.taxId || '',
-    razao_social: e.name || e.alias || '—',
-    nome_fantasia: e.alias || null,
-    situacao_cadastral: e.status === 2 ? 'ATIVA' : String(e.status),
-    data_abertura: e.openDate || null,
-    atividade_principal: e.mainActivity?.text || null,
-    logradouro: e.address?.street || null,
-    numero: e.address?.number || null,
-    complemento: e.address?.details || null,
-    bairro: e.address?.district || null,
-    municipio: e.address?.city || cityTrim,
-    uf: e.address?.state || ufUpper,
-    cep: e.address?.zip || null,
-    email: e.emails?.[0]?.address || null,
-    telefone: e.phones?.[0]
-      ? `(${e.phones[0].area}) ${e.phones[0].number}`.trim()
+  const rawItems = cddData?.cnpjs || cddData?.data?.cnpj || [];
+
+  const items = rawItems.map((e: any) => ({
+    cnpj: e.cnpj || '',
+    razao_social: e.razao_social || '—',
+    nome_fantasia: e.nome_fantasia || null,
+    situacao_cadastral: typeof e.situacao_cadastral === 'object'
+      ? e.situacao_cadastral?.situacao_atual || 'ATIVA'
+      : e.situacao_cadastral || 'ATIVA',
+    data_abertura: e.data_abertura || null,
+    atividade_principal: e.atividade_principal?.text || e.descricao_atividade_principal || null,
+    logradouro: e.logradouro || e.endereco?.logradouro || null,
+    numero: e.numero || e.endereco?.numero || null,
+    complemento: e.complemento || e.endereco?.complemento || null,
+    bairro: e.bairro || e.endereco?.bairro || null,
+    municipio: e.municipio || e.endereco?.municipio || cityUpper,
+    uf: e.uf || e.endereco?.uf || ufUpper,
+    cep: e.cep || e.endereco?.cep || null,
+    email: e.email || null,
+    telefone: e.ddd_telefone_1
+      ? `(${e.ddd_telefone_1}) ${e.telefone_1 || ''}`.trim()
       : null,
-    porte: null,
-    capital_social: null,
-    natureza_juridica: e.naturezaJuridica?.text || null,
+    porte: e.porte || null,
+    capital_social: e.capital_social || null,
+    natureza_juridica: e.natureza_juridica || null,
   }));
 
-  // CNPJá returns array directly; estimate total
-  const total = items.length >= 20 ? items.length * (page || 1) : items.length;
+  const total = cddData?.total || items.length;
 
   return jsonResponse({
     items,
-    municipio: match.nome,
+    municipio: cityUpper,
     uf: ufUpper,
     page: page || 1,
     total,
-    source: 'cnpja',
+    source: 'casadosdados',
   });
 }
 
