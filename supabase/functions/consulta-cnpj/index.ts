@@ -20,10 +20,25 @@ function isMobilePhone(phone: string | null): boolean {
   return false;
 }
 
+function parseBrasilApiPhone(dddTel1: string, tel1: string): string | null {
+  if (dddTel1 && tel1) return `(${dddTel1}) ${tel1}`;
+  if (!dddTel1) return null;
+  const digits = dddTel1.replace(/\D/g, '');
+  if (digits.length === 11 && digits[2] === '9') {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    const ddd = digits.slice(0, 2);
+    const num = digits.slice(2);
+    if (num[0] === '9') return `(${ddd}) 9${num}`;
+    return `(${ddd}) ${num.slice(0, 4)}-${num.slice(4)}`;
+  }
+  if (digits.length === 13 && digits.startsWith('55')) return `+${digits}`;
+  return dddTel1;
+}
+
 function normalizeCnpjData(raw: any, source: 'brasilapi' | 'receitaws') {
   if (source === 'brasilapi') {
-    const ddd = raw.ddd_telefone_1 || '';
-    const tel = raw.telefone_1 || '';
     const socios = Array.isArray(raw.qsa) ? raw.qsa.map((s: any) => s.nome_socio).filter(Boolean).join(', ') : null;
     return {
       cnpj: raw.cnpj,
@@ -42,7 +57,7 @@ function normalizeCnpjData(raw: any, source: 'brasilapi' | 'receitaws') {
       uf: raw.uf || null,
       cep: raw.cep || null,
       email: raw.email || null,
-      telefone: ddd && tel ? `(${ddd}) ${tel}` : ddd || tel || null,
+      telefone: parseBrasilApiPhone(raw.ddd_telefone_1 || '', raw.telefone_1 || ''),
       porte: raw.porte || null,
       capital_social: raw.capital_social ?? null,
     };
@@ -107,8 +122,6 @@ async function enrichCnpj(cnpj: string): Promise<Record<string, unknown> | null>
     });
     if (!res.ok) return null;
     const raw = await res.json();
-    const ddd = raw.ddd_telefone_1 || '';
-    const tel = raw.telefone_1 || '';
     const socios = Array.isArray(raw.qsa) ? raw.qsa.map((s: any) => s.nome_socio).filter(Boolean).join(', ') : null;
     return {
       cnpj: raw.cnpj,
@@ -127,7 +140,7 @@ async function enrichCnpj(cnpj: string): Promise<Record<string, unknown> | null>
       uf: raw.uf || null,
       cep: raw.cep || null,
       email: raw.email || null,
-      telefone: ddd && tel ? `(${ddd}) ${tel}` : ddd || tel || null,
+      telefone: parseBrasilApiPhone(raw.ddd_telefone_1 || '', raw.telefone_1 || ''),
       porte: raw.porte || null,
       capital_social: raw.capital_social ?? null,
     };
