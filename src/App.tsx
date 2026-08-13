@@ -241,6 +241,7 @@ function AppRoutes() {
                     <Route path="/gravacoes"           element={<ShootingSchedulePage />} />
                     <Route path="/whiteboard"          element={<WhiteboardPage />} />
                     <Route path="/prospeccao"          element={<ProspectionPage />} />
+                    <Route path="/consulta-cnpj"       element={<CnpjLookupPage />} />
                     <Route path="/proposta/editar"     element={<SalesEditorPage />} />
                     <Route path="/diagnostico/editar"  element={<DiagnosticEditorPage />} />
                     <Route path="/diagnostico/editar/:editSlug"  element={<DiagnosticEditorPage />} />
