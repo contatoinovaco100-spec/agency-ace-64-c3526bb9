@@ -6,6 +6,24 @@ import {
   ChevronRight, ChevronLeft, Filter, Globe,
 } from 'lucide-react';
 
+const SUPABASE_URL = 'https://coblfehkclfjofrshlwl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvYmxmZWhrY2xmam9mcnNobHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNTkzODQsImV4cCI6MjA4OTYzNTM4NH0.Mi4DGSWEtf6sn4NUKOlYws0_DotBgIOVXlZ45SYGQuM';
+
+async function invokeFunction(name: string, body: Record<string, unknown>) {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error || `Erro ${res.status}`);
+  return data;
+}
+
 /* ─── Types ──────────────────────────────────────────────────────────────── */
 
 interface CnpjData {
@@ -194,18 +212,7 @@ function LookupTab() {
     if (digits.length !== 14) { setError('CNPJ deve ter 14 dígitos.'); return; }
     setLoading(true); setError(null); setResult(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke('consulta-cnpj', {
-        body: { action: 'lookup', cnpj: digits },
-      });
-      if (fnErr) {
-        let detail = fnErr.message;
-        try {
-          const ctx: any = (fnErr as any).context;
-          if (ctx?.json) detail = (await ctx.json()).error || detail;
-          else if (ctx?.text) detail = await ctx.text();
-        } catch {}
-        throw new Error(detail);
-      }
+      const data = await invokeFunction('consulta-cnpj', { action: 'lookup', cnpj: digits });
       if (data?.error) throw new Error(data.error);
       if (!data?.data) throw new Error('Nenhum dado retornado.');
       setResult(data.data);
@@ -297,18 +304,9 @@ function LocationTab() {
     if (!city.trim() || !uf.trim()) { setError('Informe cidade e estado.'); return; }
     setLoading(true); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke('consulta-cnpj', {
-        body: { action: 'search', city: city.trim(), uf: uf.trim(), activity: activity.trim(), page: p },
+      const data = await invokeFunction('consulta-cnpj', {
+        action: 'search', city: city.trim(), uf: uf.trim(), activity: activity.trim(), page: p,
       });
-      if (fnErr) {
-        let detail = fnErr.message;
-        try {
-          const ctx: any = (fnErr as any).context;
-          if (ctx?.json) detail = (await ctx.json()).error || detail;
-          else if (ctx?.text) detail = await ctx.text();
-        } catch {}
-        throw new Error(detail);
-      }
       if (data?.error) throw new Error(data.error);
       setResults(data.items || []);
       setTotal(data.total || 0);
