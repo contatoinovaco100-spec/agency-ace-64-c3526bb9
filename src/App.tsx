@@ -119,6 +119,7 @@ const SquadsPage                = lazy(() => import("./pages/SquadsPage"));
 const ViralRankingPage          = lazy(() => import("./pages/ViralRankingPage"));
 const FigmaToLpPage             = lazy(() => import("./pages/FigmaToLpPage"));
 const PublicLandingPage         = lazy(() => import("./pages/PublicLandingPage"));
+const ConsultaCnpjPage          = lazy(() => import("./pages/ConsultaCnpjPage"));
 
 // Finance & Rede
 const FinancePage               = lazy(() => import("./pages/FinancePage"));
@@ -165,6 +166,7 @@ function AppRoutes() {
     location.pathname.startsWith('/quiz/') ||
     location.pathname === '/painel-artes' ||
     location.pathname.startsWith('/lp/') ||
+    location.pathname === '/consulta-cnpj' ||
     (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar')) ||
     location.pathname.startsWith('/diagnostico-social');
 
@@ -198,6 +200,7 @@ function AppRoutes() {
           <Route path="/quiz/:clientSlug/:quizSlug" element={<PublicQuizPage />} />
           <Route path="/painel-artes"        element={<PublicArtesPage />} />
           <Route path="/lp/:slug"            element={<PublicLandingPage />} />
+          <Route path="/consulta-cnpj"       element={<ConsultaCnpjPage />} />
         </Routes>
       ) : (
         <Routes>
