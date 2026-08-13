@@ -5,6 +5,7 @@ import {
   DollarSign, Copy, CheckCircle2, Loader2, AlertCircle, X,
   ChevronRight, ChevronLeft, Filter, Globe, MessageCircle, ExternalLink,
   Download, Save, CheckSquare, Square, Map, Database, RefreshCw,
+  CircleCheckBig,
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://coblfehkclfjofrshlwl.supabase.co';
@@ -181,16 +182,18 @@ function InfoRow({ icon: Icon, label, value, copy }: {
   );
 }
 
-function CnpjCard({ d, expanded, onToggle, selected, onSelect, onSaveLead }: {
+function CnpjCard({ d, expanded, onToggle, selected, onSelect, onSaveLead, contacted, onToggleContacted }: {
   d: CnpjData;
   expanded: boolean;
   onToggle: () => void;
   selected?: boolean;
   onSelect?: () => void;
   onSaveLead?: (d: CnpjData) => void;
+  contacted?: boolean;
+  onToggleContacted?: (cnpj: string) => void;
 }) {
   return (
-    <div className={`rounded-xl bg-zinc-900/80 border overflow-hidden transition-all ${selected ? 'border-[#BFF720]/50 bg-[#BFF720]/5' : 'border-zinc-800'}`}>
+    <div className={`rounded-xl bg-zinc-900/80 border overflow-hidden transition-all ${contacted ? 'border-emerald-500/40 bg-emerald-500/5' : selected ? 'border-[#BFF720]/50 bg-[#BFF720]/5' : 'border-zinc-800'}`}>
       <button
         onClick={onToggle}
         className="w-full text-left p-4 flex items-start gap-3 hover:bg-white/3 transition-colors"
@@ -231,6 +234,11 @@ function CnpjCard({ d, expanded, onToggle, selected, onSelect, onSaveLead }: {
           )}
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
+          {contacted && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <CircleCheckBig className="w-3 h-3" /> Enviado
+            </span>
+          )}
           <SituacaoBadge s={d.situacao_cadastral} />
           <ChevronRight className={`w-4 h-4 text-zinc-500 transition-transform ${expanded ? 'rotate-90' : ''}`} />
         </div>
@@ -278,6 +286,19 @@ function CnpjCard({ d, expanded, onToggle, selected, onSelect, onSaveLead }: {
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#BFF720]/15 border border-[#BFF720]/30 text-[#BFF720] text-xs font-medium hover:bg-[#BFF720]/25 transition-colors"
               >
                 <Save className="w-3.5 h-3.5" /> Salvar Lead
+              </button>
+            )}
+            {onToggleContacted && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleContacted(d.cnpj); }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  contacted
+                    ? 'bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/30'
+                    : 'bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white'
+                }`}
+              >
+                <CircleCheckBig className="w-3.5 h-3.5" />
+                {contacted ? 'Marcado!' : 'Marcar como enviado'}
               </button>
             )}
           </div>
@@ -412,6 +433,7 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [savingLeads, setSavingLeads] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [contactedIds, setContactedIds] = useState<Set<string>>(new Set());
 
   const filteredResults = results.filter(d => d.telefone);
   const allSelected = filteredResults.length > 0 && filteredResults.every(d => selectedIds.has(d.cnpj));
@@ -485,6 +507,44 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
     saveLeadsToSupabase([d]);
   }
 
+  async function loadContacted(cnpjs: string[]) {
+    if (cnpjs.length === 0) return;
+    const clean = cnpjs.map(c => c.replace(/\D/g, ''));
+    const { data } = await supabase
+      .from('leads' as any)
+      .select('cnpj')
+      .in('cnpj', clean)
+      .eq('contacted', true);
+    if (data) {
+      setContactedIds(new Set((data as any[]).map((r: any) => r.cnpj)));
+    }
+  }
+
+  async function toggleContacted(cnpj: string) {
+    const clean = cnpj.replace(/\D/g, '');
+    const isContacted = contactedIds.has(clean);
+    try {
+      // Ensure lead exists first (upsert minimal)
+      await supabase
+        .from('leads' as any)
+        .upsert({
+          cnpj: clean,
+          contacted: !isContacted,
+          contacted_at: !isContacted ? new Date().toISOString() : null,
+          source: 'consulta-cnpj',
+        }, { onConflict: 'cnpj' });
+
+      setContactedIds(prev => {
+        const next = new Set(prev);
+        if (isContacted) next.delete(clean);
+        else next.add(clean);
+        return next;
+      });
+    } catch (err: any) {
+      console.error('toggleContacted error:', err);
+    }
+  }
+
   async function doSearch(p: number) {
     if (!city.trim() || !uf.trim()) { setError('Informe cidade e estado.'); return; }
     setLoading(true); setError(null);
@@ -501,6 +561,7 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
       setSearched(true);
       setExpandedId(null);
       setSelectedIds(new Set());
+      loadContacted((data.items || []).map((i: any) => i.cnpj));
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     } catch (err: any) {
       setError(err?.message || 'Erro ao buscar empresas. Tente novamente.');
@@ -632,6 +693,8 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
                   selected={selectedIds.has(d.cnpj)}
                   onSelect={() => toggleSelect(d.cnpj)}
                   onSaveLead={saveSingleLead}
+                  contacted={contactedIds.has(d.cnpj.replace(/\D/g, ''))}
+                  onToggleContacted={toggleContacted}
                 />
               ))}
             </div>
