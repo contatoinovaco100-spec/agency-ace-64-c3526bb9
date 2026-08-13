@@ -224,7 +224,7 @@ async function searchByLocation(city: string, uf: string, activity: string, bair
     porte: e?.porte || null,
     capital_social: e?.capital_social || null,
     natureza_juridica: e?.natureza_juridica || null,
-  })).filter(item => isMobilePhone(item.telefone));
+  }));
 
   const total = cddData?.total || items.length;
 

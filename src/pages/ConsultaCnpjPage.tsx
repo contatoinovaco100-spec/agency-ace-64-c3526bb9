@@ -443,7 +443,7 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [contactedIds, setContactedIds] = useState<Set<string>>(new Set());
 
-  const filteredResults = results.filter(d => isMobilePhone(d.telefone));
+  const filteredResults = results;
   const allSelected = filteredResults.length > 0 && filteredResults.every(d => selectedIds.has(d.cnpj));
 
   function toggleSelect(cnpj: string) {
@@ -643,8 +643,8 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
                 <p className="text-sm text-zinc-300 font-medium">{municipioFound}</p>
                 <p className="text-xs text-zinc-500 mt-0.5">
                   {filteredResults.length > 0
-                    ? `${filteredResults.length} empresa${filteredResults.length !== 1 ? 's' : ''} com WhatsApp${total > results.length ? ` (total: ${total})` : ''}`
-                    : 'Nenhuma empresa com WhatsApp encontrada'}
+                    ? `${filteredResults.length} empresa${filteredResults.length !== 1 ? 's' : ''} encontrada${filteredResults.length !== 1 ? 's' : ''}${total > results.length ? ` (total: ${total})` : ''}`
+                    : 'Nenhuma empresa encontrada'}
                 </p>
               </div>
               {total > results.length && (
@@ -730,7 +730,7 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
         {searched && !loading && results.length > 0 && filteredResults.length === 0 && (
           <div className="text-center py-12 text-zinc-600">
             <Phone className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Nenhuma empresa com telefone encontrada nessa busca.</p>
+            <p className="text-sm">Nenhuma empresa encontrada nessa busca.</p>
             <p className="text-xs mt-1 opacity-70">Tente ampliar a busca ou remover filtros.</p>
           </div>
         )}
