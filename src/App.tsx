@@ -71,6 +71,7 @@ const ShootingSchedulePage = lazy(() => import("./pages/ShootingSchedulePage"));
 const WhiteboardPage       = lazy(() => import("./pages/WhiteboardPage"));
 const ContentPlanningPage  = lazy(() => import("@/pages/ContentPlanningPage"));
 const ProspectionPage      = lazy(() => import("@/pages/ProspectionPage"));
+const CnpjLookupPage       = lazy(() => import("@/pages/CnpjLookupPage"));
 const SalesLP              = lazy(() => import("@/pages/SalesLP"));
 const SalesEditorPage      = lazy(() => import("@/pages/SalesEditorPage"));
 const DiagnosticEditorPage = lazy(() => import("@/pages/DiagnosticEditorPage"));
@@ -240,6 +241,7 @@ function AppRoutes() {
                     <Route path="/gravacoes"           element={<ShootingSchedulePage />} />
                     <Route path="/whiteboard"          element={<WhiteboardPage />} />
                     <Route path="/prospeccao"          element={<ProspectionPage />} />
+                    <Route path="/consulta-cnpj"       element={<CnpjLookupPage />} />
                     <Route path="/proposta/editar"     element={<SalesEditorPage />} />
                     <Route path="/diagnostico/editar"  element={<DiagnosticEditorPage />} />
                     <Route path="/diagnostico/editar/:editSlug"  element={<DiagnosticEditorPage />} />

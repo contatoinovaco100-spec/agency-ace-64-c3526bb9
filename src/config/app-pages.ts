@@ -3,7 +3,7 @@ import {
   Shield, FileText, BarChart3,   Film, Clapperboard, Palette, Play,
   LayoutList, Bot, Sparkles, Settings, Bell, Calendar, CalendarDays,
   MessageSquare, TrendingUp, Images, BookOpen, CalculatorIcon,
-  Gift, Link2, ListChecks, Wallet, Network, Layers, KeyRound, UsersRound, Trophy,
+  Gift, Link2, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy,
 } from 'lucide-react';
 
 export type PageCategory =
@@ -64,6 +64,7 @@ export const APP_PAGES: AppPage[] = [
   // { path: '/whatsapp',            label: 'WhatsApp',            icon: MessageSquare,   category: 'Comercial' },
   // { path: '/whatsapp/config',     label: 'Config. WhatsApp',    icon: Settings,        category: 'Comercial', adminOnly: true },
   { path: '/prospeccao',          label: 'Prospecção IA',       icon: Bot,             category: 'Comercial' },
+  { path: '/consulta-cnpj',       label: 'Consulta CNPJ',       icon: Search,          category: 'Comercial' },
   { path: '/time-comercial',      label: 'Time Comercial',      icon: TrendingUp,      category: 'Comercial' },
   // { path: '/proposta',            label: 'Proposta Comercial',  icon: Sparkles,        category: 'Comercial' },
   // { path: '/proposta/editar',     label: 'Editar Proposta',     icon: Settings,        category: 'Comercial' },
