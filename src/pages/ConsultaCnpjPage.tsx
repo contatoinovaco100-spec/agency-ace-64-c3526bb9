@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   Search, Building2, MapPin, Phone, Mail, Calendar, Briefcase,
   DollarSign, Copy, CheckCircle2, Loader2, AlertCircle, X,
-  ChevronRight, ChevronLeft, Filter, Globe,
+  ChevronRight, ChevronLeft, Filter, Globe, MessageCircle, ExternalLink,
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://coblfehkclfjofrshlwl.supabase.co';
@@ -86,6 +86,18 @@ function buildAddress(d: CnpjData) {
     d.municipio && d.uf ? `${d.municipio} - ${d.uf}` : d.municipio || d.uf,
     formatCep(d.cep ?? null),
   ].filter(Boolean).join(', ') || null;
+}
+
+function buildWhatsAppLink(tel: string | null | undefined): string | null {
+  if (!tel) return null;
+  const digits = tel.replace(/\D/g, '');
+  if (digits.length < 10) return null;
+  const phone = digits.startsWith('55') ? digits : `55${digits}`;
+  return `https://wa.me/${phone}`;
+}
+
+function buildInstagramSearch(name: string): string {
+  return `https://www.google.com/search?q=${encodeURIComponent(name + ' Instagram')}`;
 }
 
 /* ─── Sub-components ─────────────────────────────────────────────────────── */
@@ -179,6 +191,30 @@ function CnpjCard({ d, expanded, onToggle }: {
           <InfoRow icon={Briefcase}  label="Natureza"     value={d.natureza_juridica} />
           <InfoRow icon={Building2}  label="Porte"        value={d.porte} />
           <InfoRow icon={DollarSign} label="Capital social" value={formatCurrency(d.capital_social)} />
+
+          {/* Social buttons */}
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+            {buildWhatsAppLink(d.telefone) && (
+              <a
+                href={buildWhatsAppLink(d.telefone)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 text-xs font-medium hover:bg-emerald-600/30 transition-colors"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                WhatsApp
+              </a>
+            )}
+            <a
+              href={buildInstagramSearch(d.nome_fantasia || d.razao_social)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-pink-600/20 border border-pink-500/30 text-pink-400 text-xs font-medium hover:bg-pink-600/30 transition-colors"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Instagram
+            </a>
+          </div>
         </div>
       )}
     </div>
