@@ -100,7 +100,7 @@ function isMobilePhone(phone: string | null | undefined): boolean {
 }
 
 function buildWhatsAppLink(tel: string | null | undefined): string | null {
-  if (!tel || !isMobilePhone(tel)) return null;
+  if (!tel) return null;
   const digits = tel.replace(/\D/g, '');
   if (digits.length < 10) return null;
   const phone = digits.startsWith('55') ? digits : `55${digits}`;
