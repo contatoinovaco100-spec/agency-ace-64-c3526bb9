@@ -149,7 +149,7 @@ async function enrichCnpj(cnpj: string): Promise<Record<string, unknown> | null>
   }
 }
 
-async function searchByLocation(city: string, uf: string, activity: string, bairro: string, page: number) {
+async function searchByLocation(city: string, uf: string, activity: string, bairro: string, page: number, excludeCnpjs: string[]) {
   if (!city?.trim() || !uf?.trim()) {
     return jsonResponse({ error: 'Cidade e UF são obrigatórios.' }, 400);
   }
@@ -172,7 +172,7 @@ async function searchByLocation(city: string, uf: string, activity: string, bair
     somente_matriz: false,
     somente_filial: false,
     limite: 20,
-    pagina: page || 1,
+    pagina: 1,
   };
 
   if (activity?.trim()) {
@@ -181,6 +181,10 @@ async function searchByLocation(city: string, uf: string, activity: string, bair
 
   if (bairro?.trim()) {
     payload.bairro = [bairro.trim().toUpperCase()];
+  }
+
+  if (excludeCnpjs?.length > 0) {
+    payload.excluir = { cnpj: excludeCnpjs };
   }
 
   const cddRes = await fetch(
@@ -259,7 +263,7 @@ serve(async (req) => {
     }
 
     if (action === 'search') {
-      return await searchByLocation(body.city, body.uf, body.activity, body.bairro, body.page || 1);
+      return await searchByLocation(body.city, body.uf, body.activity, body.bairro, body.page || 1, body.excludeCnpjs || []);
     }
 
     if (action === 'enrich') {

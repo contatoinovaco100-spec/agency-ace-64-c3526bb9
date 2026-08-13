@@ -436,6 +436,7 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
   const [municipioFound, setMunicipioFound] = useState('');
   const [searched, setSearched] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const seenCnpjsRef = useRef<Set<string>>(new Set());
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -553,23 +554,27 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
     }
   }
 
-  async function doSearch(p: number) {
+  async function doSearch(p: number, append = false) {
     if (!city.trim() || !uf.trim()) { setError('Informe cidade e estado.'); return; }
     setLoading(true); setError(null);
     try {
+      const excludeCnpjs = append ? Array.from(seenCnpjsRef.current) : [];
       const data = await invokeFunction('consulta-cnpj', {
         action: 'search', city: city.trim(), uf: uf.trim(),
         activity: activity.trim(), bairro: bairro.trim(), page: p,
+        excludeCnpjs,
       });
       if (data?.error) throw new Error(data.error);
-      setResults(data.items || []);
+      const newItems = data.items || [];
+      newItems.forEach((item: CnpjData) => seenCnpjsRef.current.add(item.cnpj));
+      setResults(append ? [...results, ...newItems] : newItems);
       setTotal(data.total || 0);
       setMunicipioFound(`${data.municipio || city} - ${data.uf || uf}`);
       setPage(p);
       setSearched(true);
       setExpandedId(null);
-      setSelectedIds(new Set());
-      loadContacted((data.items || []).map((i: any) => i.cnpj));
+      if (!append) setSelectedIds(new Set());
+      loadContacted(newItems.map((i: any) => i.cnpj));
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     } catch (err: any) {
       setError(err?.message || 'Erro ao buscar empresas. Tente novamente.');
@@ -578,7 +583,9 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    doSearch(1);
+    seenCnpjsRef.current = new Set();
+    setResults([]);
+    doSearch(1, false);
   }
 
   const selectedItems = filteredResults.filter(d => selectedIds.has(d.cnpj));
@@ -709,19 +716,11 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
 
             <div className="flex items-center justify-center gap-3 mt-6">
               <button
-                onClick={() => doSearch(page - 1)}
-                disabled={page <= 1 || loading}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm disabled:opacity-40 hover:border-zinc-700 transition-all"
-              >
-                <ChevronLeft className="w-4 h-4" /> Anterior
-              </button>
-              <span className="text-zinc-500 text-sm">Página {page}</span>
-              <button
-                onClick={() => doSearch(page + 1)}
+                onClick={() => doSearch(page + 1, true)}
                 disabled={loading || results.length < 20}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm disabled:opacity-40 hover:border-zinc-700 transition-all"
               >
-                Próxima <ChevronRight className="w-4 h-4" />
+                Carregar mais <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </>
