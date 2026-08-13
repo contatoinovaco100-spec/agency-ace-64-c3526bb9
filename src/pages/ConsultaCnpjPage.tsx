@@ -35,6 +35,7 @@ interface CnpjData {
   data_abertura?: string | null;
   natureza_juridica?: string | null;
   atividade_principal?: string | null;
+  socios?: string | null;
   logradouro?: string | null;
   numero?: string | null;
   complemento?: string | null;
@@ -102,9 +103,10 @@ function buildInstagramSearch(name: string): string {
 }
 
 function exportCsv(items: CnpjData[]) {
-  const headers = ['CNPJ','Razão Social','Nome Fantasia','Atividade','Telefone','Email','Bairro','Cidade','UF','Endereço','CEP','Porte','Capital Social','Data Abertura','Situação'];
+  const headers = ['CNPJ','Razão Social','Nome Fantasia','Atividade','Sócios','Telefone','Email','Bairro','Cidade','UF','Endereço','CEP','Porte','Capital Social','Data Abertura','Situação'];
   const rows = items.map(d => [
     d.cnpj, d.razao_social, d.nome_fantasia || '', d.atividade_principal || '',
+    d.socios || '',
     d.telefone || '', d.email || '', d.bairro || '', d.municipio || '', d.uf || '',
     [d.logradouro, d.numero, d.complemento].filter(Boolean).join(' '),
     d.cep || '', d.porte || '', d.capital_social || '', d.data_abertura || '', d.situacao_cadastral || '',
@@ -212,6 +214,11 @@ function CnpjCard({ d, expanded, onToggle, selected, onSelect, onSaveLead }: {
           {d.atividade_principal && (
             <p className="text-xs text-[#BFF720] mt-1 truncate font-medium">{d.atividade_principal}</p>
           )}
+          {d.socios && (
+            <p className="text-xs text-amber-400 mt-0.5 truncate flex items-center gap-1">
+              <Briefcase className="w-3 h-3" /> {d.socios}
+            </p>
+          )}
           {d.telefone && (
             <p className="text-xs text-emerald-400 mt-0.5 flex items-center gap-1">
               <Phone className="w-3 h-3" /> {d.telefone}
@@ -233,6 +240,7 @@ function CnpjCard({ d, expanded, onToggle, selected, onSelect, onSaveLead }: {
         <div className="px-4 pb-4 border-t border-white/5 pt-3">
           <InfoRow icon={MapPin}     label="Endereço"     value={buildAddress(d)} copy />
           <InfoRow icon={MapPin}     label="Bairro"       value={d.bairro}        copy />
+          <InfoRow icon={Briefcase}  label="Sócios"       value={d.socios} />
           <InfoRow icon={Phone}      label="Telefone"     value={d.telefone}      copy />
           <InfoRow icon={Mail}       label="E-mail"       value={d.email}         copy />
           <InfoRow icon={Calendar}   label="Abertura"     value={d.data_abertura} />
@@ -360,6 +368,7 @@ function LookupTab() {
             <InfoRow icon={Calendar}   label="Data de abertura"     value={result.data_abertura} />
             <InfoRow icon={Briefcase}  label="Natureza jurídica"    value={result.natureza_juridica} />
             <InfoRow icon={Briefcase}  label="Atividade principal"  value={result.atividade_principal} />
+            <InfoRow icon={Briefcase}  label="Sócios"               value={result.socios} />
             <InfoRow icon={Building2}  label="Porte"                value={result.porte} />
             <InfoRow icon={DollarSign} label="Capital social"       value={formatCurrency(result.capital_social)} />
             <InfoRow icon={MapPin}     label="Endereço"             value={buildAddress(result)} copy />
@@ -433,6 +442,7 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
         razao_social: d.razao_social,
         nome_fantasia: d.nome_fantasia,
         atividade_principal: d.atividade_principal,
+        socios: d.socios,
         telefone: d.telefone,
         email: d.email,
         bairro: d.bairro,

@@ -16,6 +16,7 @@ function normalizeCnpjData(raw: any, source: 'brasilapi' | 'receitaws') {
   if (source === 'brasilapi') {
     const ddd = raw.ddd_telefone_1 || '';
     const tel = raw.telefone_1 || '';
+    const socios = Array.isArray(raw.qsa) ? raw.qsa.map((s: any) => s.nome_socio).filter(Boolean).join(', ') : null;
     return {
       cnpj: raw.cnpj,
       razao_social: raw.razao_social,
@@ -24,6 +25,7 @@ function normalizeCnpjData(raw: any, source: 'brasilapi' | 'receitaws') {
       data_abertura: raw.data_inicio_atividade || null,
       natureza_juridica: raw.natureza_juridica || null,
       atividade_principal: raw.cnae_fiscal_descricao || null,
+      socios,
       logradouro: raw.logradouro || null,
       numero: raw.numero || null,
       complemento: raw.complemento || null,
@@ -99,6 +101,7 @@ async function enrichCnpj(cnpj: string): Promise<Record<string, unknown> | null>
     const raw = await res.json();
     const ddd = raw.ddd_telefone_1 || '';
     const tel = raw.telefone_1 || '';
+    const socios = Array.isArray(raw.qsa) ? raw.qsa.map((s: any) => s.nome_socio).filter(Boolean).join(', ') : null;
     return {
       cnpj: raw.cnpj,
       razao_social: raw.razao_social,
@@ -107,6 +110,7 @@ async function enrichCnpj(cnpj: string): Promise<Record<string, unknown> | null>
       data_abertura: raw.data_inicio_atividade || null,
       natureza_juridica: raw.natureza_juridica || null,
       atividade_principal: raw.cnae_fiscal_descricao || null,
+      socios,
       logradouro: raw.logradouro || null,
       numero: raw.numero || null,
       complemento: raw.complemento || null,
@@ -186,6 +190,7 @@ async function searchByLocation(city: string, uf: string, activity: string, bair
     situacao_cadastral: e?.situacao_cadastral || 'ATIVA',
     data_abertura: e?.data_abertura || null,
     atividade_principal: e?.atividade_principal || null,
+    socios: e?.socios || null,
     logradouro: e?.logradouro || null,
     numero: e?.numero || null,
     complemento: e?.complemento || null,
