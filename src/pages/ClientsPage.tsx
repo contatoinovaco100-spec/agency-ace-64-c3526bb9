@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 import { useAgency } from '@/contexts/AgencyContext';
 import { Client, ServiceType, ClientStatus, ScopeDetails } from '@/types/agency';
-import { Plus, Search, X, ChevronDown, ChevronUp, BarChart3 } from 'lucide-react';
+import { Plus, Search, X, ChevronDown, ChevronUp, BarChart3, Pause, Trash2, Square, CheckSquare } from 'lucide-react';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { MetaInsightsPanel } from '@/components/clients/MetaInsightsPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,6 +13,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ClientDiagnosisTab } from '@/components/clients/ClientDiagnosisTab';
@@ -120,6 +124,54 @@ export default function ClientsPage() {
 
   const [form, setForm] = useState<Partial<Client>>({});
 
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<'pause' | 'delete' | null>(null);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(c => c.id)));
+    }
+  };
+
+  const executeBulkAction = async () => {
+    setBulkProcessing(true);
+    try {
+      if (bulkAction === 'pause') {
+        for (const id of selectedIds) {
+          const client = clients.find(c => c.id === id);
+          if (client) updateClient({ ...client, status: 'Pausado' } as Client);
+        }
+        toast.success(`${selectedIds.size} cliente(s) pausado(s).`);
+      } else if (bulkAction === 'delete') {
+        for (const id of selectedIds) {
+          await deleteClient(id);
+        }
+        toast.success(`${selectedIds.size} cliente(s) excluído(s).`);
+      }
+      setSelectedIds(new Set());
+    } catch (e: any) {
+      toast.error('Erro na ação em massa: ' + (e?.message || 'desconhecido'));
+    } finally {
+      setBulkProcessing(false);
+      setBulkConfirmOpen(false);
+      setBulkAction(null);
+      await refresh();
+    }
+  };
+
   const filtered = clients.filter(c =>
     c.companyName.toLowerCase().includes(search.toLowerCase()) ||
     c.contactName.toLowerCase().includes(search.toLowerCase())
@@ -166,16 +218,74 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative w-full max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Buscar clientes..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      {/* Search + Select All */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar clientes..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <button
+          onClick={toggleSelectAll}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
+        >
+          {selectedIds.size === filtered.length && filtered.length > 0 ? (
+            <CheckSquare className="h-4 w-4 text-primary" />
+          ) : (
+            <Square className="h-4 w-4" />
+          )}
+          {selectedIds.size > 0 ? `${selectedIds.size} selecionado(s)` : 'Selecionar todos'}
+        </button>
       </div>
+
+      {/* Bulk Action Bar */}
+      <AnimatePresence>
+        {selectedIds.size > 0 && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <span className="text-sm font-medium text-foreground">
+                {selectedIds.size} cliente(s) selecionado(s)
+              </span>
+              <div className="flex gap-2 ml-auto">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setBulkAction('pause'); setBulkConfirmOpen(true); }}
+                  className="gap-1.5 text-warning hover:bg-warning/10"
+                >
+                  <Pause className="h-3.5 w-3.5" /> Pausar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setBulkAction('delete'); setBulkConfirmOpen(true); }}
+                  className="gap-1.5 text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Excluir
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedIds(new Set())}
+                  className="gap-1.5"
+                >
+                  <X className="h-3.5 w-3.5" /> Cancelar
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Cards */}
       <div className="space-y-3">
@@ -189,6 +299,16 @@ export default function ClientsPage() {
               className="flex cursor-pointer items-center gap-3 px-4 py-4 transition-default hover:bg-secondary/30 sm:gap-4 sm:px-5"
               onClick={() => setExpandedId(expandedId === client.id ? null : client.id)}
             >
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleSelect(client.id); }}
+                className="shrink-0 p-1 rounded hover:bg-muted transition-colors"
+              >
+                {selectedIds.has(client.id) ? (
+                  <CheckSquare className="h-5 w-5 text-primary" />
+                ) : (
+                  <Square className="h-5 w-5 text-muted-foreground" />
+                )}
+              </button>
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-body font-semibold text-primary">
                 {client.companyName.substring(0, 2).toUpperCase()}
               </div>
@@ -391,6 +511,32 @@ export default function ClientsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Action Confirmation Dialog */}
+      <AlertDialog open={bulkConfirmOpen} onOpenChange={setBulkConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {bulkAction === 'pause' ? 'Pausar clientes selecionados?' : 'Excluir clientes selecionados?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkAction === 'pause'
+                ? `Tem certeza que deseja pausar ${selectedIds.size} cliente(s)? Eles terão seu status alterado para "Pausado".`
+                : `Tem certeza que deseja excluir ${selectedIds.size} cliente(s)? Esta ação não pode ser desfeita.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkProcessing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={executeBulkAction}
+              disabled={bulkProcessing}
+              className={bulkAction === 'delete' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+            >
+              {bulkProcessing ? 'Processando...' : bulkAction === 'pause' ? 'Pausar' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
