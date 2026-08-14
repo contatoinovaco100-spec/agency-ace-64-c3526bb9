@@ -130,6 +130,40 @@ export default function ContractsPage() {
 
   useEffect(() => { loadData(); }, []);
 
+  const countFilledFields = (c: Contract): number => {
+    let count = 0;
+    if (c.title) count++;
+    if (c.client_company) count++;
+    if (c.client_name) count++;
+    if (c.client_cpf_cnpj) count++;
+    if (c.client_email) count++;
+    if (c.client_address) count++;
+    if (c.contractor_name) count++;
+    if (c.contractor_cpf_cnpj) count++;
+    if (c.contractor_address) count++;
+    if (c.services) count++;
+    if (c.scope_description) count++;
+    if (c.monthly_value > 0) count++;
+    if (c.plan_name) count++;
+    if (c.additional_clauses) count++;
+    if (c.deliverables && c.deliverables.length > 0) count++;
+    if (c.affiliate_token) count++;
+    if (c.status === 'assinado') count += 2;
+    return count;
+  };
+
+  const deduplicateContracts = (list: Contract[]): Contract[] => {
+    const map = new Map<string, Contract>();
+    for (const c of list) {
+      const key = `${(c.title || '').toLowerCase().trim()}|${(c.client_company || '').toLowerCase().trim()}|${(c.client_name || '').toLowerCase().trim()}`;
+      const existing = map.get(key);
+      if (!existing || countFilledFields(c) > countFilledFields(existing) || (countFilledFields(c) === countFilledFields(existing) && new Date(c.created_at) > new Date(existing.created_at))) {
+        map.set(key, c);
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  };
+
   const loadData = async () => {
     setLoading(true);
     const [{ data: c }, { data: s }] = await Promise.all([
@@ -137,16 +171,11 @@ export default function ContractsPage() {
       supabase.from('contract_signatures').select('*'),
     ]);
     if (c) {
-      const seen = new Set<string>();
-      const unique = (c as any[]).filter((contract) => {
-        if (seen.has(contract.id)) return false;
-        seen.add(contract.id);
-        return true;
-      });
-      setContracts(unique.map((contract: any) => ({
+      const parsed = c.map((contract: any) => ({
         ...contract,
         deliverables: Array.isArray(contract.deliverables) ? contract.deliverables : [],
-      })) as Contract[]);
+      })) as Contract[];
+      setContracts(deduplicateContracts(parsed));
     }
     if (s) setSignatures(s as Signature[]);
     setLoading(false);
