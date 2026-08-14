@@ -55,7 +55,6 @@ export default function InstagramAnalyticsPage() {
     if (!accountId && igAccounts.length) setAccountId(igAccounts[0].id);
   }, [igAccounts, accountId]);
 
-  const load = useCallback(async () => {
   const fetchDays = Math.min(90, Math.max(Number(days), comparisonDays));
 
   const load = useCallback(async () => {
