@@ -56,11 +56,14 @@ export default function InstagramAnalyticsPage() {
   }, [igAccounts, accountId]);
 
   const load = useCallback(async () => {
+  const fetchDays = Math.min(90, Math.max(Number(days), comparisonDays));
+
+  const load = useCallback(async () => {
     if (!accountId) return;
     setLoading(true);
     try {
       const { data: res, error } = await supabase.functions.invoke('instagram-analytics', {
-        body: { account_id: accountId, days: Number(days) },
+        body: { account_id: accountId, days: fetchDays },
       });
       if (error) throw error;
       if ((res as any)?.error) throw new Error((res as any).error);
@@ -70,9 +73,15 @@ export default function InstagramAnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [accountId, days]);
+  }, [accountId, fetchDays]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleEarliestDate = useCallback((date: string) => {
+    const needed = Math.ceil((Date.now() - Date.parse(`${date}T00:00:00Z`)) / 86400000) + 1;
+    setComparisonDays(prev => (needed > prev ? Math.min(90, needed) : prev));
+  }, []);
+
 
   const generateSlug = (name: string) => {
     const base = (name || 'cliente')
