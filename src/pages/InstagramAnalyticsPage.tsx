@@ -14,6 +14,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { BarChart3, Flame, Heart, MessageCircle, RefreshCw, Users, Eye, TrendingUp, Wand2, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import DateComparison from '@/components/analytics/DateComparison';
 
 interface AnalyticsData {
   profile: { username: string; name: string; picture: string; followers: number; following: number; media_count: number };
@@ -41,6 +42,7 @@ export default function InstagramAnalyticsPage() {
 
   const [accountId, setAccountId] = useState('');
   const [days, setDays] = useState('30');
+  const [comparisonDays, setComparisonDays] = useState(0);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -54,12 +56,14 @@ export default function InstagramAnalyticsPage() {
     if (!accountId && igAccounts.length) setAccountId(igAccounts[0].id);
   }, [igAccounts, accountId]);
 
+  const fetchDays = Math.min(90, Math.max(Number(days), comparisonDays));
+
   const load = useCallback(async () => {
     if (!accountId) return;
     setLoading(true);
     try {
       const { data: res, error } = await supabase.functions.invoke('instagram-analytics', {
-        body: { account_id: accountId, days: Number(days) },
+        body: { account_id: accountId, days: fetchDays },
       });
       if (error) throw error;
       if ((res as any)?.error) throw new Error((res as any).error);
@@ -69,9 +73,15 @@ export default function InstagramAnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [accountId, days]);
+  }, [accountId, fetchDays]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleEarliestDate = useCallback((date: string) => {
+    const needed = Math.ceil((Date.now() - Date.parse(`${date}T00:00:00Z`)) / 86400000) + 1;
+    setComparisonDays(prev => (needed > prev ? Math.min(90, needed) : prev));
+  }, []);
+
 
   const generateSlug = (name: string) => {
     const base = (name || 'cliente')
@@ -289,6 +299,10 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
           )}
         </CardContent>
       </Card>
+
+      <DateComparison daily={data?.daily ?? []} onEarliestDateChange={handleEarliestDate} />
+
+
 
       {!!data?.viral?.length && (
         <Card>
