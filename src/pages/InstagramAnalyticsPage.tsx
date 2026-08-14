@@ -299,6 +299,10 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
         </CardContent>
       </Card>
 
+      <DateComparison daily={data?.daily ?? []} onEarliestDateChange={handleEarliestDate} />
+
+
+
       {!!data?.viral?.length && (
         <Card>
           <CardHeader className="pb-2">
