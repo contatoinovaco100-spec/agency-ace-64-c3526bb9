@@ -14,6 +14,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { BarChart3, Flame, Heart, MessageCircle, RefreshCw, Users, Eye, TrendingUp, Wand2, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import DateComparison from '@/components/analytics/DateComparison';
 
 interface AnalyticsData {
   profile: { username: string; name: string; picture: string; followers: number; following: number; media_count: number };
