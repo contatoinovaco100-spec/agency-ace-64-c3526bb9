@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -116,6 +116,7 @@ export default function ContractsPage() {
   const [form, setForm] = useState(emptyContract);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   
   // Affiliate lookup state
   const [affiliateSearchLoading, setAffiliateSearchLoading] = useState(false);
