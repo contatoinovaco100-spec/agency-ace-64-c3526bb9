@@ -136,10 +136,18 @@ export default function ContractsPage() {
       supabase.from('contracts').select('*').order('created_at', { ascending: false }),
       supabase.from('contract_signatures').select('*'),
     ]);
-    if (c) setContracts(c.map((contract: any) => ({
-      ...contract,
-      deliverables: Array.isArray(contract.deliverables) ? contract.deliverables : [],
-    })) as Contract[]);
+    if (c) {
+      const seen = new Set<string>();
+      const unique = (c as any[]).filter((contract) => {
+        if (seen.has(contract.id)) return false;
+        seen.add(contract.id);
+        return true;
+      });
+      setContracts(unique.map((contract: any) => ({
+        ...contract,
+        deliverables: Array.isArray(contract.deliverables) ? contract.deliverables : [],
+      })) as Contract[]);
+    }
     if (s) setSignatures(s as Signature[]);
     setLoading(false);
   };
