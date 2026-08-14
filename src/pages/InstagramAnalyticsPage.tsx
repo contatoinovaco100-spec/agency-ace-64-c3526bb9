@@ -41,6 +41,7 @@ export default function InstagramAnalyticsPage() {
 
   const [accountId, setAccountId] = useState('');
   const [days, setDays] = useState('30');
+  const [comparisonDays, setComparisonDays] = useState(0);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(false);
 
