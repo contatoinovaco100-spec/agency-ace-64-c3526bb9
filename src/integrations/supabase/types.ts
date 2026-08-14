@@ -334,6 +334,24 @@ export type Database = {
         }
         Relationships: []
       }
+      app_config: {
+        Row: {
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       budget_items: {
         Row: {
           actual_cost: number
@@ -1648,47 +1666,104 @@ export type Database = {
       leads: {
         Row: {
           assignee: string
+          atividade_principal: string | null
+          bairro: string | null
+          capital_social: string | null
+          cep: string | null
           closer: string | null
           company: string
+          complemento: string | null
+          contacted: boolean | null
+          contacted_at: string | null
           created_at: string
+          data_abertura: string | null
           email: string
           estimated_value: number
           id: string
+          logradouro: string | null
+          municipio: string | null
           name: string
+          natureza_juridica: string | null
+          nome_fantasia: string | null
           notes: string
+          numero: string | null
           phone: string
+          porte: string | null
+          situacao_cadastral: string | null
+          socios: string | null
           source: string
           stage: string
+          status: string | null
+          telefone: string | null
+          uf: string | null
           updated_at: string
         }
         Insert: {
           assignee?: string
+          atividade_principal?: string | null
+          bairro?: string | null
+          capital_social?: string | null
+          cep?: string | null
           closer?: string | null
           company?: string
+          complemento?: string | null
+          contacted?: boolean | null
+          contacted_at?: string | null
           created_at?: string
+          data_abertura?: string | null
           email?: string
           estimated_value?: number
           id?: string
+          logradouro?: string | null
+          municipio?: string | null
           name: string
+          natureza_juridica?: string | null
+          nome_fantasia?: string | null
           notes?: string
+          numero?: string | null
           phone?: string
+          porte?: string | null
+          situacao_cadastral?: string | null
+          socios?: string | null
           source?: string
           stage?: string
+          status?: string | null
+          telefone?: string | null
+          uf?: string | null
           updated_at?: string
         }
         Update: {
           assignee?: string
+          atividade_principal?: string | null
+          bairro?: string | null
+          capital_social?: string | null
+          cep?: string | null
           closer?: string | null
           company?: string
+          complemento?: string | null
+          contacted?: boolean | null
+          contacted_at?: string | null
           created_at?: string
+          data_abertura?: string | null
           email?: string
           estimated_value?: number
           id?: string
+          logradouro?: string | null
+          municipio?: string | null
           name?: string
+          natureza_juridica?: string | null
+          nome_fantasia?: string | null
           notes?: string
+          numero?: string | null
           phone?: string
+          porte?: string | null
+          situacao_cadastral?: string | null
+          socios?: string | null
           source?: string
           stage?: string
+          status?: string | null
+          telefone?: string | null
+          uf?: string | null
           updated_at?: string
         }
         Relationships: []
