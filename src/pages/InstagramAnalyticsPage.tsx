@@ -18,8 +18,8 @@ import DateComparison from '@/components/analytics/DateComparison';
 
 interface AnalyticsData {
   profile: { username: string; name: string; picture: string; followers: number; following: number; media_count: number };
-  summary: { reach: number; profile_views: number; gained_followers: number; avg_reach: number; avg_engagement_rate: number; days: number };
-  daily: Array<{ date: string; reach?: number; profile_views?: number; follower_count?: number }>;
+  summary: { reach: number; profile_views: number; views?: number; gained_followers: number; avg_reach: number; avg_engagement_rate: number; days: number };
+  daily: Array<{ date: string; reach?: number; profile_views?: number; views?: number; follower_count?: number }>;
   media: Array<{
     id: string; caption: string; is_reel: boolean; thumbnail: string; permalink: string;
     timestamp: string; likes: number; comments: number; saved: number; shares: number;
@@ -224,8 +224,9 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
 
   const kpis = [
     { label: 'Seguidores', value: nf(data?.profile.followers ?? 0), icon: Users },
-    { label: 'Alcance', value: nf(data?.summary.reach ?? 0), icon: Eye },
+    { label: 'Alcance (soma diária)', value: nf(data?.summary.reach ?? 0), icon: Eye },
     { label: 'Visitas ao perfil', value: nf(data?.summary.profile_views ?? 0), icon: BarChart3 },
+    { label: 'Visualizações', value: nf(data?.summary.views ?? 0), icon: Flame },
     { label: 'Novos seguidores', value: nf(data?.summary.gained_followers ?? 0), icon: TrendingUp },
   ];
 
@@ -268,7 +269,7 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
         </CardContent></Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {kpis.map(k => (
           <Card key={k.label}>
             <CardContent className="flex items-center justify-between p-4">

@@ -72,57 +72,102 @@ Deno.serve(async (req) => {
     const until = Math.floor(Date.now() / 1000);
     const since = until - range * 86400;
 
-    const reachRaw = await safe(
-      () => g(`${GRAPH}/${igId}/insights?metric=reach&period=day&since=${since}&until=${until}&access_token=${token}`),
-      { data: [] as any[] }
-    );
+    // A Graph API só aceita janelas de no máximo 30 dias por requisição.
+    // Sem isso, períodos maiores retornam erro e a métrica vinha zerada.
+    const windows: Array<[number, number]> = [];
+    for (let end = until; end > since; end -= 30 * 86400) {
+      const start = Math.max(since, end - 30 * 86400);
+      windows.push([start, end]);
+      if (windows.length > 4) break;
+    }
 
-    const viewsRaw = await safe(
-      () => g(`${GRAPH}/${igId}/insights?metric=views&period=day&since=${since}&until=${until}&access_token=${token}`),
-      { data: [] as any[] }
-    );
+    const fetchSeries = async (metric: string) => {
+      const parts = await Promise.all(
+        windows.map((w) =>
+          safe(
+            () =>
+              g(
+                `${GRAPH}/${igId}/insights?metric=${metric}&period=day&since=${w[0]}&until=${w[1]}&access_token=${token}`,
+              ),
+            { data: [] as any[] },
+          )
+        ),
+      );
+      return parts;
+    };
 
-    const followerRaw = await safe(
-      () => g(`${GRAPH}/${igId}/insights?metric=follower_count&period=day&since=${since}&until=${until}&access_token=${token}`),
-      { data: [] as any[] }
-    );
+    const [reachParts, profileViewsParts, followerParts, viewsParts] = await Promise.all([
+      fetchSeries("reach"),
+      fetchSeries("profile_views"),
+      fetchSeries("follower_count"),
+      fetchSeries("views"),
+    ]);
 
     const byDate: Record<string, any> = {};
-    const collect = (payload: any) => {
+    // end_time de period=day representa o FIM do dia (07/08h UTC do dia seguinte),
+    // então o dado pertence ao dia anterior.
+    const dayOf = (endTime: string) => {
+      const t = Date.parse(endTime);
+      if (!Number.isFinite(t)) return "";
+      return new Date(t - 12 * 3600 * 1000).toISOString().slice(0, 10);
+    };
+    const collect = (payload: any, as?: string) => {
       for (const metric of payload?.data || []) {
         for (const v of metric.values || []) {
-          const date = (v.end_time || "").slice(0, 10);
+          const date = dayOf(v.end_time || "");
           if (!date) continue;
           byDate[date] = byDate[date] || { date };
-          // If metric name is "views", map it to "profile_views" so the frontend still works
-          const mName = metric.name === 'views' ? 'profile_views' : metric.name;
-          byDate[date][mName] = Number(v.value) || 0;
+          const key = as || metric.name;
+          const value = Number(v.value) || 0;
+          // não sobrescreve valor real por 0 vindo de janelas sobrepostas
+          if (byDate[date][key] == null || value > 0) byDate[date][key] = value;
         }
       }
     };
-    collect(reachRaw);
-    collect(viewsRaw);
-    collect(followerRaw);
-    const daily = Object.values(byDate).sort((a: any, b: any) => a.date.localeCompare(b.date));
+    reachParts.forEach((p) => collect(p, "reach"));
+    profileViewsParts.forEach((p) => collect(p, "profile_views"));
+    followerParts.forEach((p) => collect(p, "follower_count"));
+    viewsParts.forEach((p) => collect(p, "views"));
+
+    const daily = Object.values(byDate)
+      .filter((d: any) => d.date >= new Date(since * 1000).toISOString().slice(0, 10))
+      .sort((a: any, b: any) => a.date.localeCompare(b.date));
+
 
     const mediaRes = await safe(
       () =>
         g(
-          `${GRAPH}/${igId}/media?fields=id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=24&access_token=${token}`,
+          `${GRAPH}/${igId}/media?fields=id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=50&access_token=${token}`,
         ),
       { data: [] as any[] },
     );
 
+    // Só considera publicações dentro do período selecionado
+    const periodStartMs = since * 1000;
+    const mediaInRange = (mediaRes.data || []).filter(
+      (m: any) => !m.timestamp || Date.parse(m.timestamp) >= periodStartMs,
+    );
+
     const media = await Promise.all(
-      (mediaRes.data || []).map(async (m: any) => {
+      mediaInRange.map(async (m: any) => {
         const isReel = m.media_product_type === "REELS";
         const metrics = isReel
-          ? "reach,saved,shares,comments,likes,plays"
+          ? "reach,saved,shares,views"
           : "reach,saved,shares";
-        const ins = await safe(
+        let ins = await safe(
           () => g(`${GRAPH}/${m.id}/insights?metric=${metrics}&access_token=${token}`),
-          { data: [] as any[] },
+          null as any,
         );
+        if (!ins) {
+          // fallback para contas/versões antigas onde "views" não existe
+          ins = await safe(
+            () =>
+              g(
+                `${GRAPH}/${m.id}/insights?metric=${isReel ? "reach,saved,shares,plays" : "reach,saved"}&access_token=${token}`,
+              ),
+            { data: [] as any[] },
+          );
+        }
         const vals: Record<string, number> = {};
         for (const metric of ins.data || []) {
           vals[metric.name] = Number(metric.values?.[0]?.value) || 0;
@@ -142,7 +187,7 @@ Deno.serve(async (req) => {
           comments: m.comments_count || 0,
           saved: vals.saved || 0,
           shares: vals.shares || 0,
-          plays: vals.plays || 0,
+          plays: vals.views || vals.plays || 0,
           reach,
           engagement,
           engagement_rate: reach ? Number(((engagement / reach) * 100).toFixed(2)) : 0,
@@ -159,7 +204,9 @@ Deno.serve(async (req) => {
 
     const totalReach = daily.reduce((s: number, d: any) => s + (d.reach || 0), 0);
     const totalProfileViews = daily.reduce((s: number, d: any) => s + (d.profile_views || 0), 0);
+    const totalViews = daily.reduce((s: number, d: any) => s + (d.views || 0), 0);
     const gainedFollowers = daily.reduce((s: number, d: any) => s + (d.follower_count || 0), 0);
+
 
     await admin.from("instagram_metrics_snapshots").upsert({
       account_id,
@@ -191,6 +238,7 @@ Deno.serve(async (req) => {
       summary: {
         reach: totalReach,
         profile_views: totalProfileViews,
+        views: totalViews,
         gained_followers: gainedFollowers,
         avg_reach: avgReach,
         avg_engagement_rate: media.length
