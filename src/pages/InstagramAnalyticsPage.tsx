@@ -18,8 +18,8 @@ import DateComparison from '@/components/analytics/DateComparison';
 
 interface AnalyticsData {
   profile: { username: string; name: string; picture: string; followers: number; following: number; media_count: number };
-  summary: { reach: number; profile_views: number; gained_followers: number; avg_reach: number; avg_engagement_rate: number; days: number };
-  daily: Array<{ date: string; reach?: number; profile_views?: number; follower_count?: number }>;
+  summary: { reach: number; profile_views: number; views?: number; gained_followers: number; avg_reach: number; avg_engagement_rate: number; days: number };
+  daily: Array<{ date: string; reach?: number; profile_views?: number; views?: number; follower_count?: number }>;
   media: Array<{
     id: string; caption: string; is_reel: boolean; thumbnail: string; permalink: string;
     timestamp: string; likes: number; comments: number; saved: number; shares: number;
