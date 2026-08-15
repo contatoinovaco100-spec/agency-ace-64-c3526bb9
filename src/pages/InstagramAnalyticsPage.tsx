@@ -224,8 +224,9 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
 
   const kpis = [
     { label: 'Seguidores', value: nf(data?.profile.followers ?? 0), icon: Users },
-    { label: 'Alcance', value: nf(data?.summary.reach ?? 0), icon: Eye },
+    { label: 'Alcance (soma diária)', value: nf(data?.summary.reach ?? 0), icon: Eye },
     { label: 'Visitas ao perfil', value: nf(data?.summary.profile_views ?? 0), icon: BarChart3 },
+    { label: 'Visualizações', value: nf(data?.summary.views ?? 0), icon: Flame },
     { label: 'Novos seguidores', value: nf(data?.summary.gained_followers ?? 0), icon: TrendingUp },
   ];
 
