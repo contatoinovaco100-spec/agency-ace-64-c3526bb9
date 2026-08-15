@@ -238,6 +238,7 @@ Deno.serve(async (req) => {
       summary: {
         reach: totalReach,
         profile_views: totalProfileViews,
+        views: totalViews,
         gained_followers: gainedFollowers,
         avg_reach: avgReach,
         avg_engagement_rate: media.length
