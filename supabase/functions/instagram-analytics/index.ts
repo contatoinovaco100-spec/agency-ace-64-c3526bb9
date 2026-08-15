@@ -99,11 +99,12 @@ Deno.serve(async (req) => {
       return parts;
     };
 
-    const [reachParts, profileViewsParts, followerParts, viewsParts] = await Promise.all([
+    const [reachParts, profileViewsParts, followerParts, viewsParts, impressionsParts] = await Promise.all([
       fetchSeries("reach"),
       fetchSeries("profile_views"),
       fetchSeries("follower_count"),
       fetchSeries("views"),
+      fetchSeries("impressions"),
     ]);
 
     const byDate: Record<string, any> = {};
@@ -131,6 +132,7 @@ Deno.serve(async (req) => {
     profileViewsParts.forEach((p) => collect(p, "profile_views"));
     followerParts.forEach((p) => collect(p, "follower_count"));
     viewsParts.forEach((p) => collect(p, "views"));
+    impressionsParts.forEach((p) => collect(p, "impressions"));
 
     const daily = Object.values(byDate)
       .filter((d: any) => d.date >= new Date(since * 1000).toISOString().slice(0, 10))
@@ -154,21 +156,25 @@ Deno.serve(async (req) => {
     const media = await Promise.all(
       mediaInRange.map(async (m: any) => {
         const isReel = m.media_product_type === "REELS";
-        const metrics = isReel
-          ? "reach,saved,shares,views"
-          : "reach,saved,shares";
+        const isVideo = m.media_product_type === "VIDEO" || isReel;
+        const baseMetrics = "reach,saved,shares,impressions";
+        const metrics = isVideo
+          ? `${baseMetrics},comments,likes,plays`
+          : `${baseMetrics},comments,likes`;
         let ins = await safe(
           () => g(`${GRAPH}/${m.id}/insights?metric=${metrics}&access_token=${token}`),
           null as any,
+          `media insights ${m.id}`
         );
         if (!ins) {
-          // fallback para contas/versões antigas onde "views" não existe
+          // fallback para contas/versões antigas onde "impressions" não existe
+          const fallbackMetrics = isReel
+            ? "reach,saved,shares,plays"
+            : "reach,saved,shares";
           ins = await safe(
-            () =>
-              g(
-                `${GRAPH}/${m.id}/insights?metric=${isReel ? "reach,saved,shares,plays" : "reach,saved"}&access_token=${token}`,
-              ),
+            () => g(`${GRAPH}/${m.id}/insights?metric=${fallbackMetrics}&access_token=${token}`),
             { data: [] as any[] },
+            `media insights fallback ${m.id}`
           );
         }
         const vals: Record<string, number> = {};
@@ -176,7 +182,10 @@ Deno.serve(async (req) => {
           vals[metric.name] = Number(metric.values?.[0]?.value) || 0;
         }
         const reach = vals.reach || 0;
-        const engagement = (m.like_count || 0) + (m.comments_count || 0) +
+        const impressions = vals.impressions || 0;
+        const likes = vals.likes ?? m.like_count ?? 0;
+        const comments = vals.comments ?? m.comments_count ?? 0;
+        const engagement = likes + comments +
           (vals.saved || 0) + (vals.shares || 0);
         return {
           id: m.id,
@@ -186,12 +195,13 @@ Deno.serve(async (req) => {
           thumbnail: m.thumbnail_url || m.media_url || "",
           permalink: m.permalink || "",
           timestamp: m.timestamp,
-          likes: m.like_count || 0,
-          comments: m.comments_count || 0,
+          likes,
+          comments,
           saved: vals.saved || 0,
           shares: vals.shares || 0,
-          plays: vals.views || vals.plays || 0,
+          plays: vals.plays || vals.views || 0,
           reach,
+          impressions,
           engagement,
           engagement_rate: reach ? Number(((engagement / reach) * 100).toFixed(2)) : 0,
         };
@@ -208,6 +218,7 @@ Deno.serve(async (req) => {
     const totalReach = daily.reduce((s: number, d: any) => s + (d.reach || 0), 0);
     const totalProfileViews = daily.reduce((s: number, d: any) => s + (d.profile_views || 0), 0);
     const totalViews = daily.reduce((s: number, d: any) => s + (d.views || 0), 0);
+    const totalImpressions = daily.reduce((s: number, d: any) => s + (d.impressions || 0), 0);
     const gainedFollowers = daily.reduce((s: number, d: any) => s + (d.follower_count || 0), 0);
 
 
@@ -217,7 +228,7 @@ Deno.serve(async (req) => {
       followers: profile.followers_count || 0,
       media_count: profile.media_count || 0,
       reach: totalReach,
-      impressions: 0,
+      impressions: totalImpressions,
       profile_views: totalProfileViews,
       updated_at: new Date().toISOString(),
     }, { onConflict: "account_id,snapshot_date" });
@@ -240,6 +251,7 @@ Deno.serve(async (req) => {
       },
       summary: {
         reach: totalReach,
+        impressions: totalImpressions,
         profile_views: totalProfileViews,
         views: totalViews,
         gained_followers: gainedFollowers,

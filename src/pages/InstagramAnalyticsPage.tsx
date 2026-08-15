@@ -18,12 +18,12 @@ import DateComparison from '@/components/analytics/DateComparison';
 
 interface AnalyticsData {
   profile: { username: string; name: string; picture: string; followers: number; following: number; media_count: number };
-  summary: { reach: number; profile_views: number; views?: number; gained_followers: number; avg_reach: number; avg_engagement_rate: number; days: number };
-  daily: Array<{ date: string; reach?: number; profile_views?: number; views?: number; follower_count?: number }>;
+  summary: { reach: number; impressions: number; profile_views: number; views?: number; gained_followers: number; avg_reach: number; avg_engagement_rate: number; days: number };
+  daily: Array<{ date: string; reach?: number; impressions?: number; profile_views?: number; views?: number; follower_count?: number }>;
   media: Array<{
     id: string; caption: string; is_reel: boolean; thumbnail: string; permalink: string;
     timestamp: string; likes: number; comments: number; saved: number; shares: number;
-    plays: number; reach: number; engagement: number; engagement_rate: number;
+    plays: number; reach: number; impressions: number; engagement: number; engagement_rate: number;
   }>;
   viral?: AnalyticsData['media'];
   history?: Array<{ snapshot_date: string; followers: number; reach: number; profile_views: number }>;
@@ -218,15 +218,15 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
   const chartData = (data?.daily ?? []).map(d => ({
     date: d.date.slice(5),
     Alcance: d.reach ?? 0,
+    Impressões: d.impressions ?? 0,
     Visitas: d.profile_views ?? 0,
-    Seguidores: d.follower_count ?? 0,
   }));
 
   const kpis = [
     { label: 'Seguidores', value: nf(data?.profile.followers ?? 0), icon: Users },
-    { label: 'Alcance (soma diária)', value: nf(data?.summary.reach ?? 0), icon: Eye },
-    { label: 'Visitas ao perfil', value: nf(data?.summary.profile_views ?? 0), icon: BarChart3 },
-    { label: 'Visualizações', value: nf(data?.summary.views ?? 0), icon: Flame },
+    { label: 'Alcance', value: nf(data?.summary.reach ?? 0), icon: Eye },
+    { label: 'Impressões', value: nf(data?.summary.impressions ?? 0), icon: BarChart3 },
+    { label: 'Visitas ao perfil', value: nf(data?.summary.profile_views ?? 0), icon: TrendingUp },
     { label: 'Novos seguidores', value: nf(data?.summary.gained_followers ?? 0), icon: TrendingUp },
   ];
 
@@ -294,6 +294,7 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
                 <YAxis fontSize={11} />
                 <Tooltip />
                 <Area type="monotone" dataKey="Alcance" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.2)" />
+                <Area type="monotone" dataKey="Impressões" stroke="hsl(var(--info))" fill="hsl(var(--info) / 0.1)" />
                 <Area type="monotone" dataKey="Visitas" stroke="hsl(var(--muted-foreground))" fill="hsl(var(--muted-foreground) / 0.1)" />
               </AreaChart>
             </ResponsiveContainer>
@@ -350,6 +351,8 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
                 <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5" />{nf(m.reach)}</span>
                 <span className="flex items-center gap-1"><Heart className="h-3.5 w-3.5" />{nf(m.likes)}</span>
                 <span className="hidden items-center gap-1 sm:flex"><MessageCircle className="h-3.5 w-3.5" />{nf(m.comments)}</span>
+                <span className="hidden items-center gap-1 md:flex" title="Salvos">🔖 {nf(m.saved)}</span>
+                <span className="hidden items-center gap-1 lg:flex" title="Compartilhamentos">↗ {nf(m.shares)}</span>
                 <Badge variant="secondary">{m.engagement_rate}%</Badge>
               </div>
             </a>

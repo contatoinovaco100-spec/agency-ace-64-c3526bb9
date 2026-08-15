@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 export interface DailyPoint {
   date: string;
   reach?: number;
+  impressions?: number;
   profile_views?: number;
   follower_count?: number;
 }
@@ -37,6 +38,7 @@ interface Props {
 
 const METRICS = [
   { key: 'reach', label: 'Alcance' },
+  { key: 'impressions', label: 'Impressões' },
   { key: 'profile_views', label: 'Visitas ao perfil' },
   { key: 'follower_count', label: 'Novos seguidores' },
 ] as const;
@@ -59,6 +61,7 @@ export default function DateComparison({ daily, onEarliestDateChange }: Props) {
       return {
         days: rows.length,
         reach: rows.reduce((s, d) => s + (d.reach || 0), 0),
+        impressions: rows.reduce((s, d) => s + (d.impressions || 0), 0),
         profile_views: rows.reduce((s, d) => s + (d.profile_views || 0), 0),
         follower_count: rows.reduce((s, d) => s + (d.follower_count || 0), 0),
       };
@@ -130,7 +133,7 @@ export default function DateComparison({ daily, onEarliestDateChange }: Props) {
           </p>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {METRICS.map(m => {
             const a = sum.a[m.key];
             const b = sum.b[m.key];
