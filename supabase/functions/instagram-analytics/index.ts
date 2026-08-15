@@ -16,10 +16,13 @@ async function g(url: string) {
   return body;
 }
 
-async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+let errLog: string[] = [];
+
+async function safe<T>(fn: () => Promise<T>, fallback: T, label = ""): Promise<T> {
   try {
     return await fn();
-  } catch (_) {
+  } catch (e) {
+    errLog.push(`${label}: ${e instanceof Error ? e.message : String(e)}`);
     return fallback;
   }
 }
