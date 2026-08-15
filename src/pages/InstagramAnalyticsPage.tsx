@@ -269,7 +269,7 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
         </CardContent></Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {kpis.map(k => (
           <Card key={k.label}>
             <CardContent className="flex items-center justify-between p-4">
