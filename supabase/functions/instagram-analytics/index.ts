@@ -137,21 +137,37 @@ Deno.serve(async (req) => {
     const mediaRes = await safe(
       () =>
         g(
-          `${GRAPH}/${igId}/media?fields=id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=24&access_token=${token}`,
+          `${GRAPH}/${igId}/media?fields=id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=50&access_token=${token}`,
         ),
       { data: [] as any[] },
     );
 
+    // Só considera publicações dentro do período selecionado
+    const periodStartMs = since * 1000;
+    const mediaInRange = (mediaRes.data || []).filter(
+      (m: any) => !m.timestamp || Date.parse(m.timestamp) >= periodStartMs,
+    );
+
     const media = await Promise.all(
-      (mediaRes.data || []).map(async (m: any) => {
+      mediaInRange.map(async (m: any) => {
         const isReel = m.media_product_type === "REELS";
         const metrics = isReel
-          ? "reach,saved,shares,comments,likes,plays"
+          ? "reach,saved,shares,views"
           : "reach,saved,shares";
-        const ins = await safe(
+        let ins = await safe(
           () => g(`${GRAPH}/${m.id}/insights?metric=${metrics}&access_token=${token}`),
-          { data: [] as any[] },
+          null as any,
         );
+        if (!ins) {
+          // fallback para contas/versões antigas onde "views" não existe
+          ins = await safe(
+            () =>
+              g(
+                `${GRAPH}/${m.id}/insights?metric=${isReel ? "reach,saved,shares,plays" : "reach,saved"}&access_token=${token}`,
+              ),
+            { data: [] as any[] },
+          );
+        }
         const vals: Record<string, number> = {};
         for (const metric of ins.data || []) {
           vals[metric.name] = Number(metric.values?.[0]?.value) || 0;
@@ -171,7 +187,7 @@ Deno.serve(async (req) => {
           comments: m.comments_count || 0,
           saved: vals.saved || 0,
           shares: vals.shares || 0,
-          plays: vals.plays || 0,
+          plays: vals.views || vals.plays || 0,
           reach,
           engagement,
           engagement_rate: reach ? Number(((engagement / reach) * 100).toFixed(2)) : 0,
@@ -188,7 +204,9 @@ Deno.serve(async (req) => {
 
     const totalReach = daily.reduce((s: number, d: any) => s + (d.reach || 0), 0);
     const totalProfileViews = daily.reduce((s: number, d: any) => s + (d.profile_views || 0), 0);
+    const totalViews = daily.reduce((s: number, d: any) => s + (d.views || 0), 0);
     const gainedFollowers = daily.reduce((s: number, d: any) => s + (d.follower_count || 0), 0);
+
 
     await admin.from("instagram_metrics_snapshots").upsert({
       account_id,
