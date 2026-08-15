@@ -27,6 +27,7 @@ interface AnalyticsData {
   }>;
   viral?: AnalyticsData['media'];
   history?: Array<{ snapshot_date: string; followers: number; reach: number; profile_views: number }>;
+  _debug?: { igId: string; tokenPrefix: string; windows: number; errLog: string[]; dailyCount: number; mediaCount: number };
 }
 
 const nf = (n: number) => new Intl.NumberFormat('pt-BR').format(n || 0);
@@ -282,6 +283,33 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
           </Card>
         ))}
       </div>
+
+      {/* Debug Panel - mostra erros da API */}
+      {!loading && data?._debug && (data._debug.errLog.length > 0 || (data.summary.reach === 0 && data.summary.profile_views === 0)) && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-amber-600">
+              <AlertTriangle className="h-4 w-4" /> Diagnóstico de Dados
+            </div>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>IG ID: <code className="bg-muted px-1 rounded">{data._debug.igId}</code></p>
+              <p>Token: <code className="bg-muted px-1 rounded">{data._debug.tokenPrefix}</code></p>
+              <p>Janelas de consulta: {data._debug.windows} | Posts: {data._debug.mediaCount} | Dias: {data._debug.dailyCount}</p>
+              {data._debug.errLog.length > 0 && (
+                <div className="mt-2">
+                  <p className="font-semibold text-destructive">Erros da Graph API:</p>
+                  <ul className="list-disc list-inside text-destructive/80">
+                    {data._debug.errLog.map((err, i) => <li key={i}>{err}</li>)}
+                  </ul>
+                </div>
+              )}
+              {data.summary.reach === 0 && data.summary.profile_views === 0 && data._debug.errLog.length === 0 && (
+                <p className="text-amber-600">Nenhum erro retornado, mas métricas zeradas. Verifique se a conta Instagram Business tem insights habilitados.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Evolução diária</CardTitle></CardHeader>

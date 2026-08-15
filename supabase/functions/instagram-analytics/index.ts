@@ -30,6 +30,8 @@ async function safe<T>(fn: () => Promise<T>, fallback: T, label = ""): Promise<T
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  errLog = [];
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
@@ -265,6 +267,14 @@ Deno.serve(async (req) => {
       media: media.sort((a, b) => b.reach - a.reach),
       viral,
       history: history || [],
+      _debug: {
+        igId,
+        tokenPrefix: token?.substring(0, 10) + "...",
+        windows: windows.length,
+        errLog,
+        dailyCount: daily.length,
+        mediaCount: media.length,
+      },
     });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Erro inesperado" }, 500);
