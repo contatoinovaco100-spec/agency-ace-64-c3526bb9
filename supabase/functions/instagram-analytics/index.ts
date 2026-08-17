@@ -242,7 +242,14 @@ Deno.serve(async (req) => {
       .order("snapshot_date", { ascending: true })
       .limit(120);
 
+    const permissionIssue = errLog.some((m) =>
+      /permission|#10|instagram_manage_insights/i.test(m)
+    );
+
     return json({
+      warning: permissionIssue || (daily.length === 0 && media.length > 0)
+        ? "A conta está conectada sem a permissão de métricas (instagram_manage_insights). Reconecte a conta em Contas Sociais para liberar alcance, visitas e visualizações."
+        : null,
       profile: {
         username: profile.username || acc.username,
         name: profile.name || "",
