@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     }
 
     // Chama Meta
-    const metaRes = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
+    const metaRes = await fetch(`https://graph.facebook.com/v22.0/${phoneId}/messages`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

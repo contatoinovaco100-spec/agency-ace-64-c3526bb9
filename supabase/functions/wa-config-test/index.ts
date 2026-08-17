@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
 
     // Chama a Meta API pra validar o phone number ID + token
     const res = await fetch(
-      `https://graph.facebook.com/v21.0/${phoneId}?fields=verified_name,display_phone_number,quality_rating`,
+      `https://graph.facebook.com/v22.0/${phoneId}?fields=verified_name,display_phone_number,quality_rating`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 

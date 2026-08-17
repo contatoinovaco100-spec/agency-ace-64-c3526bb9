@@ -87,12 +87,14 @@ Deno.serve(async (req) => {
     }
 
     const fetchSeries = async (metric: string) => {
+      const needsTotalValue = metric === "profile_views" || metric === "views";
+      const mtParam = needsTotalValue ? "&metric_type=total_value" : "";
       const parts = await Promise.all(
         windows.map((w) =>
           safe(
             () =>
               g(
-                `${GRAPH}/${igId}/insights?metric=${metric}&period=day&since=${w[0]}&until=${w[1]}&access_token=${token}`,
+                `${GRAPH}/${igId}/insights?metric=${metric}&period=day${mtParam}&since=${w[0]}&until=${w[1]}&access_token=${token}`,
               ),
             { data: [] as any[] },
             `series ${metric}`,
@@ -174,20 +176,20 @@ Deno.serve(async (req) => {
       mediaInRange.map(async (m: any) => {
         const isReel = m.media_product_type === "REELS";
         const isVideo = m.media_product_type === "VIDEO" || isReel;
-        const baseMetrics = "reach,saved,shares,impressions";
+        const baseMetrics = "reach,saved,shares";
         const metrics = isVideo
-          ? `${baseMetrics},comments,likes,plays`
-          : `${baseMetrics},comments,likes`;
+          ? `${baseMetrics},comments,likes,views`
+          : `${baseMetrics},comments,likes,impressions`;
         let ins = await safe(
           () => g(`${GRAPH}/${m.id}/insights?metric=${metrics}&access_token=${token}`),
           null as any,
           `media insights ${m.id}`
         );
         if (!ins) {
-          // fallback para contas/versões antigas onde "impressions" não existe
-          const fallbackMetrics = isReel
-            ? "reach,saved,shares,plays"
-            : "reach,saved,shares";
+          // fallback: remove impressions e views, tenta só reach,saved,shares,comments,likes
+          const fallbackMetrics = isVideo
+            ? "reach,saved,shares,comments,likes"
+            : "reach,saved,shares,comments,likes";
           ins = await safe(
             () => g(`${GRAPH}/${m.id}/insights?metric=${fallbackMetrics}&access_token=${token}`),
             { data: [] as any[] },
@@ -216,7 +218,7 @@ Deno.serve(async (req) => {
           comments,
           saved: vals.saved || 0,
           shares: vals.shares || 0,
-          plays: vals.plays || vals.views || 0,
+          plays: vals.views || vals.plays || 0,
           reach,
           impressions,
           engagement,

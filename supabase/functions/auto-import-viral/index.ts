@@ -5,10 +5,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GRAPH = "https://graph.facebook.com/v21.0";
+const GRAPH = "https://graph.facebook.com/v22.0";
 
 async function fetchViews(mediaId: string, token: string): Promise<number> {
-  for (const metric of ["views", "plays", "video_views", "reach"]) {
+  for (const metric of ["views", "reach"]) {
     try {
       const res = await fetch(`${GRAPH}/${mediaId}/insights?metric=${metric}&access_token=${token}`);
       const data = await res.json();

@@ -8,7 +8,7 @@ import {
   sleep,
 } from "./types.ts";
 
-const GRAPH = "https://graph.facebook.com/v21.0";
+const GRAPH = "https://graph.facebook.com/v22.0";
 const APP_ID = Deno.env.get("META_APP_ID") || "2235928767163276";
 const APP_SECRET = Deno.env.get("META_APP_SECRET") || "";
 
@@ -98,7 +98,7 @@ export const instagramAdapter: PlatformAdapter = {
       "read_insights",
       "business_management",
     ].join(",");
-    return `https://www.facebook.com/v21.0/dialog/oauth?client_id=${APP_ID}` +
+    return `https://www.facebook.com/v22.0/dialog/oauth?client_id=${APP_ID}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}` +
       `&response_type=code&scope=${encodeURIComponent(scope)}`;
   },

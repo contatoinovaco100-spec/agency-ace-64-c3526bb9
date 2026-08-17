@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     // Exchange short-lived token for long-lived token
     if (action === "exchange_token") {
       const appSecret = Deno.env.get("META_APP_SECRET")!;
-      const url = `https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID}&client_secret=${appSecret}&fb_exchange_token=${access_token}`;
+      const url = `https://graph.facebook.com/v22.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID}&client_secret=${appSecret}&fb_exchange_token=${access_token}`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       if (!token) throw new Error("No access token available. Please configure META_ACCESS_TOKEN secret or provide a token.");
 
       // Get Facebook pages
-      const pagesRes = await fetch(`https://graph.facebook.com/v21.0/me/accounts?fields=id,name,instagram_business_account{id,name,username}&access_token=${token}`);
+      const pagesRes = await fetch(`https://graph.facebook.com/v22.0/me/accounts?fields=id,name,instagram_business_account{id,name,username}&access_token=${token}`);
       const pagesData = await pagesRes.json();
       if (pagesData.error) throw new Error(pagesData.error.message);
 
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
 
       // Fetch profile info
       const profileRes = await fetch(
-        `https://graph.facebook.com/v21.0/${igId}?fields=name,username,profile_picture_url,followers_count,media_count,follows_count&access_token=${token}`
+        `https://graph.facebook.com/v22.0/${igId}?fields=name,username,profile_picture_url,followers_count,media_count,follows_count&access_token=${token}`
       );
       const profile = await profileRes.json();
       if (profile.error) throw new Error(profile.error.message);
@@ -118,13 +118,13 @@ Deno.serve(async (req) => {
       // Fetch insights (last 30 days)
       const insightsMetrics = "reach,impressions,accounts_engaged,profile_views";
       const insightsRes = await fetch(
-        `https://graph.facebook.com/v21.0/${igId}/insights?metric=${insightsMetrics}&period=day&since=${Math.floor(Date.now() / 1000) - 30 * 86400}&until=${Math.floor(Date.now() / 1000)}&access_token=${token}`
+        `https://graph.facebook.com/v22.0/${igId}/insights?metric=${insightsMetrics}&period=day&metric_type=total_value&since=${Math.floor(Date.now() / 1000) - 30 * 86400}&until=${Math.floor(Date.now() / 1000)}&access_token=${token}`
       );
       const insights = await insightsRes.json();
 
       // Fetch recent media
       const mediaRes = await fetch(
-        `https://graph.facebook.com/v21.0/${igId}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count&limit=12&access_token=${token}`
+        `https://graph.facebook.com/v22.0/${igId}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count&limit=12&access_token=${token}`
       );
       const media = await mediaRes.json();
 

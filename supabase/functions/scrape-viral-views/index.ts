@@ -100,11 +100,11 @@ function shortcodeOf(url: string): string | null {
 
 /** Busca insights de views de uma mídia já identificada. */
 async function fetchInsightsViews(mediaId: string, token: string, isVideo: boolean): Promise<number | null> {
-  const metrics = isVideo ? ["views", "plays", "video_views", "reach"] : ["views", "reach"];
+  const metrics = isVideo ? ["views", "reach"] : ["views", "reach"];
   for (const metric of metrics) {
     try {
       const res = await fetch(
-        `https://graph.facebook.com/v21.0/${mediaId}/insights?metric=${metric}&access_token=${token}`,
+        `https://graph.facebook.com/v22.0/${mediaId}/insights?metric=${metric}&access_token=${token}`,
       );
       const data = await res.json();
       const val = data?.data?.[0]?.values?.[0]?.value;
@@ -124,7 +124,7 @@ async function buildMediaIndex(
   const index = new Map<string, { id: string; token: string; data: GraphData; isVideo: boolean }>();
   for (const acc of accounts) {
     let url =
-      `https://graph.facebook.com/v21.0/${acc.external_id}/media?fields=id,permalink,media_type,media_product_type,like_count,comments_count,thumbnail_url,media_url&limit=100&access_token=${acc.token}`;
+      `https://graph.facebook.com/v22.0/${acc.external_id}/media?fields=id,permalink,media_type,media_product_type,like_count,comments_count,thumbnail_url,media_url&limit=100&access_token=${acc.token}`;
     for (let page = 0; page < 3 && url; page++) {
       try {
         const res = await fetch(url);
@@ -160,7 +160,7 @@ async function fetchGraphStats(mediaId: string, tokens: string[]): Promise<Graph
   for (const token of tokens) {
     try {
       const mediaRes = await fetch(
-        `https://graph.facebook.com/v21.0/${mediaId}?fields=like_count,comments_count,media_type,media_product_type,media_url,thumbnail_url,permalink&access_token=${token}`
+        `https://graph.facebook.com/v22.0/${mediaId}?fields=like_count,comments_count,media_type,media_product_type,media_url,thumbnail_url,permalink&access_token=${token}`
       );
       if (!mediaRes.ok) continue;
       const mediaData = await mediaRes.json();
