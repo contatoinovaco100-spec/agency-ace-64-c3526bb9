@@ -95,6 +95,7 @@ Deno.serve(async (req) => {
                 `${GRAPH}/${igId}/insights?metric=${metric}&period=day&since=${w[0]}&until=${w[1]}&access_token=${token}`,
               ),
             { data: [] as any[] },
+            `series ${metric}`,
           )
         ),
       );
