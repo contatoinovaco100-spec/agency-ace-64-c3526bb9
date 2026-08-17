@@ -285,6 +285,15 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
         ))}
       </div>
 
+      {!loading && data?.warning && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="p-4 flex items-start gap-2 text-sm">
+            <AlertTriangle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+            <span>{data.warning}</span>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Debug Panel - mostra erros da API */}
       {!loading && data?._debug && (data._debug.errLog.length > 0 || (data.summary.reach === 0 && data.summary.profile_views === 0)) && (
         <Card className="border-amber-500/30 bg-amber-500/5">
