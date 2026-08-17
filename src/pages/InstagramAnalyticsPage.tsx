@@ -27,6 +27,7 @@ interface AnalyticsData {
   }>;
   viral?: AnalyticsData['media'];
   history?: Array<{ snapshot_date: string; followers: number; reach: number; profile_views: number }>;
+  warning?: string | null;
   _debug?: { igId: string; tokenPrefix: string; windows: number; errLog: string[]; dailyCount: number; mediaCount: number };
 }
 
