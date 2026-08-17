@@ -91,9 +91,11 @@ export const instagramAdapter: PlatformAdapter = {
   authUrl(redirectUri, state) {
     const scope = [
       "instagram_basic",
+      "instagram_manage_insights",
       "instagram_content_publish",
       "pages_show_list",
       "pages_read_engagement",
+      "read_insights",
       "business_management",
     ].join(",");
     return `https://www.facebook.com/v21.0/dialog/oauth?client_id=${APP_ID}` +

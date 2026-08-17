@@ -27,6 +27,7 @@ interface AnalyticsData {
   }>;
   viral?: AnalyticsData['media'];
   history?: Array<{ snapshot_date: string; followers: number; reach: number; profile_views: number }>;
+  warning?: string | null;
   _debug?: { igId: string; tokenPrefix: string; windows: number; errLog: string[]; dailyCount: number; mediaCount: number };
 }
 
@@ -283,6 +284,15 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
           </Card>
         ))}
       </div>
+
+      {!loading && data?.warning && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="p-4 flex items-start gap-2 text-sm">
+            <AlertTriangle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+            <span>{data.warning}</span>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Debug Panel - mostra erros da API */}
       {!loading && data?._debug && (data._debug.errLog.length > 0 || (data.summary.reach === 0 && data.summary.profile_views === 0)) && (
