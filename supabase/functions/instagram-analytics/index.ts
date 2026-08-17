@@ -102,12 +102,28 @@ Deno.serve(async (req) => {
       return parts;
     };
 
-    const [reachParts, profileViewsParts, followerParts, viewsParts, impressionsParts] = await Promise.all([
+    // profile_views e views não têm série diária: só existem como total_value
+    const fetchTotal = async (metric: string) => {
+      let total = 0;
+      for (const w of windows) {
+        const r: any = await safe(
+          () =>
+            g(
+              `${GRAPH}/${igId}/insights?metric=${metric}&period=day&metric_type=total_value&since=${w[0]}&until=${w[1]}&access_token=${token}`,
+            ),
+          { data: [] as any[] },
+          `total ${metric}`,
+        );
+        for (const m of r?.data || []) total += Number(m?.total_value?.value) || 0;
+      }
+      return total;
+    };
+
+    const [reachParts, followerParts, totalProfileViewsApi, totalViewsApi] = await Promise.all([
       fetchSeries("reach"),
-      fetchSeries("profile_views"),
       fetchSeries("follower_count"),
-      fetchSeries("views"),
-      fetchSeries("impressions"),
+      fetchTotal("profile_views"),
+      fetchTotal("views"),
     ]);
 
     const byDate: Record<string, any> = {};
@@ -132,10 +148,8 @@ Deno.serve(async (req) => {
       }
     };
     reachParts.forEach((p) => collect(p, "reach"));
-    profileViewsParts.forEach((p) => collect(p, "profile_views"));
     followerParts.forEach((p) => collect(p, "follower_count"));
-    viewsParts.forEach((p) => collect(p, "views"));
-    impressionsParts.forEach((p) => collect(p, "impressions"));
+
 
     const daily = Object.values(byDate)
       .filter((d: any) => d.date >= new Date(since * 1000).toISOString().slice(0, 10))
