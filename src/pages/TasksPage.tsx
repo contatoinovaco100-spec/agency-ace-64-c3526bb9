@@ -369,6 +369,7 @@ function KanbanColumn({
           <DraggableCard
             key={task.id}
             task={task}
+            stageName={stage.name}
             onClick={() => onCardClick(task)}
             clientName={getClientName(task.clientId)}
             borderClass={cc.border}
