@@ -192,9 +192,14 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 min-w-0">
-            <p className="text-[11px] font-medium text-foreground leading-tight truncate">
+            <p className={cn("text-[11px] font-medium leading-tight truncate", isRevisionStage(stageName) ? "text-warning" : "text-foreground")}>
               {displayName}
             </p>
+            {isRevisionStage(stageName) && (
+              <span className="shrink-0 rounded bg-warning/15 px-1 py-[1px] text-[8px] font-bold text-warning border border-warning/30">
+                ALTERAÇÃO
+              </span>
+            )}
             {task.videoUrl && (
               <span title="Vídeo enviado para aprovação" aria-label="Vídeo enviado para aprovação">
                 <Film className="h-3 w-3 shrink-0 text-primary" />
@@ -208,7 +213,7 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
           </div>
           <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
             {clientName && (
-              <span className="text-[9px] text-primary/70 truncate max-w-[90px]">{clientName}</span>
+              <span className={cn("text-[9px] truncate max-w-[90px]", isRevisionStage(stageName) ? "text-warning/70" : "text-primary/70")}>{clientName}</span>
             )}
             {dateValue && (
               <span className="text-[9px] tabular-nums text-muted-foreground truncate" title={dateLabel}>
