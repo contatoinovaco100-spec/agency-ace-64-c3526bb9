@@ -185,26 +185,21 @@ function ArtePreviewClickable({ taskId, status }: { taskId: string; status: stri
 
 // ─── TaskCard ─────────────────────────────────────────────────────────────────
 
-function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, onApprove, onAlteration, isConfirming }: {
+function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, isConfirming }: {
   task: TaskData;
   index: number;
   defaultOpen?: boolean;
   onConfirmPost: (id: string) => void;
   onConfirmProgram: (id: string) => void;
-  onApprove: (id: string) => void;
-  onAlteration: (id: string, alteration: string) => void;
   isConfirming: boolean;
 }) {
   const [open, setOpen] = useState(!!defaultOpen);
   const [videoReloadKey, setVideoReloadKey] = useState(0);
-  const [showAlterationInput, setShowAlterationInput] = useState(false);
-  const [alterationText, setAlterationText] = useState('');
 
   const isArte = task.task_type === 'Arte';
   const videoName = isArte ? (task.title || 'Arte sem título') : (task.video_name || task.title || 'Sem título');
   const isPosted = task.status === 'Postado';
   const isProgramado = task.status === 'Programado';
-  const isFinalizado = task.status === 'Finalizado' || task.status === 'Em revisão' || task.status === 'Revisão';
 
   const displayDate = task.post_date || task.scheduled_date || task.due_date;
   const formattedDate = displayDate
@@ -372,80 +367,6 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, o
               </div>
             )}
 
-            {/* CTA buttons — approve / alteration for finalized videos */}
-            {!isPosted && !isProgramado && isFinalizado && !isArte && (
-              <div className="space-y-4 pt-4 border-t border-border">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <h4 className="text-xs font-bold text-foreground uppercase tracking-wide">Ação necessária</h4>
-                </div>
-                
-                {!showAlterationInput ? (
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      disabled={isConfirming}
-                      onClick={() => onApprove(task.id)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-green-500 px-4 py-3 text-sm font-bold text-white hover:bg-green-600 disabled:opacity-60 transition-all shadow-sm shadow-green-500/20"
-                    >
-                      {isConfirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                      Aprovado
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isConfirming}
-                      onClick={() => setShowAlterationInput(true)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 py-3 text-sm font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-500/20 disabled:opacity-60 transition-all"
-                    >
-                      <Palette className="h-4 w-4" />
-                      Solicitar alteração
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-4">
-                      <label className="block text-sm font-semibold text-foreground mb-2">
-                        Descreva a alteração necessária:
-                      </label>
-                      <textarea
-                        value={alterationText}
-                        onChange={(e) => setAlterationText(e.target.value)}
-                        placeholder="Ex: Ajustar cores, trocar texto, mudar música..."
-                        className="w-full h-24 px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 resize-none"
-                      />
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        type="button"
-                        disabled={isConfirming || !alterationText.trim()}
-                        onClick={() => {
-                          onAlteration(task.id, alterationText.trim());
-                          setAlterationText('');
-                          setShowAlterationInput(false);
-                        }}
-                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white hover:bg-orange-600 disabled:opacity-60 transition-all shadow-sm shadow-orange-500/20"
-                      >
-                        {isConfirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Palette className="h-4 w-4" />}
-                        Enviar alteração
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isConfirming}
-                        onClick={() => {
-                          setShowAlterationInput(false);
-                          setAlterationText('');
-                        }}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {isPosted && (
               <div className="flex items-center gap-3 rounded-xl bg-green-500/10 border border-green-500/20 px-4 py-4">
@@ -581,48 +502,6 @@ export default function ClientContentPage() {
       toast.success(newStatus === 'Postado' ? '✅ Postagem confirmada com sucesso!' : '📅 Programação confirmada!');
     } catch (err: any) {
       toast.error(`Erro ao confirmar: ${err?.message || 'tente novamente'}`);
-    } finally {
-      setConfirmingId(null);
-    }
-  };
-
-  const handleApprove = async (taskIdToApprove: string) => {
-    setConfirmingId(taskIdToApprove);
-    setTasks(prev => prev.map(t => t.id === taskIdToApprove ? { ...t, status: 'Postado' } : t));
-    try {
-      const { error } = await (supabase as any).rpc('update_public_task_status', { _id: taskIdToApprove, _status: 'Postado' });
-      if (error) throw error;
-      toast.success('✅ Vídeo aprovado com sucesso!');
-    } catch (err: any) {
-      toast.error(`Erro ao aprovar: ${err?.message || 'tente novamente'}`);
-    } finally {
-      setConfirmingId(null);
-    }
-  };
-
-  const handleAlteration = async (taskIdToAlter: string, alteration: string) => {
-    setConfirmingId(taskIdToAlter);
-    try {
-      // Atualizar observações da tarefa com a alteração solicitada
-      const { error } = await (supabase as any)
-        .from('tasks')
-        .update({ 
-          observations: alteration,
-          status: 'Em revisão'
-        })
-        .eq('id', taskIdToAlter);
-      
-      if (error) throw error;
-      
-      setTasks(prev => prev.map(t => t.id === taskIdToAlter ? { 
-        ...t, 
-        status: 'Em revisão',
-        observations: alteration 
-      } : t));
-      
-      toast.success('📝 Alteração registrada! Tarefa voltou para revisão.');
-    } catch (err: any) {
-      toast.error(`Erro ao registrar alteração: ${err?.message || 'tente novamente'}`);
     } finally {
       setConfirmingId(null);
     }
@@ -785,8 +664,6 @@ export default function ClientContentPage() {
                 defaultOpen={task.id === taskId || (displayedTasks.length === 1)}
                 onConfirmPost={id => updateStatusRpc(id, 'Postado')}
                 onConfirmProgram={id => updateStatusRpc(id, 'Programado')}
-                onApprove={handleApprove}
-                onAlteration={handleAlteration}
                 isConfirming={confirmingId === task.id}
               />
             ))
