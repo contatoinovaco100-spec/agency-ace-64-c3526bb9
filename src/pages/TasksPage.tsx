@@ -233,15 +233,16 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
 
 // ── Draggable Card ─────────────────────────────────────────
 function DraggableCard({
-  task, onClick, clientName, borderClass, onAdvance, nextStageLabel, onDuplicate, onArtPreview, onReopen,
+  task, onClick, clientName, borderClass, onAdvance, nextStageLabel, onDuplicate, onArtPreview, onReopen, stageName,
 }: {
   task: Task; onClick: () => void; clientName?: string; borderClass: string;
   onAdvance?: () => void; nextStageLabel?: string | null; onDuplicate?: () => void; onArtPreview?: (urls: string[], index: number) => void;
-  onReopen?: () => void;
+  onReopen?: () => void; stageName?: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+  const revision = isRevisionStage(stageName);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     pointerDownPos.current = { x: e.clientX, y: e.clientY };
@@ -270,8 +271,11 @@ function DraggableCard({
       }}
       onClick={handleClick}
       className={cn(
-        'group relative cursor-grab rounded-md border-l-[2px] bg-card py-1 px-1.5 transition-shadow hover:shadow-sm active:cursor-grabbing',
-        borderClass,
+        'group relative cursor-grab rounded-md border-l-[2px] py-1 px-1.5 transition-shadow hover:shadow-sm active:cursor-grabbing',
+        revision
+          ? 'bg-warning/10 border-l-warning ring-1 ring-warning/20'
+          : 'bg-card border-l-[2px]',
+        !revision && borderClass,
         isDragging && 'opacity-40',
       )}
     >
@@ -285,7 +289,7 @@ function DraggableCard({
           <Copy className="h-3 w-3" />
         </button>
       )}
-      <CardContent task={task} clientName={clientName} compact onArtPreview={onArtPreview} />
+      <CardContent task={task} clientName={clientName} compact onArtPreview={onArtPreview} stageName={stageName} />
       {onAdvance && nextStageLabel && (
         <button
           onClick={(e) => { e.stopPropagation(); onAdvance(); }}
