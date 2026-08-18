@@ -507,48 +507,6 @@ export default function ClientContentPage() {
     }
   };
 
-  const handleApprove = async (taskIdToApprove: string) => {
-    setConfirmingId(taskIdToApprove);
-    setTasks(prev => prev.map(t => t.id === taskIdToApprove ? { ...t, status: 'Postado' } : t));
-    try {
-      const { error } = await (supabase as any).rpc('update_public_task_status', { _id: taskIdToApprove, _status: 'Postado' });
-      if (error) throw error;
-      toast.success('✅ Vídeo aprovado com sucesso!');
-    } catch (err: any) {
-      toast.error(`Erro ao aprovar: ${err?.message || 'tente novamente'}`);
-    } finally {
-      setConfirmingId(null);
-    }
-  };
-
-  const handleAlteration = async (taskIdToAlter: string, alteration: string) => {
-    setConfirmingId(taskIdToAlter);
-    try {
-      // Atualizar observações da tarefa com a alteração solicitada
-      const { error } = await (supabase as any)
-        .from('tasks')
-        .update({ 
-          observations: alteration,
-          status: 'Em revisão'
-        })
-        .eq('id', taskIdToAlter);
-      
-      if (error) throw error;
-      
-      setTasks(prev => prev.map(t => t.id === taskIdToAlter ? { 
-        ...t, 
-        status: 'Em revisão',
-        observations: alteration 
-      } : t));
-      
-      toast.success('📝 Alteração registrada! Tarefa voltou para revisão.');
-    } catch (err: any) {
-      toast.error(`Erro ao registrar alteração: ${err?.message || 'tente novamente'}`);
-    } finally {
-      setConfirmingId(null);
-    }
-  };
-
   // ── Loading skeleton ──
   if (loading && tasks.length === 0) return (
     <div className="min-h-screen bg-background">
@@ -706,8 +664,6 @@ export default function ClientContentPage() {
                 defaultOpen={task.id === taskId || (displayedTasks.length === 1)}
                 onConfirmPost={id => updateStatusRpc(id, 'Postado')}
                 onConfirmProgram={id => updateStatusRpc(id, 'Programado')}
-                onApprove={handleApprove}
-                onAlteration={handleAlteration}
                 isConfirming={confirmingId === task.id}
               />
             ))
