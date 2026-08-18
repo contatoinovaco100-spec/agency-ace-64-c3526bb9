@@ -103,12 +103,17 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
               <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
             )}
           </div>
-          <p className="font-medium text-foreground leading-snug truncate flex-1 text-sm">
+          <p className={cn("font-medium leading-snug truncate flex-1 text-sm", isRevisionStage(stageName) ? "text-warning" : "text-foreground")}>
             {displayName}
           </p>
+          {isRevisionStage(stageName) && (
+            <span className="shrink-0 rounded bg-warning/15 px-1.5 py-[1px] text-[9px] font-bold text-warning border border-warning/30">
+              ALTERAÇÃO
+            </span>
+          )}
         </div>
         {clientName && (
-          <p className="mt-0.5 text-[10px] text-primary/70 font-medium truncate">{clientName}</p>
+          <p className={cn("mt-0.5 text-[10px] font-medium truncate", isRevisionStage(stageName) ? "text-warning/70" : "text-primary/70")}>{clientName}</p>
         )}
         {task.videoUrl && (
           <a
