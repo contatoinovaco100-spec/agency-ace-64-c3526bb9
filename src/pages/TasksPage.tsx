@@ -1256,8 +1256,13 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
         )}
         <DragOverlay>
           {activeTask && (
-            <div className={cn('w-[180px] rounded-md border-l-[2px] bg-card py-1 px-1.5 shadow-lg', PRIORITY_COLORS[activeTask.priority])}>
-              <CardContent task={activeTask} clientName={getClientName(activeTask.clientId)} compact onArtPreview={openArtPreview} />
+            <div className={cn(
+              'w-[180px] rounded-md border-l-[2px] py-1 px-1.5 shadow-lg',
+              isRevisionStage(mapStatusToColumn(activeTask.status as string))
+                ? 'bg-warning/10 border-l-warning ring-1 ring-warning/20'
+                : `bg-card ${PRIORITY_COLORS[activeTask.priority]}`
+            )}>
+              <CardContent task={activeTask} clientName={getClientName(activeTask.clientId)} compact onArtPreview={openArtPreview} stageName={mapStatusToColumn(activeTask.status as string)} />
             </div>
           )}
         </DragOverlay>
