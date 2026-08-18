@@ -70,9 +70,16 @@ function buildStatusToColumn(columnNames: string[]) {
   };
 }
 
+// ── Helpers ────────────────────────────────────────────────
+function isRevisionStage(stageName?: string | null) {
+  if (!stageName) return false;
+  const s = stageName.toLowerCase();
+  return s.includes('revisão') || s.includes('alteração') || s.includes('alteracao');
+}
+
 // ── Card Content (shared between card and overlay) ─────────
-function CardContent({ task, clientName, compact, onArtPreview }: {
-  task: Task; clientName?: string; compact?: boolean; onArtPreview?: (urls: string[], index: number) => void;
+function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
+  task: Task; clientName?: string; compact?: boolean; onArtPreview?: (urls: string[], index: number) => void; stageName?: string;
 }) {
   const displayName = task.videoName || task.title || 'Sem título';
   const isArte = task.taskType === 'Arte';
