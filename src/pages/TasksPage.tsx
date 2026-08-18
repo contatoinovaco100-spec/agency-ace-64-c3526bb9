@@ -70,9 +70,16 @@ function buildStatusToColumn(columnNames: string[]) {
   };
 }
 
+// ── Helpers ────────────────────────────────────────────────
+function isRevisionStage(stageName?: string | null) {
+  if (!stageName) return false;
+  const s = stageName.toLowerCase();
+  return s.includes('revisão') || s.includes('alteração') || s.includes('alteracao');
+}
+
 // ── Card Content (shared between card and overlay) ─────────
-function CardContent({ task, clientName, compact, onArtPreview }: {
-  task: Task; clientName?: string; compact?: boolean; onArtPreview?: (urls: string[], index: number) => void;
+function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
+  task: Task; clientName?: string; compact?: boolean; onArtPreview?: (urls: string[], index: number) => void; stageName?: string;
 }) {
   const displayName = task.videoName || task.title || 'Sem título';
   const isArte = task.taskType === 'Arte';
@@ -96,12 +103,17 @@ function CardContent({ task, clientName, compact, onArtPreview }: {
               <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
             )}
           </div>
-          <p className="font-medium text-foreground leading-snug truncate flex-1 text-sm">
+          <p className={cn("font-medium leading-snug truncate flex-1 text-sm", isRevisionStage(stageName) ? "text-warning" : "text-foreground")}>
             {displayName}
           </p>
+          {isRevisionStage(stageName) && (
+            <span className="shrink-0 rounded bg-warning/15 px-1.5 py-[1px] text-[9px] font-bold text-warning border border-warning/30">
+              ALTERAÇÃO
+            </span>
+          )}
         </div>
         {clientName && (
-          <p className="mt-0.5 text-[10px] text-primary/70 font-medium truncate">{clientName}</p>
+          <p className={cn("mt-0.5 text-[10px] font-medium truncate", isRevisionStage(stageName) ? "text-warning/70" : "text-primary/70")}>{clientName}</p>
         )}
         {task.videoUrl && (
           <a
@@ -185,9 +197,14 @@ function CardContent({ task, clientName, compact, onArtPreview }: {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 min-w-0">
-            <p className="text-[11px] font-medium text-foreground leading-tight truncate">
+            <p className={cn("text-[11px] font-medium leading-tight truncate", isRevisionStage(stageName) ? "text-warning" : "text-foreground")}>
               {displayName}
             </p>
+            {isRevisionStage(stageName) && (
+              <span className="shrink-0 rounded bg-warning/15 px-1 py-[1px] text-[8px] font-bold text-warning border border-warning/30">
+                ALTERAÇÃO
+              </span>
+            )}
             {task.videoUrl && (
               <span title="Vídeo enviado para aprovação" aria-label="Vídeo enviado para aprovação">
                 <Film className="h-3 w-3 shrink-0 text-primary" />
@@ -201,7 +218,7 @@ function CardContent({ task, clientName, compact, onArtPreview }: {
           </div>
           <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
             {clientName && (
-              <span className="text-[9px] text-primary/70 truncate max-w-[90px]">{clientName}</span>
+              <span className={cn("text-[9px] truncate max-w-[90px]", isRevisionStage(stageName) ? "text-warning/70" : "text-primary/70")}>{clientName}</span>
             )}
             {dateValue && (
               <span className="text-[9px] tabular-nums text-muted-foreground truncate" title={dateLabel}>
@@ -221,15 +238,16 @@ function CardContent({ task, clientName, compact, onArtPreview }: {
 
 // ── Draggable Card ─────────────────────────────────────────
 function DraggableCard({
-  task, onClick, clientName, borderClass, onAdvance, nextStageLabel, onDuplicate, onArtPreview, onReopen,
+  task, onClick, clientName, borderClass, onAdvance, nextStageLabel, onDuplicate, onArtPreview, onReopen, stageName,
 }: {
   task: Task; onClick: () => void; clientName?: string; borderClass: string;
   onAdvance?: () => void; nextStageLabel?: string | null; onDuplicate?: () => void; onArtPreview?: (urls: string[], index: number) => void;
-  onReopen?: () => void;
+  onReopen?: () => void; stageName?: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+  const revision = isRevisionStage(stageName);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     pointerDownPos.current = { x: e.clientX, y: e.clientY };
@@ -258,8 +276,11 @@ function DraggableCard({
       }}
       onClick={handleClick}
       className={cn(
-        'group relative cursor-grab rounded-md border-l-[2px] bg-card py-1 px-1.5 transition-shadow hover:shadow-sm active:cursor-grabbing',
-        borderClass,
+        'group relative cursor-grab rounded-md border-l-[2px] py-1 px-1.5 transition-shadow hover:shadow-sm active:cursor-grabbing',
+        revision
+          ? 'bg-warning/10 border-l-warning ring-1 ring-warning/20'
+          : 'bg-card border-l-[2px]',
+        !revision && borderClass,
         isDragging && 'opacity-40',
       )}
     >
@@ -273,7 +294,7 @@ function DraggableCard({
           <Copy className="h-3 w-3" />
         </button>
       )}
-      <CardContent task={task} clientName={clientName} compact onArtPreview={onArtPreview} />
+      <CardContent task={task} clientName={clientName} compact onArtPreview={onArtPreview} stageName={stageName} />
       {onAdvance && nextStageLabel && (
         <button
           onClick={(e) => { e.stopPropagation(); onAdvance(); }}
@@ -353,6 +374,7 @@ function KanbanColumn({
           <DraggableCard
             key={task.id}
             task={task}
+            stageName={stage.name}
             onClick={() => onCardClick(task)}
             clientName={getClientName(task.clientId)}
             borderClass={cc.border}
@@ -1234,8 +1256,13 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
         )}
         <DragOverlay>
           {activeTask && (
-            <div className={cn('w-[180px] rounded-md border-l-[2px] bg-card py-1 px-1.5 shadow-lg', PRIORITY_COLORS[activeTask.priority])}>
-              <CardContent task={activeTask} clientName={getClientName(activeTask.clientId)} compact onArtPreview={openArtPreview} />
+            <div className={cn(
+              'w-[180px] rounded-md border-l-[2px] py-1 px-1.5 shadow-lg',
+              isRevisionStage(mapStatusToColumn(activeTask.status as string))
+                ? 'bg-warning/10 border-l-warning ring-1 ring-warning/20'
+                : `bg-card ${PRIORITY_COLORS[activeTask.priority]}`
+            )}>
+              <CardContent task={activeTask} clientName={getClientName(activeTask.clientId)} compact onArtPreview={openArtPreview} stageName={mapStatusToColumn(activeTask.status as string)} />
             </div>
           )}
         </DragOverlay>
