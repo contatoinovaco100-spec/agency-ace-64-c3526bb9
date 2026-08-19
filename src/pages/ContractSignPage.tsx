@@ -320,40 +320,40 @@ export default function ContractSignPage() {
   const deliverables: Deliverable[] = contract.deliverables || [];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-8 px-3 sm:px-4">
       <div className="mx-auto max-w-3xl">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <img src={logoInova} alt="INOVA Co." className="h-8" />
+        <div className="mb-4 sm:mb-6 flex items-center justify-between">
+          <img src={logoInova} alt="INOVA Co." className="h-7 sm:h-8" />
           <div className="flex items-center gap-1.5 text-xs text-gray-400">
             <Shield className="h-3.5 w-3.5" /> Documento digital seguro
           </div>
         </div>
 
         {/* Contract Body */}
-        <Card className="border-gray-200 shadow-lg bg-white">
-          <CardContent className="p-8 sm:p-12">
-            <h1 className="text-center text-xl font-bold text-gray-900 mb-8 uppercase tracking-wide">
+        <Card className="border-gray-200 shadow-lg bg-white rounded-2xl sm:rounded-xl overflow-hidden">
+          <CardContent className="p-4 sm:p-10">
+            <h1 className="text-center text-lg sm:text-xl font-bold text-gray-900 mb-6 sm:mb-8 uppercase tracking-wide">
               {contract.title}
             </h1>
 
             <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed space-y-4">
               <p>Pelo presente instrumento particular de prestação de serviços, de um lado:</p>
 
-              <div className="rounded-lg bg-gray-50 p-4 not-prose">
-                <p className="text-sm font-semibold text-gray-900">CONTRATANTE (Cliente):</p>
-                <p className="text-sm text-gray-600">{contract.client_company || contract.client_name}</p>
-                {contract.client_company && contract.client_name && <p className="text-sm text-gray-600">Responsável: {contract.client_name}</p>}
-                {contract.client_cpf_cnpj && <p className="text-sm text-gray-600">CPF/CNPJ: {contract.client_cpf_cnpj}</p>}
-                {contract.client_email && <p className="text-sm text-gray-600">Email: {contract.client_email}</p>}
-                {contract.client_address && <p className="text-sm text-gray-600">Endereço: {contract.client_address}</p>}
+              <div className="rounded-xl bg-gray-50 p-3.5 sm:p-4 not-prose border border-gray-100 space-y-1">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-900">CONTRATANTE (Cliente):</p>
+                <p className="text-sm font-semibold text-gray-900">{contract.client_company || contract.client_name}</p>
+                {contract.client_company && contract.client_name && <p className="text-xs text-gray-600">Responsável: {contract.client_name}</p>}
+                {contract.client_cpf_cnpj && <p className="text-xs text-gray-600">CPF/CNPJ: {contract.client_cpf_cnpj}</p>}
+                {contract.client_email && <p className="text-xs text-gray-600">Email: {contract.client_email}</p>}
+                {contract.client_address && <p className="text-xs text-gray-600">Endereço: {contract.client_address}</p>}
               </div>
 
-              <div className="rounded-lg bg-gray-50 p-4 not-prose">
-                <p className="text-sm font-semibold text-gray-900">CONTRATADO (Prestador):</p>
-                <p className="text-sm text-gray-600">{contract.contractor_name}</p>
-                {contract.contractor_cpf_cnpj && <p className="text-sm text-gray-600">CPF/CNPJ: {contract.contractor_cpf_cnpj}</p>}
-                {contract.contractor_address && <p className="text-sm text-gray-600">Endereço: {contract.contractor_address}</p>}
+              <div className="rounded-xl bg-gray-50 p-3.5 sm:p-4 not-prose border border-gray-100 space-y-1">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-900">CONTRATADO (Prestador):</p>
+                <p className="text-sm font-semibold text-gray-900">{contract.contractor_name}</p>
+                {contract.contractor_cpf_cnpj && <p className="text-xs text-gray-600">CPF/CNPJ: {contract.contractor_cpf_cnpj}</p>}
+                {contract.contractor_address && <p className="text-xs text-gray-600">Endereço: {contract.contractor_address}</p>}
               </div>
 
               <p>Têm entre si justo e contratado o seguinte:</p>
@@ -370,13 +370,13 @@ export default function ContractSignPage() {
                     <p>O plano contratado é o <strong>{contract.plan_name}</strong>, que inclui:</p>
                   )}
                   {deliverables.length > 0 && (
-                    <div className="rounded-lg border border-gray-200 overflow-hidden not-prose">
-                      <table className="w-full text-sm">
+                    <div className="rounded-xl border border-gray-200 overflow-x-auto not-prose">
+                      <table className="w-full text-xs sm:text-sm">
                         <tbody>
                           {deliverables.map((d, i) => (
                             <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              <td className="px-4 py-2.5 font-medium text-gray-900 w-20 text-center border-r border-gray-100">{d.quantity}</td>
-                              <td className="px-4 py-2.5 text-gray-700">{d.label}</td>
+                              <td className="px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-gray-900 w-16 sm:w-20 text-center border-r border-gray-100">{d.quantity}</td>
+                              <td className="px-3 sm:px-4 py-2 sm:py-2.5 text-gray-700">{d.label}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -420,7 +420,7 @@ export default function ContractSignPage() {
               {contract.additional_clauses && (
                 <>
                   <h3 className="font-bold text-gray-900">CLÁUSULAS ADICIONAIS</h3>
-                  <div className="whitespace-pre-wrap">{contract.additional_clauses}</div>
+                  <div className="whitespace-pre-wrap font-mono text-xs">{contract.additional_clauses}</div>
                 </>
               )}
 
@@ -432,43 +432,43 @@ export default function ContractSignPage() {
                 data/hora da assinatura e hash criptográfico SHA-256 único e intransferível.
               </p>
 
-              <p className="text-center text-gray-500 mt-8">{formatDate()}</p>
+              <p className="text-center text-gray-500 mt-6 text-xs sm:text-sm">{formatDate()}</p>
             </div>
 
-            <div className="mt-10 border-t border-gray-200 pt-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="mt-8 border-t border-gray-200 pt-6">
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <Shield className="h-5 w-5 text-blue-500" /> Assinatura Digital
               </h2>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <Label className="text-gray-700">Nome completo *</Label>
-                    <Input value={signerName} onChange={e => setSignerName(e.target.value)} className="bg-white border-gray-300 text-gray-900" />
+                    <Label className="text-xs sm:text-sm text-gray-700">Nome completo *</Label>
+                    <Input value={signerName} onChange={e => setSignerName(e.target.value)} className="bg-white border-gray-300 text-gray-900 h-11 text-base sm:text-sm mt-1" />
                   </div>
                   <div>
-                    <Label className="text-gray-700">CPF *</Label>
-                    <Input value={signerCpf} onChange={e => setSignerCpf(e.target.value)} placeholder="000.000.000-00" className="bg-white border-gray-300 text-gray-900" />
+                    <Label className="text-xs sm:text-sm text-gray-700">CPF *</Label>
+                    <Input value={signerCpf} onChange={e => setSignerCpf(e.target.value)} placeholder="000.000.000-00" className="bg-white border-gray-300 text-gray-900 h-11 text-base sm:text-sm mt-1" />
                   </div>
                 </div>
                 <div>
-                  <Label className="text-gray-700">Email *</Label>
-                  <Input type="email" value={signerEmail} onChange={e => setSignerEmail(e.target.value)} className="bg-white border-gray-300 text-gray-900" />
+                  <Label className="text-xs sm:text-sm text-gray-700">Email *</Label>
+                  <Input type="email" value={signerEmail} onChange={e => setSignerEmail(e.target.value)} className="bg-white border-gray-300 text-gray-900 h-11 text-base sm:text-sm mt-1" />
                 </div>
 
-                <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors">
+                <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-gray-200 p-3.5 hover:bg-gray-50 transition-colors">
                   <Checkbox checked={accepted} onCheckedChange={(v) => setAccepted(!!v)} className="mt-0.5" />
-                  <span className="text-sm text-gray-600 leading-relaxed">
+                  <span className="text-xs sm:text-sm text-gray-600 leading-relaxed">
                     Declaro que li e concordo com todos os termos e condições deste contrato. Reconheço que esta assinatura digital
                     tem validade jurídica e que meus dados (nome, CPF, email, IP, data/hora) serão registrados juntamente com um hash
                     criptográfico SHA-256 único e intransferível como prova de consentimento.
                   </span>
                 </label>
 
-                <Button onClick={handleSign} disabled={signing || !accepted} className="w-full h-12 text-base" size="lg">
+                <Button onClick={handleSign} disabled={signing || !accepted} className="w-full h-12 text-base font-bold shadow-lg" size="lg">
                   {signing ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Assinando...</> : <>✍️ Assinar Contrato</>}
                 </Button>
 
-                <p className="text-center text-xs text-gray-400">
+                <p className="text-center text-[11px] text-gray-400">
                   Ao assinar, será gerado um hash SHA-256 único com seus dados, IP, navegador e data/hora para fins de validade jurídica.
                 </p>
               </div>

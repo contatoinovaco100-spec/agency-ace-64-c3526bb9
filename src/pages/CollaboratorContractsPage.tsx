@@ -85,8 +85,49 @@ export default function CollaboratorContractsPage() {
         <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar colaborador ou função..." className="pl-9" />
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      {/* Mobile Cards (< md) */}
+      <div className="grid gap-3 md:hidden">
+        {filtered.map(c => {
+          const cfg = STATUS_CONFIG[c.status];
+          return (
+            <div key={c.id} className="rounded-xl border border-border bg-card p-4 space-y-2.5 shadow-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-bold text-foreground text-sm">{c.collaborator}</h3>
+                  <p className="text-xs text-muted-foreground">{c.role}</p>
+                </div>
+                <Badge className={cn('text-[11px] border', cfg.color)}>
+                  <cfg.icon className="h-3 w-3 mr-1" />
+                  {cfg.label}
+                </Badge>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
+                <span className="font-bold text-foreground">{fmt(c.value)}</span>
+                <span className="text-muted-foreground">{c.startDate} → {c.endDate}</span>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <Button size="sm" variant="outline" className="flex-1 h-8 text-xs gap-1" onClick={() => setViewModal(c)}>
+                  <Eye className="h-3.5 w-3.5" /> Detalhes
+                </Button>
+                <Button size="sm" variant="ghost" className="h-8 px-2.5 text-muted-foreground hover:text-destructive" onClick={() => deleteContract(c.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div className="py-12 text-center text-muted-foreground rounded-xl border border-dashed border-border bg-card">
+            <FileText className="h-8 w-8 mx-auto mb-2 opacity-20" />
+            <p className="text-sm">Nenhum contrato encontrado.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table (>= md) */}
+      <div className="hidden md:block rounded-xl border border-border bg-card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="border-b border-border bg-muted/30">
             <tr>
@@ -126,7 +167,7 @@ export default function CollaboratorContractsPage() {
 
       {/* Add Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="bg-card border-border max-w-lg">
+        <DialogContent className="bg-card border-border max-w-lg w-[96vw] sm:w-full rounded-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Novo Contrato de Prestador</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-2 gap-3">

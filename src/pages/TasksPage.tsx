@@ -21,6 +21,8 @@ import {
   DragOverlay,
   closestCorners,
   PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragStartEvent,
@@ -623,9 +625,25 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const [search, setSearch] = useState('');
   const [filterAssignee, setFilterAssignee] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [mobileColumnFilter, setMobileColumnFilter] = useState<string>('all');
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 6,
+      },
+    }),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
   );
 
   // Stage groups: the "Concluído" stage (if present) is rendered as an archive zone,
@@ -1002,49 +1020,72 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   };
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full flex-col gap-3 sm:gap-4">
       {/* Header */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-foreground">{pageTitle ?? 'Tarefas'}</h1>
-            <p className="text-sm text-muted-foreground">
-              {pageHint
-                ? <>{pageHint}{selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}</>
-                : <>
-                    {filteredTasks.filter(t => !archiveStageNames.has(mapStatusToColumn(t.status)) && mapStatusToColumn(t.status) !== 'Finalizado').length} em andamento
-                    {selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}
-                  </>}
-            </p>
+      <div className="flex flex-col gap-2.5 sm:gap-3">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-foreground">{pageTitle ?? 'Tarefas'}</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                {pageHint
+                  ? <>{pageHint}{selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}</>
+                  : <>
+                      {filteredTasks.filter(t => !archiveStageNames.has(mapStatusToColumn(t.status)) && mapStatusToColumn(t.status) !== 'Finalizado').length} em andamento
+                      {selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}
+                    </>}
+              </p>
+            </div>
+            {/* Mobile-only quick New Task button */}
+            <Button size="sm" className="gap-1 sm:hidden h-8 px-3 shadow-sm" onClick={openNew}>
+              <Plus className="h-4 w-4" /> Nova
+            </Button>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 sm:flex-none">
+
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="relative flex-1 sm:w-[180px]">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar..."
+                placeholder="Buscar tarefas..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="h-9 w-full sm:w-[160px] pl-8 text-sm"
+                className="h-8 sm:h-9 w-full pl-8 text-xs sm:text-sm"
               />
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-1.5 shrink-0">
               {headerExtra}
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1 flex-1 sm:flex-none"
+                className="h-8 px-2 sm:px-3 gap-1"
                 onClick={async () => { setRefreshing(true); await refresh(); setRefreshing(false); }}
                 disabled={refreshing}
+                title="Atualizar tarefas"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} /> Atualizar
+                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Atualizar</span>
               </Button>
-              <Button variant="outline" size="sm" className="gap-1 flex-1 sm:flex-none" onClick={() => setShowFilters(!showFilters)}>
-                <Filter className="h-3.5 w-3.5" /> Filtros
+              <Button
+                variant={showFilters || filterAssignee !== 'all' ? 'secondary' : 'outline'}
+                size="sm"
+                className="h-8 px-2 sm:px-3 gap-1"
+                onClick={() => setShowFilters(!showFilters)}
+                title="Filtros"
+              >
+                <Filter className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Filtros</span>
               </Button>
-              <Button variant="outline" size="sm" className="gap-1 flex-1 sm:flex-none" onClick={() => setBulkOpen(true)} title="Criar vários cards de uma vez colando de planilha">
-                <FileSpreadsheet className="h-3.5 w-3.5" /> Em massa
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2 sm:px-3 gap-1"
+                onClick={() => setBulkOpen(true)}
+                title="Criar vários cards de uma vez colando de planilha"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Em massa</span>
               </Button>
-              <Button size="sm" className="gap-1 flex-1 sm:flex-none" onClick={openNew}>
+              <Button size="sm" className="hidden sm:flex gap-1 h-9" onClick={openNew}>
                 <Plus className="h-4 w-4" /> Nova Tarefa
               </Button>
             </div>
@@ -1077,52 +1118,99 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
         )}
       </div>
 
-      {/* Aba isolada de tarefas na etapa "Finalizado" */}
-      {groupedByDueDate && (
-        <div className="flex w-fit items-center gap-1 rounded-lg border border-border bg-card/70 p-1">
-          <button
-            type="button"
-            onClick={() => setArteTab('progress')}
-            className={cn(
-              'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
-              arteTab === 'progress' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            Em produção
-            <span className={cn('flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums', arteTab === 'progress' ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-secondary text-muted-foreground')}>
-              {productionCount}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setArteTab('done')}
-            className={cn(
-              'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
-              arteTab === 'done' ? 'bg-success text-white' : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            Finalizadas
-            <span className={cn('flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums', arteTab === 'done' ? 'bg-white/20 text-white' : 'bg-success/15 text-success')}>
-              {finalizadasCount}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setArteTab('trash')}
-            className={cn(
-              'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
-              arteTab === 'trash' ? 'bg-destructive text-white' : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Lixeira
-            <span className={cn('flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums', arteTab === 'trash' ? 'bg-white/20 text-white' : 'bg-destructive/15 text-destructive')}>
-              {trashCount}
-            </span>
-          </button>
-        </div>
-      )}
+      {/* Tabs & Mobile Column Switcher */}
+      <div className="space-y-2">
+        {groupedByDueDate && (
+          <div className="flex w-fit items-center gap-1 rounded-lg border border-border bg-card/70 p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setArteTab('progress')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+                arteTab === 'progress' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              Em produção
+              <span className={cn('flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums', arteTab === 'progress' ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-secondary text-muted-foreground')}>
+                {productionCount}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setArteTab('done')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+                arteTab === 'done' ? 'bg-success text-white' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Finalizadas
+              <span className={cn('flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums', arteTab === 'done' ? 'bg-white/20 text-white' : 'bg-success/15 text-success')}>
+                {finalizadasCount}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setArteTab('trash')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+                arteTab === 'trash' ? 'bg-destructive text-white' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Lixeira
+              <span className={cn('flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums', arteTab === 'trash' ? 'bg-white/20 text-white' : 'bg-destructive/15 text-destructive')}>
+                {trashCount}
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* Mobile Column Tabs Switcher */}
+        {arteTab !== 'trash' && arteTab !== 'done' && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 lg:hidden scroller-hide -mx-1 px-1">
+            <button
+              type="button"
+              onClick={() => setMobileColumnFilter('all')}
+              className={cn(
+                'flex items-center gap-1.5 shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-all shadow-sm',
+                mobileColumnFilter === 'all'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-card border border-border text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Todas
+              <span className={cn('flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums', mobileColumnFilter === 'all' ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground')}>
+                {filteredTasks.filter(t => !archiveStageNames.has(mapStatusToColumn(t.status)) && mapStatusToColumn(t.status) !== 'Finalizado').length}
+              </span>
+            </button>
+            {(groupedByDueDate ? progressStages : kanbanStages).map(stage => {
+              const count = tasksByColumn[stage.name]?.length || 0;
+              const isSelected = mobileColumnFilter === stage.name;
+              const cc = colorClasses(stage.color);
+              return (
+                <button
+                  key={stage.id}
+                  type="button"
+                  onClick={() => setMobileColumnFilter(stage.name)}
+                  className={cn(
+                    'flex items-center gap-1.5 shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-all border shadow-sm',
+                    isSelected
+                      ? 'bg-card border-primary text-primary ring-1 ring-primary/40'
+                      : 'bg-card/70 border-border text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <span className={cn('h-2 w-2 rounded-full', cc.dot)} />
+                  {stage.name}
+                  <span className={cn('flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums', isSelected ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground')}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Kanban board */}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -1272,8 +1360,11 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
 
                     {!isCollapsed && (
                       <div className="flex gap-2 overflow-x-auto pb-2 scroller-hide">
-                        {progressStages.map(stage => (
-                          <div key={`${group.key}-${stage.id}`} className="min-w-[220px] lg:min-w-0 lg:flex-1 flex flex-col">
+                        {(mobileColumnFilter === 'all' ? progressStages : progressStages.filter(s => s.name === mobileColumnFilter)).map(stage => (
+                          <div key={`${group.key}-${stage.id}`} className={cn(
+                            'flex flex-col',
+                            mobileColumnFilter !== 'all' ? 'w-full min-w-0' : 'min-w-[220px] sm:min-w-[240px] lg:min-w-0 lg:flex-1'
+                          )}>
                             <KanbanColumn
                               prefix={`GROUP::${group.key}`}
                               stage={stage}
@@ -1407,11 +1498,22 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
             ) : (
             <>
               <div
-                className="flex gap-2 overflow-x-auto pb-3 lg:grid lg:gap-1.5 min-h-0 flex-1 scroller-hide"
-                style={{ gridTemplateColumns: `repeat(${Math.max(kanbanStages.length, 1)}, minmax(0, 1fr))` }}
+                className={cn(
+                  'flex gap-2 overflow-x-auto pb-3 min-h-0 flex-1 scroller-hide',
+                  mobileColumnFilter === 'all'
+                    ? 'lg:grid lg:gap-1.5'
+                    : 'w-full'
+                )}
+                style={mobileColumnFilter === 'all' ? { gridTemplateColumns: `repeat(${Math.max(kanbanStages.length, 1)}, minmax(0, 1fr))` } : undefined}
               >
-                {kanbanStages.map(stage => (
-                  <div key={stage.id} className="min-w-[220px] lg:min-w-0 flex flex-col h-full">
+                {(mobileColumnFilter === 'all' ? kanbanStages : kanbanStages.filter(s => s.name === mobileColumnFilter)).map(stage => (
+                  <div
+                    key={stage.id}
+                    className={cn(
+                      'flex flex-col h-full',
+                      mobileColumnFilter !== 'all' ? 'w-full min-w-0' : 'min-w-[220px] sm:min-w-[240px] lg:min-w-0'
+                    )}
+                  >
                     <KanbanColumn
                       stage={stage}
                       tasks={tasksByColumn[stage.name] || []}

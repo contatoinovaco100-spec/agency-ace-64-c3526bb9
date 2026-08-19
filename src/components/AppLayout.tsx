@@ -1,6 +1,6 @@
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
-import { ChevronLeft, LogOut, Palette } from 'lucide-react';
+import { ChevronLeft, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,10 +35,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen w-full bg-background flex-col lg:flex-row overflow-hidden">
       {/* Mobile Header */}
-      <header className="flex h-16 items-center justify-between border-b border-border bg-sidebar px-4 lg:hidden sticky top-0 z-50">
-        <img src={logoInova} alt="INOVA Co." className="h-8" />
-        <button onClick={toggleMobileMenu} className="p-2 text-muted-foreground hover:text-foreground">
-          <Palette className="h-6 w-6" />
+      <header className="flex h-14 items-center justify-between border-b border-border bg-sidebar/95 backdrop-blur-md px-4 lg:hidden sticky top-0 z-50">
+        <img src={logoInova} alt="INOVA Co." className="h-7" />
+        <button
+          onClick={toggleMobileMenu}
+          className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all"
+          aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+        >
+          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </header>
 
@@ -154,7 +158,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background h-full">
-        <div className="mx-auto w-full max-w-screen-2xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <div className="mx-auto w-full max-w-screen-2xl px-2.5 py-3 sm:px-6 sm:py-6 lg:px-8">
           {children}
         </div>
       </main>

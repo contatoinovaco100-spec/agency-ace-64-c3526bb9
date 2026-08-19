@@ -370,87 +370,164 @@ export default function ContractsPage() {
     const isDeleted = c.status === 'excluido';
 
     return (
-      <Card key={c.id} className="border-border/50 hover:border-border transition-colors">
-        <CardContent className="p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold text-foreground truncate">{c.title}</h3>
-                <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${cfg.color}`}>
-                  <Icon className="h-3 w-3" /> {cfg.label}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span>Cliente: <strong className="text-foreground">{c.client_company || c.client_name || '—'}</strong></span>
-                {c.client_company && c.client_name && <span>Responsável: {c.client_name}</span>}
-                <span>Valor: <strong className="text-foreground">R$ {Number(c.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês</strong></span>
-                {c.plan_name && <span>Plano: <strong className="text-foreground">{c.plan_name}</strong></span>}
-                <span>Duração: {c.duration_months} meses</span>
-                <span>Criado: {new Date(c.created_at).toLocaleDateString('pt-BR')}</span>
-                {c.affiliate_token && (
-                  <span className="flex items-center gap-1">
-                    <Gift className="h-3 w-3 text-primary" />
-                    Token afiliado: <strong className="text-foreground font-mono">{c.affiliate_token}</strong>
+      <Card key={c.id} className="border-border/60 hover:border-border transition-colors shadow-sm overflow-hidden">
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex flex-col gap-3">
+            {/* Header: Title & Status */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h3 className="font-bold text-foreground text-sm sm:text-base leading-snug">{c.title}</h3>
+                  <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${cfg.color}`}>
+                    <Icon className="h-3 w-3" /> {cfg.label}
                   </span>
-                )}
-              </div>
-              {sig && !isDeleted && (
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-center gap-2 text-xs text-[hsl(var(--success))]">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Assinado por {sig.signer_name} ({sig.signer_cpf}) em {new Date(sig.signed_at).toLocaleString('pt-BR')}
-                  </div>
-                  {sig.signature_hash && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
-                      <Hash className="h-3 w-3" />
-                      {sig.signature_hash.slice(0, 16)}...{sig.signature_hash.slice(-8)}
-                    </div>
+                </div>
+                <p className="text-xs sm:text-sm font-medium text-foreground">
+                  {c.client_company || c.client_name || 'Cliente não especificado'}
+                  {c.client_company && c.client_name && (
+                    <span className="text-muted-foreground font-normal"> · {c.client_name}</span>
                   )}
+                </p>
+              </div>
+            </div>
+
+            {/* Contract Info Chips */}
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
+              <div className="rounded-md bg-secondary/60 border border-border/50 px-2.5 py-1 text-foreground font-medium">
+                💰 R$ {Number(c.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês
+              </div>
+              {c.plan_name && (
+                <div className="rounded-md bg-secondary/60 border border-border/50 px-2.5 py-1 text-muted-foreground">
+                  📦 {c.plan_name}
+                </div>
+              )}
+              <div className="rounded-md bg-secondary/60 border border-border/50 px-2.5 py-1 text-muted-foreground">
+                ⏳ {c.duration_months} meses
+              </div>
+              <div className="rounded-md bg-secondary/60 border border-border/50 px-2.5 py-1 text-muted-foreground">
+                📅 {new Date(c.created_at).toLocaleDateString('pt-BR')}
+              </div>
+              {c.affiliate_token && (
+                <div className="flex items-center gap-1 rounded-md bg-primary/10 border border-primary/20 px-2.5 py-1 text-primary font-mono text-[11px]">
+                  <Gift className="h-3 w-3" /> {c.affiliate_token}
                 </div>
               )}
             </div>
-            <div className="flex flex-col gap-2 shrink-0 sm:flex-row sm:items-center">
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-                {!isDeleted ? (
-                  <>
-                    <Button size="sm" variant="outline" className="h-8 w-full sm:w-auto" onClick={() => openEdit(c)} title="Editar"><Edit2 className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="outline" className="h-8 w-full sm:w-auto text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog(c.id)} title="Excluir">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button size="sm" variant="outline" className="h-8 w-full sm:w-auto text-primary hover:text-primary hover:bg-primary/10" onClick={() => handleRestore(c.id)} title="Restaurar">
-                      <RotateCcw className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-8 w-full sm:w-auto text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog(c.id, true)} title="Excluir Permanentemente">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </>
-                )}
-              </div>
-              
-              {!isDeleted && (
-                <div className="grid grid-cols-1 gap-2 sm:flex sm:items-center">
-                  <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => downloadPdf(c)} title="Baixar PDF">
-                    <Download className="h-3.5 w-3.5" />
-                  </Button>
-                  {c.status === 'rascunho' && (
-                    <Button size="sm" className="h-8 w-full sm:w-auto" onClick={() => handleSend(c)}><Send className="h-3.5 w-3.5 mr-1" /> Enviar</Button>
-                  )}
-                  {(c.status === 'enviado' || c.status === 'assinado') && (
-                    <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:items-center sm:gap-2">
-                      <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => copyLink(c.id)} title="Copiar Link"><Copy className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="outline" className="h-8 px-2 text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => shareWhatsApp(c)} title="WhatsApp">
-                        <MessageCircle className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="sm" variant="default" className="h-8 col-span-2 sm:col-auto" asChild>
-                        <a href={`/contrato/${c.id}`} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5 mr-1" /> Ver</a>
-                      </Button>
-                    </div>
+
+            {/* Signature status banner */}
+            {sig && !isDeleted && (
+              <div className="rounded-lg bg-[hsl(var(--success))]/10 border border-[hsl(var(--success))]/20 p-2.5 text-xs text-[hsl(var(--success))] space-y-1">
+                <div className="flex items-center gap-1.5 font-semibold">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span>Assinado por {sig.signer_name} ({sig.signer_cpf})</span>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <span>Em {new Date(sig.signed_at).toLocaleString('pt-BR')}</span>
+                  {sig.signature_hash && (
+                    <span className="font-mono truncate ml-1">· {sig.signature_hash.slice(0, 10)}...</span>
                   )}
                 </div>
-              )}
+              </div>
+            )}
+
+            {/* Actions Bar */}
+            <div className="pt-2 border-t border-border/40">
+              {/* Mobile Actions (< sm) */}
+              <div className="flex flex-col gap-2 sm:hidden">
+                {!isDeleted ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button size="sm" variant="default" className="h-9 gap-1 font-semibold" asChild>
+                        <a href={`/contrato/${c.id}`} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3.5 w-3.5" /> Ver / Assinar
+                        </a>
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-9 gap-1 text-green-600 hover:text-green-700 hover:bg-green-500/10 border-green-500/30" onClick={() => shareWhatsApp(c)}>
+                        <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Button size="sm" variant="outline" className="h-8 flex-1 text-xs gap-1" onClick={() => copyLink(c.id)}>
+                        <Copy className="h-3 w-3" /> Link
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 flex-1 text-xs gap-1" onClick={() => downloadPdf(c)}>
+                        <Download className="h-3 w-3" /> PDF
+                      </Button>
+                      {c.status === 'rascunho' && (
+                        <Button size="sm" className="h-8 flex-1 text-xs gap-1" onClick={() => handleSend(c)}>
+                          <Send className="h-3 w-3" /> Enviar
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" className="h-8 px-2.5" onClick={() => openEdit(c)} title="Editar">
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 px-2.5 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog(c.id)} title="Excluir">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button size="sm" variant="outline" className="h-9 text-primary hover:bg-primary/10 gap-1" onClick={() => handleRestore(c.id)}>
+                      <RotateCcw className="h-3.5 w-3.5" /> Restaurar
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-9 text-destructive hover:bg-destructive/10 gap-1" onClick={() => openDeleteDialog(c.id, true)}>
+                      <Trash2 className="h-3.5 w-3.5" /> Excluir
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Actions (>= sm) */}
+              <div className="hidden sm:flex sm:items-center sm:justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  {!isDeleted && (
+                    <>
+                      <Button size="sm" variant="default" className="h-8" asChild>
+                        <a href={`/contrato/${c.id}`} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3.5 w-3.5 mr-1" /> Ver Contrato
+                        </a>
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 text-green-600 hover:text-green-700 hover:bg-green-500/10 border-green-500/30" onClick={() => shareWhatsApp(c)} title="Compartilhar no WhatsApp">
+                        <MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8" onClick={() => copyLink(c.id)} title="Copiar Link">
+                        <Copy className="h-3.5 w-3.5 mr-1" /> Copiar Link
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8" onClick={() => downloadPdf(c)} title="Baixar PDF">
+                        <Download className="h-3.5 w-3.5 mr-1" /> PDF
+                      </Button>
+                      {c.status === 'rascunho' && (
+                        <Button size="sm" className="h-8" onClick={() => handleSend(c)}>
+                          <Send className="h-3.5 w-3.5 mr-1" /> Marcar Enviado
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  {!isDeleted ? (
+                    <>
+                      <Button size="sm" variant="outline" className="h-8" onClick={() => openEdit(c)} title="Editar">
+                        <Edit2 className="h-3.5 w-3.5 mr-1" /> Editar
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog(c.id)} title="Excluir">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button size="sm" variant="outline" className="h-8 text-primary hover:text-primary hover:bg-primary/10" onClick={() => handleRestore(c.id)} title="Restaurar">
+                        <RotateCcw className="h-3.5 w-3.5 mr-1" /> Restaurar
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog(c.id, true)} title="Excluir Permanentemente">
+                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -459,50 +536,53 @@ export default function ContractsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-            <FileText className="h-6 w-6 text-primary" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+            <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Contratos</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Crie e gerencie contratos digitais</p>
+            <h1 className="text-lg sm:text-2xl font-bold text-foreground">Contratos</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Crie e gerencie contratos digitais com validade jurídica</p>
           </div>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingId(null); setForm(emptyContract); } }}>
           <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto shadow-lg shadow-primary/10">
+            <Button className="w-full sm:w-auto shadow-md shadow-primary/15 font-semibold">
               <Plus className="h-4 w-4 mr-1" /> Novo Contrato
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl w-[96vw] sm:w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
             <DialogHeader>
-              <DialogTitle>{editingId ? 'Editar Contrato' : 'Novo Contrato'}</DialogTitle>
+              <DialogTitle className="text-base sm:text-lg">{editingId ? 'Editar Contrato' : 'Novo Contrato'}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div><Label>Título do contrato</Label><Input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} /></div>
+            <div className="space-y-4 py-1">
+              <div>
+                <Label className="text-xs sm:text-sm font-semibold">Título do contrato</Label>
+                <Input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Ex: Contrato de Prestação de Serviços - Empresa X" className="mt-1" />
+              </div>
 
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-4">
-                <div className="space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-primary">Contratante (Cliente)</p>
-                  <div><Label className="text-xs text-muted-foreground">Nome / Razão Social</Label><Input value={form.contractor_name} onChange={e => setForm(p => ({ ...p, contractor_name: e.target.value }))} className="mt-1" /></div>
-                  <div><Label className="text-xs text-muted-foreground">CPF / CNPJ</Label><Input value={form.contractor_cpf_cnpj} onChange={e => setForm(p => ({ ...p, contractor_cpf_cnpj: e.target.value }))} className="mt-1" /></div>
-                  <div><Label className="text-xs text-muted-foreground">Endereço</Label><Input value={form.contractor_address} onChange={e => setForm(p => ({ ...p, contractor_address: e.target.value }))} className="mt-1" /></div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="rounded-xl border border-border bg-card/60 p-3.5 space-y-2.5">
+                  <p className="text-xs font-bold uppercase tracking-wider text-primary">Contratante (Prestador / Sua Empresa)</p>
+                  <div><Label className="text-xs text-muted-foreground">Nome / Razão Social</Label><Input value={form.contractor_name} onChange={e => setForm(p => ({ ...p, contractor_name: e.target.value }))} className="mt-1 h-9 text-xs sm:text-sm" /></div>
+                  <div><Label className="text-xs text-muted-foreground">CPF / CNPJ</Label><Input value={form.contractor_cpf_cnpj} onChange={e => setForm(p => ({ ...p, contractor_cpf_cnpj: e.target.value }))} className="mt-1 h-9 text-xs sm:text-sm" /></div>
+                  <div><Label className="text-xs text-muted-foreground">Endereço</Label><Input value={form.contractor_address} onChange={e => setForm(p => ({ ...p, contractor_address: e.target.value }))} className="mt-1 h-9 text-xs sm:text-sm" /></div>
                 </div>
-                <div className="space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-primary">Contratado (Prestador)</p>
-                  <div><Label className="text-xs text-muted-foreground">Empresa / Razão Social</Label><Input value={form.client_company} onChange={e => setForm(p => ({ ...p, client_company: e.target.value }))} placeholder="Nome da empresa (aparece como cliente)" className="mt-1" /></div>
-                  <div><Label className="text-xs text-muted-foreground">Responsável</Label><Input value={form.client_name} onChange={e => setForm(p => ({ ...p, client_name: e.target.value }))} placeholder="Nome do responsável" className="mt-1" /></div>
-                  <div><Label className="text-xs text-muted-foreground">CPF / CNPJ</Label><Input value={form.client_cpf_cnpj} onChange={e => setForm(p => ({ ...p, client_cpf_cnpj: e.target.value }))} className="mt-1" /></div>
-                  <div><Label className="text-xs text-muted-foreground">Email</Label><Input type="email" value={form.client_email} onChange={e => setForm(p => ({ ...p, client_email: e.target.value }))} className="mt-1" /></div>
-                  <div><Label className="text-xs text-muted-foreground">Endereço</Label><Input value={form.client_address} onChange={e => setForm(p => ({ ...p, client_address: e.target.value }))} className="mt-1" /></div>
+                <div className="rounded-xl border border-border bg-card/60 p-3.5 space-y-2.5">
+                  <p className="text-xs font-bold uppercase tracking-wider text-primary">Contratado (Cliente)</p>
+                  <div><Label className="text-xs text-muted-foreground">Empresa / Razão Social</Label><Input value={form.client_company} onChange={e => setForm(p => ({ ...p, client_company: e.target.value }))} placeholder="Nome da empresa" className="mt-1 h-9 text-xs sm:text-sm" /></div>
+                  <div><Label className="text-xs text-muted-foreground">Responsável</Label><Input value={form.client_name} onChange={e => setForm(p => ({ ...p, client_name: e.target.value }))} placeholder="Nome do responsável" className="mt-1 h-9 text-xs sm:text-sm" /></div>
+                  <div><Label className="text-xs text-muted-foreground">CPF / CNPJ</Label><Input value={form.client_cpf_cnpj} onChange={e => setForm(p => ({ ...p, client_cpf_cnpj: e.target.value }))} className="mt-1 h-9 text-xs sm:text-sm" /></div>
+                  <div><Label className="text-xs text-muted-foreground">Email</Label><Input type="email" value={form.client_email} onChange={e => setForm(p => ({ ...p, client_email: e.target.value }))} className="mt-1 h-9 text-xs sm:text-sm" /></div>
+                  <div><Label className="text-xs text-muted-foreground">Endereço</Label><Input value={form.client_address} onChange={e => setForm(p => ({ ...p, client_address: e.target.value }))} className="mt-1 h-9 text-xs sm:text-sm" /></div>
                 </div>
               </div>
 
               {/* Afiliado */}
-              <div className="rounded-lg border border-border p-4 space-y-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <div className="rounded-xl border border-border bg-card/60 p-3.5 space-y-2.5">
+                <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-foreground">
                   <Gift className="h-4 w-4 text-primary" /> Lead veio de Afiliado?
                 </div>
                 <div className="flex items-center gap-2">
@@ -516,13 +596,13 @@ export default function ContractsPage() {
                         searchAffiliateByToken(val);
                       }}
                       placeholder="Digite o token do lead (ex: AF-1A2B3C)"
-                      className="pl-10 font-mono"
+                      className="pl-10 font-mono h-9 text-xs sm:text-sm"
                     />
                   </div>
                   {affiliateSearchLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />}
                 </div>
                 {affiliateFound && (
-                  <div className="flex items-center gap-2 text-sm text-[hsl(var(--success))] bg-[hsl(var(--success))]/5 border border-[hsl(var(--success))]/20 rounded-md px-3 py-2">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-[hsl(var(--success))] bg-[hsl(var(--success))]/5 border border-[hsl(var(--success))]/20 rounded-lg px-3 py-2">
                     <UserCheck className="h-4 w-4 shrink-0" />
                     <span>
                       <strong>{affiliateFound.leadName}</strong> — Indicado por <strong>{affiliateFound.affiliateName}</strong>
@@ -534,57 +614,70 @@ export default function ContractsPage() {
                 )}
               </div>
 
-              <div><Label>Serviços contratados</Label><Input value={form.services} onChange={e => setForm(p => ({ ...p, services: e.target.value }))} placeholder="Ex: Gestor de trafego, Social Media, Design" /></div>
-              <div><Label>Descrição do escopo</Label><Textarea value={form.scope_description} onChange={e => setForm(p => ({ ...p, scope_description: e.target.value }))} rows={3} /></div>
+              <div>
+                <Label className="text-xs sm:text-sm font-semibold">Serviços contratados</Label>
+                <Input value={form.services} onChange={e => setForm(p => ({ ...p, services: e.target.value }))} placeholder="Ex: Gestão de Tráfego, Produção de Vídeos, Social Media" className="mt-1" />
+              </div>
+              <div>
+                <Label className="text-xs sm:text-sm font-semibold">Descrição do escopo</Label>
+                <Textarea value={form.scope_description} onChange={e => setForm(p => ({ ...p, scope_description: e.target.value }))} rows={3} placeholder="Descreva os detalhes dos serviços acordados..." className="mt-1" />
+              </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div><Label className="text-xs text-muted-foreground">Valor mensal (R$)</Label><Input type="number" value={form.monthly_value} onChange={e => setForm(p => ({ ...p, monthly_value: Number(e.target.value) }))} className="mt-1" /></div>
-                <div><Label className="text-xs text-muted-foreground">Duração (meses)</Label><Input type="number" value={form.duration_months} onChange={e => setForm(p => ({ ...p, duration_months: Number(e.target.value) }))} className="mt-1" /></div>
-                <div><Label className="text-xs text-muted-foreground">Dia de vencimento</Label><Input type="number" min={1} max={31} value={form.payment_due_day} onChange={e => setForm(p => ({ ...p, payment_due_day: Number(e.target.value) }))} className="mt-1" /></div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Valor mensal (R$)</Label>
+                  <Input type="number" value={form.monthly_value} onChange={e => setForm(p => ({ ...p, monthly_value: Number(e.target.value) }))} className="mt-1 h-9" />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Duração (meses)</Label>
+                  <Input type="number" value={form.duration_months} onChange={e => setForm(p => ({ ...p, duration_months: Number(e.target.value) }))} className="mt-1 h-9" />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Dia de vencimento</Label>
+                  <Input type="number" min={1} max={31} value={form.payment_due_day} onChange={e => setForm(p => ({ ...p, payment_due_day: Number(e.target.value) }))} className="mt-1 h-9" />
+                </div>
               </div>
 
               {/* Plan Deliverables */}
-              <div className="space-y-3 rounded-lg border border-border p-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-foreground">Entregas do Plano</p>
-                </div>
+              <div className="space-y-3 rounded-xl border border-border bg-card/60 p-3.5">
                 <div>
-                  <Label>Nome do plano</Label>
-                  <Input value={form.plan_name} onChange={e => setForm(p => ({ ...p, plan_name: e.target.value }))} placeholder="Ex: Plano Profissional" />
+                  <Label className="text-xs sm:text-sm font-semibold">Nome do plano</Label>
+                  <Input value={form.plan_name} onChange={e => setForm(p => ({ ...p, plan_name: e.target.value }))} placeholder="Ex: Plano Profissional" className="mt-1" />
                 </div>
                 <div className="space-y-2">
+                  <p className="text-xs font-semibold text-foreground">Entregas do Plano</p>
                   {form.deliverables.map((d, i) => (
-                    <div key={i} className="flex items-center gap-2">
+                    <div key={i} className="flex items-center gap-1.5 sm:gap-2">
                       <Input
                         value={d.quantity}
                         onChange={e => updateDeliverable(i, 'quantity', e.target.value)}
                         placeholder="Qtd"
-                        className="w-20 shrink-0"
+                        className="w-16 sm:w-20 shrink-0 h-9 text-xs sm:text-sm text-center font-semibold"
                       />
                       <Input
                         value={d.label}
                         onChange={e => updateDeliverable(i, 'label', e.target.value)}
                         placeholder="Descrição da entrega"
-                        className="flex-1"
+                        className="flex-1 h-9 text-xs sm:text-sm"
                       />
                       <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeDeliverable(i)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   ))}
-                  <Button variant="outline" size="sm" onClick={addDeliverable} className="w-full">
+                  <Button variant="outline" size="sm" onClick={addDeliverable} className="w-full text-xs h-8">
                     <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar entrega
                   </Button>
                 </div>
               </div>
 
               <div>
-                <Label>Cláusulas adicionais</Label>
-                <p className="text-xs text-muted-foreground mb-1">Use quebras de linha para separar parágrafos. O texto será exibido formatado no contrato.</p>
-                <Textarea value={form.additional_clauses} onChange={e => setForm(p => ({ ...p, additional_clauses: e.target.value }))} rows={6} placeholder={"Ex:\nCLÁUSULA 7ª - DA PROPRIEDADE INTELECTUAL\nTodo conteúdo produzido...\n\nCLÁUSULA 8ª - DAS PENALIDADES\nEm caso de atraso..."} className="font-mono text-xs leading-relaxed" />
+                <Label className="text-xs sm:text-sm font-semibold">Cláusulas adicionais</Label>
+                <p className="text-xs text-muted-foreground mb-1">O texto será exibido formatado com quebras de linha no documento.</p>
+                <Textarea value={form.additional_clauses} onChange={e => setForm(p => ({ ...p, additional_clauses: e.target.value }))} rows={5} placeholder={"Ex:\nCLÁUSULA 7ª - DA PROPRIEDADE INTELECTUAL\nTodo conteúdo produzido...\n\nCLÁUSULA 8ª - DAS PENALIDADES\nEm caso de atraso..."} className="font-mono text-xs leading-relaxed mt-1" />
               </div>
 
-              <Button onClick={handleSave} disabled={saving} className="w-full">
+              <Button onClick={handleSave} disabled={saving} className="w-full h-11 text-sm font-bold shadow-md shadow-primary/20">
                 {saving ? 'Salvando...' : editingId ? 'Atualizar Contrato' : 'Criar Contrato'}
               </Button>
             </div>
