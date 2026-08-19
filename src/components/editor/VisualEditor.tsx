@@ -5,34 +5,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "@/hooks/use-toast";
 import { getIframeInjectScript } from "./iframe-inject";
 import {
-  X,
-  Save,
-  Smartphone,
-  Tablet,
-  Monitor,
-  Type,
-  Palette,
-  Box,
-  Plus,
-  Trash2,
-  ArrowUp,
-  ArrowDown,
-  ChevronDown,
-  ChevronRight,
-  Heading1,
-  Heading2,
-  Heading3,
-  AlignLeft,
-  Columns2,
-  Rows3,
-  Minus,
-  Undo2,
-  Redo2,
-  Copy,
-  Layers,
+  X, Save, Smartphone, Tablet, Monitor, Type, Palette, Box, Plus,
+  Trash2, ArrowUp, ArrowDown, ChevronDown, ChevronRight, Heading1,
+  Heading2, Heading3, AlignLeft, Columns2, Rows3, Minus, Undo2,
+  Redo2, Copy, Layers,
 } from "lucide-react";
 
 type SelectedElement = {
@@ -69,7 +47,7 @@ function cssToRgb(c: string): string {
   return c;
 }
 
-function parseCssValue(v: string): { top: string; right: string; bottom: string; left: string } {
+function parseCssValue(v: string) {
   const parts = v.split(" ").map(s => s.trim());
   if (parts.length === 1) return { top: parts[0], right: parts[0], bottom: parts[0], left: parts[0] };
   if (parts.length === 2) return { top: parts[0], right: parts[1], bottom: parts[0], left: parts[1] };
@@ -83,6 +61,39 @@ function buildCssValue(t: string, r: string, b: string, l: string): string {
   return `${t} ${r} ${b} ${l}`;
 }
 
+function getPath(el: Element): number[] {
+  if (!el || el === document.body || el === document.documentElement) return [];
+  const parent = el.parentElement;
+  if (!parent) return [];
+  const idx = Array.from(parent.children).indexOf(el);
+  return [...getPath(parent), idx];
+}
+
+function findElByPath(root: Document, path: number[]): Element | null {
+  let el: Element | null = root.body;
+  for (const idx of path) {
+    if (!el || !el.children[idx]) return null;
+    el = el.children[idx];
+  }
+  return el;
+}
+
+function buildFullHtml(contentHtml: string): string {
+  const script = getIframeInjectScript();
+  if (contentHtml.toLowerCase().startsWith("<!doctype")) {
+    const insertIdx = contentHtml.indexOf("</head>");
+    if (insertIdx !== -1) {
+      return contentHtml.slice(0, insertIdx) + `<script data-lp-editor="true">${script}</script>` + contentHtml.slice(insertIdx);
+    }
+    return contentHtml.replace("</body>", `<script data-lp-editor="true">${script}</script></body>`);
+  }
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>${contentHtml}<script data-lp-editor="true">${script}</script></body></html>`;
+}
+
+function getIframeDoc(iframe: HTMLIFrameElement): Document | null {
+  try { return iframe.contentDocument || iframe.contentWindow?.document || null; } catch { return null; }
+}
+
 export function VisualEditor({ html, onSave, onClose }: VisualEditorProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [selected, setSelected] = useState<SelectedElement | null>(null);
@@ -92,7 +103,9 @@ export function VisualEditor({ html, onSave, onClose }: VisualEditorProps) {
   const [showElements, setShowElements] = useState(true);
   const [showProperties, setShowProperties] = useState(true);
   const [activePropertyTab, setActivePropertyTab] = useState<"style" | "typography" | "spacing">("style");
+  const [ready, setReady] = useState(false);
   const currentHtml = history[historyIdx] || html;
+  const srcDocRef = useRef(buildFullHtml(html));
 
   const pushHistory = useCallback((newHtml: string) => {
     setHistory(prev => {
@@ -104,117 +117,229 @@ export function VisualEditor({ html, onSave, onClose }: VisualEditorProps) {
     setHistoryIdx(prev => Math.min(prev + 1, 49));
   }, [historyIdx]);
 
+  const reloadCanvas = useCallback((newContentHtml: string) => {
+    srcDocRef.current = buildFullHtml(newContentHtml);
+    setSelected(null);
+    setReady(false);
+    const iframe = iframeRef.current;
+    if (iframe) {
+      const src = srcDocRef.current;
+      iframe.srcdoc = "";
+      requestAnimationFrame(() => { iframe.srcdoc = src; });
+    }
+  }, []);
+
   const undo = useCallback(() => {
     if (historyIdx > 0) {
       const newIdx = historyIdx - 1;
       setHistoryIdx(newIdx);
-      sendToCanvas({ type: "canvas:update-html", html: history[newIdx] });
+      reloadCanvas(history[newIdx]);
     }
-  }, [historyIdx, history]);
+  }, [historyIdx, history, reloadCanvas]);
 
   const redo = useCallback(() => {
     if (historyIdx < history.length - 1) {
       const newIdx = historyIdx + 1;
       setHistoryIdx(newIdx);
-      sendToCanvas({ type: "canvas:update-html", html: history[newIdx] });
+      reloadCanvas(history[newIdx]);
     }
-  }, [historyIdx, history]);
-
-  const sendToCanvas = useCallback((msg: any) => {
-    iframeRef.current?.contentWindow?.postMessage(msg, "*");
-  }, []);
+  }, [historyIdx, history, reloadCanvas]);
 
   const handleIframeLoad = useCallback(() => {
     const iframe = iframeRef.current;
-    if (!iframe?.contentDocument) return;
-    const doc = iframe.contentDocument;
-    const script = doc.createElement("script");
-    script.textContent = getIframeInjectScript();
-    doc.body.appendChild(script);
-    sendToCanvas({ type: "canvas:set-html", html: currentHtml });
-  }, [currentHtml, sendToCanvas]);
+    if (!iframe) return;
+    const doc = getIframeDoc(iframe);
+    if (!doc) return;
 
-  useEffect(() => {
-    function onMessage(e: MessageEvent) {
-      const msg = e.data;
-      if (!msg?.type) return;
+    doc.addEventListener("click", (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const target = (e.target as Element);
+      if (!target || target === doc.body || target === doc.documentElement) return;
+      doc.querySelectorAll(".__lp_selected").forEach(el => el.classList.remove("__lp_selected"));
+      target.classList.add("__lp_selected");
+      const cs = getComputedStyle(target);
+      setSelected({
+        path: getPath(target),
+        tag: target.tagName.toLowerCase(),
+        text: target.textContent?.trim().slice(0, 200) || "",
+        styles: {
+          color: cs.color,
+          backgroundColor: cs.backgroundColor === "rgba(0, 0, 0, 0)" ? "" : cs.backgroundColor,
+          fontSize: cs.fontSize,
+          fontWeight: cs.fontWeight,
+          fontFamily: cs.fontFamily.split(",")[0]?.trim().replace(/['"]/g, "") || "",
+          textAlign: cs.textAlign,
+          lineHeight: cs.lineHeight,
+          letterSpacing: cs.letterSpacing,
+          padding: cs.padding,
+          margin: cs.margin,
+          borderRadius: cs.borderRadius,
+          border: cs.borderStyle === "none" ? "" : cs.border,
+          backgroundImage: cs.backgroundImage === "none" ? "" : cs.backgroundImage,
+          gap: cs.gap,
+          width: cs.width,
+          height: cs.height,
+        },
+        inlineStyles: target.getAttribute("style") || "",
+        classes: target.className || "",
+      });
+      setShowProperties(true);
+    }, true);
 
-      if (msg.type === "element:select") {
-        setSelected({
-          path: msg.path,
-          tag: msg.tag,
-          text: msg.text,
-          styles: msg.styles || {},
-          inlineStyles: msg.inlineStyles || "",
-          classes: msg.classes || "",
-        });
-        setShowProperties(true);
-      }
+    doc.addEventListener("dblclick", (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const el = e.target as HTMLElement;
+      if (!el || el === doc.body) return;
+      el.contentEditable = "true";
+      el.focus();
+      el.classList.add("__lp_editing");
+      const origHtml = el.innerHTML;
+      const finish = () => {
+        el.contentEditable = "false";
+        el.classList.remove("__lp_editing");
+        el.removeEventListener("blur", finish);
+        el.removeEventListener("keydown", onKey);
+        if (el.innerHTML !== origHtml) {
+          const newContent = doc.body.innerHTML;
+          const newFullHtml = reconstructFullHtml(currentHtml, newContent);
+          pushHistory(newFullHtml);
+        }
+      };
+      const onKey = (ev: KeyboardEvent) => {
+        if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); finish(); }
+        if (ev.key === "Escape") { el.innerHTML = origHtml; finish(); }
+      };
+      el.addEventListener("blur", finish);
+      el.addEventListener("keydown", onKey);
+    }, true);
 
-      if (msg.type === "element:text-update") {
-        const newHtml = updateHtmlAtPath(currentHtml, msg.path, msg.text);
-        pushHistory(newHtml);
-        sendToCanvas({ type: "canvas:set-html", html: newHtml });
-      }
+    doc.querySelectorAll("section, div, header, footer, main, article, nav, h1, h2, h3, h4, h5, h6, p, a, span, button, img").forEach(el => {
+      el.setAttribute("data-lp-editable", "true");
+    });
 
-      if (msg.type === "element:reorder") {
-        const newHtml = reorderHtml(currentHtml, msg.srcPath, msg.tgtPath, msg.position);
-        pushHistory(newHtml);
-        sendToCanvas({ type: "canvas:set-html", html: newHtml });
-      }
-    }
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [currentHtml, pushHistory, sendToCanvas]);
+    setReady(true);
+  }, [currentHtml, pushHistory]);
 
   function applyStyle(prop: string, value: string) {
     if (!selected) return;
-    const newHtml = updateHtmlStyle(currentHtml, selected.path, prop, value);
-    pushHistory(newHtml);
-    sendToCanvas({ type: "canvas:set-html", html: newHtml });
-  }
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    const doc = getIframeDoc(iframe);
+    if (!doc) return;
+    const el = findElByPath(doc, selected.path);
+    if (!el) return;
 
-  function applyMultipleStyles(styles: Record<string, string>) {
-    if (!selected) return;
-    let newHtml = currentHtml;
-    for (const [prop, value] of Object.entries(styles)) {
-      newHtml = updateHtmlStyle(newHtml, selected.path, prop, value);
+    if (value === "" || value === "unset" || value === "initial") {
+      (el as HTMLElement).style.removeProperty(prop);
+    } else {
+      (el as HTMLElement).style.setProperty(prop, value);
     }
-    pushHistory(newHtml);
-    sendToCanvas({ type: "canvas:set-html", html: newHtml });
+
+    const newContent = doc.body.innerHTML;
+    const newFullHtml = reconstructFullHtml(currentHtml, newContent);
+    pushHistory(newFullHtml);
+
+    const cs = getComputedStyle(el);
+    setSelected(prev => prev ? {
+      ...prev,
+      styles: {
+        ...prev.styles,
+        [prop === "background-color" ? "backgroundColor" : prop === "font-size" ? "fontSize" :
+         prop === "font-weight" ? "fontWeight" : prop === "font-family" ? "fontFamily" :
+         prop === "text-align" ? "textAlign" : prop === "line-height" ? "lineHeight" :
+         prop === "letter-spacing" ? "letterSpacing" : prop === "border-radius" ? "borderRadius" :
+         prop === "background-image" ? "backgroundImage" : prop]: value || cs.getPropertyValue(prop),
+      },
+      inlineStyles: el.getAttribute("style") || "",
+    } : null);
   }
 
   function deleteElement() {
     if (!selected) return;
-    const newHtml = removeHtmlAtPath(currentHtml, selected.path);
-    pushHistory(newHtml);
-    sendToCanvas({ type: "canvas:set-html", html: newHtml });
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    const doc = getIframeDoc(iframe);
+    if (!doc) return;
+    const el = findElByPath(doc, selected.path);
+    if (el) el.remove();
+    const newContent = doc.body.innerHTML;
+    const newFullHtml = reconstructFullHtml(currentHtml, newContent);
+    pushHistory(newFullHtml);
     setSelected(null);
   }
 
   function moveElement(direction: "up" | "down") {
     if (!selected) return;
-    const parentPath = selected.path.slice(0, -1);
-    const idx = selected.path[selected.path.length - 1];
-    const newIdx = direction === "up" ? idx - 1 : idx + 1;
-    if (newIdx < 0) return;
-    const newHtml = reorderHtml(currentHtml, selected.path, [...parentPath, newIdx], direction === "up" ? "before" : "after");
-    pushHistory(newHtml);
-    sendToCanvas({ type: "canvas:set-html", html: newHtml });
-    setSelected({ ...selected, path: [...parentPath, newIdx] });
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    const doc = getIframeDoc(iframe);
+    if (!doc) return;
+    const el = findElByPath(doc, selected.path);
+    if (!el) return;
+    if (direction === "up" && el.previousElementSibling) {
+      el.parentElement?.insertBefore(el, el.previousElementSibling);
+    } else if (direction === "down" && el.nextElementSibling) {
+      el.parentElement?.insertBefore(el.nextElementSibling, el);
+    }
+    const newContent = doc.body.innerHTML;
+    const newFullHtml = reconstructFullHtml(currentHtml, newContent);
+    pushHistory(newFullHtml);
+    const newPath = getPath(el);
+    setSelected({ ...selected, path: newPath });
   }
 
   function duplicateElement() {
     if (!selected) return;
-    const newHtml = duplicateHtmlAtPath(currentHtml, selected.path);
-    pushHistory(newHtml);
-    sendToCanvas({ type: "canvas:set-html", html: newHtml });
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    const doc = getIframeDoc(iframe);
+    if (!doc) return;
+    const el = findElByPath(doc, selected.path);
+    if (el) {
+      const clone = el.cloneNode(true);
+      el.parentElement?.insertBefore(clone, el.nextSibling);
+    }
+    const newContent = doc.body.innerHTML;
+    const newFullHtml = reconstructFullHtml(currentHtml, newContent);
+    pushHistory(newFullHtml);
   }
 
   function insertElement(type: string) {
-    const newHtml = insertHtmlElement(currentHtml, selected?.path || [], type);
-    pushHistory(newHtml);
-    sendToCanvas({ type: "canvas:set-html", html: newHtml });
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    const doc = getIframeDoc(iframe);
+    if (!doc) return;
+
+    const templates: Record<string, string> = {
+      h1: '<h1 style="font-size:2.5rem;font-weight:700;margin:1rem 0;color:#1a1a2e" data-lp-editable="true">Título Principal</h1>',
+      h2: '<h2 style="font-size:2rem;font-weight:600;margin:0.75rem 0;color:#1a1a2e" data-lp-editable="true">Subtítulo</h2>',
+      h3: '<h3 style="font-size:1.5rem;font-weight:600;margin:0.5rem 0;color:#1a1a2e" data-lp-editable="true">Título de Seção</h3>',
+      p: '<p style="font-size:1rem;line-height:1.6;color:#555;margin:0.5rem 0" data-lp-editable="true">Texto do parágrafo. Edite clicando duas vezes.</p>',
+      small: '<small style="font-size:0.875rem;color:#888" data-lp-editable="true">Texto pequeno</small>',
+      button: '<a href="#" style="display:inline-block;padding:12px 32px;background:#6366f1;color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:1rem;text-align:center" data-lp-editable="true">Chamada para Ação</a>',
+      hr: '<hr style="border:none;border-top:1px solid #e5e7eb;margin:2rem 0" />',
+      section: '<section style="padding:3rem 1.5rem;max-width:1200px;margin:0 auto" data-lp-editable="true"><p style="color:#999;text-align:center">Nova seção</p></section>',
+      columns: '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;padding:2rem 0" data-lp-editable="true"><div style="padding:1.5rem;background:#f8f9fa;border-radius:12px" data-lp-editable="true"><p style="color:#999;text-align:center">Coluna 1</p></div><div style="padding:1.5rem;background:#f8f9fa;border-radius:12px" data-lp-editable="true"><p style="color:#999;text-align:center">Coluna 2</p></div></div>',
+    };
+
+    const template = templates[type] || `<div style="padding:1rem;border:1px dashed #ccc" data-lp-editable="true">Novo elemento</div>`;
+
+    if (selected) {
+      const selEl = findElByPath(doc, selected.path);
+      if (selEl) {
+        selEl.insertAdjacentHTML("afterend", template);
+      } else {
+        doc.body.insertAdjacentHTML("beforeend", template);
+      }
+    } else {
+      doc.body.insertAdjacentHTML("beforeend", template);
+    }
+
+    const newContent = doc.body.innerHTML;
+    const newFullHtml = reconstructFullHtml(currentHtml, newContent);
+    pushHistory(newFullHtml);
   }
 
   const viewportWidths = { desktop: "100%", tablet: "768px", mobile: "375px" };
@@ -234,7 +359,6 @@ export function VisualEditor({ html, onSave, onClose }: VisualEditorProps) {
             </Badge>
           )}
         </div>
-
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
             <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-gray-400 hover:text-white" onClick={undo} disabled={historyIdx <= 0} title="Desfazer">
@@ -244,9 +368,7 @@ export function VisualEditor({ html, onSave, onClose }: VisualEditorProps) {
               <Redo2 className="h-3.5 w-3.5" />
             </Button>
           </div>
-
           <Separator orientation="vertical" className="h-6 bg-white/10" />
-
           <div className="flex items-center gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
             {(["desktop", "tablet", "mobile"] as const).map(v => (
               <button key={v} onClick={() => setViewport(v)}
@@ -256,18 +378,14 @@ export function VisualEditor({ html, onSave, onClose }: VisualEditorProps) {
               </button>
             ))}
           </div>
-
           <Separator orientation="vertical" className="h-6 bg-white/10" />
-
           <Button size="sm" variant="ghost" className="h-8 text-xs text-gray-400 hover:text-white gap-1.5" onClick={() => setShowElements(!showElements)}>
             <Plus className="h-3.5 w-3.5" /> Elementos
           </Button>
           <Button size="sm" variant="ghost" className="h-8 text-xs text-gray-400 hover:text-white gap-1.5" onClick={() => setShowProperties(!showProperties)}>
-            <Palette className="h-3.5 w-3.5" /> Propriedades
+            <Palette className="h-3.5 w-3.5" /> Props
           </Button>
-
           <Separator orientation="vertical" className="h-6 bg-white/10" />
-
           <Button size="sm" className="h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-700" onClick={() => onSave(currentHtml)}>
             <Save className="h-3.5 w-3.5" /> Salvar
           </Button>
@@ -291,11 +409,11 @@ export function VisualEditor({ html, onSave, onClose }: VisualEditorProps) {
                   { icon: Heading2, label: "Título H2", type: "h2", desc: "Subtítulo" },
                   { icon: Heading3, label: "Título H3", type: "h3", desc: "Seção" },
                   { icon: Type, label: "Parágrafo", type: "p", desc: "Texto corrido" },
-                  { icon: AlignLeft, label: "Texto Pequeno", type: "small", desc: "Caption / detalhe" },
+                  { icon: AlignLeft, label: "Texto Pequeno", type: "small", desc: "Caption" },
                   { icon: Box, label: "Botão", type: "button", desc: "Call to action" },
-                  { icon: Minus, label: "Divisor", type: "hr", desc: "Linha horizontal" },
-                  { icon: Rows3, label: "Seção", type: "section", desc: "Container de bloco" },
-                  { icon: Columns2, label: "Colunas (2)", type: "columns", desc: "Grid de 2 colunas" },
+                  { icon: Minus, label: "Divisor", type: "hr", desc: "Linha" },
+                  { icon: Rows3, label: "Seção", type: "section", desc: "Container" },
+                  { icon: Columns2, label: "Colunas (2)", type: "columns", desc: "Grid 2 col" },
                 ].map(item => (
                   <button key={item.type} onClick={() => insertElement(item.type)}
                     className="w-full flex items-center gap-3 p-2.5 rounded-lg text-left hover:bg-white/5 transition-colors group">
@@ -318,9 +436,15 @@ export function VisualEditor({ html, onSave, onClose }: VisualEditorProps) {
           <div className={`bg-white shadow-2xl rounded-lg overflow-hidden transition-all duration-300 ${
             viewport === "desktop" ? "w-full" : viewport === "tablet" ? "w-[768px]" : "w-[375px]"
           }`} style={{ minHeight: "calc(100vh - 120px)" }}>
-            <iframe ref={iframeRef} onLoad={handleIframeLoad}
-              className="w-full h-full border-0" style={{ minHeight: "calc(100vh - 120px)" }}
-              sandbox="allow-scripts allow-same-origin" title="Canvas do Editor" />
+            <iframe
+              ref={iframeRef}
+              srcDoc={srcDocRef.current}
+              onLoad={handleIframeLoad}
+              className="w-full h-full border-0"
+              style={{ minHeight: "calc(100vh - 120px)" }}
+              sandbox="allow-scripts allow-same-origin"
+              title="Canvas do Editor"
+            />
           </div>
         </div>
 
@@ -378,14 +502,14 @@ export function VisualEditor({ html, onSave, onClose }: VisualEditorProps) {
                             onChange={v => applyStyle("border-radius", v)} />
                         </PropGroup>
                         <PropGroup title="Dimensões">
-                          <CssBoxProp label="Largura" prop="width" value={styleProps.width || ""}
+                          <CssBoxProp label="Largura" value={styleProps.width || ""}
                             onChange={v => applyStyle("width", v)} />
-                          <CssBoxProp label="Altura" prop="height" value={styleProps.height || ""}
+                          <CssBoxProp label="Altura" value={styleProps.height || ""}
                             onChange={v => applyStyle("height", v)} />
                         </PropGroup>
                         <PropGroup title="Fundo Avançado">
-                          <CssBoxProp label="Imagem" prop="background-image" value={styleProps.backgroundImage || ""}
-                            onChange={v => applyStyle("background-image", v)} placeholder="url(...) ou gradient(...)" />
+                          <CssBoxProp label="Imagem" value={styleProps.backgroundImage || ""}
+                            onChange={v => applyStyle("background-image", v)} placeholder="url(...)" />
                         </PropGroup>
                       </>
                     )}
@@ -393,22 +517,16 @@ export function VisualEditor({ html, onSave, onClose }: VisualEditorProps) {
                     {activePropertyTab === "typography" && (
                       <>
                         <PropGroup title="Fonte">
-                          <FontProp value={styleProps.fontFamily || ""}
-                            onChange={v => applyStyle("font-family", v)} />
-                          <SizeProp label="Tamanho" value={styleProps.fontSize || "16px"}
-                            onChange={v => applyStyle("font-size", v)} min={8} max={96} />
-                          <WeightProp value={styleProps.fontWeight || "400"}
-                            onChange={v => applyStyle("font-weight", v)} />
+                          <FontProp value={styleProps.fontFamily || ""} onChange={v => applyStyle("font-family", v)} />
+                          <SizeProp label="Tamanho" value={styleProps.fontSize || "16px"} onChange={v => applyStyle("font-size", v)} min={8} max={96} />
+                          <WeightProp value={styleProps.fontWeight || "400"} onChange={v => applyStyle("font-weight", v)} />
                         </PropGroup>
                         <PropGroup title="Alinhamento">
-                          <AlignProp value={styleProps.textAlign || "left"}
-                            onChange={v => applyStyle("text-align", v)} />
+                          <AlignProp value={styleProps.textAlign || "left"} onChange={v => applyStyle("text-align", v)} />
                         </PropGroup>
                         <PropGroup title="Espaçamento de Texto">
-                          <CssBoxProp label="Linha" prop="line-height" value={styleProps.lineHeight || ""}
-                            onChange={v => applyStyle("line-height", v)} placeholder="1.5" />
-                          <CssBoxProp label="Letra" prop="letter-spacing" value={styleProps.letterSpacing || ""}
-                            onChange={v => applyStyle("letter-spacing", v)} placeholder="0.05em" />
+                          <CssBoxProp label="Linha" value={styleProps.lineHeight || ""} onChange={v => applyStyle("line-height", v)} placeholder="1.5" />
+                          <CssBoxProp label="Letra" value={styleProps.letterSpacing || ""} onChange={v => applyStyle("letter-spacing", v)} placeholder="0.05em" />
                         </PropGroup>
                       </>
                     )}
@@ -416,28 +534,27 @@ export function VisualEditor({ html, onSave, onClose }: VisualEditorProps) {
                     {activePropertyTab === "spacing" && (
                       <>
                         <PropGroup title="Margem">
-                          <CssBoxProp label="Cima" prop="margin-top" value={parseCssValue(styleProps.margin || "0px").top}
+                          <CssBoxProp label="Cima" value={parseCssValue(styleProps.margin || "0px").top}
                             onChange={v => { const p = parseCssValue(styleProps.margin || "0px"); applyStyle("margin", buildCssValue(v, p.right, p.bottom, p.left)); }} placeholder="0px" />
-                          <CssBoxProp label="Direita" prop="margin-right" value={parseCssValue(styleProps.margin || "0px").right}
+                          <CssBoxProp label="Direita" value={parseCssValue(styleProps.margin || "0px").right}
                             onChange={v => { const p = parseCssValue(styleProps.margin || "0px"); applyStyle("margin", buildCssValue(p.top, v, p.bottom, p.left)); }} placeholder="0px" />
-                          <CssBoxProp label="Baixo" prop="margin-bottom" value={parseCssValue(styleProps.margin || "0px").bottom}
+                          <CssBoxProp label="Baixo" value={parseCssValue(styleProps.margin || "0px").bottom}
                             onChange={v => { const p = parseCssValue(styleProps.margin || "0px"); applyStyle("margin", buildCssValue(p.top, p.right, v, p.left)); }} placeholder="0px" />
-                          <CssBoxProp label="Esquerda" prop="margin-left" value={parseCssValue(styleProps.margin || "0px").left}
+                          <CssBoxProp label="Esquerda" value={parseCssValue(styleProps.margin || "0px").left}
                             onChange={v => { const p = parseCssValue(styleProps.margin || "0px"); applyStyle("margin", buildCssValue(p.top, p.right, p.bottom, v)); }} placeholder="0px" />
                         </PropGroup>
                         <PropGroup title="Preenchimento">
-                          <CssBoxProp label="Cima" prop="padding-top" value={parseCssValue(styleProps.padding || "0px").top}
+                          <CssBoxProp label="Cima" value={parseCssValue(styleProps.padding || "0px").top}
                             onChange={v => { const p = parseCssValue(styleProps.padding || "0px"); applyStyle("padding", buildCssValue(v, p.right, p.bottom, p.left)); }} placeholder="0px" />
-                          <CssBoxProp label="Direita" prop="padding-right" value={parseCssValue(styleProps.padding || "0px").right}
+                          <CssBoxProp label="Direita" value={parseCssValue(styleProps.padding || "0px").right}
                             onChange={v => { const p = parseCssValue(styleProps.padding || "0px"); applyStyle("padding", buildCssValue(p.top, v, p.bottom, p.left)); }} placeholder="0px" />
-                          <CssBoxProp label="Baixo" prop="padding-bottom" value={parseCssValue(styleProps.padding || "0px").bottom}
+                          <CssBoxProp label="Baixo" value={parseCssValue(styleProps.padding || "0px").bottom}
                             onChange={v => { const p = parseCssValue(styleProps.padding || "0px"); applyStyle("padding", buildCssValue(p.top, p.right, v, p.left)); }} placeholder="0px" />
-                          <CssBoxProp label="Esquerda" prop="padding-left" value={parseCssValue(styleProps.padding || "0px").left}
+                          <CssBoxProp label="Esquerda" value={parseCssValue(styleProps.padding || "0px").left}
                             onChange={v => { const p = parseCssValue(styleProps.padding || "0px"); applyStyle("padding", buildCssValue(p.top, p.right, p.bottom, v)); }} placeholder="0px" />
                         </PropGroup>
                         <PropGroup title="Gap">
-                          <CssBoxProp label="Gap" prop="gap" value={styleProps.gap || ""}
-                            onChange={v => applyStyle("gap", v)} placeholder="16px" />
+                          <CssBoxProp label="Gap" value={styleProps.gap || ""} onChange={v => applyStyle("gap", v)} placeholder="16px" />
                         </PropGroup>
                       </>
                     )}
@@ -447,7 +564,7 @@ export function VisualEditor({ html, onSave, onClose }: VisualEditorProps) {
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-gray-600 mb-4">
-                  <CursorIcon />
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" /><path d="M13 13l6 6" /></svg>
                 </div>
                 <p className="text-sm font-semibold text-white">Nenhum elemento selecionado</p>
                 <p className="text-xs text-gray-500 mt-1">Clique em qualquer elemento no canvas para editá-lo</p>
@@ -460,12 +577,11 @@ export function VisualEditor({ html, onSave, onClose }: VisualEditorProps) {
   );
 }
 
-function CursorIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" /><path d="M13 13l6 6" />
-    </svg>
-  );
+function reconstructFullHtml(originalFullHtml: string, bodyInnerHtml: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(originalFullHtml, "text/html");
+  doc.body.innerHTML = bodyInnerHtml;
+  return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
 }
 
 function PropGroup({ title, children }: { title: string; children: React.ReactNode }) {
@@ -505,7 +621,7 @@ function RadiusProp({ value, onChange }: { value: string; onChange: (v: string) 
   );
 }
 
-function CssBoxProp({ label, value, onChange, placeholder }: { label: string; prop?: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+function CssBoxProp({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div className="flex items-center justify-between">
       <Label className="text-xs text-gray-400">{label}</Label>
@@ -516,7 +632,7 @@ function CssBoxProp({ label, value, onChange, placeholder }: { label: string; pr
 }
 
 function FontProp({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const fonts = ["Inter", "Roboto", "Open Sans", "Montserrat", "Poppins", "Raleway", "Playfair Display", "Lato", "Nunito", "Source Sans Pro", "Work Sans", "DM Sans", "Outfit", "Plus Jakarta Sans", "Manrope", "Sora", "Space Grotesk", "system-ui", "Arial", "Georgia", "serif"];
+  const fonts = ["Inter", "Roboto", "Open Sans", "Montserrat", "Poppins", "Raleway", "Playfair Display", "Lato", "Nunito", "DM Sans", "Outfit", "Plus Jakarta Sans", "Manrope", "Sora", "Space Grotesk", "system-ui", "Arial", "Georgia"];
   return (
     <div className="space-y-1.5">
       <Label className="text-xs text-gray-400">Família</Label>
@@ -579,7 +695,7 @@ function AlignProp({ value, onChange }: { value: string; onChange: (v: string) =
           className={`flex items-center justify-center py-1.5 rounded text-[10px] transition-all ${
             value === a ? "bg-primary text-white" : "bg-white/5 text-gray-400 hover:bg-white/10"
           }`} title={a}>
-          {a === "left" && <AlignLeftIcon />}
+          {a === "left" && <AlignLeft className="h-3.5 w-3.5" />}
           {a === "center" && <AlignCenterIcon />}
           {a === "right" && <AlignRightIcon />}
           {a === "justify" && <AlignJustifyIcon />}
@@ -589,9 +705,6 @@ function AlignProp({ value, onChange }: { value: string; onChange: (v: string) =
   );
 }
 
-function AlignLeftIcon() {
-  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="17" y1="10" x2="3" y2="10" /><line x1="21" y1="6" x2="3" y2="6" /><line x1="21" y1="14" x2="3" y2="14" /><line x1="17" y1="18" x2="3" y2="18" /></svg>;
-}
 function AlignCenterIcon() {
   return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="10" x2="6" y2="10" /><line x1="21" y1="6" x2="3" y2="6" /><line x1="21" y1="14" x2="3" y2="14" /><line x1="18" y1="18" x2="6" y2="18" /></svg>;
 }
@@ -600,121 +713,4 @@ function AlignRightIcon() {
 }
 function AlignJustifyIcon() {
   return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="21" y1="10" x2="3" y2="10" /><line x1="21" y1="6" x2="3" y2="6" /><line x1="21" y1="14" x2="3" y2="14" /><line x1="21" y1="18" x2="3" y2="18" /></svg>;
-}
-
-function updateHtmlAtPath(html: string, path: number[], innerHtml: string): string {
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  let el: Element | null = div;
-  for (const idx of path) {
-    if (!el?.children[idx]) return html;
-    el = el.children[idx];
-  }
-  if (el) el.innerHTML = innerHtml;
-  return div.innerHTML;
-}
-
-function removeHtmlAtPath(html: string, path: number[]): string {
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  let el: Element | null = div;
-  for (let i = 0; i < path.length - 1; i++) {
-    if (!el?.children[path[i]]) return html;
-    el = el.children[path[i]];
-  }
-  if (el && el.children[path[path.length - 1]]) {
-    el.children[path[path.length - 1]].remove();
-  }
-  return div.innerHTML;
-}
-
-function duplicateHtmlAtPath(html: string, path: number[]): string {
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  let el: Element | null = div;
-  for (const idx of path) {
-    if (!el?.children[idx]) return html;
-    el = el.children[idx];
-  }
-  if (el?.parentElement) {
-    const clone = el.cloneNode(true);
-    el.parentElement.insertBefore(clone, el.nextSibling);
-  }
-  return div.innerHTML;
-}
-
-function updateHtmlStyle(html: string, path: number[], prop: string, value: string): string {
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  let el: Element | null = div;
-  for (const idx of path) {
-    if (!el?.children[idx]) return html;
-    el = el.children[idx];
-  }
-  if (!el) return html;
-  const currentStyle = el.getAttribute("style") || "";
-  const regex = new RegExp(`(?:^|;\\s*)${prop.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&")}\\s*:\\s*[^;]*`, "i");
-  let newStyle: string;
-  if (value === "" || value === "unset" || value === "initial") {
-    newStyle = currentStyle.replace(regex, "").trim();
-    if (newStyle) newStyle = newStyle.replace(/^;\s*/, "");
-  } else {
-    if (regex.test(currentStyle)) {
-      newStyle = currentStyle.replace(regex, `${prop}: ${value}`).trim();
-    } else {
-      newStyle = currentStyle ? `${currentStyle}; ${prop}: ${value}` : `${prop}: ${value}`;
-    }
-  }
-  if (newStyle) el.setAttribute("style", newStyle);
-  else el.removeAttribute("style");
-  return div.innerHTML;
-}
-
-function reorderHtml(html: string, srcPath: number[], tgtPath: number[], position: string): string {
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  function findEl(path: number[]): Element | null {
-    let el: Element | null = div;
-    for (const idx of path) {
-      if (!el?.children[idx]) return null;
-      el = el.children[idx];
-    }
-    return el;
-  }
-  const srcEl = findEl(srcPath);
-  const tgtEl = findEl(tgtPath);
-  if (!srcEl || !tgtEl || srcEl === tgtEl) return html;
-  srcEl.remove();
-  if (position === "before") tgtEl.parentElement?.insertBefore(srcEl, tgtEl);
-  else tgtEl.parentElement?.insertBefore(srcEl, tgtEl.nextSibling);
-  return div.innerHTML;
-}
-
-function insertHtmlElement(html: string, targetPath: number[], type: string): string {
-  const templates: Record<string, string> = {
-    h1: '<h1 style="font-size: 2.5rem; font-weight: 700; margin: 1rem 0; color: #1a1a2e;">Título Principal</h1>',
-    h2: '<h2 style="font-size: 2rem; font-weight: 600; margin: 0.75rem 0; color: #1a1a2e;">Subtítulo</h2>',
-    h3: '<h3 style="font-size: 1.5rem; font-weight: 600; margin: 0.5rem 0; color: #1a1a2e;">Título de Seção</h3>',
-    p: '<p style="font-size: 1rem; line-height: 1.6; color: #555; margin: 0.5rem 0;">Texto do parágrafo. Edite este conteúdo clicando duas vezes.</p>',
-    small: '<small style="font-size: 0.875rem; color: #888;">Texto pequeno ou detalhe</small>',
-    button: '<a href="#" style="display: inline-block; padding: 12px 32px; background: #6366f1; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 1rem; text-align: center;">Chamada para Ação</a>',
-    hr: '<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 2rem 0;" />',
-    section: '<section style="padding: 3rem 1.5rem; max-width: 1200px; margin: 0 auto;"><p style="color: #999; text-align: center;">Nova seção — arraste elementos aqui</p></section>',
-    columns: '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; padding: 2rem 0;"><div style="padding: 1.5rem; background: #f8f9fa; border-radius: 12px;"><p style="color: #999; text-align: center;">Coluna 1</p></div><div style="padding: 1.5rem; background: #f8f9fa; border-radius: 12px;"><p style="color: #999; text-align: center;">Coluna 2</p></div></div>',
-  };
-  const template = templates[type] || `<div style="padding: 1rem; border: 1px dashed #ccc;">Novo elemento</div>`;
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  if (targetPath.length === 0) {
-    div.insertAdjacentHTML("beforeend", template);
-  } else {
-    let el: Element | null = div;
-    for (const idx of targetPath) {
-      if (!el?.children[idx]) { div.insertAdjacentHTML("beforeend", template); return div.innerHTML; }
-      el = el.children[idx];
-    }
-    if (el) el.insertAdjacentHTML("afterend", template);
-    else div.insertAdjacentHTML("beforeend", template);
-  }
-  return div.innerHTML;
 }
