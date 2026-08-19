@@ -562,7 +562,7 @@ function VisibleCanvas({ canvasRef, cameraActive }: { canvasRef: React.RefObject
   return (
     <canvas
       ref={displayCanvasRef}
-      className="absolute inset-0 h-full w-full object-cover"
+      className="absolute inset-0 h-full w-full object-contain"
     />
   );
 }
