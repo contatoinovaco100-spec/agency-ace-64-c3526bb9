@@ -145,14 +145,34 @@ export default function TeleprompterPage() {
     return list.find(t => MediaRecorder.isTypeSupported?.(t)) ?? '';
   };
 
+  const enterFullscreen = useCallback(async () => {
+    setFullscreen(true);
+    try {
+      const el = document.documentElement as any;
+      if (!document.fullscreenElement && el.requestFullscreen) await el.requestFullscreen();
+    } catch { /* iOS Safari não suporta: overlay já cobre a tela */ }
+  }, []);
+
+  const exitFullscreen = useCallback(async () => {
+    setFullscreen(false);
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+    } catch { /* ignore */ }
+  }, []);
+
   const startRecording = async () => {
     if (!streamRef.current) {
       await startCamera();
       if (!streamRef.current) return;
     }
     try {
+      await enterFullscreen();
       const mimeType = pickMime();
-      const rec = new MediaRecorder(streamRef.current, mimeType ? { mimeType } : undefined);
+      const rec = new MediaRecorder(streamRef.current, {
+        ...(mimeType ? { mimeType } : {}),
+        videoBitsPerSecond: 12_000_000,
+        audioBitsPerSecond: 128_000,
+      });
       chunksRef.current = [];
       rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       rec.onstop = () => {
@@ -176,7 +196,9 @@ export default function TeleprompterPage() {
     recorderRef.current = null;
     setRecording(false);
     setScrolling(false);
+    exitFullscreen();
   };
+
 
   const downloadRecording = () => {
     if (!recordedUrl) return;
