@@ -73,7 +73,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {items.map(item => {
                 const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
                 const Icon = item.icon;
-                if (item.path === '/roleta') {
+                if (item.path === '/roleta' || item.path === '/teleprompter') {
                   return (
                     <a
                       key={item.path}

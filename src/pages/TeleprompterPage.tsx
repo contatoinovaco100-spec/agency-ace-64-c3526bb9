@@ -51,8 +51,8 @@ export default function TeleprompterPage() {
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: mode,
-          width: { ideal: 2160 },
-          height: { ideal: 3840 },
+          width: { ideal: 1080 },
+          height: { ideal: 1920 },
           frameRate: { ideal: 30 },
           // @ts-expect-error: suportado em navegadores baseados em Chromium
           resizeMode: 'none',
