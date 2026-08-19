@@ -29,7 +29,9 @@ import {
   Search,
   Code,
   FileCode,
-  Globe
+  Globe,
+  ImageIcon,
+  X
 } from "lucide-react";
 import { LANDING_PAGE_TEMPLATES, LandingPageTemplate } from "@/data/landingPageTemplates";
 import { compileFigmaJsonToLandingPage } from "@/lib/figmaJsonCompiler";
@@ -77,6 +79,13 @@ export default function FigmaToLpPage() {
   const [previewTemplate, setPreviewTemplate] = useState<LandingPageTemplate | null>(null);
   const [previewViewport, setPreviewViewport] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [cloningTemplateId, setCloningTemplateId] = useState<string | null>(null);
+
+  // Image → LP state
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageTitle, setImageTitle] = useState("");
+  const [imageSlug, setImageSlug] = useState("");
+  const [generatingFromImage, setGeneratingFromImage] = useState(false);
 
   // Edit Drawer state
   const [selected, setSelected] = useState<LP | null>(null);
@@ -295,6 +304,92 @@ export default function FigmaToLpPage() {
     toast({ title: "Link copiado para a área de transferência!", description: url });
   }
 
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Arquivo inválido", description: "Envie uma imagem (PNG, JPG, WebP).", variant: "destructive" });
+      return;
+    }
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+    if (!imageTitle) setImageTitle(file.name.replace(/\.[^.]+$/, ""));
+  }
+
+  function clearImage() {
+    setImageFile(null);
+    setImagePreview(null);
+    setImageTitle("");
+    setImageSlug("");
+  }
+
+  async function generateFromImage() {
+    if (!imageFile || !imagePreview) {
+      toast({ title: "Imagem obrigatória", description: "Envie uma imagem da landing page.", variant: "destructive" });
+      return;
+    }
+    if (!imageTitle.trim()) {
+      toast({ title: "Título obrigatório", description: "Informe um título para a Landing Page.", variant: "destructive" });
+      return;
+    }
+
+    setGeneratingFromImage(true);
+    try {
+      // Extract base64 from data URL
+      const base64Match = imagePreview.match(/^data:(.+);base64,(.+)$/);
+      if (!base64Match) throw new Error("Erro ao processar a imagem.");
+      const mimeType = base64Match[1];
+      const base64 = base64Match[2];
+
+      const { data, error } = await supabase.functions.invoke("image-to-lp", {
+        body: {
+          imageBase64: base64,
+          imageMimeType: mimeType,
+          title: imageTitle,
+        },
+      });
+
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      const finalHtml = (data as any).html;
+      const aiNotesData = (data as any).ai_notes || { applied: true, source: "image_analysis" };
+      const finalSlug = imageSlug.trim()
+        ? slugify(imageSlug)
+        : `${slugify(imageTitle)}-${Math.random().toString(36).slice(2, 6)}`;
+
+      const { data: userData } = await supabase.auth.getUser();
+
+      const { error: insErr } = await (supabase as any).from("figma_landing_pages").insert({
+        slug: finalSlug,
+        title: imageTitle,
+        source_type: "image",
+        figma_json: null,
+        generated_html: finalHtml,
+        ai_notes: aiNotesData,
+        published: true,
+        created_by: userData.user?.id,
+      });
+
+      if (insErr) throw insErr;
+
+      toast({
+        title: "Landing Page Gerada com Sucesso!",
+        description: `Disponível em /lp/${finalSlug}`,
+      });
+
+      clearImage();
+      setActiveMainTab("pages");
+      load();
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar LP", description: e.message || String(e), variant: "destructive" });
+    } finally {
+      setGeneratingFromImage(false);
+    }
+  }
+
   async function downloadJson(lp: LP) {
     const { data, error } = await (supabase as any)
       .from("figma_landing_pages").select("figma_json,title,slug").eq("id", lp.id).single();
@@ -485,12 +580,15 @@ export default function FigmaToLpPage() {
 
       {/* Main Tabs Navigation */}
       <Tabs value={activeMainTab} onValueChange={(v) => setActiveMainTab(v as any)} className="w-full space-y-6">
-        <TabsList className="grid w-full grid-cols-2 max-w-md bg-secondary/80 p-1">
+        <TabsList className="grid w-full grid-cols-3 max-w-lg bg-secondary/80 p-1">
           <TabsTrigger value="pages" className="font-semibold text-xs sm:text-sm gap-1.5">
             <Globe className="h-4 w-4" /> Minhas LPs ({lps.length})
           </TabsTrigger>
+          <TabsTrigger value="image" className="font-semibold text-xs sm:text-sm gap-1.5">
+            <ImageIcon className="h-4 w-4 text-emerald-500" /> Imagem → LP
+          </TabsTrigger>
           <TabsTrigger value="templates" className="font-semibold text-xs sm:text-sm gap-1.5">
-            <Sparkles className="h-4 w-4 text-amber-500" /> Templates Prontos ({LANDING_PAGE_TEMPLATES.length})
+            <Sparkles className="h-4 w-4 text-amber-500" /> Templates ({LANDING_PAGE_TEMPLATES.length})
           </TabsTrigger>
         </TabsList>
 
@@ -507,11 +605,14 @@ export default function FigmaToLpPage() {
               </div>
               <h3 className="text-lg font-bold text-foreground">Nenhuma Landing Page criada ainda</h3>
               <p className="text-sm text-muted-foreground max-w-md mx-auto mt-1 mb-6">
-                Escolha um dos nossos <strong>Templates Pré-Salvos</strong> de alta conversão ou importe um arquivo JSON do Figma para começar em segundos.
+                Escolha um dos nossos <strong>Templates Pré-Salvos</strong>, envie uma <strong>imagem de referência</strong>, ou importe um arquivo JSON do Figma para começar em segundos.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <Button onClick={() => setActiveMainTab("templates")} className="gap-1.5">
                   <Sparkles className="h-4 w-4" /> Ver Templates Prontos
+                </Button>
+                <Button variant="outline" onClick={() => setActiveMainTab("image")} className="gap-1.5">
+                  <ImageIcon className="h-4 w-4" /> Enviar Imagem
                 </Button>
                 <Button variant="outline" onClick={() => setDialogOpen(true)} className="gap-1.5">
                   <Upload className="h-4 w-4" /> Importar JSON do Figma
@@ -599,7 +700,177 @@ export default function FigmaToLpPage() {
           )}
         </TabsContent>
 
-        {/* ── TAB 2: Galeria de Templates Pré-Salvos ── */}
+        {/* ── TAB 2: Imagem → Landing Page ── */}
+        <TabsContent value="image" className="space-y-6 mt-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left: Upload & Config */}
+            <Card className="border-border/70 shadow-md overflow-hidden">
+              <div className="p-5 sm:p-6 space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 shrink-0">
+                    <ImageIcon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-foreground text-base">Enviar Imagem da Landing Page</h3>
+                    <p className="text-xs text-muted-foreground">A IA analisa o design e replica fielmente em HTML</p>
+                  </div>
+                </div>
+
+                {/* Image Upload Area */}
+                {!imagePreview ? (
+                  <label className="flex flex-col items-center justify-center w-full h-56 border-2 border-dashed border-border hover:border-emerald-500/50 rounded-2xl cursor-pointer transition-all bg-secondary/30 hover:bg-emerald-500/5 group">
+                    <div className="flex flex-col items-center gap-3 text-center px-4">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 group-hover:scale-105 transition-transform">
+                        <Upload className="h-7 w-7" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Clique para enviar uma imagem</p>
+                        <p className="text-xs text-muted-foreground mt-1">PNG, JPG ou WebP • Máx. 10MB</p>
+                      </div>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                  </label>
+                ) : (
+                  <div className="relative rounded-2xl overflow-hidden border border-border group">
+                    <img
+                      src={imagePreview}
+                      alt="Preview da landing page"
+                      className="w-full h-auto max-h-64 object-contain bg-secondary/50"
+                    />
+                    <button
+                      onClick={clearImage}
+                      className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-destructive transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                      <p className="text-xs text-white font-medium truncate">{imageFile?.name}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Title & Slug */}
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Título da Landing Page *</Label>
+                    <Input
+                      value={imageTitle}
+                      onChange={(e) => setImageTitle(e.target.value)}
+                      placeholder="Ex: Minha Landing Page"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Slug personalizado (opcional)</Label>
+                    <Input
+                      value={imageSlug}
+                      onChange={(e) => setImageSlug(e.target.value)}
+                      placeholder="Ex: minha-landing"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full h-11 text-sm font-bold shadow-lg shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700"
+                  onClick={generateFromImage}
+                  disabled={generatingFromImage || !imagePreview}
+                >
+                  {generatingFromImage ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analisando imagem e gerando LP...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" /> Gerar Landing Page a partir da Imagem
+                    </>
+                  )}
+                </Button>
+              </div>
+            </Card>
+
+            {/* Right: How it works / Tips */}
+            <Card className="border-border/70 shadow-md overflow-hidden">
+              <div className="p-5 sm:p-6 space-y-5">
+                <div>
+                  <h3 className="font-bold text-foreground text-base flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    Como Funciona
+                  </h3>
+                </div>
+
+                <div className="space-y-4">
+                  {[
+                    {
+                      step: "1",
+                      title: "Envie a Imagem",
+                      desc: "Faça upload de um print/screenshot da landing page que deseja replicar. Pode ser do Figma, de um site, ou de qualquer referência visual.",
+                      color: "bg-emerald-500",
+                    },
+                    {
+                      step: "2",
+                      title: "IA Analisa o Design",
+                      desc: "A inteligência artificial analisa cores, tipografia, layout, espaçamentos, hierarquia visual, botões e todo o conteúdo de texto da imagem.",
+                      color: "bg-primary",
+                    },
+                    {
+                      step: "3",
+                      title: "HTML Gerado Automaticamente",
+                      desc: "Uma landing page completa e responsiva é gerada em HTML/CSS, replicando fielmente o design original com todas as seções e elementos.",
+                      color: "bg-amber-500",
+                    },
+                  ].map((item) => (
+                    <div key={item.step} className="flex gap-3">
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${item.color} text-white text-sm font-bold shrink-0`}>
+                        {item.step}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 space-y-2">
+                  <p className="text-xs font-bold text-emerald-600 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4" /> Dicas para melhor resultado:
+                  </p>
+                  <ul className="text-xs text-muted-foreground space-y-1.5 ml-5">
+                    <li className="list-disc">Envie prints de alta resolução (full page se possível)</li>
+                    <li className="list-disc">A IA preserva o texto original visível na imagem</li>
+                    <li className="list-disc">O HTML gerado é totalmente editável depois de criado</li>
+                    <li className="list-disc">Imagens/fotos são substituídas por placeholders estilizados</li>
+                    <li className="list-disc">O design é sempre responsivo (mobile-first)</li>
+                  </ul>
+                </div>
+
+                {imagePreview && (
+                  <div className="bg-secondary/50 rounded-xl p-4">
+                    <p className="text-xs font-semibold text-foreground mb-2">Imagem selecionada:</p>
+                    <div className="flex items-center gap-3">
+                      <img src={imagePreview} alt="" className="h-16 w-16 rounded-lg object-cover border border-border" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">{imageFile?.name}</p>
+                        <p className="text-xs text-muted-foreground">{imageFile ? `${(imageFile.size / 1024).toFixed(0)} KB` : ""}</p>
+                      </div>
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive" onClick={clearImage}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* ── TAB 3: Galeria de Templates Pré-Salvos ── */}
         <TabsContent value="templates" className="space-y-6 mt-0">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-card p-4 rounded-2xl border border-border">
             <div className="flex items-center gap-2 overflow-x-auto scroller-hide pb-1 -mx-2 px-2 sm:p-0">
