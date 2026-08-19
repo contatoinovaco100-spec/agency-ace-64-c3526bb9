@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Camera, CameraOff, Circle, Square, Download, Play, Pause,
-  RotateCcw, SwitchCamera, Minus, Plus, Type, Trash2,
+  RotateCcw, SwitchCamera, Minus, Plus, Type, Trash2, Maximize2, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+
 
 const DEFAULT_TEXT =
   'Cole aqui o seu roteiro.\n\nO texto vai subir por cima da imagem da câmera enquanto você grava, igual a um teleprompter profissional.\n\nAjuste a velocidade, o tamanho da letra e comece a gravar.';
@@ -32,6 +33,8 @@ export default function TeleprompterPage() {
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+
 
   /* ---------------- câmera ---------------- */
   const stopCamera = useCallback(() => {
@@ -44,10 +47,24 @@ export default function TeleprompterPage() {
   const startCamera = useCallback(async (mode: 'user' | 'environment' = facing) => {
     try {
       streamRef.current?.getTracks().forEach(t => t.stop());
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: mode, width: { ideal: 1080 }, height: { ideal: 1920 } },
+      // Pede a maior resolução nativa possível — sem cortes/redimensionamento
+      const constraints: MediaStreamConstraints = {
+        video: {
+          facingMode: mode,
+          width: { ideal: 2160 },
+          height: { ideal: 3840 },
+          frameRate: { ideal: 30 },
+          // @ts-expect-error: suportado em navegadores baseados em Chromium
+          resizeMode: 'none',
+        },
         audio: { echoCancellation: true, noiseSuppression: true },
-      });
+      };
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: mode }, audio: true });
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -60,6 +77,7 @@ export default function TeleprompterPage() {
       });
     }
   }, [facing]);
+
 
   useEffect(() => () => {
     stopCamera();
@@ -127,14 +145,34 @@ export default function TeleprompterPage() {
     return list.find(t => MediaRecorder.isTypeSupported?.(t)) ?? '';
   };
 
+  const enterFullscreen = useCallback(async () => {
+    setFullscreen(true);
+    try {
+      const el = document.documentElement as any;
+      if (!document.fullscreenElement && el.requestFullscreen) await el.requestFullscreen();
+    } catch { /* iOS Safari não suporta: overlay já cobre a tela */ }
+  }, []);
+
+  const exitFullscreen = useCallback(async () => {
+    setFullscreen(false);
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+    } catch { /* ignore */ }
+  }, []);
+
   const startRecording = async () => {
     if (!streamRef.current) {
       await startCamera();
       if (!streamRef.current) return;
     }
     try {
+      await enterFullscreen();
       const mimeType = pickMime();
-      const rec = new MediaRecorder(streamRef.current, mimeType ? { mimeType } : undefined);
+      const rec = new MediaRecorder(streamRef.current, {
+        ...(mimeType ? { mimeType } : {}),
+        videoBitsPerSecond: 12_000_000,
+        audioBitsPerSecond: 128_000,
+      });
       chunksRef.current = [];
       rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       rec.onstop = () => {
@@ -158,7 +196,9 @@ export default function TeleprompterPage() {
     recorderRef.current = null;
     setRecording(false);
     setScrolling(false);
+    exitFullscreen();
   };
+
 
   const downloadRecording = () => {
     if (!recordedUrl) return;
