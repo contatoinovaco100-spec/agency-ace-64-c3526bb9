@@ -343,19 +343,47 @@ export default function FigmaToLpPage() {
       const mimeType = base64Match[1];
       const base64 = base64Match[2];
 
-      const { data, error } = await supabase.functions.invoke("image-to-lp", {
+      const systemPrompt = `Você é um desenvolvedor web expert em replicar landing pages a partir de imagens. Analise a imagem e gere um HTML completo, responsivo e funcional que replique fielmente o design mostrado.
+
+INSTRUÇÕES:
+1. Analise: cores, tipografia, espaçamentos, layout, hierarquia visual, botões, seções, imagens, ícones, gradientes, bordas, sombras.
+2. Gere HTML COMPLETO com CSS embutido (<style> no <head>).
+3. CSS moderno: flexbox, grid, variables CSS.
+4. 100% responsivo (mobile-first).
+5. Google Fonts quando necessário.
+6. Preserve TODO o conteúdo de texto visível.
+7. Imagens/fotos → placeholders estilizados.
+8. HTML autocontido (um único arquivo).
+9. Meta viewport para responsividade.
+
+Responda APENAS com o código HTML completo. Comece com <!DOCTYPE html> e termine com </html>. Sem markdown, sem explicações.`;
+
+      const userMessage = `Analise esta imagem de landing page e gere um HTML completo que replique fielmente o design.\n\nTítulo: "${imageTitle}"`;
+
+      const { data, error } = await supabase.functions.invoke("ai-copywriter", {
         body: {
+          systemPrompt,
+          userMessage,
           imageBase64: base64,
           imageMimeType: mimeType,
-          title: imageTitle,
+          model: "google/gemini-2.5-flash",
         },
       });
 
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
 
-      const finalHtml = (data as any).html;
-      const aiNotesData = (data as any).ai_notes || { applied: true, source: "image_analysis" };
+      // ai-copywriter returns { result: ... } — could be string or parsed
+      let finalHtml = (data as any)?.result || (data as any)?.html || "";
+      if (typeof finalHtml !== "string") finalHtml = JSON.stringify(finalHtml);
+
+      // Clean up markdown fences if present
+      finalHtml = finalHtml.replace(/```html/g, "").replace(/```/g, "").trim();
+      if (!finalHtml.toLowerCase().startsWith("<!doctype")) {
+        finalHtml = "<!DOCTYPE html>\n" + finalHtml;
+      }
+
+      const aiNotesData = { applied: true, source: "image_analysis", model: "google/gemini-2.5-flash" };
       const finalSlug = imageSlug.trim()
         ? slugify(imageSlug)
         : `${slugify(imageTitle)}-${Math.random().toString(36).slice(2, 6)}`;
