@@ -47,10 +47,24 @@ export default function TeleprompterPage() {
   const startCamera = useCallback(async (mode: 'user' | 'environment' = facing) => {
     try {
       streamRef.current?.getTracks().forEach(t => t.stop());
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: mode, width: { ideal: 1080 }, height: { ideal: 1920 } },
+      // Pede a maior resolução nativa possível — sem cortes/redimensionamento
+      const constraints: MediaStreamConstraints = {
+        video: {
+          facingMode: mode,
+          width: { ideal: 2160 },
+          height: { ideal: 3840 },
+          frameRate: { ideal: 30 },
+          // @ts-expect-error: suportado em navegadores baseados em Chromium
+          resizeMode: 'none',
+        },
         audio: { echoCancellation: true, noiseSuppression: true },
-      });
+      };
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: mode }, audio: true });
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -63,6 +77,7 @@ export default function TeleprompterPage() {
       });
     }
   }, [facing]);
+
 
   useEffect(() => () => {
     stopCamera();
