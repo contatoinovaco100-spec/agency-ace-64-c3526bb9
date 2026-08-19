@@ -68,6 +68,7 @@ const InstagramAnalyticsPage = lazy(() => import("./pages/InstagramAnalyticsPage
 const PublishContentPage = lazy(() => import("./pages/PublishContentPage"));
 const PublishHistoryPage = lazy(() => import("./pages/PublishHistoryPage"));
 const ShootingSchedulePage = lazy(() => import("./pages/ShootingSchedulePage"));
+const TeleprompterPage     = lazy(() => import("./pages/TeleprompterPage"));
 const WhiteboardPage       = lazy(() => import("./pages/WhiteboardPage"));
 const ContentPlanningPage  = lazy(() => import("@/pages/ContentPlanningPage"));
 const ProspectionPage      = lazy(() => import("@/pages/ProspectionPage"));
@@ -242,6 +243,7 @@ function AppRoutes() {
                     <Route path="/publicar"            element={<PublishContentPage />} />
                     <Route path="/publicacoes"         element={<PublishHistoryPage />} />
                     <Route path="/gravacoes"           element={<ShootingSchedulePage />} />
+                    <Route path="/teleprompter"        element={<TeleprompterPage />} />
                     <Route path="/whiteboard"          element={<WhiteboardPage />} />
                     <Route path="/prospeccao"          element={<ProspectionPage />} />
                     <Route path="/consulta-cnpj"       element={<CnpjLookupPage />} />
