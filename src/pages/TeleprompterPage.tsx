@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Camera, CameraOff, Circle, Square, Download, Play, Pause,
-  RotateCcw, SwitchCamera, Minus, Plus, Type, Trash2,
+  RotateCcw, SwitchCamera, Minus, Plus, Type, Trash2, Maximize2, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+
 
 const DEFAULT_TEXT =
   'Cole aqui o seu roteiro.\n\nO texto vai subir por cima da imagem da câmera enquanto você grava, igual a um teleprompter profissional.\n\nAjuste a velocidade, o tamanho da letra e comece a gravar.';
