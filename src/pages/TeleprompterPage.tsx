@@ -74,26 +74,42 @@ export default function TeleprompterPage() {
         return;
       }
 
-      // Black background
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, OUT_W, OUT_H);
 
-      // Scale to FIT inside 1080x1920 (no crop)
-      const scale = Math.min(OUT_W / vw, OUT_H / vh);
-      const dw = vw * scale;
-      const dh = vh * scale;
-      const dx = (OUT_W - dw) / 2;
-      const dy = (OUT_H - dh) / 2;
+      ctx.save();
 
-      // Mirror if front camera
+      const isLandscape = vw > vh;
+
+      if (isLandscape) {
+        // Camera returned landscape frame — rotate to fill portrait canvas
+        // Rotate 90° so the wide frame becomes tall
+        ctx.translate(OUT_W / 2, OUT_H / 2);
+        ctx.rotate(-Math.PI / 2);
+        // After rotation, draw centered — swap w/h for the draw call
+        const scale = Math.min(OUT_H / vw, OUT_W / vh);
+        const dw = vw * scale;
+        const dh = vh * scale;
+        ctx.drawImage(video, -dw / 2, -dh / 2, dw, dh);
+      } else {
+        // Already portrait or square — just scale to fit
+        const scale = Math.min(OUT_W / vw, OUT_H / vh);
+        const dw = vw * scale;
+        const dh = vh * scale;
+        const dx = (OUT_W - dw) / 2;
+        const dy = (OUT_H - dh) / 2;
+        ctx.drawImage(video, dx, dy, dw, dh);
+      }
+
+      ctx.restore();
+
+      // Mirror for front camera (on top of everything)
       if (isMirrored) {
         ctx.save();
         ctx.translate(OUT_W, 0);
         ctx.scale(-1, 1);
-        ctx.drawImage(video, OUT_W - dx - dw, dy, dw, dh);
+        ctx.drawImage(canvas, 0, 0);
         ctx.restore();
-      } else {
-        ctx.drawImage(video, dx, dy, dw, dh);
       }
 
       drawRafRef.current = requestAnimationFrame(draw);
