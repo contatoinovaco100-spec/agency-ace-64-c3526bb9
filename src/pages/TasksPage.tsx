@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { useAgency } from '@/contexts/AgencyContext';
 import { Task } from '@/types/agency';
-import { Plus, Filter, Search, X, Users, ChevronDown, ChevronLeft, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film, FolderOpen, FileSpreadsheet, Undo2 } from 'lucide-react';
+import { Plus, Filter, Search, X, Users, ChevronDown, ChevronLeft, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film, FolderOpen, FileSpreadsheet, Undo2, Trash2, RotateCcw } from 'lucide-react';
 import { BulkImportDialog } from '@/components/tasks/BulkImportDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -563,7 +563,7 @@ interface DateGroup {
 }
 
 export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerExtra, groupedByDueDate }: TasksPageProps = {}) {
-  const { tasks, clients, team, addTask, updateTask, deleteTask, moveTaskToStage, refresh } = useAgency();
+  const { tasks, clients, team, addTask, updateTask, deleteTask, restoreTask, deletedTasks, moveTaskToStage, refresh } = useAgency();
   const board = taskTypeFilter === 'Arte' ? 'artes' : 'tasks';
   const { stages: allDbStages } = useKanbanStages(board);
   const dbStages = allDbStages;
@@ -579,7 +579,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [newDefaultDueDate, setNewDefaultDueDate] = useState('');
   const [newDefaultStatus, setNewDefaultStatus] = useState('');
-  const [arteTab, setArteTab] = useState<'progress' | 'done'>('progress');
+  const [arteTab, setArteTab] = useState<'progress' | 'done' | 'trash'>('progress');
   const [artPreview, setArtPreview] = useState<{ urls: string[]; index: number } | null>(null);
 
   // Open a specific task when navigated with ?taskId=xxx (e.g. from history bell)
@@ -813,6 +813,28 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
 
   const finalizadasCount = finalizadasTasks.length;
   const productionCount = filteredTasks.length - finalizadasCount;
+
+  // Deleted tasks: filter out tasks older than 7 days (auto-hide)
+  const trashTasks = useMemo(() => {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    return deletedTasks
+      .filter(t => {
+        if (!t.deletedAt) return false;
+        return new Date(t.deletedAt) > sevenDaysAgo;
+      })
+      .sort((a, b) => {
+        const d1 = a.deletedAt || '';
+        const d2 = b.deletedAt || '';
+        return d2.localeCompare(d1);
+      });
+  }, [deletedTasks]);
+
+  const trashCount = trashTasks.length;
+
+  const handleRestoreTask = async (id: string) => {
+    await restoreTask(id);
+  };
 
   const activeTask = activeId ? tasks.find(t => t.id === activeId) : null;
 
@@ -1085,13 +1107,90 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
               {finalizadasCount}
             </span>
           </button>
+          <button
+            type="button"
+            onClick={() => setArteTab('trash')}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+              arteTab === 'trash' ? 'bg-destructive text-white' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Lixeira
+            <span className={cn('flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums', arteTab === 'trash' ? 'bg-white/20 text-white' : 'bg-destructive/15 text-destructive')}>
+              {trashCount}
+            </span>
+          </button>
         </div>
       )}
 
       {/* Kanban board */}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {groupedByDueDate ? (
-          arteTab === 'done' ? (
+          arteTab === 'trash' ? (
+            <div className="space-y-5">
+              {trashTasks.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+                  <Trash2 className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
+                  Nenhuma tarefa na lixeira.
+                </div>
+              ) : (
+                <div className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3">
+                  <div className="flex items-center gap-2">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                    <span className="text-sm font-bold uppercase tracking-wide text-foreground">Lixeira</span>
+                    <span className="hidden sm:inline text-xs text-muted-foreground">Tarefas excluídas — desaparecem automaticamente após 7 dias</span>
+                    <span className="ml-auto flex h-5 min-w-[22px] items-center justify-center rounded-full bg-destructive/20 px-1.5 text-[10px] font-bold tabular-nums text-destructive">
+                      {trashCount}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {trashTasks.map(task => {
+                      const deletedDate = task.deletedAt ? new Date(task.deletedAt) : new Date();
+                      const daysSince = Math.floor((Date.now() - deletedDate.getTime()) / (1000 * 60 * 60 * 24));
+                      const daysLeft = Math.max(0, 7 - daysSince);
+                      return (
+                        <div
+                          key={task.id}
+                          className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 transition-colors hover:bg-destructive/5"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {task.videoName || task.title || 'Sem título'}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {task.clientId && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  {getClientName(task.clientId)}
+                                </span>
+                              )}
+                              <span className="text-[10px] text-muted-foreground">
+                                Excluída há {daysSince} {daysSince === 1 ? 'dia' : 'dias'}
+                              </span>
+                              <span className={cn(
+                                'text-[10px] font-medium',
+                                daysLeft <= 2 ? 'text-destructive' : 'text-muted-foreground'
+                              )}>
+                                ({daysLeft} {daysLeft === 1 ? 'dia restante' : 'dias restantes'})
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleRestoreTask(task.id)}
+                            className="flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+                            title="Restaurar tarefa"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            Restaurar
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : arteTab === 'done' ? (
             <div className="space-y-5">
               {finalizadasTasks.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
@@ -1215,43 +1314,137 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
           )
         ) : (
           <>
-            <div
-              className="flex gap-2 overflow-x-auto pb-3 lg:grid lg:gap-1.5 min-h-0 flex-1 scroller-hide"
-              style={{ gridTemplateColumns: `repeat(${Math.max(kanbanStages.length, 1)}, minmax(0, 1fr))` }}
-            >
-              {kanbanStages.map(stage => (
-                <div key={stage.id} className="min-w-[220px] lg:min-w-0 flex flex-col h-full">
-                  <KanbanColumn
-                    stage={stage}
-                    tasks={tasksByColumn[stage.name] || []}
-                    onCardClick={openCard}
-                    onAdd={openNew}
-                    getClientName={getClientName}
-                    onAdvanceTask={(task, nextStage) => moveTaskToStage(task.id, nextStage)}
-                    nextStageName={getNextStageName(stage.name)}
-                    showAddButton={stage.name === firstStageName}
-                    onDuplicateTask={handleDuplicateTask}
-                    onArtPreview={openArtPreview}
-                    onReopenTask={isFinalStage(stage.name) ? handleReopenTask : undefined}
-                  />
-                </div>
-              ))}
+            {/* Non-grouped mode tab bar */}
+            <div className="flex w-fit items-center gap-1 rounded-lg border border-border bg-card/70 p-1">
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors bg-primary text-primary-foreground"
+              >
+                Em andamento
+                <span className="flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums bg-primary-foreground/20 text-primary-foreground">
+                  {filteredTasks.length}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setArteTab(arteTab === 'trash' ? 'progress' : 'trash')}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+                  arteTab === 'trash' ? 'bg-destructive text-white' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Lixeira
+                <span className={cn('flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums', arteTab === 'trash' ? 'bg-white/20 text-white' : 'bg-destructive/15 text-destructive')}>
+                  {trashCount}
+                </span>
+              </button>
             </div>
-            {archiveStages.map(stage => (
-              <ArchiveDropZone
-                key={stage.id}
-                id={stage.name}
-                label={`${stage.name}s (arquivo interno)`}
-                helperText="Ocultos do cliente"
-                tasks={tasksByColumn[stage.name] || []}
-                onCardClick={openCard}
-                getClientName={getClientName}
-                accentClass="border-muted-foreground bg-muted/30"
-                iconColorClass="text-muted-foreground"
-                defaultOpen={false}
-                onReopenTask={handleReopenTask}
-              />
-            ))}
+
+            {arteTab === 'trash' ? (
+              <div className="space-y-5">
+                {trashTasks.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+                    <Trash2 className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
+                    Nenhuma tarefa na lixeira.
+                  </div>
+                ) : (
+                  <div className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3">
+                    <div className="flex items-center gap-2">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <span className="text-sm font-bold uppercase tracking-wide text-foreground">Lixeira</span>
+                      <span className="hidden sm:inline text-xs text-muted-foreground">Tarefas excluídas — desaparecem automaticamente após 7 dias</span>
+                      <span className="ml-auto flex h-5 min-w-[22px] items-center justify-center rounded-full bg-destructive/20 px-1.5 text-[10px] font-bold tabular-nums text-destructive">
+                        {trashCount}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      {trashTasks.map(task => {
+                        const deletedDate = task.deletedAt ? new Date(task.deletedAt) : new Date();
+                        const daysSince = Math.floor((Date.now() - deletedDate.getTime()) / (1000 * 60 * 60 * 24));
+                        const daysLeft = Math.max(0, 7 - daysSince);
+                        return (
+                          <div
+                            key={task.id}
+                            className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 transition-colors hover:bg-destructive/5"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">
+                                {task.videoName || task.title || 'Sem título'}
+                              </p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                {task.clientId && (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {getClientName(task.clientId)}
+                                  </span>
+                                )}
+                                <span className="text-[10px] text-muted-foreground">
+                                  Excluída há {daysSince} {daysSince === 1 ? 'dia' : 'dias'}
+                                </span>
+                                <span className={cn(
+                                  'text-[10px] font-medium',
+                                  daysLeft <= 2 ? 'text-destructive' : 'text-muted-foreground'
+                                )}>
+                                  ({daysLeft} {daysLeft === 1 ? 'dia restante' : 'dias restantes'})
+                                </span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleRestoreTask(task.id)}
+                              className="flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+                              title="Restaurar tarefa"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              Restaurar
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+            <>
+              <div
+                className="flex gap-2 overflow-x-auto pb-3 lg:grid lg:gap-1.5 min-h-0 flex-1 scroller-hide"
+                style={{ gridTemplateColumns: `repeat(${Math.max(kanbanStages.length, 1)}, minmax(0, 1fr))` }}
+              >
+                {kanbanStages.map(stage => (
+                  <div key={stage.id} className="min-w-[220px] lg:min-w-0 flex flex-col h-full">
+                    <KanbanColumn
+                      stage={stage}
+                      tasks={tasksByColumn[stage.name] || []}
+                      onCardClick={openCard}
+                      onAdd={openNew}
+                      getClientName={getClientName}
+                      onAdvanceTask={(task, nextStage) => moveTaskToStage(task.id, nextStage)}
+                      nextStageName={getNextStageName(stage.name)}
+                      showAddButton={stage.name === firstStageName}
+                      onDuplicateTask={handleDuplicateTask}
+                      onArtPreview={openArtPreview}
+                      onReopenTask={isFinalStage(stage.name) ? handleReopenTask : undefined}
+                    />
+                  </div>
+                ))}
+              </div>
+              {archiveStages.map(stage => (
+                <ArchiveDropZone
+                  key={stage.id}
+                  id={stage.name}
+                  label={`${stage.name}s (arquivo interno)`}
+                  helperText="Ocultos do cliente"
+                  tasks={tasksByColumn[stage.name] || []}
+                  onCardClick={openCard}
+                  getClientName={getClientName}
+                  accentClass="border-muted-foreground bg-muted/30"
+                  iconColorClass="text-muted-foreground"
+                  defaultOpen={false}
+                  onReopenTask={handleReopenTask}
+                />
+              ))}
+            </>
+            )}
           </>
         )}
         <DragOverlay>

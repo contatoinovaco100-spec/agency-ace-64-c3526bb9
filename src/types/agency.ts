@@ -92,6 +92,8 @@ export interface Task {
   // Client approval tracking
   approvedByClient?: boolean;
   approvedAt?: string;
+  // Soft delete
+  deletedAt?: string | null;
 }
 
 export interface TaskChecklistItem {

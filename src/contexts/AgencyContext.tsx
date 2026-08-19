@@ -21,6 +21,8 @@ interface AgencyContextType {
   updateTask: (task: Task) => Promise<void>;
   moveTaskToStage: (taskId: string, newStatus: string, extra?: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  restoreTask: (id: string) => Promise<void>;
+  deletedTasks: Task[];
   advanceVideoStage: (task: Task, changedBy: string) => Promise<void>;
   addLead: (lead: Lead) => Promise<void>;
   updateLead: (lead: Lead) => Promise<void>;
@@ -93,6 +95,7 @@ function rowToTask(row: any): Task {
     postDate: row.post_date || '', postTime: row.post_time || '',
     approvedByClient: row.approved_by_client || false,
     approvedAt: row.approved_at || '',
+    deletedAt: (row as any).deleted_at || null,
   };
 }
 
@@ -161,10 +164,17 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     return allClients.filter(c => allowedClientIds.includes(c.id));
   }, [allowedClientIds, allClients]);
 
-  // Filtered tasks (clientless tasks stay visible to everyone)
+  // Filtered tasks (clientless tasks stay visible to everyone, deleted tasks are excluded)
   const visibleTasks = useMemo(() => {
-    if (!allowedClientIds) return tasks;
-    return tasks.filter(t => !t.clientId || allowedClientIds.includes(t.clientId));
+    const active = tasks.filter(t => !t.deletedAt);
+    if (!allowedClientIds) return active;
+    return active.filter(t => !t.clientId || allowedClientIds.includes(t.clientId));
+  }, [allowedClientIds, tasks]);
+
+  const deletedTasks = useMemo(() => {
+    const deleted = tasks.filter(t => !!t.deletedAt);
+    if (!allowedClientIds) return deleted;
+    return deleted.filter(t => !t.clientId || allowedClientIds.includes(t.clientId));
   }, [allowedClientIds, tasks]);
 
   // Filtered events (events without a client stay visible to everyone)
@@ -365,8 +375,14 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteTask = async (id: string) => {
-    await supabase.from('tasks').delete().eq('id', id);
-    setTasks(prev => prev.filter(x => x.id !== id));
+    const now = new Date().toISOString();
+    await supabase.from('tasks').update({ deleted_at: now }).eq('id', id);
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, deletedAt: now } : t));
+  };
+
+  const restoreTask = async (id: string) => {
+    await supabase.from('tasks').update({ deleted_at: null }).eq('id', id);
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, deletedAt: null } : t));
   };
 
   const advanceVideoStage = async (task: Task, changedBy: string) => {
@@ -454,7 +470,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     <AgencyContext.Provider value={{
       clients, tasks: visibleTasks, leads, team, events: visibleEvents, loading, allowedClientIds,
       addClient, updateClient, deleteClient,
-      addTask, updateTask, deleteTask, moveTaskToStage, advanceVideoStage,
+      addTask, updateTask, deleteTask, restoreTask, deletedTasks, moveTaskToStage, advanceVideoStage,
       addLead, updateLead, deleteLead, convertLeadToClient,
       
       addEvent, deleteEvent,
