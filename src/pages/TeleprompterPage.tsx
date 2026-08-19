@@ -1,139 +1,156 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Camera, CameraOff, Circle, Square, Download, Play, Pause,
-  RotateCcw, SwitchCamera, Minus, Plus, Type, Trash2, Maximize2, X,
+  ArrowLeft, Play, Pause, RotateCcw, Settings2, X,
+  ChevronUp, ChevronDown, Video, VideoOff,
+  FlipHorizontal, Type, Gauge,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Slider } from '@/components/ui/slider';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-
-const DEFAULT_TEXT =
-  'Cole aqui o seu roteiro.\n\nO texto vai subir por cima da imagem da câmera enquanto você grava, igual a um teleprompter profissional.\n\nAjuste a velocidade, o tamanho da letra e comece a gravar.';
+type FacingMode = 'user' | 'environment';
 
 export default function TeleprompterPage() {
+  const navigate = useNavigate();
+
+  // Camera state
   const videoRef = useRef<HTMLVideoElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<BlobPart[]>([]);
-  const rafRef = useRef<number | null>(null);
-  const offsetRef = useRef(0);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<FacingMode>('environment');
 
-  const [text, setText] = useState(DEFAULT_TEXT);
-  const [fontSize, setFontSize] = useState(34);
-  const [speed, setSpeed] = useState(40); // px por segundo
-  const [mirrored, setMirrored] = useState(false);
-  const [facing, setFacing] = useState<'user' | 'environment'>('user');
-  const [cameraOn, setCameraOn] = useState(false);
-  const [scrolling, setScrolling] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
+  // Teleprompter state
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [script, setScript] = useState('');
+  const [isScrolling, setIsScrolling] = useState(false);
+  const [scrollSpeed, setScrollSpeed] = useState(1);
+  const [fontSize, setFontSize] = useState(28);
+  const [isMirrored, setIsMirrored] = useState(false);
+  const scrollAnimRef = useRef<number | null>(null);
+  const [editingScript, setEditingScript] = useState(false);
+
+  // Recording state
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordTime, setRecordTime] = useState(0);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
-  const [fullscreen, setFullscreen] = useState(false);
 
+  // UI state
+  const [showSettings, setShowSettings] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /* ---------------- câmera ---------------- */
-  const stopCamera = useCallback(() => {
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
-    setCameraOn(false);
-  }, []);
-
-  const startCamera = useCallback(async (mode: 'user' | 'environment' = facing) => {
+  // Start camera — force 1080x1920 portrait
+  const startCamera = useCallback(async (facing: FacingMode) => {
     try {
-      streamRef.current?.getTracks().forEach(t => t.stop());
-      // Pede a maior resolução nativa possível — sem cortes/redimensionamento
-      const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: mode,
-          width: { ideal: 1080 },
-          height: { ideal: 1920 },
-          frameRate: { ideal: 30 },
-          // @ts-expect-error: suportado em navegadores baseados em Chromium
-          resizeMode: 'none',
-        },
-        audio: { echoCancellation: true, noiseSuppression: true },
-      };
+      setCameraError(null);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+      }
+
+      // Try exact 1080x1920 first, then fallback
       let stream: MediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: facing,
+            width: { exact: 1080 },
+            height: { exact: 1920 },
+          },
+          audio: true,
+        });
       } catch {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: mode }, audio: true });
+        // Fallback: let browser pick best portrait resolution
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: facing,
+            width: { ideal: 1080 },
+            height: { ideal: 1920 },
+          },
+          audio: true,
+        });
       }
+
       streamRef.current = stream;
+
+      // Log actual resolution for debugging
+      const track = stream.getVideoTracks()[0];
+      if (track) {
+        const settings = track.getSettings();
+        console.log('Camera resolution:', settings.width, 'x', settings.height);
+      }
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
+        await videoRef.current.play();
       }
-      setCameraOn(true);
-    } catch (e: any) {
-      toast.error('Não foi possível acessar a câmera', {
-        description: e?.message ?? 'Verifique as permissões do navegador.',
-      });
+      setCameraActive(true);
+    } catch (err: any) {
+      console.error('Camera error:', err);
+      setCameraError(
+        err.name === 'NotAllowedError'
+          ? 'Permissão da câmera negada. Permita o acesso nas configurações do navegador.'
+          : err.name === 'NotFoundError'
+            ? 'Nenhuma câmera encontrada no dispositivo.'
+            : `Erro ao acessar câmera: ${err.message}`
+      );
+      setCameraActive(false);
     }
-  }, [facing]);
+  }, []);
 
+  // Stop camera
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setCameraActive(false);
+  }, []);
 
-  useEffect(() => () => {
-    stopCamera();
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-  }, [stopCamera]);
+  // Flip camera
+  const flipCamera = useCallback(() => {
+    const newMode: FacingMode = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(newMode);
+    startCamera(newMode);
+  }, [facingMode, startCamera]);
 
-  const switchCamera = async () => {
-    const next = facing === 'user' ? 'environment' : 'user';
-    setFacing(next);
-    if (cameraOn) await startCamera(next);
-  };
-
-  /* ---------------- rolagem do texto ---------------- */
+  // Auto-start camera on mount
   useEffect(() => {
-    if (!scrolling) {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
+    startCamera(facingMode);
+    return () => stopCamera();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Scroll logic
+  useEffect(() => {
+    if (!isScrolling || !scrollContainerRef.current) {
+      if (scrollAnimRef.current) cancelAnimationFrame(scrollAnimRef.current);
       return;
     }
-    let last = performance.now();
+
+    const container = scrollContainerRef.current;
+    let lastTime = performance.now();
+
     const tick = (now: number) => {
-      const dt = (now - last) / 1000;
-      last = now;
-      const el = scrollRef.current;
-      if (el) {
-        offsetRef.current += speed * dt;
-        const max = el.scrollHeight - el.clientHeight;
-        if (offsetRef.current >= max) {
-          offsetRef.current = max;
-          el.scrollTop = max;
-          setScrolling(false);
-          return;
-        }
-        el.scrollTop = offsetRef.current;
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+      container.scrollTop += scrollSpeed * 60 * dt;
+
+      if (container.scrollTop + container.clientHeight >= container.scrollHeight - 2) {
+        setIsScrolling(false);
+        return;
       }
-      rafRef.current = requestAnimationFrame(tick);
+      scrollAnimRef.current = requestAnimationFrame(tick);
     };
-    rafRef.current = requestAnimationFrame(tick);
+
+    scrollAnimRef.current = requestAnimationFrame(tick);
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (scrollAnimRef.current) cancelAnimationFrame(scrollAnimRef.current);
     };
-  }, [scrolling, speed]);
+  }, [isScrolling, scrollSpeed]);
 
-  const resetScroll = () => {
-    offsetRef.current = 0;
-    if (scrollRef.current) scrollRef.current.scrollTop = 0;
-    setScrolling(false);
-  };
-
-  /* ---------------- gravação ---------------- */
-  useEffect(() => {
-    if (!recording) return;
-    const id = window.setInterval(() => setElapsed(e => e + 1), 1000);
-    return () => window.clearInterval(id);
-  }, [recording]);
-
+  // Recording — records the raw camera stream (full resolution, no cropping)
   const pickMime = () => {
     const list = [
       'video/mp4;codecs=h264,aac',
@@ -145,239 +162,408 @@ export default function TeleprompterPage() {
     return list.find(t => MediaRecorder.isTypeSupported?.(t)) ?? '';
   };
 
-  const enterFullscreen = useCallback(async () => {
-    setFullscreen(true);
-    try {
-      const el = document.documentElement as any;
-      if (!document.fullscreenElement && el.requestFullscreen) await el.requestFullscreen();
-    } catch { /* iOS Safari não suporta: overlay já cobre a tela */ }
-  }, []);
+  const startRecording = useCallback(() => {
+    if (!streamRef.current) return;
 
-  const exitFullscreen = useCallback(async () => {
-    setFullscreen(false);
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-    } catch { /* ignore */ }
-  }, []);
+    recordedChunksRef.current = [];
+    const mimeType = pickMime();
 
-  const startRecording = async () => {
-    if (!streamRef.current) {
-      await startCamera();
-      if (!streamRef.current) return;
+    const recorder = new MediaRecorder(streamRef.current, {
+      ...(mimeType ? { mimeType } : {}),
+      videoBitsPerSecond: 12_000_000,
+    });
+
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(recordedChunksRef.current, { type: mimeType || 'video/webm' });
+      if (recordedUrl) URL.revokeObjectURL(recordedUrl);
+      setRecordedUrl(URL.createObjectURL(blob));
+    };
+
+    mediaRecorderRef.current = recorder;
+    recorder.start(1000);
+    setIsRecording(true);
+    setRecordTime(0);
+
+    recordTimerRef.current = setInterval(() => {
+      setRecordTime(prev => prev + 1);
+    }, 1000);
+  }, [recordedUrl]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
     }
-    try {
-      await enterFullscreen();
-      const mimeType = pickMime();
-      const rec = new MediaRecorder(streamRef.current, {
-        ...(mimeType ? { mimeType } : {}),
-        videoBitsPerSecond: 12_000_000,
-        audioBitsPerSecond: 128_000,
-      });
-      chunksRef.current = [];
-      rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      rec.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mimeType || 'video/webm' });
-        if (recordedUrl) URL.revokeObjectURL(recordedUrl);
-        setRecordedUrl(URL.createObjectURL(blob));
-      };
-      rec.start(1000);
-      recorderRef.current = rec;
-      setElapsed(0);
-      setRecording(true);
-      resetScroll();
-      setScrolling(true);
-    } catch (e: any) {
-      toast.error('Falha ao iniciar a gravação', { description: e?.message });
+    if (recordTimerRef.current) {
+      clearInterval(recordTimerRef.current);
+      recordTimerRef.current = null;
     }
-  };
-
-  const stopRecording = () => {
-    recorderRef.current?.stop();
-    recorderRef.current = null;
-    setRecording(false);
-    setScrolling(false);
-    exitFullscreen();
-  };
-
+    setIsRecording(false);
+  }, []);
 
   const downloadRecording = () => {
     if (!recordedUrl) return;
     const a = document.createElement('a');
     a.href = recordedUrl;
-    a.download = `teleprompter-${Date.now()}.${recordedUrl.includes('mp4') ? 'mp4' : 'webm'}`;
+    a.download = `gravacao-${Date.now()}.${recordedUrl.includes('mp4') ? 'mp4' : 'webm'}`;
     a.click();
   };
 
-  const fmt = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  // Auto-hide controls
+  const resetControlsTimer = useCallback(() => {
+    setControlsVisible(true);
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    controlsTimerRef.current = setTimeout(() => {
+      if (!isRecording && !editingScript && !showSettings) {
+        setControlsVisible(false);
+      }
+    }, 4000);
+  }, [isRecording, editingScript, showSettings]);
+
+  useEffect(() => {
+    resetControlsTimer();
+    return () => {
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    };
+  }, [resetControlsTimer]);
+
+  useEffect(() => {
+    return () => {
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+    };
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Teleprompter</h1>
-        <p className="text-sm text-muted-foreground">
-          Grave com a câmera do celular com o roteiro passando por cima da tela.
-        </p>
+    <div
+      className="fixed inset-0 z-50 bg-black flex flex-col select-none"
+      onMouseMove={resetControlsTimer}
+      onTouchStart={resetControlsTimer}
+    >
+      {/* Camera Video — FULL SCREEN, NO CROP, covers entire viewport */}
+      <video
+        ref={videoRef}
+        playsInline
+        muted
+        className={cn(
+          'absolute inset-0 h-full w-full bg-black',
+          // object-cover fills the screen; since camera is 1080x1920 (portrait)
+          // and phone screen is also portrait, there's minimal/no crop
+          'object-cover',
+          isMirrored && 'scale-x-[-1]'
+        )}
+      />
+
+      {/* Camera error overlay */}
+      {cameraError && (
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/90 px-6">
+          <VideoOff className="mb-4 h-16 w-16 text-red-500" />
+          <p className="mb-6 text-center text-lg text-white">{cameraError}</p>
+          <button
+            onClick={() => startCamera(facingMode)}
+            className="rounded-full bg-white px-6 py-3 text-lg font-semibold text-black"
+          >
+            Tentar Novamente
+          </button>
+        </div>
+      )}
+
+      {/* Teleprompter text overlay */}
+      {cameraActive && script && !editingScript && (
+        <div
+          ref={scrollContainerRef}
+          className="absolute left-0 right-0 top-20 z-20 bottom-32 overflow-y-auto px-6 py-4"
+          style={{
+            maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          <p
+            className={cn(
+              'whitespace-pre-wrap text-center font-medium leading-relaxed text-white',
+              isMirrored && 'scale-x-[-1]'
+            )}
+            style={{
+              fontSize: `${fontSize}px`,
+              textShadow: '0 2px 8px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5)',
+            }}
+          >
+            {script}
+          </p>
+        </div>
+      )}
+
+      {/* Script editor modal */}
+      {editingScript && (
+        <div className="absolute inset-0 z-50 flex flex-col bg-black/95 p-4">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white">Editar Roteiro</h2>
+            <button
+              onClick={() => setEditingScript(false)}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+            >
+              Concluir
+            </button>
+          </div>
+          <textarea
+            value={script}
+            onChange={(e) => setScript(e.target.value)}
+            placeholder="Cole ou digite seu roteiro aqui..."
+            className="flex-1 resize-none rounded-xl border border-zinc-700 bg-zinc-900 p-4 text-lg text-white focus:border-primary focus:outline-none"
+            autoFocus
+          />
+          <p className="mt-2 text-center text-xs text-zinc-500">
+            {script.length > 0 ? `${script.split(/\s+/).filter(Boolean).length} palavras` : 'Nenhuma palavra ainda'}
+          </p>
+        </div>
+      )}
+
+      {/* Settings panel */}
+      {showSettings && (
+        <div className="absolute bottom-0 left-0 right-0 z-40 rounded-t-2xl bg-black/95 p-6 pb-24 backdrop-blur-sm">
+          <div className="mb-6 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-white">Configurações</h3>
+            <button onClick={() => setShowSettings(false)}>
+              <X className="h-5 w-5 text-zinc-400" />
+            </button>
+          </div>
+
+          {/* Scroll speed */}
+          <div className="mb-5">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="flex items-center gap-2 text-sm text-zinc-300">
+                <Gauge className="h-4 w-4" /> Velocidade de Rolagem
+              </span>
+              <span className="font-mono text-sm text-white">{scrollSpeed.toFixed(1)}x</span>
+            </div>
+            <input
+              type="range"
+              min="0.2"
+              max="4"
+              step="0.1"
+              value={scrollSpeed}
+              onChange={(e) => setScrollSpeed(parseFloat(e.target.value))}
+              className="w-full accent-primary"
+            />
+          </div>
+
+          {/* Font size */}
+          <div className="mb-5">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="flex items-center gap-2 text-sm text-zinc-300">
+                <Type className="h-4 w-4" /> Tamanho do Texto
+              </span>
+              <span className="font-mono text-sm text-white">{fontSize}px</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setFontSize(prev => Math.max(16, prev - 2))}
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-800 text-white"
+              >
+                <ChevronDown className="h-5 w-5" />
+              </button>
+              <input
+                type="range"
+                min="16"
+                max="64"
+                step="2"
+                value={fontSize}
+                onChange={(e) => setFontSize(parseInt(e.target.value))}
+                className="flex-1 accent-primary"
+              />
+              <button
+                onClick={() => setFontSize(prev => Math.min(64, prev + 2))}
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-800 text-white"
+              >
+                <ChevronUp className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Mirror toggle */}
+          <div className="mb-4 flex items-center justify-between">
+            <span className="flex items-center gap-2 text-sm text-zinc-300">
+              <FlipHorizontal className="h-4 w-4" /> Espelhar Texto
+            </span>
+            <button
+              onClick={() => setIsMirrored(!isMirrored)}
+              className={cn(
+                'relative h-6 w-12 rounded-full transition-colors',
+                isMirrored ? 'bg-primary' : 'bg-zinc-700'
+              )}
+            >
+              <div
+                className={cn(
+                  'absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform',
+                  isMirrored ? 'translate-x-6' : 'translate-x-0.5'
+                )}
+              />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Top controls */}
+      <div
+        className={cn(
+          'absolute left-0 right-0 top-0 z-30 transition-opacity duration-300',
+          controlsVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
+        )}
+      >
+        <div className="bg-gradient-to-b from-black/70 to-transparent px-4 pb-8 pt-3">
+          <div className="flex items-center justify-between">
+            {/* Back button */}
+            <button
+              onClick={() => { stopRecording(); stopCamera(); navigate(-1); }}
+              className="rounded-full bg-black/40 p-2.5 backdrop-blur-sm"
+            >
+              <ArrowLeft className="h-5 w-5 text-white" />
+            </button>
+
+            {/* Recording indicator */}
+            <div className="flex items-center gap-3">
+              {isRecording && (
+                <div className="flex items-center gap-2 rounded-full bg-red-600 px-3 py-1.5">
+                  <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-white" />
+                  <span className="font-mono text-sm font-bold text-white">{formatTime(recordTime)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Settings button */}
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="rounded-full bg-black/40 p-2.5 backdrop-blur-sm"
+            >
+              <Settings2 className="h-5 w-5 text-white" />
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_1fr]">
-        {/* Preview / gravação */}
-        <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            <div className="relative aspect-[9/16] w-full bg-black">
-              <video
-                ref={videoRef}
-                playsInline
-                muted
-                autoPlay
-                className="absolute inset-0 h-full w-full object-cover"
-                style={{ transform: mirrored ? 'scaleX(-1)' : undefined }}
-              />
+      {/* Bottom controls */}
+      <div
+        className={cn(
+          'absolute bottom-0 left-0 right-0 z-30 transition-opacity duration-300',
+          controlsVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
+        )}
+      >
+        <div className="bg-gradient-to-t from-black/80 via-black/50 to-transparent px-4 pb-8 pt-12">
+          {/* Script text preview */}
+          {!script && !editingScript && (
+            <button
+              onClick={() => setEditingScript(true)}
+              className="mb-4 w-full rounded-xl border border-white/20 bg-white/10 p-4 text-center backdrop-blur-sm"
+            >
+              <Type className="mx-auto mb-2 h-6 w-6 text-white/70" />
+              <p className="text-sm text-white/70">Toque para adicionar o roteiro</p>
+            </button>
+          )}
 
-              {!cameraOn && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-                  <CameraOff className="h-10 w-10" />
-                  <Button size="sm" onClick={() => startCamera()}>
-                    <Camera className="mr-2 h-4 w-4" /> Ligar câmera
-                  </Button>
-                </div>
-              )}
-
-              {/* Texto sobreposto */}
-              <div
-                ref={scrollRef}
-                className="absolute inset-x-0 top-0 h-[62%] overflow-hidden bg-black/45 px-5 py-6 backdrop-blur-[2px]"
+          {script && !editingScript && (
+            <div className="mb-4 flex items-center justify-center gap-2">
+              <span className="max-w-[200px] truncate text-xs text-white/60">
+                {script.substring(0, 40)}...
+              </span>
+              <button
+                onClick={() => setEditingScript(true)}
+                className="text-xs font-medium text-primary"
               >
-                <p
-                  className="whitespace-pre-wrap font-bold leading-tight text-white drop-shadow-lg"
-                  style={{ fontSize: `${fontSize}px` }}
-                >
-                  {text}
-                </p>
-                <div style={{ height: '60%' }} />
-              </div>
-
-              {/* Timer */}
-              {recording && (
-                <div className="absolute right-3 top-3 flex items-center gap-2 rounded-full bg-destructive px-3 py-1 text-xs font-semibold text-destructive-foreground">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-current" />
-                  {fmt(elapsed)}
-                </div>
-              )}
-
-              {/* Controles inferiores */}
-              <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-4 bg-gradient-to-t from-black/80 to-transparent p-4">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  className="rounded-full"
-                  onClick={() => setScrolling(s => !s)}
-                  title={scrolling ? 'Pausar texto' : 'Rolar texto'}
-                >
-                  {scrolling ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                </Button>
-
-                <button
-                  type="button"
-                  onClick={recording ? stopRecording : startRecording}
-                  className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-white/80 bg-destructive text-destructive-foreground transition-transform active:scale-95"
-                  title={recording ? 'Parar gravação' : 'Gravar'}
-                >
-                  {recording ? <Square className="h-6 w-6" /> : <Circle className="h-7 w-7 fill-current" />}
-                </button>
-
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  className="rounded-full"
-                  onClick={switchCamera}
-                  title="Trocar câmera"
-                >
-                  <SwitchCamera className="h-4 w-4" />
-                </Button>
-              </div>
+                Editar
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          )}
 
-        {/* Controles */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Type className="h-4 w-4" /> Roteiro
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Textarea
-                value={text}
-                onChange={e => setText(e.target.value)}
-                rows={10}
-                placeholder="Cole aqui o texto que vai aparecer na tela..."
-              />
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={resetScroll}>
-                  <RotateCcw className="mr-2 h-4 w-4" /> Voltar ao início
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setMirrored(m => !m)}>
-                  <SwitchCamera className="mr-2 h-4 w-4" /> {mirrored ? 'Desespelhar' : 'Espelhar vídeo'}
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setText('')}>
-                  <Trash2 className="mr-2 h-4 w-4" /> Limpar
-                </Button>
-                {cameraOn && (
-                  <Button variant="outline" size="sm" onClick={stopCamera}>
-                    <CameraOff className="mr-2 h-4 w-4" /> Desligar câmera
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex items-center justify-center gap-6">
+            {/* Flip camera */}
+            <button
+              onClick={flipCamera}
+              className="rounded-full bg-white/15 p-3 backdrop-blur-sm"
+            >
+              <RotateCcw className="h-6 w-6 text-white" />
+            </button>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Ajustes</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label className="flex items-center justify-between">
-                  <span>Velocidade</span>
-                  <span className="text-muted-foreground">{speed} px/s</span>
-                </Label>
-                <div className="flex items-center gap-3">
-                  <Minus className="h-4 w-4 text-muted-foreground" />
-                  <Slider value={[speed]} min={10} max={160} step={5} onValueChange={v => setSpeed(v[0])} />
-                  <Plus className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="flex items-center justify-between">
-                  <span>Tamanho da letra</span>
-                  <span className="text-muted-foreground">{fontSize}px</span>
-                </Label>
-                <div className="flex items-center gap-3">
-                  <Minus className="h-4 w-4 text-muted-foreground" />
-                  <Slider value={[fontSize]} min={16} max={72} step={2} onValueChange={v => setFontSize(v[0])} />
-                  <Plus className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Record / Stop */}
+            {isRecording ? (
+              <button
+                onClick={stopRecording}
+                className="flex h-20 w-20 items-center justify-center rounded-full bg-red-600 shadow-lg shadow-red-600/30"
+              >
+                <div className="h-8 w-8 rounded-md bg-white" />
+              </button>
+            ) : (
+              <button
+                onClick={startRecording}
+                disabled={!cameraActive}
+                className="flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-lg shadow-white/20 disabled:opacity-40"
+              >
+                <Video className="h-8 w-8 text-red-600" />
+              </button>
+            )}
 
+            {/* Scroll play/pause */}
+            <button
+              onClick={() => {
+                if (!script) {
+                  setEditingScript(true);
+                  return;
+                }
+                if (isScrolling) {
+                  setIsScrolling(false);
+                } else {
+                  if (scrollContainerRef.current) {
+                    const c = scrollContainerRef.current;
+                    if (c.scrollTop + c.clientHeight >= c.scrollHeight - 10) {
+                      c.scrollTop = 0;
+                    }
+                  }
+                  setIsScrolling(true);
+                }
+              }}
+              className={cn(
+                'rounded-full p-3 backdrop-blur-sm',
+                isScrolling ? 'bg-primary' : 'bg-white/15'
+              )}
+            >
+              {isScrolling ? (
+                <Pause className="h-6 w-6 text-white" />
+              ) : (
+                <Play className="ml-0.5 h-6 w-6 text-white" />
+              )}
+            </button>
+          </div>
+
+          {/* Labels */}
+          <div className="mt-2 flex items-center justify-center gap-6">
+            <span className="w-12 text-center text-[10px] text-white/50">Girar</span>
+            <span className="w-20 text-center text-[10px] text-white/50">
+              {isRecording ? 'Parar' : 'Gravar'}
+            </span>
+            <span className="w-12 text-center text-[10px] text-white/50">
+              {isScrolling ? 'Pausar' : 'Rolar'}
+            </span>
+          </div>
+
+          {/* Download button for last recording */}
           {recordedUrl && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Última gravação</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <video src={recordedUrl} controls playsInline className="w-full rounded-md bg-black" />
-                <Button onClick={downloadRecording}>
-                  <Download className="mr-2 h-4 w-4" /> Baixar vídeo
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={downloadRecording}
+                className="flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm text-white backdrop-blur-sm"
+              >
+                <Video className="h-4 w-4" /> Baixar última gravação
+              </button>
+            </div>
           )}
         </div>
       </div>

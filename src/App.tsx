@@ -215,6 +215,14 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/teleprompter"
+            element={
+              <ProtectedRoute>
+                <TeleprompterPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/*"
             element={
               <ProtectedRoute>
@@ -243,7 +251,6 @@ function AppRoutes() {
                     <Route path="/publicar"            element={<PublishContentPage />} />
                     <Route path="/publicacoes"         element={<PublishHistoryPage />} />
                     <Route path="/gravacoes"           element={<ShootingSchedulePage />} />
-                    <Route path="/teleprompter"        element={<TeleprompterPage />} />
                     <Route path="/whiteboard"          element={<WhiteboardPage />} />
                     <Route path="/prospeccao"          element={<ProspectionPage />} />
                     <Route path="/consulta-cnpj"       element={<CnpjLookupPage />} />
