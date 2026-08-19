@@ -83,6 +83,7 @@ export default function FigmaToLpPage() {
   // Image → LP state
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageCompressed, setImageCompressed] = useState<{ base64: string; mimeType: string } | null>(null);
   const [imageTitle, setImageTitle] = useState("");
   const [imageSlug, setImageSlug] = useState("");
   const [generatingFromImage, setGeneratingFromImage] = useState(false);
@@ -316,11 +317,74 @@ export default function FigmaToLpPage() {
     reader.onload = () => setImagePreview(reader.result as string);
     reader.readAsDataURL(file);
     if (!imageTitle) setImageTitle(file.name.replace(/\.[^.]+$/, ""));
+
+    // Compress image for API (max 1200px wide, 80% quality)
+    compressImage(file).then((compressed) => {
+      setImageCompressed(compressed);
+    }).catch(() => {
+      // Fallback: use original
+      const r = new FileReader();
+      r.onload = () => {
+        const result = r.result as string;
+        const m = result.match(/^data:(.+);base64,(.+)$/);
+        if (m) setImageCompressed({ mimeType: m[1], base64: m[2] });
+      };
+      r.readAsDataURL(file);
+    });
+  }
+
+  function compressImage(file: File): Promise<{ base64: string; mimeType: string }> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 2000;
+        let { width, height } = img;
+
+        if (width > MAX_WIDTH) {
+          height = (height * MAX_WIDTH) / width;
+          width = MAX_WIDTH;
+        }
+        if (height > MAX_HEIGHT) {
+          width = (width * MAX_HEIGHT) / height;
+          height = MAX_HEIGHT;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("Canvas not supported"));
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return reject(new Error("Compression failed"));
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result as string;
+              const match = result.match(/^data:(.+);base64,(.+)$/);
+              if (match) resolve({ mimeType: match[1], base64: match[2] });
+              else reject(new Error("Invalid base64"));
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          },
+          "image/jpeg",
+          0.8
+        );
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
   }
 
   function clearImage() {
     setImageFile(null);
     setImagePreview(null);
+    setImageCompressed(null);
     setImageTitle("");
     setImageSlug("");
   }
@@ -337,11 +401,14 @@ export default function FigmaToLpPage() {
 
     setGeneratingFromImage(true);
     try {
-      // Extract base64 from data URL
-      const base64Match = imagePreview.match(/^data:(.+);base64,(.+)$/);
-      if (!base64Match) throw new Error("Erro ao processar a imagem.");
-      const mimeType = base64Match[1];
-      const base64 = base64Match[2];
+      // Use compressed image if available, otherwise compress now
+      let imgData = imageCompressed;
+      if (!imgData) {
+        imgData = await compressImage(imageFile);
+      }
+      if (!imgData) throw new Error("Erro ao processar a imagem.");
+
+      const { base64, mimeType } = imgData;
 
       const systemPrompt = `Você é um desenvolvedor web expert em replicar landing pages a partir de imagens. Analise a imagem e gere um HTML completo, responsivo e funcional que replique fielmente o design mostrado.
 
