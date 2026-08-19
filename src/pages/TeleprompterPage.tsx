@@ -33,6 +33,8 @@ export default function TeleprompterPage() {
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+
 
   /* ---------------- câmera ---------------- */
   const stopCamera = useCallback(() => {
