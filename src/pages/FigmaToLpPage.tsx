@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { LANDING_PAGE_TEMPLATES, LandingPageTemplate } from "@/data/landingPageTemplates";
 import { compileFigmaJsonToLandingPage } from "@/lib/figmaJsonCompiler";
+import { VisualEditor } from "@/components/editor/VisualEditor";
 
 type LP = {
   id: string;
@@ -92,6 +93,11 @@ export default function FigmaToLpPage() {
   const [selected, setSelected] = useState<LP | null>(null);
   const [editHtml, setEditHtml] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+
+  // Visual Editor state
+  const [visualEditorOpen, setVisualEditorOpen] = useState(false);
+  const [visualEditorHtml, setVisualEditorHtml] = useState("");
+  const [visualEditorLpId, setVisualEditorLpId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -286,6 +292,26 @@ export default function FigmaToLpPage() {
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
     setSelected(data as LP);
     setEditHtml((data as any).generated_html || "");
+  }
+
+  async function openVisualEditor(lp: LP) {
+    const { data, error } = await (supabase as any)
+      .from("figma_landing_pages").select("*").eq("id", lp.id).single();
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setVisualEditorHtml((data as any).generated_html || "");
+    setVisualEditorLpId(lp.id);
+    setVisualEditorOpen(true);
+  }
+
+  async function saveVisualEditor(html: string) {
+    if (!visualEditorLpId) return;
+    const { error } = await (supabase as any).from("figma_landing_pages")
+      .update({ generated_html: html }).eq("id", visualEditorLpId);
+    if (error) { toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Landing Page salva com sucesso!" });
+    setVisualEditorOpen(false);
+    setVisualEditorLpId(null);
+    load();
   }
 
   async function saveEdit() {
@@ -757,8 +783,11 @@ Responda APENAS com o código HTML completo. Comece com <!DOCTYPE html> e termin
 
                     <div className="flex items-center justify-between gap-1 pt-1">
                       <div className="flex items-center gap-1">
+                        <Button size="sm" variant="default" className="h-7 px-2 text-xs font-bold gap-1" onClick={() => openVisualEditor(lp)} title="Editor Visual">
+                          <Layers className="h-3.5 w-3.5" /> Visual
+                        </Button>
                         <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => openEdit(lp)} title="Editar HTML">
-                          <Code className="h-3.5 w-3.5 mr-1" /> Editar
+                          <Code className="h-3.5 w-3.5 mr-1" /> HTML
                         </Button>
                         <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => downloadHtml(lp)} title="Baixar HTML">
                           <FileCode className="h-3.5 w-3.5 mr-1" /> HTML
@@ -1191,6 +1220,15 @@ Responda APENAS com o código HTML completo. Comece com <!DOCTYPE html> e termin
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Visual Editor (full-screen Elementor-like) */}
+      {visualEditorOpen && (
+        <VisualEditor
+          html={visualEditorHtml}
+          onSave={saveVisualEditor}
+          onClose={() => { setVisualEditorOpen(false); setVisualEditorLpId(null); }}
+        />
+      )}
     </div>
   );
 }
