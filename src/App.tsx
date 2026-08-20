@@ -169,7 +169,6 @@ function AppRoutes() {
     location.pathname.startsWith('/quiz/') ||
     location.pathname === '/painel-artes' ||
     location.pathname.startsWith('/lp/') ||
-    location.pathname === '/lp-inova' ||
     location.pathname === '/consulta-cnpj' ||
     (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar')) ||
     location.pathname.startsWith('/diagnostico-social');
@@ -204,7 +203,6 @@ function AppRoutes() {
           <Route path="/quiz/:clientSlug/:quizSlug" element={<PublicQuizPage />} />
           <Route path="/painel-artes"        element={<PublicArtesPage />} />
           <Route path="/lp/:slug"            element={<PublicLandingPage />} />
-          <Route path="/lp-inova"            element={<InovaLandingPage />} />
           <Route path="/consulta-cnpj"       element={<ConsultaCnpjPage />} />
         </Routes>
       ) : (
@@ -268,6 +266,7 @@ function AppRoutes() {
                     {/* New routes */}
                     <Route path="/calendario"          element={<CalendarPage />} />
                     <Route path="/calendario-postagens"  element={<PostCalendarPage />} />
+                    <Route path="/lp-inova"              element={<InovaLandingPage />} />
                     <Route path="/chat"                element={<ChatPage />} />
                     <Route path="/escopos"             element={<ClientScopesPage />} />
                     <Route path="/metas"               element={<GoalsPage />} />
