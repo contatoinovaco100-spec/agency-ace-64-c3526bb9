@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Clock, Film, History, Image as ImageIcon, Loader2, RefreshCw, Send, Timer, Trash2, Upload, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Clock, Film, History, Image as ImageIcon, Loader2, RefreshCw, Scissors, Send, Timer, Trash2, Upload, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountSelector } from '@/components/social/AccountSelector';
 import { TargetStatusList } from '@/components/social/TargetStatusList';
@@ -65,8 +65,9 @@ export default function PublishContentPage() {
   const [coverPreview, setCoverPreview] = useState('');
   const [thumbOffset, setThumbOffset] = useState('');
   const [audioName, setAudioName] = useState('');
-  const [thumbFile, setThumbFile] = useState<File | null>(null);
-  const [thumbPreview, setThumbPreview] = useState('');
+  const [thumbBlob, setThumbBlob] = useState<Blob | null>(null);
+  const [thumbPreviewUrl, setThumbPreviewUrl] = useState('');
+  const [thumbSeek, setThumbSeek] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
   const [publishing, setPublishing] = useState(false);
@@ -82,7 +83,7 @@ export default function PublishContentPage() {
   const [, forceTick] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
-  const thumbInputRef = useRef<HTMLInputElement>(null);
+  const thumbVideoRef = useRef<HTMLVideoElement>(null);
 
   const file = files[0] ?? null;
   const preview = previews[0] ?? '';
@@ -142,22 +143,27 @@ export default function PublishContentPage() {
     setCoverUrl('');
   };
 
-  const pickThumbFile = (list: FileList | null) => {
-    const f = list?.[0];
-    if (!f) return;
-    if (!f.type.startsWith('image/')) { toast.error('Selecione uma imagem para a miniatura'); return; }
-    if (f.size > 10 * 1024 * 1024) { toast.error('Miniatura máxima: 10 MB'); return; }
-    if (thumbPreview) URL.revokeObjectURL(thumbPreview);
-    setThumbFile(f);
-    setThumbPreview(URL.createObjectURL(f));
-    setThumbnailUrl('');
+  const extractThumbFrame = () => {
+    const video = thumbVideoRef.current;
+    if (!video || !video.videoWidth) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d')!.drawImage(video, 0, 0);
+    canvas.toBlob((blob) => {
+      if (blob) {
+        if (thumbPreviewUrl) URL.revokeObjectURL(thumbPreviewUrl);
+        setThumbBlob(blob);
+        setThumbPreviewUrl(URL.createObjectURL(blob));
+      }
+    }, 'image/jpeg', 0.92);
   };
 
-  const removeThumb = () => {
-    if (thumbPreview) URL.revokeObjectURL(thumbPreview);
-    setThumbFile(null);
-    setThumbPreview('');
-    setThumbnailUrl('');
+  const removeThumbFrame = () => {
+    if (thumbPreviewUrl) URL.revokeObjectURL(thumbPreviewUrl);
+    setThumbBlob(null);
+    setThumbPreviewUrl('');
+    setThumbSeek(0);
   };
 
 
@@ -200,7 +206,16 @@ export default function PublishContentPage() {
   };
 
   const resolveThumbUrl = async (): Promise<string> => {
-    if (thumbFile) return uploadCoverFile(thumbFile);
+    if (thumbBlob) {
+      const path = `covers/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+      const { error } = await supabase.storage.from('instagram-media').upload(path, thumbBlob, {
+        contentType: 'image/jpeg',
+        upsert: false,
+      });
+      if (error) throw new Error(`Erro ao enviar miniatura: ${error.message}`);
+      const { data } = supabase.storage.from('instagram-media').getPublicUrl(path);
+      return data.publicUrl;
+    }
     return thumbnailUrl;
   };
 
@@ -879,33 +894,71 @@ export default function PublishContentPage() {
                     <Input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
                   </div>
                 )}
+              </div>
+
+              {isVideo && preview && (
+                <div className="space-y-2 rounded-md border p-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm">Miniatura do vídeo</Label>
+                    {thumbPreviewUrl && (
+                      <Button size="sm" variant="ghost" onClick={removeThumbFrame}>
+                        <X className="mr-1 h-3 w-3" /> Limpar
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Arraste o cursor para escolher o frame que será a miniatura do post.
+                  </p>
+                  <div className="relative overflow-hidden rounded-md bg-black">
+                    <video
+                      ref={thumbVideoRef}
+                      src={preview}
+                      muted
+                      preload="metadata"
+                      className="w-full max-h-48 object-contain"
+                      onLoadedMetadata={(e) => {
+                        const v = e.currentTarget;
+                        v.currentTime = 0;
+                      }}
+                      onSeeked={extractThumbFrame}
+                    />
+                    {thumbPreviewUrl && (
+                      <div className="absolute bottom-1 right-1 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-medium">
+                        Frame selecionado
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Scissors className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={thumbSeek}
+                      onChange={e => {
+                        const pct = Number(e.target.value);
+                        setThumbSeek(pct);
+                        const video = thumbVideoRef.current;
+                        if (video && video.duration) {
+                          video.currentTime = (pct / 100) * video.duration;
+                        }
+                      }}
+                      className="flex-1 accent-primary"
+                    />
+                    <span className="w-12 text-right text-xs text-muted-foreground">
+                      {thumbSeek}%
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {!isVideo && (
                 <div className="space-y-2">
                   <Label>Miniatura (outras redes)</Label>
-                  {thumbPreview ? (
-                    <div className="relative inline-block">
-                      <img src={thumbPreview} alt="Miniatura" className="h-20 rounded-md object-cover" />
-                      <Button size="icon" variant="secondary" className="absolute right-1 top-1 h-6 w-6"
-                        onClick={removeThumb}>
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div
-                      onDragOver={e => e.preventDefault()}
-                      onDrop={e => { e.preventDefault(); pickThumbFile(e.dataTransfer.files); }}
-                      onClick={() => thumbInputRef.current?.click()}
-                      className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-3 text-center transition-colors hover:border-primary/50"
-                    >
-                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                      <p className="text-xs font-medium">Escolher imagem</p>
-                    </div>
-                  )}
-                  <input ref={thumbInputRef} type="file" accept="image/*" className="hidden"
-                    onChange={e => { pickThumbFile(e.target.files); e.currentTarget.value = ''; }} />
                   <Input value={thumbnailUrl} onChange={e => setThumbnailUrl(e.target.value)}
-                    placeholder="ou URL da miniatura (https://...)" />
+                    placeholder="URL da miniatura (https://...)" />
                 </div>
-              </div>
+              )}
 
             </CardContent>
           </Card>
