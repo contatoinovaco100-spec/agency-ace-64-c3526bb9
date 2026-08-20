@@ -69,7 +69,9 @@ export default function PostCalendarPage() {
   const scheduledTasks = useMemo(() => {
     return tasks.filter(t =>
       t.postDate &&
-      !t.deletedAt
+      !t.deletedAt &&
+      t.status !== 'Concluído' &&
+      t.status !== 'Finalizado'
     );
   }, [tasks]);
 
