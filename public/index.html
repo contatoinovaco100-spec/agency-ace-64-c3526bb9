@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inova Company — Produtora Audiovisual &amp; Agência de Marketing</title>
+  <meta name="description" content="A Inova transforma estratégia em conteúdo e conteúdo em oportunidade de negócio. Produção audiovisual, marketing digital e tráfego pago para marcas que querem dominar as redes sociais.">
+  <meta name="keywords" content="produtora audiovisual, agência de marketing, reels, tráfego pago, gestão de redes sociais, copywriting, design, identidade visual">
+  <meta property="og:title" content="Inova Company — Estratégia + Produção Audiovisual + Marketing">
+  <meta property="og:description" content="Transformamos estratégia em conteúdo e conteúdo em oportunidade de negócio.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#FF6A00">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎬%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ========== LOADING SCREEN — Cinematic Opening ========== -->
+  <div class="loader" id="loader" role="status" aria-label="Carregando">
+    <div class="loader-vignette"></div>
+    <div class="loader-content">
+      <div class="loader-line loader-line--top"></div>
+      <div class="loader-brand">
+        <span class="loader-brand__letter" style="--i:0">I</span>
+        <span class="loader-brand__letter" style="--i:1">N</span>
+        <span class="loader-brand__letter" style="--i:2">O</span>
+        <span class="loader-brand__letter" style="--i:3">V</span>
+        <span class="loader-brand__letter" style="--i:4">A</span>
+        <span class="loader-brand__dot">.</span>
+      </div>
+      <div class="loader-bar"><div class="loader-bar__fill"></div></div>
+      <div class="loader-line loader-line--bottom"></div>
+    </div>
+  </div>
+
+  <!-- ========== CUSTOM CURSOR ========== -->
+  <div class="cursor-dot" id="cursorDot"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- ========== NAVIGATION ========== -->
+  <nav class="nav" id="nav" role="navigation" aria-label="Navegação principal">
+    <a href="#hero" class="nav-logo">INOVA<span>.</span></a>
+    <div class="nav-links">
+      <a href="#sobre">Sobre</a>
+      <a href="#servicos">Serviços</a>
+      <a href="#processo">Processo</a>
+      <a href="#portfolio">Portfólio</a>
+      <a href="#depoimentos">Clientes</a>
+      <a href="#contato" class="nav-cta">Orçamento</a>
+    </div>
+    <div class="nav-toggle" id="navToggle" role="button" aria-label="Menu" tabindex="0">
+      <span></span><span></span><span></span>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="nav-mobile" id="navMobile">
+    <a href="#sobre">Sobre</a>
+    <a href="#servicos">Serviços</a>
+    <a href="#processo">Processo</a>
+    <a href="#portfolio">Portfólio</a>
+    <a href="#depoimentos">Clientes</a>
+    <a href="#contato" class="btn btn-primary">Solicitar Orçamento</a>
+  </div>
+
+  <!-- ========== HERO — Full-Screen Cinematic ========== -->
+  <section class="hero" id="hero">
+    <div class="hero-bg">
+      <div class="hero-gradient"></div>
+      <div class="hero-light"></div>
+      <div class="hero-light hero-light--2"></div>
+      <div class="hero-grid"></div>
+    </div>
+    <div class="hero-particles" id="heroParticles" aria-hidden="true"></div>
+
+    <div class="hero-content">
+      <div class="hero-badge reveal" style="--delay: 1.6s">
+        <span class="hero-badge__dot"></span>
+        Produtora Audiovisual &amp; Agência de Marketing
+      </div>
+      <h1 class="reveal" style="--delay: 1.8s">
+        Transformamos estratégia em <em>conteúdo</em> e conteúdo em <em>oportunidade</em>
+      </h1>
+      <p class="hero-sub reveal" style="--delay: 2.0s">
+        Não vendemos vídeos para Instagram. Criamos conteúdo com propósito comercial que posiciona, atrai e vende.
+      </p>
+      <div class="hero-actions reveal" style="--delay: 2.2s">
+        <a href="#contato" class="btn btn-primary btn-glow">
+          Quero minha estratégia de conteúdo
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+        <a href="#portfolio" class="btn btn-ghost">Ver showreel</a>
+      </div>
+    </div>
+
+    <div class="hero-scroll reveal" style="--delay: 2.6s" aria-hidden="true">
+      <span>Scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+
+    <div class="hero-vignette"></div>
+  </section>
+
+  <!-- ========== ABOUT — Split Layout ========== -->
+  <section class="about" id="sobre">
+    <div class="container">
+      <div class="about-grid">
+        <div class="about-visual reveal-left">
+          <div class="about-visual__inner">
+            <div class="about-visual__frame"></div>
+            <div class="about-visual__glow"></div>
+          </div>
+          <div class="about-visual__accent"></div>
+        </div>
+
+        <div class="about-content reveal-right">
+          <div class="section-badge">Sobre a Inova</div>
+          <h2 class="section-title">Conteúdo bonito <span>não vende.</span><br>Conteúdo estratégico sim.</h2>
+          <p>
+            A maioria das empresas produz conteúdo. Poucas sabem <strong>por que produzem.</strong>
+            Na Inova, a câmera só liga depois que a estratégia está pronta.
+          </p>
+          <p>
+            Unimos <strong>estratégia de marca + produção audiovisual + marketing de performance</strong>
+            em um único ecossistema. O resultado? Empresas que deixam de postar por postar e
+            começam a <strong>construir autoridade e gerar oportunidades reais de negócio.</strong>
+          </p>
+
+          <div class="about-stats stagger">
+            <div class="stat-item reveal" style="--i:0">
+              <div class="stat-number" data-target="150" data-suffix="+">0</div>
+              <div class="stat-label">Marcas atendidas</div>
+            </div>
+            <div class="stat-item reveal" style="--i:1">
+              <div class="stat-number" data-target="2000" data-suffix="+">0</div>
+              <div class="stat-label">Conteúdos produzidos</div>
+            </div>
+            <div class="stat-item reveal" style="--i:2">
+              <div class="stat-number" data-target="50" data-suffix="M+">0</div>
+              <div class="stat-label">Visualizações geradas</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SERVICES — Asymmetric Grid ========== -->
+  <section class="services" id="servicos">
+    <div class="container">
+      <div class="services-header reveal">
+        <div class="section-badge">O que fazemos</div>
+        <h2 class="section-title">Sete pilares. <span>Um propósito.</span></h2>
+        <p class="section-subtitle">
+          Cada serviço é uma engrenagem de uma máquina que gira para o mesmo objetivo:
+          transformar a sua empresa em uma marca que vende.
+        </p>
+      </div>
+
+      <div class="services-grid stagger">
+        <div class="service-card service-card--featured reveal" style="--i:0">
+          <div class="service-card__glow"></div>
+          <div class="service-icon">🎯</div>
+          <h3>Estratégia de Conteúdo</h3>
+          <p>Posicionamento de marca, linha editorial, pilares de conteúdo e calendário estratégico. Tudo antes de gravar um segundo sequer.</p>
+        </div>
+        <div class="service-card reveal" style="--i:1">
+          <div class="service-card__glow"></div>
+          <div class="service-icon">🎥</div>
+          <h3>Produção Audiovisual</h3>
+          <p>Reels, anúncios, vídeos institucionais, Stories e captações com qualidade cinematográfica. Cada frame conta uma história.</p>
+        </div>
+        <div class="service-card reveal" style="--i:2">
+          <div class="service-card__glow"></div>
+          <div class="service-icon">✍️</div>
+          <h3>Copywriting</h3>
+          <p>Roteiros que prendem, legendas que convertem, CTAs que fazem o dedo clicar. Palavras com propósito comercial.</p>
+        </div>
+        <div class="service-card reveal" style="--i:3">
+          <div class="service-card__glow"></div>
+          <div class="service-icon">📱</div>
+          <h3>Gestão de Redes Sociais</h3>
+          <p>Planejamento, publicação e gestão completa das suas redes. Presença digital consistente e estratégica.</p>
+        </div>
+        <div class="service-card reveal" style="--i:4">
+          <div class="service-card__glow"></div>
+          <div class="service-icon">🎨</div>
+          <h3>Design &amp; Identidade Visual</h3>
+          <p>Identidade visual que comunica autoridade. Design de posts, carrosséis, thumbnails e materiais que vendem antes de abrir.</p>
+        </div>
+        <div class="service-card reveal" style="--i:5">
+          <div class="service-card__glow"></div>
+          <div class="service-icon">📈</div>
+          <h3>Tráfego Pago</h3>
+          <p>Meta Ads, Google Ads e estratégias de mídia paga que transformam investimento em resultado mensurável.</p>
+        </div>
+        <div class="service-card reveal" style="--i:6">
+          <div class="service-card__glow"></div>
+          <div class="service-icon">🚀</div>
+          <h3>Marketing de Performance</h3>
+          <p>Funis de venda, análise de dados e otimização contínua. Cada real investido rastreado e otimizado.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PROCESS — Cinematic Timeline ========== -->
+  <section class="process" id="processo">
+    <div class="process-bg-glow"></div>
+    <div class="container">
+      <div class="process-header reveal">
+        <div class="section-badge">Como funciona</div>
+        <h2 class="section-title">Do diagnóstico ao <span>resultado.</span></h2>
+        <p class="section-subtitle">
+          Um processo validado em mais de 150 marcas. Cada etapa é um passo calculado rumo ao posicionamento e às vendas.
+        </p>
+      </div>
+
+      <div class="process-timeline stagger">
+        <div class="process-line" aria-hidden="true"></div>
+        <div class="process-step reveal" style="--i:0">
+          <div class="step-number">01</div>
+          <div class="step-content">
+            <h3>Diagnóstico</h3>
+            <p>Análise profunda da marca, mercado, concorrência e presença digital atual.</p>
+          </div>
+        </div>
+        <div class="process-step reveal" style="--i:1">
+          <div class="step-number">02</div>
+          <div class="step-content">
+            <h3>Estratégia</h3>
+            <p>Posicionamento, linha editorial, pilares de conteúdo e plano de ação personalizado.</p>
+          </div>
+        </div>
+        <div class="process-step reveal" style="--i:2">
+          <div class="step-number">03</div>
+          <div class="step-content">
+            <h3>Produção</h3>
+            <p>Captação, edição, design e copywriting — tudo integrado numa esteira criativa.</p>
+          </div>
+        </div>
+        <div class="process-step reveal" style="--i:3">
+          <div class="step-number">04</div>
+          <div class="step-content">
+            <h3>Distribuição</h3>
+            <p>Publicação estratégica, impulsionamento e gestão de mídia paga multicanal.</p>
+          </div>
+        </div>
+        <div class="process-step reveal" style="--i:4">
+          <div class="step-number">05</div>
+          <div class="step-content">
+            <h3>Resultado</h3>
+            <p>Relatórios de performance, insights e otimização contínua para escalar.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PORTFOLIO — Cinematic Showreel Grid ========== -->
+  <section class="portfolio" id="portfolio">
+    <div class="container container-wide">
+      <div class="portfolio-header reveal">
+        <div class="section-badge">Portfólio</div>
+        <h2 class="section-title">Cases que <span>falam por si.</span></h2>
+        <p class="section-subtitle">
+          Cada projeto é uma história de transformação. Marcas que eram invisíveis e hoje dominam seus mercados.
+        </p>
+      </div>
+
+      <div class="portfolio-grid stagger">
+        <div class="portfolio-item portfolio-item--hero reveal-scale" style="--i:0">
+          <div class="portfolio-item__bg" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)"></div>
+          <div class="portfolio-item__grain"></div>
+          <div class="portfolio-play" aria-label="Play">
+            <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+          </div>
+          <div class="portfolio-overlay">
+            <h3>Clínica Renovar</h3>
+            <span>Estratégia completa • Produção • Tráfego</span>
+          </div>
+        </div>
+        <div class="portfolio-item reveal-scale" style="--i:1">
+          <div class="portfolio-item__bg" style="background: linear-gradient(135deg, #2d1b1e 0%, #3d1f25 50%, #1a0f11 100%)"></div>
+          <div class="portfolio-item__grain"></div>
+          <div class="portfolio-play" aria-label="Play">
+            <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+          </div>
+          <div class="portfolio-overlay">
+            <h3>Burger &amp; Co</h3>
+            <span>Reels • Anúncios • Design</span>
+          </div>
+        </div>
+        <div class="portfolio-item reveal-scale" style="--i:2">
+          <div class="portfolio-item__bg" style="background: linear-gradient(135deg, #1a2e1a 0%, #0d2e0d 50%, #0a1f0a 100%)"></div>
+          <div class="portfolio-item__grain"></div>
+          <div class="portfolio-play" aria-label="Play">
+            <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+          </div>
+          <div class="portfolio-overlay">
+            <h3>Studio Bela Vista</h3>
+            <span>Institucional • Branding</span>
+          </div>
+        </div>
+        <div class="portfolio-item reveal-scale" style="--i:3">
+          <div class="portfolio-item__bg" style="background: linear-gradient(135deg, #2e2a1a 0%, #3d3522 50%, #1f1a0f 100%)"></div>
+          <div class="portfolio-item__grain"></div>
+          <div class="portfolio-play" aria-label="Play">
+            <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+          </div>
+          <div class="portfolio-overlay">
+            <h3>Advocacia Forte</h3>
+            <span>Posicionamento • Conteúdo</span>
+          </div>
+        </div>
+        <div class="portfolio-item reveal-scale" style="--i:4">
+          <div class="portfolio-item__bg" style="background: linear-gradient(135deg, #1a1a2e 0%, #2a1a3e 50%, #0f0a1f 100%)"></div>
+          <div class="portfolio-item__grain"></div>
+          <div class="portfolio-play" aria-label="Play">
+            <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+          </div>
+          <div class="portfolio-overlay">
+            <h3>Fitness Pro</h3>
+            <span>Social Media • Performance</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TESTIMONIALS — Cinematic Carousel ========== -->
+  <section class="testimonials" id="depoimentos">
+    <div class="testimonials-bg-glow"></div>
+    <div class="container">
+      <div class="testimonials-header reveal">
+        <div class="section-badge">Prova social</div>
+        <h2 class="section-title">Quem trabalha com a Inova, <span>indica.</span></h2>
+        <p class="section-subtitle">
+          Resultados reais de empresários que decidiram parar de improvisar e começar a estrategisar.
+        </p>
+      </div>
+
+      <div class="testimonials-track-wrapper reveal">
+        <div class="testimonials-track" id="testimonialsTrack">
+          <div class="testimonial-card">
+            <div class="testimonial-quote">"</div>
+            <p>Antes da Inova, eu postava todo dia e não vendia nada. Em 3 meses, meu Instagram passou a ser minha principal fonte de clientes. A diferença é que agora cada post tem um propósito.</p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar">RC</div>
+              <div>
+                <div class="testimonial-name">Rafaela Costa</div>
+                <div class="testimonial-role">CEO, Clínica Renovar</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="testimonial-card">
+            <div class="testimonial-quote">"</div>
+            <p>A qualidade dos vídeos da Inova é de outro nível. Nossos Reels passaram a bater 100k+ views com consistência. O retorno sobre o investimento foi brutal.</p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar">MS</div>
+              <div>
+                <div class="testimonial-name">Marcos Silva</div>
+                <div class="testimonial-role">Fundador, Burger &amp; Co</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="testimonial-card">
+            <div class="testimonial-quote">"</div>
+            <p>Eu tentei 3 agências antes. A Inova foi a primeira que sentou comigo para entender o negócio antes de falar em conteúdo. O resultado? Triplicamos os leads em 4 meses.</p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar">AL</div>
+              <div>
+                <div class="testimonial-name">André Lopes</div>
+                <div class="testimonial-role">Diretor, Advocacia Forte</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="testimonial-card">
+            <div class="testimonial-quote">"</div>
+            <p>A Inova entregou em 30 dias o que eu não consegui em 2 anos fazendo sozinha. Estratégia clara, conteúdo profissional e resultados de verdade. Não volto mais.</p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar">JM</div>
+              <div>
+                <div class="testimonial-name">Juliana Martins</div>
+                <div class="testimonial-role">Proprietária, Studio Bela Vista</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="testimonial-card">
+            <div class="testimonial-quote">"</div>
+            <p>O time da Inova entende de negócio, não só de edição de vídeo. Isso faz toda a diferença. Cada reunião de pauta parece uma consultoria de marketing.</p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar">PT</div>
+              <div>
+                <div class="testimonial-name">Pedro Torres</div>
+                <div class="testimonial-role">CEO, Fitness Pro</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="testimonials-nav" aria-label="Navegar depoimentos">
+        <button id="prevTestimonial" aria-label="Anterior">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <button id="nextTestimonial" aria-label="Próximo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== CTA FINAL — Cinematic ========== -->
+  <section class="cta-section" id="contato">
+    <div class="cta-bg">
+      <div class="cta-orb cta-orb--1"></div>
+      <div class="cta-orb cta-orb--2"></div>
+    </div>
+    <div class="container">
+      <div class="cta-content reveal">
+        <div class="section-badge">Próximo passo</div>
+        <h2 class="section-title">Sua marca merece <span>mais.</span></h2>
+        <p class="section-subtitle">
+          Vagas limitadas por mês para garantir a qualidade que a sua marca precisa.
+          Agende uma sessão estratégica gratuita.
+        </p>
+        <div class="hero-actions">
+          <a href="https://wa.me/5500000000000?text=Ol%C3%A1%2C%20quero%20minha%20estrat%C3%A9gia%20de%20conte%C3%BAdo" class="btn btn-primary btn-glow" target="_blank" rel="noopener">
+            Quero minha estratégia
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </a>
+          <a href="mailto:contato@inovacompany.com.br" class="btn btn-ghost">Enviar e-mail</a>
+        </div>
+        <div class="cta-exclusive">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Vagas limitadas — apenas 5 novos projetos por mês
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="footer" id="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">INOVA<span>.</span></div>
+          <p class="footer-desc">
+            Produtora audiovisual e agência de marketing que transforma empresas em marcas fortes
+            através de conteúdo estratégico.
+          </p>
+          <div class="footer-social" style="margin-top: 20px;">
+            <a href="#" aria-label="Instagram" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+            </a>
+            <a href="#" aria-label="YouTube" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.1c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>
+            </a>
+            <a href="#" aria-label="LinkedIn" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+            </a>
+            <a href="#" aria-label="TikTok" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
+            </a>
+          </div>
+        </div>
+        <div>
+          <h4>Navegação</h4>
+          <ul>
+            <li><a href="#sobre">Sobre</a></li>
+            <li><a href="#servicos">Serviços</a></li>
+            <li><a href="#processo">Processo</a></li>
+            <li><a href="#portfolio">Portfólio</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Serviços</h4>
+          <ul>
+            <li><a href="#servicos">Estratégia de Conteúdo</a></li>
+            <li><a href="#servicos">Produção Audiovisual</a></li>
+            <li><a href="#servicos">Tráfego Pago</a></li>
+            <li><a href="#servicos">Gestão de Redes</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Contato</h4>
+          <ul>
+            <li><a href="mailto:contato@inovacompany.com.br">contato@inovacompany.com.br</a></li>
+            <li><a href="tel:+5500000000000">(00) 00000-0000</a></li>
+            <li><a href="#">São Paulo, SP</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Inova Company. Todos os direitos reservados.</p>
+        <p>Feito com paixão pela Inova</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

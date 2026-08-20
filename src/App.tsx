@@ -116,6 +116,7 @@ const WhatsAppPage              = lazy(() => import("./pages/WhatsAppPage"));
 const WhatsAppConfigPage        = lazy(() => import("./pages/WhatsAppConfigPage"));
 const KanbanStagesPage          = lazy(() => import("./pages/KanbanStagesPage"));
 const PostCalendarPage          = lazy(() => import("./pages/PostCalendarPage"));
+const InovaLandingPage          = lazy(() => import("./pages/InovaLandingPage"));
 const CommercialTeamPage        = lazy(() => import("./pages/CommercialTeamPage"));
 const SquadsPage                = lazy(() => import("./pages/SquadsPage"));
 const ViralRankingPage          = lazy(() => import("./pages/ViralRankingPage"));
@@ -168,6 +169,7 @@ function AppRoutes() {
     location.pathname.startsWith('/quiz/') ||
     location.pathname === '/painel-artes' ||
     location.pathname.startsWith('/lp/') ||
+    location.pathname === '/lp-inova' ||
     location.pathname === '/consulta-cnpj' ||
     (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar')) ||
     location.pathname.startsWith('/diagnostico-social');
@@ -202,6 +204,7 @@ function AppRoutes() {
           <Route path="/quiz/:clientSlug/:quizSlug" element={<PublicQuizPage />} />
           <Route path="/painel-artes"        element={<PublicArtesPage />} />
           <Route path="/lp/:slug"            element={<PublicLandingPage />} />
+          <Route path="/lp-inova"            element={<InovaLandingPage />} />
           <Route path="/consulta-cnpj"       element={<ConsultaCnpjPage />} />
         </Routes>
       ) : (
