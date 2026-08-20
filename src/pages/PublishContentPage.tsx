@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Clock, Film, History, Loader2, RefreshCw, Send, Timer, Trash2, Upload, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Clock, Film, History, Image as ImageIcon, Loader2, RefreshCw, Send, Timer, Trash2, Upload, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountSelector } from '@/components/social/AccountSelector';
 import { TargetStatusList } from '@/components/social/TargetStatusList';
@@ -61,8 +61,12 @@ export default function PublishContentPage() {
   const [locationId, setLocationId] = useState('');
   const [userTags, setUserTags] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState('');
   const [thumbOffset, setThumbOffset] = useState('');
   const [audioName, setAudioName] = useState('');
+  const [thumbFile, setThumbFile] = useState<File | null>(null);
+  const [thumbPreview, setThumbPreview] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
   const [publishing, setPublishing] = useState(false);
@@ -77,6 +81,8 @@ export default function PublishContentPage() {
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [, forceTick] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const thumbInputRef = useRef<HTMLInputElement>(null);
 
   const file = files[0] ?? null;
   const preview = previews[0] ?? '';
@@ -118,6 +124,42 @@ export default function PublishContentPage() {
     });
   };
 
+  const pickCoverFile = (list: FileList | null) => {
+    const f = list?.[0];
+    if (!f) return;
+    if (!f.type.startsWith('image/')) { toast.error('Selecione uma imagem para a capa'); return; }
+    if (f.size > 10 * 1024 * 1024) { toast.error('Capa máxima: 10 MB'); return; }
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverFile(f);
+    setCoverPreview(URL.createObjectURL(f));
+    setCoverUrl('');
+  };
+
+  const removeCover = () => {
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverFile(null);
+    setCoverPreview('');
+    setCoverUrl('');
+  };
+
+  const pickThumbFile = (list: FileList | null) => {
+    const f = list?.[0];
+    if (!f) return;
+    if (!f.type.startsWith('image/')) { toast.error('Selecione uma imagem para a miniatura'); return; }
+    if (f.size > 10 * 1024 * 1024) { toast.error('Miniatura máxima: 10 MB'); return; }
+    if (thumbPreview) URL.revokeObjectURL(thumbPreview);
+    setThumbFile(f);
+    setThumbPreview(URL.createObjectURL(f));
+    setThumbnailUrl('');
+  };
+
+  const removeThumb = () => {
+    if (thumbPreview) URL.revokeObjectURL(thumbPreview);
+    setThumbFile(null);
+    setThumbPreview('');
+    setThumbnailUrl('');
+  };
+
 
 
   const toggle = (id: string) =>
@@ -139,6 +181,28 @@ export default function PublishContentPage() {
     thumbOffset: Number(thumbOffset) || 0,
     audioName,
   });
+
+  const uploadCoverFile = async (file: File): Promise<string> => {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `covers/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage.from('instagram-media').upload(path, file, {
+      contentType: file.type,
+      upsert: false,
+    });
+    if (error) throw new Error(`Erro ao enviar capa: ${error.message}`);
+    const { data } = supabase.storage.from('instagram-media').getPublicUrl(path);
+    return data.publicUrl;
+  };
+
+  const resolveCoverUrl = async (): Promise<string> => {
+    if (coverFile) return uploadCoverFile(coverFile);
+    return coverUrl;
+  };
+
+  const resolveThumbUrl = async (): Promise<string> => {
+    if (thumbFile) return uploadCoverFile(thumbFile);
+    return thumbnailUrl;
+  };
 
   /** Sincroniza contas com o Meta (Instagram/TikTok) e depois recarrega a lista */
   const syncAndReload = async () => {
@@ -353,6 +417,8 @@ export default function PublishContentPage() {
     const intervalMin = schedulePattern !== 'none' ? (intervals[schedulePattern] ?? 0) : 0;
     const hasInterval = intervalMin > 0;
 
+    const [resolvedCover, resolvedThumb] = await Promise.all([resolveCoverUrl(), resolveThumbUrl()]);
+
     const newScheduledItems: Array<{ jobId: string; fileName: string; publishAt: Date; status: 'waiting' | 'publishing' | 'done' | 'error' }> = [];
     let lastScheduledAt = Date.now();
 
@@ -364,10 +430,11 @@ export default function PublishContentPage() {
           caption: (bulkCaptions[i] ?? '').trim() || caption,
           firstComment,
           scheduledAt: null,
-          thumbnailUrl,
+          thumbnailUrl: resolvedThumb,
           accounts: selectedAccounts,
           onProgress: p => setProgress(Math.round(((i + p / 100) / files.length) * 100)),
           ...commonOptions(),
+          coverUrl: resolvedCover,
         });
         lastJobId = job.id;
         lastPath = job.media_path;
@@ -431,16 +498,17 @@ export default function PublishContentPage() {
     setPublishing(true);
     setProgress(5);
     try {
+      const [resolvedCover, resolvedThumb] = await Promise.all([resolveCoverUrl(), resolveThumbUrl()]);
       const job = await publishingService.createJob({
         files, caption, firstComment,
         scheduledAt: scheduledAt || null,
-        thumbnailUrl, accounts: selectedAccounts, onProgress: setProgress,
+        thumbnailUrl: resolvedThumb, accounts: selectedAccounts, onProgress: setProgress,
         postType,
         shareToFeed,
         collaborators: collaborators.split(',').map(s => s.trim()).filter(Boolean),
         locationId,
         userTags: userTags.split(',').map(s => s.trim()).filter(Boolean),
-        coverUrl,
+        coverUrl: resolvedCover,
         thumbOffset: Number(thumbOffset) || 0,
         audioName,
       });
@@ -741,16 +809,35 @@ export default function PublishContentPage() {
                     <Switch checked={shareToFeed} onCheckedChange={setShareToFeed} />
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Capa do Reels (URL)</Label>
-                      <Input value={coverUrl} onChange={e => setCoverUrl(e.target.value)} placeholder="https://..." />
+                  <div className="space-y-2">
+                    <Label>Capa do Reels</Label>
+                    {coverPreview ? (
+                      <div className="relative inline-block">
+                        <img src={coverPreview} alt="Capa" className="h-32 rounded-md object-cover" />
+                        <Button size="icon" variant="secondary" className="absolute right-1 top-1 h-6 w-6"
+                          onClick={removeCover}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => { e.preventDefault(); pickCoverFile(e.dataTransfer.files); }}
+                        onClick={() => coverInputRef.current?.click()}
+                        className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border p-4 text-center transition-colors hover:border-primary/50"
+                      >
+                        <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                        <p className="text-xs font-medium">Arraste uma imagem ou clique para escolher</p>
+                        <p className="text-[10px] text-muted-foreground">JPG ou PNG até 10 MB</p>
+                      </div>
+                    )}
+                    <input ref={coverInputRef} type="file" accept="image/*" className="hidden"
+                      onChange={e => { pickCoverFile(e.target.files); e.currentTarget.value = ''; }} />
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>ou</span>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Ou segundo da capa (ms)</Label>
-                      <Input type="number" min={0} value={thumbOffset}
-                        onChange={e => setThumbOffset(e.target.value)} placeholder="Ex: 1000" />
-                    </div>
+                    <Input value={coverUrl} onChange={e => setCoverUrl(e.target.value)}
+                      placeholder="URL da capa (https://...)" />
                   </div>
 
                   <div className="space-y-2">
@@ -793,8 +880,30 @@ export default function PublishContentPage() {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label>Miniatura (URL, outras redes)</Label>
-                  <Input value={thumbnailUrl} onChange={e => setThumbnailUrl(e.target.value)} placeholder="https://..." />
+                  <Label>Miniatura (outras redes)</Label>
+                  {thumbPreview ? (
+                    <div className="relative inline-block">
+                      <img src={thumbPreview} alt="Miniatura" className="h-20 rounded-md object-cover" />
+                      <Button size="icon" variant="secondary" className="absolute right-1 top-1 h-6 w-6"
+                        onClick={removeThumb}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={e => { e.preventDefault(); pickThumbFile(e.dataTransfer.files); }}
+                      onClick={() => thumbInputRef.current?.click()}
+                      className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-3 text-center transition-colors hover:border-primary/50"
+                    >
+                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-xs font-medium">Escolher imagem</p>
+                    </div>
+                  )}
+                  <input ref={thumbInputRef} type="file" accept="image/*" className="hidden"
+                    onChange={e => { pickThumbFile(e.target.files); e.currentTarget.value = ''; }} />
+                  <Input value={thumbnailUrl} onChange={e => setThumbnailUrl(e.target.value)}
+                    placeholder="ou URL da miniatura (https://...)" />
                 </div>
               </div>
 
