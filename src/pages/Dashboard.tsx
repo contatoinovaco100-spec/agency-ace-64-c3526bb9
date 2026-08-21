@@ -121,11 +121,39 @@ export default function Dashboard() {
     .sort((a, b) => b[1] - a[1])
     .map(([name, value]) => ({ name, value: Math.round(value) }));
 
-  // LTV por cliente — baseado em contratos ASSINADOS reais.
-  // Para cada contrato: meses pagos = min(meses decorridos desde sent_at, duration_months).
-  // Filtra clientes que já pagaram pelo menos 1 mês completo.
+  // LTV por cliente — meses pagos desde o início do contrato até hoje
+  // (ou até a data de cancelamento). Base: clientes cadastrados; contratos
+  // assinados servem como fallback de data/valor e para clientes sem cadastro.
   const todayDate = new Date();
   const norm = (s: string) => (s || '').trim().toLowerCase();
+
+  const monthsBetween = (start: Date, end: Date) => {
+    // cobranças no dia 10; primeira cobrança no mês seguinte se iniciou após o dia 10
+    let cur = new Date(start.getFullYear(), start.getMonth(), 10);
+    if (start.getDate() > 10) cur.setMonth(cur.getMonth() + 1);
+    let months = 0;
+    while (cur <= end) {
+      months++;
+      cur.setMonth(cur.getMonth() + 1);
+    }
+    return months;
+  };
+
+  // Melhor data e valor de contrato por nome de cliente
+  const contractInfo: Record<string, { date: Date; monthlyValue: number; count: number }> = {};
+  signedContracts.forEach(ct => {
+    const raw = ct.contract_signatures?.[0]?.signed_at || ct.sent_at || ct.created_at;
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return;
+    const key = norm(ct.client_name);
+    const prev = contractInfo[key];
+    contractInfo[key] = {
+      date: prev && prev.date < d ? prev.date : d,
+      monthlyValue: ct.monthly_value || prev?.monthlyValue || 0,
+      count: (prev?.count || 0) + 1,
+    };
+  });
+
   const ltvMap: Record<string, {
     name: string;
     clientId: string | null;
@@ -136,63 +164,53 @@ export default function Dashboard() {
     status: string;
   }> = {};
 
-  signedContracts.forEach(ct => {
-    let signatureDateStr = ct.sent_at || ct.created_at;
-    if (ct.contract_signatures && ct.contract_signatures.length > 0) {
-      signatureDateStr = ct.contract_signatures[0].signed_at;
-    }
-    
-    const refDate = new Date(signatureDateStr);
-    if (isNaN(refDate.getTime())) return;
+  // 1) Clientes cadastrados (incluindo cancelados, com LTV congelado)
+  allClients.forEach(c => {
+    const info = contractInfo[norm(c.companyName)];
+    const startRaw = c.contractStartDate || (info ? info.date.toISOString() : null);
+    if (!startRaw) return;
+    const start = new Date(startRaw);
+    if (isNaN(start.getTime())) return;
 
-    // Casa o contrato com cliente cadastrado pelo nome (case-insensitive).
-    const matchedClient = clients.find(
-      c => norm(c.companyName) === norm(ct.client_name)
-    );
-
-    // Cliente cancelado: o LTV congela na data do cancelamento.
-    let limitDate = todayDate;
-    if (matchedClient?.status === 'Cancelado') {
-      const cancelDate = matchedClient.cancelledAt ? new Date(matchedClient.cancelledAt) : null;
-      if (cancelDate && !isNaN(cancelDate.getTime())) limitDate = cancelDate;
-    }
-    
-    let monthsPaid = 0;
-    
-    // Inicia no dia 10 do mês da assinatura
-    let currentPaymentDate = new Date(refDate.getFullYear(), refDate.getMonth(), 10);
-    
-    // Se a assinatura foi DEPOIS do dia 10, o primeiro pagamento é só no mês seguinte
-    if (refDate.getDate() > 10) {
-      currentPaymentDate.setMonth(currentPaymentDate.getMonth() + 1);
-    }
-    
-    const duration = ct.duration_months || 999;
-    while (currentPaymentDate <= limitDate && monthsPaid < duration) {
-      monthsPaid++;
-      currentPaymentDate.setMonth(currentPaymentDate.getMonth() + 1);
+    let limit = todayDate;
+    if (c.status === 'Cancelado' && c.cancelledAt) {
+      const cd = new Date(c.cancelledAt);
+      if (!isNaN(cd.getTime())) limit = cd;
     }
 
-    if (monthsPaid < 1) return; // só conta quem já pagou pelo menos 1 mês completo
-    const ltv = monthsPaid * (ct.monthly_value || 0);
+    const monthsPaid = monthsBetween(start, limit);
+    if (monthsPaid < 1) return;
 
-    const key = matchedClient?.id || `name:${norm(ct.client_name)}`;
+    const monthlyValue = c.monthlyValue || info?.monthlyValue || 0;
+    if (monthlyValue <= 0) return;
 
+    ltvMap[c.id] = {
+      name: c.companyName,
+      clientId: c.id,
+      ltv: monthsPaid * monthlyValue,
+      monthsPaid,
+      contractsCount: info?.count || 0,
+      monthlyValue,
+      status: c.status,
+    };
+  });
 
-    if (!ltvMap[key]) {
-      ltvMap[key] = {
-        name: matchedClient?.companyName || ct.client_name,
-        clientId: matchedClient?.id || null,
-        ltv: 0,
-        monthsPaid: 0,
-        contractsCount: 0,
-        monthlyValue: ct.monthly_value || 0,
-        status: matchedClient?.status || 'Sem cadastro',
-      };
-    }
-    ltvMap[key].ltv += ltv;
-    ltvMap[key].monthsPaid += monthsPaid;
-    ltvMap[key].contractsCount += 1;
+  // 2) Contratos assinados de quem ainda não tem cadastro de cliente
+  const registeredNames = new Set(allClients.map(c => norm(c.companyName)));
+  Object.entries(contractInfo).forEach(([key, info]) => {
+    if (!key || registeredNames.has(key)) return;
+    const monthsPaid = monthsBetween(info.date, todayDate);
+    if (monthsPaid < 1 || info.monthlyValue <= 0) return;
+    const original = signedContracts.find(ct => norm(ct.client_name) === key);
+    ltvMap[`name:${key}`] = {
+      name: original?.client_name?.trim() || key,
+      clientId: null,
+      ltv: monthsPaid * info.monthlyValue,
+      monthsPaid,
+      contractsCount: info.count,
+      monthlyValue: info.monthlyValue,
+      status: 'Sem cadastro',
+    };
   });
 
   const ltvByClient = Object.entries(ltvMap)
@@ -200,6 +218,7 @@ export default function Dashboard() {
     .sort((a, b) => b.ltv - a.ltv);
   const totalLtv = ltvByClient.reduce((sum, c) => sum + c.ltv, 0);
   const avgLtv = ltvByClient.length > 0 ? totalLtv / ltvByClient.length : 0;
+
 
   // Client status distribution (cancelled clients live in the Churn section)
   const clientStatusData = [

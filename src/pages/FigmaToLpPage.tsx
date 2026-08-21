@@ -61,7 +61,7 @@ function slugify(s: string) {
 export default function FigmaToLpPage() {
   const [lps, setLps] = useState<LP[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeMainTab, setActiveMainTab] = useState<"pages" | "templates" | "converter">("pages");
+  const [activeMainTab, setActiveMainTab] = useState<"pages" | "templates" | "converter" | "image">("pages");
 
   // Creation / Conversion state
   const [dialogOpen, setDialogOpen] = useState(false);

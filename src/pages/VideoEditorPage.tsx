@@ -90,14 +90,15 @@ export default function VideoEditorPage() {
       setProgress(30);
 
       const logData: string[] = [];
-      const unsub = ffmpeg.on('log', ({ message }) => logData.push(message));
+      const onLog = ({ message }: { message: string }) => { logData.push(message); };
+      ffmpeg.on('log', onLog);
 
       await ffmpeg.exec([
         '-i', 'input.mp4',
         '-af', `silencedetect=noise=${silenceThreshold}dB:d=${minSilenceDuration}`,
         '-f', 'null', '-',
       ]);
-      unsub();
+      ffmpeg.off('log', onLog);
       setProgress(55);
 
       const silenceStarts: number[] = [];
@@ -182,7 +183,7 @@ export default function VideoEditorPage() {
       setProgress(95);
 
       const data = await ffmpeg.readFile('output.mp4');
-      const blob = new Blob([data], { type: 'video/mp4' });
+      const blob = new Blob([data as BlobPart], { type: 'video/mp4' });
       setResultUrl(URL.createObjectURL(blob));
       setResultSize(blob.size);
 
