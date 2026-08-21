@@ -214,24 +214,27 @@ export default function PublishContentPage() {
     return data.publicUrl;
   };
 
-  const resolveCoverUrl = async (): Promise<string> => {
-    if (coverFile) return uploadCoverFile(coverFile);
-    return coverUrl;
+  const uploadThumbBlob = async (blob: Blob): Promise<string> => {
+    const path = `covers/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+    const { error } = await supabase.storage.from('instagram-media').upload(path, blob, {
+      contentType: 'image/jpeg',
+      upsert: false,
+    });
+    if (error) throw new Error(`Erro ao enviar miniatura: ${error.message}`);
+    const { data } = supabase.storage.from('instagram-media').getPublicUrl(path);
+    return data.publicUrl;
   };
 
-  const resolveThumbUrl = async (): Promise<string> => {
-    if (thumbBlob) {
-      const path = `covers/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-      const { error } = await supabase.storage.from('instagram-media').upload(path, thumbBlob, {
-        contentType: 'image/jpeg',
-        upsert: false,
-      });
-      if (error) throw new Error(`Erro ao enviar miniatura: ${error.message}`);
-      const { data } = supabase.storage.from('instagram-media').getPublicUrl(path);
-      return data.publicUrl;
-    }
-    return thumbnailUrl;
+  /** Resolve capa e miniatura de uma vez (o frame escolhido vira a CAPA do Reels,
+   *  que é o que o Instagram realmente usa — thumbnail_url é ignorado por lá). */
+  const resolveCoverAndThumb = async (): Promise<{ cover: string; thumb: string }> => {
+    const frameUrl = thumbBlob ? await uploadThumbBlob(thumbBlob) : '';
+    let cover = coverUrl;
+    if (coverFile) cover = await uploadCoverFile(coverFile);
+    if (!cover && frameUrl) cover = frameUrl;
+    return { cover, thumb: frameUrl || thumbnailUrl };
   };
+
 
   /** Sincroniza contas com o Meta (Instagram/TikTok) e depois recarrega a lista */
   const syncAndReload = async () => {
