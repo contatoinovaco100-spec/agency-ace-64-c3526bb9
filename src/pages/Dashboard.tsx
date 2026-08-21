@@ -3,7 +3,7 @@ import { useModuleAccess } from '@/hooks/useUserRole';
 import { ExpensesPanel } from '@/components/dashboard/ExpensesPanel';
 
 import { motion } from 'framer-motion';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Users, DollarSign, Target, CheckSquare, FolderOpen,
   TrendingUp, PieChart, BarChart3, ArrowUpRight, ArrowDownRight,
