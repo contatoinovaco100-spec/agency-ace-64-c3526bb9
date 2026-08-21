@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
+import { fetchFile } from '@ffmpeg/util';
 
 type Segment = { start: number; end: number; keep: boolean };
 
@@ -28,10 +28,9 @@ async function getFFmpeg(onProgress?: (msg: string) => void) {
     if (message.includes('silence_')) onProgress?.(message);
   });
   onProgress?.('Carregando FFmpeg (pode demorar na primeira vez)...');
-  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
   await ffmpeg.load({
-    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+    coreURL: '/ffmpeg/ffmpeg-core.js',
+    wasmURL: '/ffmpeg/ffmpeg-core.wasm',
   });
   ffmpegInstance = ffmpeg;
   return ffmpeg;
