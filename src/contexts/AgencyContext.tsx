@@ -376,12 +376,12 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
 
   const deleteTask = async (id: string) => {
     const now = new Date().toISOString();
-    await supabase.from('tasks').update({ deleted_at: now }).eq('id', id);
+    await supabase.from('tasks').update({ deleted_at: now } as any).eq('id', id);
     setTasks(prev => prev.map(t => t.id === id ? { ...t, deletedAt: now } : t));
   };
 
   const restoreTask = async (id: string) => {
-    await supabase.from('tasks').update({ deleted_at: null }).eq('id', id);
+    await supabase.from('tasks').update({ deleted_at: null } as any).eq('id', id);
     setTasks(prev => prev.map(t => t.id === id ? { ...t, deletedAt: null } : t));
   };
 

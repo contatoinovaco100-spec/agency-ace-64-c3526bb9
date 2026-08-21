@@ -170,7 +170,7 @@ export default function ThreadsPublishPage() {
     const iv = setInterval(async () => {
       try {
         const stuck = await publishingService.recoverStuckJobs();
-        if (stuck > 0) reloadJobs();
+        if (stuck.length > 0) reloadJobs();
       } catch { /* silent */ }
     }, 60_000);
     return () => clearInterval(iv);
