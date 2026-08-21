@@ -3,7 +3,7 @@ import { useModuleAccess } from '@/hooks/useUserRole';
 import { ExpensesPanel } from '@/components/dashboard/ExpensesPanel';
 
 import { motion } from 'framer-motion';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Users, DollarSign, Target, CheckSquare, FolderOpen,
   TrendingUp, PieChart, BarChart3, ArrowUpRight, ArrowDownRight,
@@ -81,16 +81,32 @@ export default function Dashboard() {
 
   const [signedContracts, setSignedContracts] = useState<SignedContract[]>([]);
 
+  const fetchSignedContracts = useCallback(async () => {
+    const { data } = await supabase
+      .from('contracts')
+      .select('id, client_id, client_name, monthly_value, duration_months, sent_at, created_at, status, contract_signatures(signed_at)')
+      .eq('status', 'assinado');
+    if (data) setSignedContracts(data as SignedContract[]);
+  }, []);
+
+  // Mantém o LTV sempre sincronizado com a lista de clientes:
+  // refaz a busca sempre que a lista de clientes muda (realtime do AgencyContext)
+  // e também quando algum contrato é criado/assinado/alterado.
   useEffect(() => {
     if (!isAdmin) return;
-    (async () => {
-      const { data } = await supabase
-        .from('contracts')
-        .select('id, client_id, client_name, monthly_value, duration_months, sent_at, created_at, status, contract_signatures(signed_at)')
-        .eq('status', 'assinado');
-      if (data) setSignedContracts(data as SignedContract[]);
-    })();
-  }, [isAdmin]);
+    fetchSignedContracts();
+  }, [isAdmin, fetchSignedContracts, allClients]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const channel = supabase
+      .channel('dashboard-contracts-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts' }, () => fetchSignedContracts())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contract_signatures' }, () => fetchSignedContracts())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [isAdmin, fetchSignedContracts]);
+
 
 
   const activeClients = clients.filter(c => c.status === 'Ativo');
