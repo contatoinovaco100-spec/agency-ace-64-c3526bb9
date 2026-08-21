@@ -146,17 +146,29 @@ export default function PublishContentPage() {
   const extractThumbFrame = () => {
     const video = thumbVideoRef.current;
     if (!video || !video.videoWidth) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d')!.drawImage(video, 0, 0);
-    canvas.toBlob((blob) => {
-      if (blob) {
-        if (thumbPreviewUrl) URL.revokeObjectURL(thumbPreviewUrl);
-        setThumbBlob(blob);
-        setThumbPreviewUrl(URL.createObjectURL(blob));
-      }
-    }, 'image/jpeg', 0.92);
+    const grab = () => {
+      const v = thumbVideoRef.current;
+      if (!v || !v.videoWidth) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = v.videoWidth;
+      canvas.height = v.videoHeight;
+      canvas.getContext('2d')!.drawImage(v, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        if (blob) {
+          if (thumbPreviewUrl) URL.revokeObjectURL(thumbPreviewUrl);
+          setThumbBlob(blob);
+          setThumbPreviewUrl(URL.createObjectURL(blob));
+          setThumbOffset(String(Math.max(0, Math.round(v.currentTime * 1000))));
+        }
+      }, 'image/jpeg', 0.92);
+    };
+    // Garante que o frame já foi renderizado antes de capturar (senão sai o frame anterior/preto)
+    const anyVideo = video as any;
+    if (typeof anyVideo.requestVideoFrameCallback === 'function') {
+      anyVideo.requestVideoFrameCallback(() => grab());
+    } else {
+      setTimeout(grab, 120);
+    }
   };
 
   const removeThumbFrame = () => {
@@ -164,7 +176,9 @@ export default function PublishContentPage() {
     setThumbBlob(null);
     setThumbPreviewUrl('');
     setThumbSeek(0);
+    setThumbOffset('');
   };
+
 
 
 
