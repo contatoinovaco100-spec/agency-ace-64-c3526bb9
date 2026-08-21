@@ -1,4 +1,4 @@
-export type SocialPlatform = 'instagram' | 'tiktok';
+export type SocialPlatform = 'instagram' | 'tiktok' | 'threads';
 
 export type AccountStatus = 'connected' | 'expired' | 'disconnected';
 
@@ -53,6 +53,7 @@ export interface PublishTarget {
 export const PLATFORM_META: Record<SocialPlatform, { label: string; color: string }> = {
   instagram: { label: 'Instagram', color: 'text-pink-500' },
   tiktok: { label: 'TikTok', color: 'text-cyan-400' },
+  threads: { label: 'Threads', color: 'text-gray-200' },
 };
 
 export const STATUS_LABEL: Record<AccountStatus, string> = {

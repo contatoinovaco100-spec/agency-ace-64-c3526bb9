@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Check, Copy, Download, Instagram, Music2, RotateCcw } from 'lucide-react';
+import { Check, Copy, Download, Instagram, AtSign, Music2, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { publishingService } from '@/services/publishing';
 import type { PublishTarget } from '@/types/social';
@@ -67,7 +67,7 @@ export function ManualPublishPanel({
 
       <div className="space-y-1.5">
         {targets.map(t => {
-          const Icon = t.platform === 'instagram' ? Instagram : Music2;
+          const Icon = t.platform === 'instagram' ? Instagram : t.platform === 'threads' ? AtSign : Music2;
           const done = t.status === 'published';
           return (
             <div

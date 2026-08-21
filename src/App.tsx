@@ -50,6 +50,7 @@ const ArtesPage            = lazy(() => import("./pages/ArtesPage"));
 const VideosFinalizadosPage = lazy(() => import("./pages/VideosFinalizadosPage"));
 const VideoSchedulePage    = lazy(() => import("./pages/VideoSchedulePage"));
 const VideoEditorPage      = lazy(() => import("./pages/VideoEditorPage"));
+const ThreadsPublishPage   = lazy(() => import("./pages/ThreadsPublishPage"));
 const PublicArtesPage      = lazy(() => import("./pages/PublicArtesPage"));
 const TeamPage             = lazy(() => import("./pages/TeamPage"));
 const ClientContentPage    = lazy(() => import("./pages/ClientContentPage"));
@@ -238,6 +239,7 @@ function AppRoutes() {
                     <Route path="/videos-finalizados"  element={<VideosFinalizadosPage />} />
                     <Route path="/agenda-videos"       element={<VideoSchedulePage />} />
                     <Route path="/editor-video"        element={<VideoEditorPage />} />
+                    <Route path="/publicar-threads"     element={<ThreadsPublishPage />} />
                     <Route path="/equipe"              element={<TeamPage />} />
                     <Route path="/planejamento"        element={<ContentPlanningPage />} />
 

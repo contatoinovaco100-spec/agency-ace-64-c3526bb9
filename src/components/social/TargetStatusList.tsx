@@ -1,4 +1,4 @@
-import { CheckCircle2, Loader2, XCircle, Clock, Instagram, Music2 } from 'lucide-react';
+import { CheckCircle2, Loader2, XCircle, Clock, Instagram, AtSign, Music2 } from 'lucide-react';
 import type { PublishTarget } from '@/types/social';
 
 const meta = {
@@ -17,7 +17,7 @@ export function TargetStatusList({ targets }: { targets: PublishTarget[] }) {
       {targets.map(t => {
         const m = meta[t.status] ?? meta.pending;
         const Icon = m.icon;
-        const Platform = t.platform === 'instagram' ? Instagram : Music2;
+        const Platform = t.platform === 'instagram' ? Instagram : t.platform === 'threads' ? AtSign : Music2;
         return (
           <div
             key={t.id}

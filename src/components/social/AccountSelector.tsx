@@ -1,6 +1,6 @@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Instagram, Music2 } from 'lucide-react';
+import { AtSign, Instagram, Music2 } from 'lucide-react';
 import { PLATFORM_META, type SocialAccount, type SocialPlatform } from '@/types/social';
 
 interface Props {
@@ -13,7 +13,7 @@ interface Props {
 
 export function AccountSelector({ platform, accounts, selected, onToggle, onToggleAll }: Props) {
   if (!accounts.length) return null;
-  const Icon = platform === 'instagram' ? Instagram : Music2;
+  const Icon = platform === 'instagram' ? Instagram : platform === 'threads' ? AtSign : Music2;
   const ids = accounts.map(a => a.id);
   const allChecked = ids.every(id => selected.includes(id));
 

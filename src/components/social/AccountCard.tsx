@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Instagram, Music2, RefreshCw, Trash2, Loader2 } from 'lucide-react';
+import { Instagram, AtSign, Music2, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import { STATUS_LABEL, type SocialAccount } from '@/types/social';
 
 interface Props {
@@ -19,7 +19,7 @@ const statusVariant: Record<string, string> = {
 };
 
 export function AccountCard({ account, syncing, onReconnect, onRemove }: Props) {
-  const Icon = account.platform === 'instagram' ? Instagram : Music2;
+  const Icon = account.platform === 'instagram' ? Instagram : account.platform === 'threads' ? AtSign : Music2;
   const synced = account.last_synced_at
     ? new Date(account.last_synced_at).toLocaleString('pt-BR')
     : '—';

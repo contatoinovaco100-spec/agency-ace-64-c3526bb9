@@ -3,7 +3,7 @@ import {
   Shield, FileText, BarChart3,   Film, Clapperboard, Palette, Play,
   LayoutList, Bot, Sparkles, Settings, Bell, Calendar, CalendarDays,
   MessageSquare, TrendingUp, Images, BookOpen, CalculatorIcon,
-  Gift, Link2, Video, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy, Scissors,
+  Gift, Link2, Video, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy, Scissors, AtSign,
 } from 'lucide-react';
 
 export type PageCategory =
@@ -53,6 +53,7 @@ export const APP_PAGES: AppPage[] = [
 
   // Postagens (publicar + relatórios de cliente)
   { path: '/publicar',            label: 'Publicar Conteúdo',    icon: Sparkles,        category: 'Postagens', highlight: true },
+  { path: '/publicar-threads',    label: 'Publicar Threads',     icon: AtSign,          category: 'Postagens' },
   { path: '/publicacoes',         label: 'Histórico de Posts',   icon: ListChecks,      category: 'Postagens' },
   { path: '/redes-sociais',       label: 'Redes Sociais',        icon: Network,         category: 'Postagens' },
   { path: '/portfolio-instagram', label: 'Posts Instagram',      icon: Sparkles,        category: 'Postagens' },
