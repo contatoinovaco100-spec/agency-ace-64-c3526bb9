@@ -272,6 +272,7 @@ function AppRoutes() {
                     <Route path="/calendario-postagens"  element={<PostCalendarPage />} />
                     <Route path="/chat"                element={<ChatPage />} />
                     <Route path="/escopos"             element={<ClientScopesPage />} />
+                    <Route path="/nota-cliente"        element={<ClientScoresPage />} />
                     <Route path="/metas"               element={<GoalsPage />} />
                     <Route path="/resultados-semanais" element={<WeeklyResultsPage />} />
                     <Route path="/galeria"             element={<GalleryPage />} />
