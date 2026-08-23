@@ -449,7 +449,7 @@ export default function PublishContentPage() {
     const intervalMin = schedulePattern !== 'none' ? (intervals[schedulePattern] ?? 0) : 0;
     const hasInterval = intervalMin > 0;
 
-    const [resolvedCover, resolvedThumb] = await Promise.all([resolveCoverUrl(), resolveThumbUrl()]);
+    const { cover: resolvedCover, thumb: resolvedThumb } = await resolveCoverAndThumb();
 
     const newScheduledItems: Array<{ jobId: string; fileName: string; publishAt: Date; status: 'waiting' | 'publishing' | 'done' | 'error' }> = [];
     let lastScheduledAt = Date.now();
@@ -530,7 +530,7 @@ export default function PublishContentPage() {
     setPublishing(true);
     setProgress(5);
     try {
-      const [resolvedCover, resolvedThumb] = await Promise.all([resolveCoverUrl(), resolveThumbUrl()]);
+      const { cover: resolvedCover, thumb: resolvedThumb } = await resolveCoverAndThumb();
       const job = await publishingService.createJob({
         files, caption, firstComment,
         scheduledAt: scheduledAt || null,
