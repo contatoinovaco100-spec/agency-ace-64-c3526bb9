@@ -3370,6 +3370,47 @@ export type Database = {
           },
         ]
       }
+      task_evaluations: {
+        Row: {
+          comment: string
+          created_at: string
+          evaluated_by: string | null
+          id: string
+          member_name: string
+          score: number
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment?: string
+          created_at?: string
+          evaluated_by?: string | null
+          id?: string
+          member_name: string
+          score: number
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          evaluated_by?: string | null
+          id?: string
+          member_name?: string
+          score?: number
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_evaluations_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_stage_history: {
         Row: {
           changed_by: string

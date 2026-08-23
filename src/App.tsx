@@ -101,7 +101,7 @@ const CalendarPage              = lazy(() => import("./pages/CalendarPage"));
 const ChatPage                  = lazy(() => import("./pages/ChatPage"));
 const ClientScopesPage          = lazy(() => import("./pages/ClientScopesPage"));
 const ClientScoresPage          = lazy(() => import("./pages/ClientScoresPage"));
-const CockpitPage               = lazy(() => import("./pages/CockpitPage"));
+const DesempenhoPage            = lazy(() => import("./pages/DesempenhoPage"));
 const GoalsPage                 = lazy(() => import("./pages/GoalsPage"));
 const WeeklyResultsPage         = lazy(() => import("./pages/WeeklyResultsPage"));
 const GalleryPage               = lazy(() => import("./pages/GalleryPage"));
@@ -274,7 +274,7 @@ function AppRoutes() {
                     <Route path="/chat"                element={<ChatPage />} />
                     <Route path="/escopos"             element={<ClientScopesPage />} />
                     <Route path="/nota-cliente"        element={<ClientScoresPage />} />
-                    <Route path="/cockpit"             element={<CockpitPage />} />
+                    <Route path="/desempenho"          element={<DesempenhoPage />} />
                     <Route path="/metas"               element={<GoalsPage />} />
                     <Route path="/resultados-semanais" element={<WeeklyResultsPage />} />
                     <Route path="/galeria"             element={<GalleryPage />} />
