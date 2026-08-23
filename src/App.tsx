@@ -274,7 +274,7 @@ function AppRoutes() {
                     <Route path="/chat"                element={<ChatPage />} />
                     <Route path="/escopos"             element={<ClientScopesPage />} />
                     <Route path="/nota-cliente"        element={<ClientScoresPage />} />
-                    <Route path="/cockpit"             element={<CockpitPage />} />
+                    <Route path="/desempenho"          element={<DesempenhoPage />} />
                     <Route path="/metas"               element={<GoalsPage />} />
                     <Route path="/resultados-semanais" element={<WeeklyResultsPage />} />
                     <Route path="/galeria"             element={<GalleryPage />} />
