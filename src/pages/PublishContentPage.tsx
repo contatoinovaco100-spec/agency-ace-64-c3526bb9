@@ -530,7 +530,7 @@ export default function PublishContentPage() {
     setPublishing(true);
     setProgress(5);
     try {
-      const [resolvedCover, resolvedThumb] = await Promise.all([resolveCoverUrl(), resolveThumbUrl()]);
+      const { cover: resolvedCover, thumb: resolvedThumb } = await resolveCoverAndThumb();
       const job = await publishingService.createJob({
         files, caption, firstComment,
         scheduledAt: scheduledAt || null,
