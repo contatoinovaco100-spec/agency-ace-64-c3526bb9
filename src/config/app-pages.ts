@@ -41,6 +41,7 @@ export interface AppPage {
 export const APP_PAGES: AppPage[] = [
   // Geral
   { path: '/',                    label: 'Dashboard',           icon: LayoutDashboard, category: 'Geral' },
+  { path: '/cockpit',             label: 'Cockpit do Gestor',   icon: Gauge,           category: 'Geral', adminOnly: true },
   { path: '/minhas-tarefas',      label: 'Minhas Tarefas',      icon: ListChecks,      category: 'Geral' },
   { path: '/calendario',          label: 'Calendário',          icon: Calendar,        category: 'Geral' },
   { path: '/notificacoes',        label: 'Notificações',        icon: Bell,            category: 'Geral' },
