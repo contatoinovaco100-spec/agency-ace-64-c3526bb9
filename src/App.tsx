@@ -100,6 +100,7 @@ const QuizResponsesPage       = lazy(() => import("./pages/QuizResponsesPage"));
 const CalendarPage              = lazy(() => import("./pages/CalendarPage"));
 const ChatPage                  = lazy(() => import("./pages/ChatPage"));
 const ClientScopesPage          = lazy(() => import("./pages/ClientScopesPage"));
+const ClientScoresPage          = lazy(() => import("./pages/ClientScoresPage"));
 const GoalsPage                 = lazy(() => import("./pages/GoalsPage"));
 const WeeklyResultsPage         = lazy(() => import("./pages/WeeklyResultsPage"));
 const GalleryPage               = lazy(() => import("./pages/GalleryPage"));
