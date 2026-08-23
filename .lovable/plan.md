@@ -1,28 +1,45 @@
-## O que eu não consigo fazer
+# Avaliação de Equipe e Gargalos
 
-Não tenho acesso ao painel de desenvolvedores da Meta — o cadastro do URI de redirecionamento precisa ser feito por você (leva 1 minuto):
+Substituir a aba "Cockpit do Gestor" por uma aba **Desempenho da Equipe** (`/desempenho`), visível só para admin, onde o gestor avalia o trabalho de cada funcionário demanda por demanda e enxerga onde a operação trava.
 
-1. developers.facebook.com > seu app (ID `2235928767163276`) > Login do Facebook > Configurações
-2. Em "URIs de redirecionamento do OAuth válidos", adicionar exatamente:
-   `https://inovamarketing.online/redes-sociais`
-3. Salvar alterações.
+## O que o gestor vê
 
+**1. Ranking de funcionários**
+Uma linha por funcionário com:
+- Score final (métricas automáticas + nota manual do gestor)
+- Entregas no período, entregas no prazo, atrasadas, em alteração (retrabalho)
+- Tempo médio para concluir uma demanda
+- Nota média dada pelo gestor
+- Semáforo 🟢 ≥ 90 / 🟡 75–89 / 🔴 < 75
 
-## Problema encontrado no código
+Clicando no funcionário, abre a lista das demandas dele no período: cada demanda mostra cliente, etapa, prazo, se atrasou, e um campo de **nota 0–10 + comentário** que o gestor preenche ali mesmo.
 
-Hoje a página `/redes-sociais` monta o redirect com `window.location.origin`. Isso significa que, no preview do editor ou no domínio `.lovable.app`, o URI enviado à Meta é diferente do cadastrado e o login falha com "URL bloqueada / redirect_uri mismatch". Só funcionaria no domínio principal.
+**2. Gargalos (três visões, em abas)**
+- **Por etapa:** quantas tarefas estão paradas em cada etapa do Kanban, há quantos dias em média, e qual etapa acumula mais fila.
+- **Por funcionário:** quem tem mais demandas paradas/atrasadas na fila hoje.
+- **Por cliente:** quais clientes concentram mais demandas travadas.
 
-## O que vou implementar
+Cada visão destaca no topo o maior gargalo em uma frase ("Maior gargalo: Em edição — 12 tarefas paradas, média de 6 dias").
 
-1. **Redirect URI canônico fixo**: usar sempre `https://inovamarketing.online/redes-sociais` para Instagram, independentemente de onde a plataforma está aberta. Assim só existe 1 URI para cadastrar na Meta.
-2. **Aviso quando fora do domínio oficial**: se o usuário abrir `/redes-sociais` no preview, mostrar um alerta explicando que a conexão precisa ser feita pelo domínio oficial (o retorno do OAuth cai lá).
-3. **Retorno do OAuth mais robusto**: ler `code`, `state` e também `error`/`error_description` da URL; se a Meta devolver erro, exibir a mensagem real em vez de falhar em silêncio, e limpar os parâmetros da URL após processar.
-4. **Mensagens de erro reais do Graph**: propagar o texto de erro da Meta (ex.: escopo faltando, app em modo de desenvolvimento, conta sem Instagram Business vinculado) para o toast, em vez de "Nenhuma conta encontrada".
-5. **Validação do fluxo**: depois que você salvar o URI na Meta, eu testo a função `social-oauth` (geração da URL de autorização e leitura dos logs do retorno) e confirmo se as contas são gravadas corretamente. O clique final de autorização na tela da Meta precisa ser feito por você, já que exige sua sessão Facebook.
+**3. Filtros**
+Período (semana atual, últimos 30 dias, mês passado), cliente, tipo de demanda (Vídeo / Arte / Geral) e funcionário.
+
+## Como o score é calculado
+
+Score final = média de:
+- Entrega no prazo (% das demandas com prazo concluídas até a data)
+- Volume entregue vs. fila (quanto da carga foi concluída no período)
+- Qualidade = 100 − % de demandas que voltaram para alteração
+- Nota do gestor (nota média × 10), quando houver notas lançadas
+
+Se o funcionário não tem nota manual, o score usa só as três métricas automáticas.
 
 ## Detalhes técnicos
 
-- `src/pages/SocialAccountsPage.tsx`: constante `CANONICAL_ORIGIN`, tratamento de `error` no callback, `window.history.replaceState` para limpar a query.
-- `supabase/functions/social-oauth/index.ts`: retornar detalhe do erro na ação `connect`.
-- `supabase/functions/_shared/platforms/instagram.ts`: mensagem específica quando `/me/accounts` não retorna nenhuma página com `instagram_business_account`.
-- Requisitos do lado da Meta para publicar: app com Login do Facebook ativo, conta Instagram do tipo Business/Creator vinculada a uma Página, e o usuário como testador/admin enquanto o app estiver em modo de desenvolvimento.
+- Nova tabela `task_evaluations`: `task_id`, `member_name` (funcionário avaliado), `score` (0–10), `comment`, `evaluated_by`, `created_at`, `updated_at`, com unicidade por (`task_id`, `member_name`), GRANTs para `authenticated`/`service_role` e RLS: leitura para autenticados, escrita apenas para admin (`has_role`).
+- Funcionários vêm de `profiles` (`is_active = true`, `job_title` como setor), casados com as tarefas pelos campos de papel já existentes: `assignee`, `copywriter`, `director`, `videomaker`, `editor`, `script_writer` (comparação por nome, minúsculas/trim — mesmo padrão já usado em `TaskMoveNotifications.tsx`).
+- Tempo por etapa e tempo de conclusão vêm de `task_stage_history` (`from_stage`, `to_stage`, `created_at`); quando a tarefa não tem histórico, usa `created_at`/`updated_at` da tarefa como aproximação.
+- Retrabalho = tarefa que passou por qualquer etapa contendo "altera" no histórico, ou que está nela agora.
+- Clientes com status `Cancelado` ficam fora de todos os cálculos, como no resto do sistema.
+- Nova página `src/pages/DesempenhoPage.tsx` + componentes em `src/components/desempenho/`.
+- Remover `src/pages/CockpitPage.tsx`, sua rota `/cockpit` em `src/App.tsx` e a entrada no menu; registrar `/desempenho` em `src/App.tsx` e em `src/config/app-pages.ts` (categoria Administração, `adminOnly`).
