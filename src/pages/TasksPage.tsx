@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { useAgency } from '@/contexts/AgencyContext';
 import { Task } from '@/types/agency';
-import { Plus, Filter, Search, X, Users, ChevronDown, ChevronLeft, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film, FolderOpen, FileSpreadsheet, Undo2, Trash2, RotateCcw } from 'lucide-react';
+import { Plus, Filter, Search, X, Users, ChevronDown, ChevronLeft, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film, FolderOpen, FileSpreadsheet, Undo2, Trash2, RotateCcw, FileEdit } from 'lucide-react';
 import { BulkImportDialog } from '@/components/tasks/BulkImportDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -583,6 +583,24 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const [newDefaultStatus, setNewDefaultStatus] = useState('');
   const [arteTab, setArteTab] = useState<'progress' | 'done' | 'trash'>('progress');
   const [artPreview, setArtPreview] = useState<{ urls: string[]; index: number } | null>(null);
+  const [draftInfo, setDraftInfo] = useState<{ title: string; savedAt: string } | null>(null);
+
+  // Rascunho de card novo (salvo em localStorage pelo TaskDetailPanel)
+  useEffect(() => {
+    const read = () => {
+      try {
+        const raw = localStorage.getItem('inova:task-draft');
+        if (!raw) return setDraftInfo(null);
+        const parsed = JSON.parse(raw);
+        setDraftInfo({ title: parsed?.form?.title || 'Card sem título', savedAt: parsed?.savedAt || '' });
+      } catch { setDraftInfo(null); }
+    };
+    read();
+    const id = window.setInterval(read, 2000);
+    window.addEventListener('focus', read);
+    window.addEventListener('storage', read);
+    return () => { window.clearInterval(id); window.removeEventListener('focus', read); window.removeEventListener('storage', read); };
+  }, [dialogOpen]);
 
   // Open a specific task when navigated with ?taskId=xxx (e.g. from history bell)
   useEffect(() => {
@@ -1085,6 +1103,19 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                 <FileSpreadsheet className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Em massa</span>
               </Button>
+              {draftInfo && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 sm:px-3 gap-1 relative border-primary/50 text-primary"
+                  onClick={openNew}
+                  title={`Rascunho: ${draftInfo.title}${draftInfo.savedAt ? ` · salvo ${new Date(draftInfo.savedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}`}
+                >
+                  <FileEdit className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline max-w-[120px] truncate">{draftInfo.title}</span>
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
+                </Button>
+              )}
               <Button size="sm" className="hidden sm:flex gap-1 h-9" onClick={openNew}>
                 <Plus className="h-4 w-4" /> Nova Tarefa
               </Button>
