@@ -278,9 +278,6 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
           <div className="flex flex-wrap items-center gap-1.5">
             <StatusBadge status={task.status} isArte={isArte} />
 
-
-
-
             {task.platform && (
               <span className="inline-flex items-center gap-1 rounded-full bg-secondary border border-border px-2.5 py-0.5 text-[11px] font-medium text-foreground">
                 {platformIc}{task.platform}
