@@ -241,6 +241,24 @@ function statusCardStyles(status: string) {
     bubble: 'bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary',
     text: 'text-primary',
   };
+function statusTagStyles(status: string) {
+  const norm = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+  const ns = norm(status);
+
+  const map: Record<string, { bg: string; border: string; text: string }> = {
+    'postado':       { bg: 'bg-green-500/10', border: 'border-green-500/20', text: 'text-green-600 dark:text-green-400' },
+    'programado':    { bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-600 dark:text-blue-400' },
+    'finalizado':    { bg: 'bg-purple-500/10', border: 'border-purple-500/20', text: 'text-purple-600 dark:text-purple-400' },
+    'em revisao':    { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-600 dark:text-orange-400' },
+    'revisao':       { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-600 dark:text-orange-400' },
+    'em andamento':  { bg: 'bg-primary/10', border: 'border-primary/20', text: 'text-primary' },
+    'proxima captacao': { bg: 'bg-[#bff720]/15', border: 'border-[#bff720]/30', text: 'text-[#5a7a00] dark:text-[#bff720]' },
+    'ideia':         { bg: 'bg-muted', border: 'border-border', text: 'text-muted-foreground' },
+    'ideias':        { bg: 'bg-muted', border: 'border-border', text: 'text-muted-foreground' },
+    'ideias / backlog': { bg: 'bg-muted', border: 'border-border', text: 'text-muted-foreground' },
+  };
+  return map[ns] || { bg: 'bg-secondary', border: 'border-border', text: 'text-muted-foreground' };
 }
 
 // ─── Lightbox ────────────────────────────────────────────────────────────────
