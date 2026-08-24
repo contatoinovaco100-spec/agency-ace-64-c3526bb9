@@ -211,6 +211,8 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
   const platformIc = platformIcon(task.platform);
 
   const sections = [
+    { icon: FileText, label: 'Legenda', content: (task as any).caption, copyable: true },
+    { icon: FileText, label: 'Descrição', content: task.description },
     { icon: Target, label: 'Objetivo', content: task.video_objective },
     { icon: FileText, label: 'Ideia do Vídeo', content: task.video_idea },
     { icon: FileText, label: 'Roteiro', content: task.full_script, large: true },
@@ -218,8 +220,10 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
     { icon: Clapperboard, label: 'Direção Criativa', content: task.creative_direction },
     { icon: Clapperboard, label: 'Estilo de Edição', content: task.editing_style },
     { icon: MessageSquare, label: 'Notas Estratégicas', content: task.strategic_notes },
+    { icon: MessageSquare, label: 'Notas de Gravação', content: (task as any).recording_notes },
     { icon: MessageSquare, label: 'Observações', content: task.observations },
-  ].filter(s => s.content);
+  ].filter(s => s.content) as Array<{ icon: any; label: string; content: string; large?: boolean; isLinks?: boolean; copyable?: boolean }>;
+
 
   return (
     <div className={cn(
