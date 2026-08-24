@@ -497,6 +497,29 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
             </div>
           </div>
 
+          {/* ── Common content fields: Roteiro + Legenda ── */}
+          <div className="space-y-4">
+            <div>
+              <Label className={cn("text-xs", labelClass(form.fullScript))}>Roteiro</Label>
+              <Textarea
+                value={form.fullScript || ''}
+                onChange={e => setForm({ ...form, fullScript: e.target.value })}
+                placeholder="Cole o roteiro completo aqui..."
+                className={cn('mt-1 min-h-[220px] resize-y text-sm leading-relaxed', fieldClass(form.fullScript))}
+              />
+            </div>
+            <div>
+              <Label className={cn("text-xs", labelClass(form.caption))}>Legenda</Label>
+              <Textarea
+                rows={3}
+                value={form.caption || ''}
+                onChange={e => setForm({ ...form, caption: e.target.value })}
+                placeholder="Legenda do post..."
+                className={cn('mt-1', fieldClass(form.caption))}
+              />
+            </div>
+          </div>
+
           {form.taskType !== 'Arte' && (<>
           <Separator />
 
