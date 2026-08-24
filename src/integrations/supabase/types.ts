@@ -3455,6 +3455,7 @@ export type Database = {
           created_at: string
           creative_direction: string
           current_stage_owner: string
+          deleted_at: string | null
           description: string
           director: string
           due_date: string | null
@@ -3492,6 +3493,7 @@ export type Database = {
           created_at?: string
           creative_direction?: string
           current_stage_owner?: string
+          deleted_at?: string | null
           description?: string
           director?: string
           due_date?: string | null
@@ -3529,6 +3531,7 @@ export type Database = {
           created_at?: string
           creative_direction?: string
           current_stage_owner?: string
+          deleted_at?: string | null
           description?: string
           director?: string
           due_date?: string | null
@@ -4010,6 +4013,7 @@ export type Database = {
           created_at: string
           creative_direction: string
           current_stage_owner: string
+          deleted_at: string | null
           description: string
           director: string
           due_date: string | null

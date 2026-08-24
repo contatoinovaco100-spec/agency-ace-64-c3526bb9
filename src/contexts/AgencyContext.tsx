@@ -4,6 +4,8 @@ import { Client, Task, Lead, TeamMember, CalendarEvent, ServiceType, TaskCheckli
 import { useAuth } from '@/contexts/AuthContext';
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { toDatabaseTaskStatus, toUiTaskStatus } from '@/lib/taskStatus';
+import { toast } from 'sonner';
+
 
 interface AgencyContextType {
   clients: Client[];
@@ -376,14 +378,25 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
 
   const deleteTask = async (id: string) => {
     const now = new Date().toISOString();
-    await supabase.from('tasks').update({ deleted_at: now } as any).eq('id', id);
+    const { error } = await supabase.from('tasks').update({ deleted_at: now } as any).eq('id', id);
+    if (error) {
+      console.error('Erro ao excluir tarefa:', error);
+      toast.error('Não foi possível excluir a tarefa');
+      throw error;
+    }
     setTasks(prev => prev.map(t => t.id === id ? { ...t, deletedAt: now } : t));
   };
 
   const restoreTask = async (id: string) => {
-    await supabase.from('tasks').update({ deleted_at: null } as any).eq('id', id);
+    const { error } = await supabase.from('tasks').update({ deleted_at: null } as any).eq('id', id);
+    if (error) {
+      console.error('Erro ao restaurar tarefa:', error);
+      toast.error('Não foi possível restaurar a tarefa');
+      throw error;
+    }
     setTasks(prev => prev.map(t => t.id === id ? { ...t, deletedAt: null } : t));
   };
+
 
   const advanceVideoStage = async (task: Task, changedBy: string) => {
     const stages = ['Em copy', 'Em direção', 'Em gravação', 'Em edição', 'Finalizado'];
