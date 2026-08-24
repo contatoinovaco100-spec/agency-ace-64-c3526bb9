@@ -225,7 +225,14 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
     { icon: MessageSquare, label: 'Notas Estratégicas', content: task.strategic_notes },
     { icon: MessageSquare, label: 'Notas de Gravação', content: (task as any).recording_notes },
     { icon: MessageSquare, label: 'Observações', content: task.observations },
-  ].filter(s => s.content) as Array<{ icon: any; label: string; content: string; large?: boolean; isLinks?: boolean; copyable?: boolean }>;
+  ].filter(s => {
+    const v = (s.content || '').trim();
+    if (!v) return false;
+    // ignora textos-padrão vazios ("Sem informação.", "Sem informção.", "-", "n/a")
+    const norm = v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[.\s]/g, '');
+    return !['seminformacao', 'seminformcao', 'seminfo', '-', 'na', 'n/a'].includes(norm);
+  }) as Array<{ icon: any; label: string; content: string; large?: boolean; isLinks?: boolean; copyable?: boolean }>;
+
 
 
   return (
