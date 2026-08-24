@@ -255,10 +255,13 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
         <div className={cn(
           'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold',
           isPosted ? 'bg-green-500/15 text-green-600 dark:text-green-400' :
+          isProximaCaptacao ? 'bg-[#bff720]/20 text-[#7a9a00] dark:text-[#bff720] animate-pulse' :
           isArte ? 'bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-600 dark:text-pink-400' :
           'bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary'
         )}>
-          {isPosted ? <CheckCircle2 className="h-5 w-5" /> : `${index + 1}`}
+          {isPosted ? <CheckCircle2 className="h-5 w-5" /> :
+           isProximaCaptacao ? <Video className="h-5 w-5" /> :
+           `${index + 1}`}
         </div>
 
         <div className="flex-1 min-w-0 space-y-2">
