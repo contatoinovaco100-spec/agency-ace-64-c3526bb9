@@ -73,6 +73,19 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftId, setDraftId] = useState<string>(() => newDraftId());
 
+  const scriptRef = useRef<HTMLTextAreaElement>(null);
+  const adjustScriptHeight = useCallback(() => {
+    const el = scriptRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const next = Math.max(el.scrollHeight, form.taskType === 'Arte' ? 420 : 260);
+    el.style.height = `${next}px`;
+  }, [form.taskType]);
+
+  useEffect(() => {
+    adjustScriptHeight();
+  }, [form.fullScript, form.taskType, adjustScriptHeight]);
+
   useEffect(() => {
     setValidationAttempted(false);
     if (task) {
