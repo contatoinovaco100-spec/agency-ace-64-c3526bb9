@@ -221,6 +221,8 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
 
       };
       await onSave(data);
+      if (isNew) clearDraft();
+
     } catch (err) {
       console.error('Erro ao salvar tarefa:', err);
       toast.error('Erro ao salvar tarefa');
