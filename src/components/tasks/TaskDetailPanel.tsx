@@ -566,10 +566,6 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               </div>
             </div>
             <div>
-              <Label className={cn("text-xs", labelClass(form.videoIdea))}>Ideia do vídeo</Label>
-              <Textarea rows={2} value={form.videoIdea || ''} onChange={e => setForm({ ...form, videoIdea: e.target.value })} placeholder="Descreva a ideia..." className={cn('mt-1', fieldClass(form.videoIdea))} />
-            </div>
-            <div>
               <Label className={cn("text-xs", labelClass(form.fullScript))}>Roteiro</Label>
               <Textarea rows={3} value={form.fullScript || ''} onChange={e => setForm({ ...form, fullScript: e.target.value })} placeholder="Cole o roteiro aqui..." className={cn('mt-1', fieldClass(form.fullScript))} />
             </div>
