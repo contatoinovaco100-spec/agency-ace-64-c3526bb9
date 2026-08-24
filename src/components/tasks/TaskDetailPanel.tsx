@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAgency } from '@/contexts/AgencyContext';
 import { Task, TaskChecklistItem, TaskComment, TaskAttachment, Client, TeamMember, TaskStageHistory } from '@/types/agency';
 import { supabase } from '@/integrations/supabase/client';
