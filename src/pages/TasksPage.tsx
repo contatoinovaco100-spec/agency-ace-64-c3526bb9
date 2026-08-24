@@ -1565,7 +1565,11 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
 
       {/* Card detail dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl w-[95vw] sm:w-full h-[75vh] sm:h-[85vh] max-h-[85vh] overflow-hidden flex flex-col p-0">
+        <DialogContent
+          className="max-w-2xl w-[95vw] sm:w-full h-[75vh] sm:h-[85vh] max-h-[85vh] overflow-hidden flex flex-col p-0"
+          onInteractOutside={(e) => { if (creating) e.preventDefault(); }}
+          onEscapeKeyDown={(e) => { if (creating) e.preventDefault(); }}
+        >
           <VisuallyHidden><DialogTitle>Tarefa</DialogTitle></VisuallyHidden>
           <TaskDetailPanel
             task={selectedTask}

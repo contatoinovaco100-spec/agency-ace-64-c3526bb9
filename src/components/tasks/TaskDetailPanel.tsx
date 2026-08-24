@@ -67,13 +67,17 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   const fieldClass = (value?: unknown) => isInvalidField(value) ? 'border-destructive ring-1 ring-destructive/40 focus-visible:ring-destructive' : '';
   const labelClass = (value?: unknown) => isInvalidField(value) ? 'text-destructive' : 'text-muted-foreground';
 
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const DRAFT_KEY = 'inova:task-draft';
+
   useEffect(() => {
     setValidationAttempted(false);
     if (task) {
       setForm({ ...task });
       loadData(task.id);
     } else {
-      setForm({
+      const base: Partial<Task> = {
         taskType: defaultTaskType || 'Produção de Vídeo',
         status: (defaultStatus || 'Ideias / Backlog') as any,
         dueDate: defaultDueDate || '',
@@ -85,12 +89,65 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         recordingNotes: '', editorComments: '',
         copywriter: '', director: '', videomaker: '', editor: '',
         platform: '', format: '', videoObjective: '', currentStageOwner: '',
-      });
+      };
+      let restored = false;
+      try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as { form: Partial<Task>; savedAt: string };
+          if (parsed?.form && Object.values(parsed.form).some(v => typeof v === 'string' && v.trim())) {
+            setForm({ ...base, ...parsed.form });
+            setDraftSavedAt(parsed.savedAt || null);
+            restored = true;
+          }
+        }
+      } catch { /* rascunho inválido */ }
+      setDraftRestored(restored);
+      if (!restored) { setForm(base); setDraftSavedAt(null); }
       setChecklist([]);
       setComments([]);
       setAttachments([]);
     }
   }, [task, defaultClientId, defaultTaskType, defaultDueDate, defaultStatus]);
+
+  // Salva rascunho automaticamente enquanto cria um card novo
+  useEffect(() => {
+    if (!isNew || !form || Object.keys(form).length === 0) return;
+    const t = setTimeout(() => {
+      try {
+        const savedAt = new Date().toISOString();
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ form, savedAt }));
+        setDraftSavedAt(savedAt);
+      } catch { /* ignore */ }
+    }, 600);
+    return () => clearTimeout(t);
+  }, [form, isNew]);
+
+  const clearDraft = () => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+    setDraftSavedAt(null);
+    setDraftRestored(false);
+  };
+
+  const discardDraft = () => {
+    clearDraft();
+    setForm({
+      taskType: defaultTaskType || 'Produção de Vídeo',
+      status: (defaultStatus || 'Ideias / Backlog') as any,
+      dueDate: defaultDueDate || '',
+      priority: 'Média',
+      clientId: defaultClientId || '',
+      videoName: '', title: '', description: '', assignee: '',
+      videoIdea: '', fullScript: '', videoReferences: '', observations: '',
+      creativeDirection: '', editingStyle: '', strategicNotes: '',
+      recordingNotes: '', editorComments: '',
+      copywriter: '', director: '', videomaker: '', editor: '',
+      platform: '', format: '', videoObjective: '', currentStageOwner: '',
+      caption: '', postDate: '', postTime: '',
+    });
+    toast.success('Rascunho descartado');
+  };
+
 
   const loadData = async (id: string) => {
     const [ch, co, at, hi] = await Promise.all([getChecklist(id), getComments(id), getAttachments(id), getStageHistory(id)]);
@@ -164,6 +221,8 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
 
       };
       await onSave(data);
+      if (isNew) clearDraft();
+
     } catch (err) {
       console.error('Erro ao salvar tarefa:', err);
       toast.error('Erro ao salvar tarefa');
@@ -328,7 +387,15 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
     <div className="flex flex-col h-full w-full">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-3 py-2 sm:px-6 sm:py-4 shrink-0">
-        <h2 className="text-sm sm:text-lg font-semibold text-foreground">{isNew ? 'Nova Tarefa' : 'Detalhes da Tarefa'}</h2>
+        <div className="flex items-center gap-2 min-w-0">
+          <h2 className="text-sm sm:text-lg font-semibold text-foreground">{isNew ? 'Nova Tarefa' : 'Detalhes da Tarefa'}</h2>
+          {isNew && draftSavedAt && (
+            <span className="hidden sm:inline text-[10px] rounded-full border border-border bg-muted px-2 py-0.5 text-muted-foreground">
+              {draftRestored ? 'Rascunho recuperado' : 'Rascunho salvo'} · {new Date(draftSavedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+        </div>
+
         <div className="flex items-center gap-1">
           {!isNew && task && (
             <Button variant="ghost" size="icon" className="h-8 w-8" title="Compartilhar" onClick={() => {
@@ -945,11 +1012,17 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         <Button onClick={handleSave} className="flex-1 h-9 sm:h-10 text-sm" disabled={saving}>
           {saving ? 'Salvando...' : isNew ? 'Criar' : 'Salvar'}
         </Button>
+        {isNew && draftSavedAt && (
+          <Button variant="outline" size="sm" className="h-9 text-muted-foreground" onClick={discardDraft}>
+            <Trash2 className="mr-1 h-3.5 w-3.5" /> Descartar rascunho
+          </Button>
+        )}
         {!isNew && task && (
           <Button variant="outline" size="sm" className="text-destructive hover:text-destructive h-9" onClick={() => onDelete(task.id)}>
             <Trash2 className="mr-1 h-3.5 w-3.5" /> Excluir
           </Button>
         )}
+
       </div>
     </div>
   );
