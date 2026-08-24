@@ -844,26 +844,6 @@ export default function ClientContentPage() {
           ))}
         </div>
 
-        {/* Toggle show posted */}
-        {postedTasks.length > 0 && (
-          <div className="mb-6 flex items-center justify-between rounded-xl border border-border bg-card p-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
-                <span className="text-xs font-bold text-primary">{postedTasks.length}</span>
-              </div>
-              <p className="text-sm font-medium text-foreground">
-                {showPosted ? 'Todos os conteúdos' : 'Conteúdos pendentes'}
-              </p>
-            </div>
-            <button
-              onClick={() => setShowPosted(!showPosted)}
-              className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
-            >
-              {showPosted ? `Ocultar publicados` : `+ Ver publicados`}
-            </button>
-          </div>
-        )}
-
         {/* Task list */}
         <div className="space-y-4">
           {displayedTasks.length === 0 ? (
