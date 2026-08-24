@@ -612,7 +612,7 @@ export default function ClientContentPage() {
     if (t.status === 'Concluído') return false;
     if (t.status === 'Postado') return false;
     // Esconde etapas internas do link público
-    if (normalizedStatus === 'ideia' || normalizedStatus === 'ideias') return false;
+    if (normalizedStatus === 'ideia' || normalizedStatus === 'ideias' || normalizedStatus === 'ideias / backlog') return false;
     if (normalizedStatus === 'copy finalizada') return false;
     if (isArte && t.status !== 'Finalizado' && t.status !== 'Em revisão' && t.status !== 'Revisão') return false;
     // Vídeos aguardando aprovação do cliente sempre aparecem, mesmo com data passada.
