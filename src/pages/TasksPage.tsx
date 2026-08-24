@@ -583,6 +583,24 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const [newDefaultStatus, setNewDefaultStatus] = useState('');
   const [arteTab, setArteTab] = useState<'progress' | 'done' | 'trash'>('progress');
   const [artPreview, setArtPreview] = useState<{ urls: string[]; index: number } | null>(null);
+  const [draftInfo, setDraftInfo] = useState<{ title: string; savedAt: string } | null>(null);
+
+  // Rascunho de card novo (salvo em localStorage pelo TaskDetailPanel)
+  useEffect(() => {
+    const read = () => {
+      try {
+        const raw = localStorage.getItem('inova:task-draft');
+        if (!raw) return setDraftInfo(null);
+        const parsed = JSON.parse(raw);
+        setDraftInfo({ title: parsed?.form?.title || 'Card sem título', savedAt: parsed?.savedAt || '' });
+      } catch { setDraftInfo(null); }
+    };
+    read();
+    const id = window.setInterval(read, 2000);
+    window.addEventListener('focus', read);
+    window.addEventListener('storage', read);
+    return () => { window.clearInterval(id); window.removeEventListener('focus', read); window.removeEventListener('storage', read); };
+  }, [dialogOpen]);
 
   // Open a specific task when navigated with ?taskId=xxx (e.g. from history bell)
   useEffect(() => {
