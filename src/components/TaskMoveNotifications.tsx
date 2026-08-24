@@ -57,7 +57,10 @@ export function TaskMoveNotifications() {
             taskType: newRow.task_type ?? null,
             clientId: newRow.client_id ?? null,
           });
-          playSound('default');
+          // Alteração tem alerta sonoro diferente do movimento normal
+          const isAlteration = /altera|revis/i.test(String(newRow.status || ''));
+          playSound(isAlteration ? 'overdue' : 'default');
+
         }
       )
       .on(
