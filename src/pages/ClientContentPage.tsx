@@ -132,6 +132,9 @@ function StatusBadge({ status, isArte }: { status: string; isArte?: boolean }) {
     'revisao':      { label: 'Revisão',      cls: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30', icon: <Clock className="h-3 w-3" /> },
     'em andamento': { label: 'Em andamento', cls: 'bg-primary/15 text-primary border-primary/30',                              icon: <Play className="h-3 w-3" /> },
     'proxima captacao': { label: 'Próxima Captação', cls: 'bg-[#bff720]/20 text-[#5a7a00] dark:text-[#bff720] border-[#bff720]/40', icon: <Video className="h-3 w-3" /> },
+    'ideia':        { label: 'Ideia',        cls: 'bg-muted text-muted-foreground border-border',                              icon: <LayoutList className="h-3 w-3" /> },
+    'ideias':       { label: 'Ideias',       cls: 'bg-muted text-muted-foreground border-border',                              icon: <LayoutList className="h-3 w-3" /> },
+    'ideias / backlog': { label: 'Ideias / Backlog', cls: 'bg-muted text-muted-foreground border-border',                          icon: <LayoutList className="h-3 w-3" /> },
     'default':      { label: status,         cls: 'bg-muted text-muted-foreground border-border',                              icon: <LayoutList className="h-3 w-3" /> },
   };
   const { label, cls, icon } = entries[normalizedStatus] || entries['default'];
@@ -141,6 +144,123 @@ function StatusBadge({ status, isArte }: { status: string; isArte?: boolean }) {
       {icon}{label}
     </span>
   );
+}
+
+function statusCardStyles(status: string) {
+  const norm = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+  const ns = norm(status);
+
+  const map: Record<string, { border: string; bg: string; ring: string; shadow: string; bubble: string; text: string }> = {
+    'postado': {
+      border: 'border-green-500/30',
+      bg: 'bg-green-500/5',
+      ring: 'ring-green-500/20',
+      shadow: 'shadow-green-500/10',
+      bubble: 'bg-green-500/15 text-green-600 dark:text-green-400',
+      text: 'text-green-600 dark:text-green-400',
+    },
+    'programado': {
+      border: 'border-blue-500/30',
+      bg: 'bg-blue-500/5',
+      ring: 'ring-blue-500/20',
+      shadow: 'shadow-blue-500/10',
+      bubble: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+      text: 'text-blue-600 dark:text-blue-400',
+    },
+    'finalizado': {
+      border: 'border-purple-500/30',
+      bg: 'bg-purple-500/5',
+      ring: 'ring-purple-500/20',
+      shadow: 'shadow-purple-500/10',
+      bubble: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
+      text: 'text-purple-600 dark:text-purple-400',
+    },
+    'em revisao': {
+      border: 'border-orange-500/30',
+      bg: 'bg-orange-500/5',
+      ring: 'ring-orange-500/20',
+      shadow: 'shadow-orange-500/10',
+      bubble: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
+      text: 'text-orange-600 dark:text-orange-400',
+    },
+    'revisao': {
+      border: 'border-orange-500/30',
+      bg: 'bg-orange-500/5',
+      ring: 'ring-orange-500/20',
+      shadow: 'shadow-orange-500/10',
+      bubble: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
+      text: 'text-orange-600 dark:text-orange-400',
+    },
+    'em andamento': {
+      border: 'border-primary/30',
+      bg: 'bg-primary/5',
+      ring: 'ring-primary/20',
+      shadow: 'shadow-primary/10',
+      bubble: 'bg-primary/15 text-primary',
+      text: 'text-primary',
+    },
+    'proxima captacao': {
+      border: 'border-[#bff720]/40',
+      bg: 'bg-[#bff720]/5',
+      ring: 'ring-[#bff720]/30',
+      shadow: 'shadow-[#bff720]/15',
+      bubble: 'bg-[#bff720]/20 text-[#5a7a00] dark:text-[#bff720]',
+      text: 'text-[#5a7a00] dark:text-[#bff720]',
+    },
+    'ideia': {
+      border: 'border-border',
+      bg: 'bg-muted/30',
+      ring: 'ring-border',
+      shadow: 'shadow-none',
+      bubble: 'bg-muted text-muted-foreground',
+      text: 'text-muted-foreground',
+    },
+    'ideias': {
+      border: 'border-border',
+      bg: 'bg-muted/30',
+      ring: 'ring-border',
+      shadow: 'shadow-none',
+      bubble: 'bg-muted text-muted-foreground',
+      text: 'text-muted-foreground',
+    },
+    'ideias / backlog': {
+      border: 'border-border',
+      bg: 'bg-muted/30',
+      ring: 'ring-border',
+      shadow: 'shadow-none',
+      bubble: 'bg-muted text-muted-foreground',
+      text: 'text-muted-foreground',
+    },
+  };
+  return map[ns] || {
+    border: 'border-border',
+    bg: 'bg-card',
+    ring: 'ring-primary/10',
+    shadow: 'shadow-primary/5',
+    bubble: 'bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary',
+    text: 'text-primary',
+  };
+}
+
+function statusTagStyles(status: string) {
+  const norm = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+  const ns = norm(status);
+
+  const map: Record<string, { bg: string; border: string; text: string }> = {
+    'postado':       { bg: 'bg-green-500/10', border: 'border-green-500/20', text: 'text-green-600 dark:text-green-400' },
+    'programado':    { bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-600 dark:text-blue-400' },
+    'finalizado':    { bg: 'bg-purple-500/10', border: 'border-purple-500/20', text: 'text-purple-600 dark:text-purple-400' },
+    'em revisao':    { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-600 dark:text-orange-400' },
+    'revisao':       { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-600 dark:text-orange-400' },
+    'em andamento':  { bg: 'bg-primary/10', border: 'border-primary/20', text: 'text-primary' },
+    'proxima captacao': { bg: 'bg-[#bff720]/15', border: 'border-[#bff720]/30', text: 'text-[#5a7a00] dark:text-[#bff720]' },
+    'ideia':         { bg: 'bg-muted', border: 'border-border', text: 'text-muted-foreground' },
+    'ideias':        { bg: 'bg-muted', border: 'border-border', text: 'text-muted-foreground' },
+    'ideias / backlog': { bg: 'bg-muted', border: 'border-border', text: 'text-muted-foreground' },
+  };
+  return map[ns] || { bg: 'bg-secondary', border: 'border-border', text: 'text-muted-foreground' };
 }
 
 // ─── Lightbox ────────────────────────────────────────────────────────────────
@@ -213,6 +333,8 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
   const isProgramado = task.status === 'Programado';
   const isProximaCaptacao = task.status === 'Proxima Captação';
 
+  const styles = statusCardStyles(task.status);
+  const tagStyles = statusTagStyles(task.status);
 
   const displayDate = task.post_date || task.scheduled_date || task.due_date;
   const formattedDate = displayDate
@@ -246,25 +368,24 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
 
   return (
     <div className={cn(
-      'group rounded-2xl border bg-card overflow-hidden shadow-sm transition-all duration-200',
-      isPosted ? 'border-green-500/30 opacity-75' :
-      isProximaCaptacao ? 'border-[#bff720]/60 bg-[#bff720]/5 shadow-[#bff720]/20 ring-1 ring-[#bff720]/30' :
-      'border-border hover:border-primary/30 hover:shadow-md',
-      open && !isPosted && !isProximaCaptacao && 'border-primary/40 shadow-md ring-1 ring-primary/10',
-      open && isProximaCaptacao && 'border-[#bff720] shadow-lg shadow-[#bff720]/15 ring-2 ring-[#bff720]/40'
+      'group rounded-2xl border overflow-hidden shadow-sm transition-all duration-200',
+      styles.border,
+      styles.bg,
+      isPosted ? 'opacity-75' : 'hover:shadow-md',
+      open && `shadow-md ring-1 ${styles.ring} ${styles.shadow}`
     )}>
       {/* Card Header */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-start gap-4 p-5 text-left transition-colors hover:bg-secondary/10"
+        className={cn(
+          'flex w-full items-start gap-4 p-5 text-left transition-colors',
+          !isPosted && 'hover:bg-black/5 dark:hover:bg-white/5'
+        )}
       >
         {/* Index bubble */}
         <div className={cn(
           'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold',
-          isPosted ? 'bg-green-500/15 text-green-600 dark:text-green-400' :
-          isProximaCaptacao ? 'bg-[#bff720]/20 text-[#7a9a00] dark:text-[#bff720] animate-pulse' :
-          isArte ? 'bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-600 dark:text-pink-400' :
-          'bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary'
+          styles.bubble
         )}>
           {isPosted ? <CheckCircle2 className="h-5 w-5" /> :
            isProximaCaptacao ? <Video className="h-5 w-5" /> :
@@ -284,25 +405,25 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
             <StatusBadge status={task.status} isArte={isArte} />
 
             {task.platform && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-secondary border border-border px-2.5 py-0.5 text-[11px] font-medium text-foreground">
+              <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium', tagStyles.bg, tagStyles.border, 'border', tagStyles.text)}>
                 {platformIc}{task.platform}
               </span>
             )}
             {task.format && (
-              <span className="inline-flex items-center rounded-full bg-secondary border border-border px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+              <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium border', tagStyles.bg, tagStyles.border, tagStyles.text)}>
                 {task.format}
               </span>
             )}
 
             {formattedDate && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#bff720]/15 border border-[#bff720]/30 px-2.5 py-0.5 text-[11px] font-semibold text-[#5a7a00] dark:text-[#bff720]">
+              <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border', tagStyles.bg, tagStyles.border, tagStyles.text)}>
                 <Calendar className="h-3 w-3" />
                 {formattedDate}{formattedTime ? ` · ${formattedTime}` : ''}
               </span>
             )}
 
             {task.video_url && !isArte && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
+              <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium border', tagStyles.bg, tagStyles.border, tagStyles.text)}>
                 <Play className="h-3 w-3" /> Vídeo disponível
               </span>
             )}
