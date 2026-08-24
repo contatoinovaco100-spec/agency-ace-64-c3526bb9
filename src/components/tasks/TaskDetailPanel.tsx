@@ -505,7 +505,11 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                 value={form.fullScript || ''}
                 onChange={e => setForm({ ...form, fullScript: e.target.value })}
                 placeholder="Cole o roteiro completo aqui..."
-                className={cn('mt-1 min-h-[220px] resize-y text-sm leading-relaxed', fieldClass(form.fullScript))}
+                className={cn(
+                  'mt-1 min-h-[260px] resize-y text-sm leading-relaxed',
+                  form.taskType === 'Arte' && 'min-h-[420px]',
+                  fieldClass(form.fullScript)
+                )}
               />
             </div>
             <div>
