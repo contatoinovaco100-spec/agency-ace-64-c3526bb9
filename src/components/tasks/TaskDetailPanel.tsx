@@ -161,7 +161,6 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
     const isArte = form.taskType === 'Arte';
     const required: { label: string; value?: string }[] = [
       { label: 'Nome da tarefa', value: form.videoName || form.title },
-      { label: 'Descrição', value: form.description },
       { label: 'Cliente', value: form.clientId },
       { label: 'Responsável', value: form.assignee },
       { label: 'Prioridade', value: form.priority },
@@ -173,7 +172,6 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         { label: 'Plataforma', value: form.platform },
         { label: 'Formato', value: form.format },
         { label: 'Objetivo', value: form.videoObjective },
-        { label: 'Ideia do vídeo', value: form.videoIdea },
         { label: 'Roteiro', value: form.fullScript },
         { label: 'Referências', value: form.videoReferences },
       ]),
@@ -418,10 +416,6 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.videoName || form.title))}>Nome da tarefa / vídeo</Label>
               <Input value={form.videoName || form.title || ''} onChange={e => setForm({ ...form, videoName: e.target.value, title: e.target.value })} placeholder="Ex: Reels de lançamento" className={cn('mt-1', fieldClass(form.videoName || form.title))} />
             </div>
-            <div>
-              <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.description))}>Descrição</Label>
-              <Textarea rows={2} value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Descreva a tarefa..." className={cn('mt-1', fieldClass(form.description))} />
-            </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
               <div>
                 <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Tipo de entrega</Label>
@@ -570,10 +564,6 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                   <SelectContent>{team.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-            </div>
-            <div>
-              <Label className={cn("text-xs", labelClass(form.videoIdea))}>Ideia do vídeo</Label>
-              <Textarea rows={2} value={form.videoIdea || ''} onChange={e => setForm({ ...form, videoIdea: e.target.value })} placeholder="Descreva a ideia..." className={cn('mt-1', fieldClass(form.videoIdea))} />
             </div>
             <div>
               <Label className={cn("text-xs", labelClass(form.fullScript))}>Roteiro</Label>
