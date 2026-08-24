@@ -4,6 +4,8 @@ import { Client, Task, Lead, TeamMember, CalendarEvent, ServiceType, TaskCheckli
 import { useAuth } from '@/contexts/AuthContext';
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { toDatabaseTaskStatus, toUiTaskStatus } from '@/lib/taskStatus';
+import { toast } from 'sonner';
+
 
 interface AgencyContextType {
   clients: Client[];
