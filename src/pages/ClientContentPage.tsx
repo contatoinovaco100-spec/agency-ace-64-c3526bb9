@@ -241,6 +241,8 @@ function statusCardStyles(status: string) {
     bubble: 'bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary',
     text: 'text-primary',
   };
+}
+
 function statusTagStyles(status: string) {
   const norm = (s: string) =>
     s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
