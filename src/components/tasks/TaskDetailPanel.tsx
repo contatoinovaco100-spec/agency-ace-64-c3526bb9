@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Paperclip, Send, Trash2, Link, Upload, MessageSquare, CheckSquare, FileText, X, Share2, Download, History, ArrowRight, FolderOpen } from 'lucide-react';
+import { Paperclip, Send, Trash2, Link, Upload, MessageSquare, CheckSquare, FileText, X, Share2, Download, History, ArrowRight, FolderOpen, AlertTriangle } from 'lucide-react';
 import VideoUploader from './VideoUploader';
 
 import { cn } from '@/lib/utils';
@@ -34,8 +34,12 @@ interface Props {
 
 const priorities = ['Alta', 'Média', 'Baixa'] as const;
 
+/** Prefixo usado para diferenciar solicitações de alteração das notas comuns. */
+const ALTERATION_PREFIX = '[ALTERAÇÃO] ';
+const ALTERATION_STAGE = 'Alteração';
+
 export default function TaskDetailPanel({ task, isNew, clients, team, defaultClientId, defaultTaskType, defaultDueDate, defaultStatus, onSave, onDelete, onClose }: Props) {
-  const { getChecklist, upsertChecklistItem, deleteChecklistItem, getComments, addComment, getAttachments, addAttachment, deleteAttachment, getStageHistory } = useAgency();
+  const { getChecklist, upsertChecklistItem, deleteChecklistItem, getComments, addComment, getAttachments, addAttachment, deleteAttachment, getStageHistory, moveTaskToStage } = useAgency();
 
   const [form, setForm] = useState<Partial<Task>>({});
   const [checklist, setChecklist] = useState<TaskChecklistItem[]>([]);
@@ -44,12 +48,18 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   const [stageHistory, setStageHistory] = useState<TaskStageHistory[]>([]);
   const [newComment, setNewComment] = useState('');
   const [commentAuthor, setCommentAuthor] = useState('');
+  const [newAlteration, setNewAlteration] = useState('');
+  const [alterationAuthor, setAlterationAuthor] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [newCheckLabel, setNewCheckLabel] = useState('');
   const [refLinkInput, setRefLinkInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [validationAttempted, setValidationAttempted] = useState(false);
+
+  const alterations = comments.filter(c => c.content.startsWith(ALTERATION_PREFIX));
+  const plainComments = comments.filter(c => !c.content.startsWith(ALTERATION_PREFIX));
+
 
   const isInvalidField = (value?: unknown) => validationAttempted && !String(value ?? '').trim();
   const fieldClass = (value?: unknown) => isInvalidField(value) ? 'border-destructive ring-1 ring-destructive/40 focus-visible:ring-destructive' : '';
@@ -202,6 +212,29 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
     setComments(prev => [...prev, comment]);
     setNewComment('');
   };
+
+  // Alterações — solicitação de ajuste que move o card para a etapa "Alteração"
+  const handleAddAlteration = async () => {
+    if (!newAlteration.trim() || !alterationAuthor || !task) return;
+    const comment: TaskComment = {
+      id: crypto.randomUUID(),
+      taskId: task.id,
+      author: alterationAuthor,
+      content: `${ALTERATION_PREFIX}${newAlteration.trim()}`,
+      createdAt: new Date().toISOString(),
+    };
+    await addComment(comment);
+    setComments(prev => [...prev, comment]);
+    setNewAlteration('');
+    try {
+      await moveTaskToStage(task.id, ALTERATION_STAGE);
+      setForm(f => ({ ...f, status: ALTERATION_STAGE as any }));
+      toast.warning('Alteração registrada — card movido para "Alteração"');
+    } catch {
+      toast.error('Alteração salva, mas não consegui mover o card.');
+    }
+  };
+
 
   // Attachments
   // Nomes de arquivo com acentos, espaços, emojis ou caracteres especiais quebravam
@@ -583,7 +616,9 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                     <TabsTrigger value="caption" className={cn('flex-1 gap-1 text-[10px] sm:text-xs py-1.5', isInvalidField(form.caption) && 'text-destructive border-destructive')}><FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Legenda</TabsTrigger>
                   )}
                   <TabsTrigger value="checklist" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><CheckSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Check</TabsTrigger>
-                  <TabsTrigger value="comments" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><MessageSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Notas ({comments.length})</TabsTrigger>
+                  <TabsTrigger value="alterations" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5 data-[state=active]:text-warning"><AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Alteração ({alterations.length})</TabsTrigger>
+                  <TabsTrigger value="comments" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><MessageSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Notas ({plainComments.length})</TabsTrigger>
+
                   <TabsTrigger value="attachments" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Arq ({attachments.length})</TabsTrigger>
                   <TabsTrigger value="history" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><History className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Hist ({stageHistory.length})</TabsTrigger>
                 </TabsList>
@@ -692,10 +727,58 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                   )}
                 </TabsContent>
 
+                {/* Alterações */}
+                <TabsContent value="alterations" className="space-y-3 mt-3">
+                  <div className="max-h-[220px] space-y-2 overflow-y-auto">
+                    {alterations.map(c => (
+                      <div key={c.id} className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-semibold text-warning">{c.author}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(c.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: renderMentions(c.content.replace(ALTERATION_PREFIX, '')) }} />
+                      </div>
+                    ))}
+                    {alterations.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma alteração solicitada.</p>}
+                  </div>
+                  {isNew ? (
+                    <p className="text-sm text-muted-foreground">Salve o card para solicitar alterações.</p>
+                  ) : (
+                    <>
+                      <Separator />
+                      <div className="space-y-2">
+                        <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={alterationAuthor} onChange={e => setAlterationAuthor(e.target.value)}>
+                          <option value="">Selecione seu nome</option>
+                          {team.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+                        </select>
+                        <Textarea
+                          placeholder="Descreva a alteração necessária para o editor..."
+                          value={newAlteration}
+                          onChange={e => setNewAlteration(e.target.value)}
+                          rows={3}
+                        />
+                        <Button
+                          className="w-full gap-2"
+                          variant="outline"
+                          onClick={handleAddAlteration}
+                          disabled={!newAlteration.trim() || !alterationAuthor}
+                        >
+                          <AlertTriangle className="h-4 w-4 text-warning" /> Solicitar alteração
+                        </Button>
+                        <p className="text-[11px] text-muted-foreground">
+                          Ao solicitar, o card é movido automaticamente para a etapa <strong>Alteração</strong> e o responsável recebe um alerta sonoro diferente.
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </TabsContent>
+
                 {/* Comments */}
                 <TabsContent value="comments" className="space-y-3 mt-3">
                   <div className="max-h-[200px] space-y-2 overflow-y-auto">
-                    {comments.map(c => (
+                    {plainComments.map(c => (
                       <div key={c.id} className="rounded-md bg-secondary/30 px-3 py-2">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-semibold text-primary">{c.author}</span>
@@ -706,8 +789,9 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                         <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: renderMentions(c.content) }} />
                       </div>
                     ))}
-                    {comments.length === 0 && <p className="text-sm text-muted-foreground">Nenhum comentário.</p>}
+                    {plainComments.length === 0 && <p className="text-sm text-muted-foreground">Nenhum comentário.</p>}
                   </div>
+
                   {isNew ? (
                     <p className="text-sm text-muted-foreground">Salve o card para adicionar notas.</p>
                   ) : (
