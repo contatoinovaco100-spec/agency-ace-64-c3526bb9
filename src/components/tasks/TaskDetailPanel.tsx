@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Paperclip, Send, Trash2, Link, Upload, MessageSquare, CheckSquare, FileText, X, Share2, Download, History, ArrowRight, FolderOpen, AlertTriangle } from 'lucide-react';
 import VideoUploader from './VideoUploader';
+import { getDraft, saveDraft, deleteDraft, newDraftId } from '@/lib/taskDrafts';
 
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -27,6 +28,7 @@ interface Props {
   defaultTaskType?: 'Arte' | 'Produção de Vídeo';
   defaultDueDate?: string;
   defaultStatus?: string;
+  openDraftId?: string | null;
   onSave: (task: Task) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onClose: () => void;
@@ -38,7 +40,7 @@ const priorities = ['Alta', 'Média', 'Baixa'] as const;
 const ALTERATION_PREFIX = '[ALTERAÇÃO] ';
 const ALTERATION_STAGE = 'Alteração';
 
-export default function TaskDetailPanel({ task, isNew, clients, team, defaultClientId, defaultTaskType, defaultDueDate, defaultStatus, onSave, onDelete, onClose }: Props) {
+export default function TaskDetailPanel({ task, isNew, clients, team, defaultClientId, defaultTaskType, defaultDueDate, defaultStatus, openDraftId, onSave, onDelete, onClose }: Props) {
   const { getChecklist, upsertChecklistItem, deleteChecklistItem, getComments, addComment, getAttachments, addAttachment, deleteAttachment, getStageHistory, moveTaskToStage } = useAgency();
 
   const [form, setForm] = useState<Partial<Task>>({});
