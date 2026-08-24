@@ -609,6 +609,11 @@ export default function ClientContentPage() {
     if (taskId && t.id === taskId) return true;
     const isArte = t.task_type === 'Arte';
     const normalizedStatus = (t.status || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    // Para o link específico do cliente, exibe apenas: Copy finalizada, Revisão, Finalizado
+    if (taskId === '48e60f29-5c9c-4449-858d-52e2ce6edc8f') {
+      const allowed = ['copy finalizada', 'revisao', 'em revisao', 'finalizado'];
+      return allowed.includes(normalizedStatus);
+    }
     if (t.status === 'Concluído') return false;
     if (t.status === 'Postado') return false;
     // Esconde etapas internas do link público
