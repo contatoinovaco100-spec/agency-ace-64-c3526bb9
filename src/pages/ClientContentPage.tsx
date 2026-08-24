@@ -677,6 +677,44 @@ export default function ClientContentPage() {
           </p>
         </div>
 
+        {/* Summary */}
+        <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            {
+              label: 'Próxima Captação',
+              count: tasks.filter(t => t.status === 'Proxima Captação').length,
+              icon: Video,
+              cls: 'bg-[#bff720]/15 border-[#bff720]/30 text-[#5a7a00] dark:text-[#bff720]',
+            },
+            {
+              label: 'Revisão',
+              count: tasks.filter(t => t.status === 'Revisão' || t.status === 'Em revisão').length,
+              icon: Clock,
+              cls: 'bg-orange-500/15 border-orange-500/30 text-orange-600 dark:text-orange-400',
+            },
+            {
+              label: 'Finalizados',
+              count: tasks.filter(t => t.status === 'Finalizado' || t.status === 'Postado').length,
+              icon: CheckCircle2,
+              cls: 'bg-green-500/15 border-green-500/30 text-green-600 dark:text-green-400',
+            },
+          ].map((item, idx) => (
+            <div
+              key={idx}
+              className={cn(
+                'rounded-xl border p-4 flex flex-col items-center justify-center text-center transition-all',
+                item.cls
+              )}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <item.icon className="h-4 w-4" />
+                <span className="text-xs font-semibold">{item.label}</span>
+              </div>
+              <span className="text-2xl font-black">{item.count}</span>
+            </div>
+          ))}
+        </div>
+
         {/* Toggle show posted */}
         {postedTasks.length > 0 && (
           <div className="mb-6 flex items-center justify-between rounded-xl border border-border bg-card p-3">
