@@ -398,30 +398,32 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
             {open ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />}
           </div>
 
+  const tagStyles = statusTagStyles(task.status);
+
           {/* Tags row */}
           <div className="flex flex-wrap items-center gap-1.5">
             <StatusBadge status={task.status} isArte={isArte} />
 
             {task.platform && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-secondary border border-border px-2.5 py-0.5 text-[11px] font-medium text-foreground">
+              <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium', tagStyles.bg, tagStyles.border, 'border', tagStyles.text)}>
                 {platformIc}{task.platform}
               </span>
             )}
             {task.format && (
-              <span className="inline-flex items-center rounded-full bg-secondary border border-border px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+              <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium border', tagStyles.bg, tagStyles.border, tagStyles.text)}>
                 {task.format}
               </span>
             )}
 
             {formattedDate && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#bff720]/15 border border-[#bff720]/30 px-2.5 py-0.5 text-[11px] font-semibold text-[#5a7a00] dark:text-[#bff720]">
+              <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border', tagStyles.bg, tagStyles.border, tagStyles.text)}>
                 <Calendar className="h-3 w-3" />
                 {formattedDate}{formattedTime ? ` · ${formattedTime}` : ''}
               </span>
             )}
 
             {task.video_url && !isArte && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
+              <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium border', tagStyles.bg, tagStyles.border, tagStyles.text)}>
                 <Play className="h-3 w-3" /> Vídeo disponível
               </span>
             )}
