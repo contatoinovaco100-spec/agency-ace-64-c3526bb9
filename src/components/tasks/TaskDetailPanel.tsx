@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Paperclip, Send, Trash2, Link, Upload, MessageSquare, CheckSquare, FileText, X, Share2, Download, History, ArrowRight, FolderOpen, AlertTriangle } from 'lucide-react';
 import VideoUploader from './VideoUploader';
+import { getDraft, saveDraft, deleteDraft, newDraftId } from '@/lib/taskDrafts';
 
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -27,6 +28,7 @@ interface Props {
   defaultTaskType?: 'Arte' | 'Produção de Vídeo';
   defaultDueDate?: string;
   defaultStatus?: string;
+  openDraftId?: string | null;
   onSave: (task: Task) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onClose: () => void;
@@ -38,7 +40,7 @@ const priorities = ['Alta', 'Média', 'Baixa'] as const;
 const ALTERATION_PREFIX = '[ALTERAÇÃO] ';
 const ALTERATION_STAGE = 'Alteração';
 
-export default function TaskDetailPanel({ task, isNew, clients, team, defaultClientId, defaultTaskType, defaultDueDate, defaultStatus, onSave, onDelete, onClose }: Props) {
+export default function TaskDetailPanel({ task, isNew, clients, team, defaultClientId, defaultTaskType, defaultDueDate, defaultStatus, openDraftId, onSave, onDelete, onClose }: Props) {
   const { getChecklist, upsertChecklistItem, deleteChecklistItem, getComments, addComment, getAttachments, addAttachment, deleteAttachment, getStageHistory, moveTaskToStage } = useAgency();
 
   const [form, setForm] = useState<Partial<Task>>({});
@@ -69,7 +71,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
 
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
-  const DRAFT_KEY = 'inova:task-draft';
+  const [draftId, setDraftId] = useState<string>(() => newDraftId());
 
   useEffect(() => {
     setValidationAttempted(false);
@@ -92,42 +94,39 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
       };
       let restored = false;
       try {
-        const raw = localStorage.getItem(DRAFT_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw) as { form: Partial<Task>; savedAt: string };
-          if (parsed?.form && Object.values(parsed.form).some(v => typeof v === 'string' && v.trim())) {
-            setForm({ ...base, ...parsed.form });
-            setDraftSavedAt(parsed.savedAt || null);
-            restored = true;
-          }
+        const draft = openDraftId ? getDraft(openDraftId) : null;
+        if (draft) {
+          setForm({ ...base, ...(draft.form as Partial<Task>) });
+          setDraftSavedAt(draft.savedAt || null);
+          setDraftId(draft.id);
+          restored = true;
         }
       } catch { /* rascunho inválido */ }
       setDraftRestored(restored);
-      if (!restored) { setForm(base); setDraftSavedAt(null); }
+      if (!restored) { setForm(base); setDraftSavedAt(null); setDraftId(newDraftId()); }
       setChecklist([]);
       setComments([]);
       setAttachments([]);
     }
-  }, [task, defaultClientId, defaultTaskType, defaultDueDate, defaultStatus]);
+  }, [task, defaultClientId, defaultTaskType, defaultDueDate, defaultStatus, openDraftId]);
 
   // Salva rascunho automaticamente enquanto cria um card novo
   useEffect(() => {
     if (!isNew || !form || Object.keys(form).length === 0) return;
     const t = setTimeout(() => {
-      try {
-        const savedAt = new Date().toISOString();
-        localStorage.setItem(DRAFT_KEY, JSON.stringify({ form, savedAt }));
-        setDraftSavedAt(savedAt);
-      } catch { /* ignore */ }
+      const savedAt = saveDraft(draftId, form as Record<string, unknown>);
+      if (savedAt) setDraftSavedAt(savedAt);
     }, 600);
     return () => clearTimeout(t);
-  }, [form, isNew]);
+  }, [form, isNew, draftId]);
 
   const clearDraft = () => {
-    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+    deleteDraft(draftId);
     setDraftSavedAt(null);
     setDraftRestored(false);
+    setDraftId(newDraftId());
   };
+
 
   const discardDraft = () => {
     clearDraft();

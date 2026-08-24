@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { todaySP, normalizeDate, dateGroupMeta, formatFullDate, addDays } from '@/lib/kanbanDateGroups';
 import TaskDetailPanel from '@/components/tasks/TaskDetailPanel';
+import { listDrafts, deleteDraft, draftTitle, DRAFTS_EVENT, type TaskDraft } from '@/lib/taskDrafts';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import { useKanbanStages, colorClasses, KanbanStage } from '@/hooks/useKanbanStages';
 
@@ -583,23 +584,22 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const [newDefaultStatus, setNewDefaultStatus] = useState('');
   const [arteTab, setArteTab] = useState<'progress' | 'done' | 'trash'>('progress');
   const [artPreview, setArtPreview] = useState<{ urls: string[]; index: number } | null>(null);
-  const [draftInfo, setDraftInfo] = useState<{ title: string; savedAt: string } | null>(null);
+  const [drafts, setDrafts] = useState<TaskDraft[]>([]);
+  const [draftsOpen, setDraftsOpen] = useState(false);
+  const [openDraftId, setOpenDraftId] = useState<string | null>(null);
 
-  // Rascunho de card novo (salvo em localStorage pelo TaskDetailPanel)
+  // Rascunhos de cards novos (salvos localmente pelo TaskDetailPanel)
   useEffect(() => {
-    const read = () => {
-      try {
-        const raw = localStorage.getItem('inova:task-draft');
-        if (!raw) return setDraftInfo(null);
-        const parsed = JSON.parse(raw);
-        setDraftInfo({ title: parsed?.form?.title || 'Card sem título', savedAt: parsed?.savedAt || '' });
-      } catch { setDraftInfo(null); }
-    };
+    const read = () => setDrafts(listDrafts());
     read();
-    const id = window.setInterval(read, 2000);
+    window.addEventListener(DRAFTS_EVENT, read);
     window.addEventListener('focus', read);
     window.addEventListener('storage', read);
-    return () => { window.clearInterval(id); window.removeEventListener('focus', read); window.removeEventListener('storage', read); };
+    return () => {
+      window.removeEventListener(DRAFTS_EVENT, read);
+      window.removeEventListener('focus', read);
+      window.removeEventListener('storage', read);
+    };
   }, [dialogOpen]);
 
   // Open a specific task when navigated with ?taskId=xxx (e.g. from history bell)
@@ -975,6 +975,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   };
 
   const openNew = () => {
+    setOpenDraftId(null);
     setNewDefaultDueDate('');
     setNewDefaultStatus(firstStageName || 'A fazer');
     setSelectedTask(null);
@@ -983,6 +984,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   };
 
   const openNewForGroup = (group: DateGroup) => {
+    setOpenDraftId(null);
     setNewDefaultDueDate(group.dateStr || '');
     setNewDefaultStatus(firstStageName || 'A fazer');
     setSelectedTask(null);
@@ -1103,19 +1105,19 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                 <FileSpreadsheet className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Em massa</span>
               </Button>
-              {draftInfo && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2 sm:px-3 gap-1 relative border-primary/50 text-primary"
-                  onClick={openNew}
-                  title={`Rascunho: ${draftInfo.title}${draftInfo.savedAt ? ` · salvo ${new Date(draftInfo.savedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}`}
-                >
-                  <FileEdit className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline max-w-[120px] truncate">{draftInfo.title}</span>
-                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className={`h-8 px-2 sm:px-3 gap-1 relative ${drafts.length ? 'border-primary/50 text-primary' : ''}`}
+                onClick={() => setDraftsOpen(true)}
+                title="Rascunhos de cards não finalizados"
+              >
+                <FileEdit className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Rascunhos</span>
+                {drafts.length > 0 && (
+                  <span className="ml-0.5 rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">{drafts.length}</span>
+                )}
+              </Button>
               <Button size="sm" className="hidden sm:flex gap-1 h-9" onClick={openNew}>
                 <Plus className="h-4 w-4" /> Nova Tarefa
               </Button>
@@ -1611,10 +1613,52 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
             defaultTaskType={taskTypeFilter}
             defaultDueDate={newDefaultDueDate}
             defaultStatus={newDefaultStatus}
+            openDraftId={openDraftId}
             onSave={handleSave}
             onDelete={handleDelete}
             onClose={() => setDialogOpen(false)}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Aba de rascunhos */}
+      <Dialog open={draftsOpen} onOpenChange={setDraftsOpen}>
+        <DialogContent className="max-w-lg w-[95vw]">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <FileEdit className="h-4 w-4 text-primary" /> Rascunhos
+          </DialogTitle>
+          {drafts.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Nenhum rascunho salvo. Cards novos ficam salvos aqui automaticamente até você criá-los.
+            </p>
+          ) : (
+            <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+              {drafts.map(d => (
+                <div key={d.id} className="flex items-center gap-2 rounded-lg border border-border p-2.5">
+                  <button
+                    className="min-w-0 flex-1 text-left"
+                    onClick={() => {
+                      setOpenDraftId(d.id);
+                      setSelectedTask(null);
+                      setNewDefaultDueDate('');
+                      setNewDefaultStatus(firstStageName || 'A fazer');
+                      setCreating(true);
+                      setDraftsOpen(false);
+                      setDialogOpen(true);
+                    }}
+                  >
+                    <p className="truncate text-sm font-medium text-foreground">{draftTitle(d)}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {(d.form as any)?.taskType || 'Card'} · salvo {new Date(d.savedAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteDraft(d.id)} title="Excluir rascunho">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
