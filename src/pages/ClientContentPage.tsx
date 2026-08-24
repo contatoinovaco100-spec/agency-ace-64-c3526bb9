@@ -119,17 +119,22 @@ function platformIcon(platform: string) {
 }
 
 function StatusBadge({ status, isArte }: { status: string; isArte?: boolean }) {
-  const cfg: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
-    'Postado':      { label: 'Postado',      cls: 'bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30',  icon: <CheckCircle2 className="h-3 w-3" /> },
-    'Programado':   { label: 'Programado',   cls: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',      icon: <Calendar className="h-3 w-3" /> },
-    'Finalizado':   { label: isArte ? 'Arte pronta' : 'Finalizado', cls: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30', icon: <Sparkles className="h-3 w-3" /> },
-    'Em revisão':   { label: 'Em revisão',   cls: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30', icon: <Clock className="h-3 w-3" /> },
-    'Revisão':      { label: 'Revisão',      cls: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30', icon: <Clock className="h-3 w-3" /> },
-    'Em andamento': { label: 'Em andamento', cls: 'bg-primary/15 text-primary border-primary/30',                              icon: <Play className="h-3 w-3" /> },
-    'Proxima Captação': { label: 'Próxima Captação', cls: 'bg-[#bff720]/20 text-[#5a7a00] dark:text-[#bff720] border-[#bff720]/40', icon: <Video className="h-3 w-3" /> },
+  const norm = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+
+  const normalizedStatus = norm(status);
+
+  const entries: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
+    'postado':      { label: 'Postado',      cls: 'bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30',  icon: <CheckCircle2 className="h-3 w-3" /> },
+    'programado':   { label: 'Programado',   cls: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',      icon: <Calendar className="h-3 w-3" /> },
+    'finalizado':   { label: isArte ? 'Arte pronta' : 'Finalizado', cls: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30', icon: <Sparkles className="h-3 w-3" /> },
+    'em revisao':   { label: 'Em revisão',   cls: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30', icon: <Clock className="h-3 w-3" /> },
+    'revisao':      { label: 'Revisão',      cls: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30', icon: <Clock className="h-3 w-3" /> },
+    'em andamento': { label: 'Em andamento', cls: 'bg-primary/15 text-primary border-primary/30',                              icon: <Play className="h-3 w-3" /> },
+    'proxima captacao': { label: 'Próxima Captação', cls: 'bg-[#bff720]/20 text-[#5a7a00] dark:text-[#bff720] border-[#bff720]/40', icon: <Video className="h-3 w-3" /> },
     'default':      { label: status,         cls: 'bg-muted text-muted-foreground border-border',                              icon: <LayoutList className="h-3 w-3" /> },
   };
-  const { label, cls, icon } = cfg[status] || cfg['default'];
+  const { label, cls, icon } = entries[normalizedStatus] || entries['default'];
 
   return (
     <span className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', cls)}>
