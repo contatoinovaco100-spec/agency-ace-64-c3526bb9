@@ -204,6 +204,8 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
   const videoName = isArte ? (task.title || 'Arte sem título') : (task.video_name || task.title || 'Sem título');
   const isPosted = task.status === 'Postado';
   const isProgramado = task.status === 'Programado';
+  const isProximaCaptacao = task.status === 'Proxima Captação';
+
 
   const displayDate = task.post_date || task.scheduled_date || task.due_date;
   const formattedDate = displayDate
