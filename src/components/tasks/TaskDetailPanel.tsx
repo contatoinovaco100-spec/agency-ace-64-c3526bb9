@@ -387,7 +387,15 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
     <div className="flex flex-col h-full w-full">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-3 py-2 sm:px-6 sm:py-4 shrink-0">
-        <h2 className="text-sm sm:text-lg font-semibold text-foreground">{isNew ? 'Nova Tarefa' : 'Detalhes da Tarefa'}</h2>
+        <div className="flex items-center gap-2 min-w-0">
+          <h2 className="text-sm sm:text-lg font-semibold text-foreground">{isNew ? 'Nova Tarefa' : 'Detalhes da Tarefa'}</h2>
+          {isNew && draftSavedAt && (
+            <span className="hidden sm:inline text-[10px] rounded-full border border-border bg-muted px-2 py-0.5 text-muted-foreground">
+              {draftRestored ? 'Rascunho recuperado' : 'Rascunho salvo'} · {new Date(draftSavedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+        </div>
+
         <div className="flex items-center gap-1">
           {!isNew && task && (
             <Button variant="ghost" size="icon" className="h-8 w-8" title="Compartilhar" onClick={() => {
