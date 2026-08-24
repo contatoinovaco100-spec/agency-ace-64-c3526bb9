@@ -132,6 +132,9 @@ function StatusBadge({ status, isArte }: { status: string; isArte?: boolean }) {
     'revisao':      { label: 'Revisão',      cls: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30', icon: <Clock className="h-3 w-3" /> },
     'em andamento': { label: 'Em andamento', cls: 'bg-primary/15 text-primary border-primary/30',                              icon: <Play className="h-3 w-3" /> },
     'proxima captacao': { label: 'Próxima Captação', cls: 'bg-[#bff720]/20 text-[#5a7a00] dark:text-[#bff720] border-[#bff720]/40', icon: <Video className="h-3 w-3" /> },
+    'ideia':        { label: 'Ideia',        cls: 'bg-muted text-muted-foreground border-border',                              icon: <LayoutList className="h-3 w-3" /> },
+    'ideias':       { label: 'Ideias',       cls: 'bg-muted text-muted-foreground border-border',                              icon: <LayoutList className="h-3 w-3" /> },
+    'ideias / backlog': { label: 'Ideias / Backlog', cls: 'bg-muted text-muted-foreground border-border',                          icon: <LayoutList className="h-3 w-3" /> },
     'default':      { label: status,         cls: 'bg-muted text-muted-foreground border-border',                              icon: <LayoutList className="h-3 w-3" /> },
   };
   const { label, cls, icon } = entries[normalizedStatus] || entries['default'];
@@ -141,6 +144,103 @@ function StatusBadge({ status, isArte }: { status: string; isArte?: boolean }) {
       {icon}{label}
     </span>
   );
+}
+
+function statusCardStyles(status: string) {
+  const norm = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+  const ns = norm(status);
+
+  const map: Record<string, { border: string; bg: string; ring: string; shadow: string; bubble: string; text: string }> = {
+    'postado': {
+      border: 'border-green-500/30',
+      bg: 'bg-green-500/5',
+      ring: 'ring-green-500/20',
+      shadow: 'shadow-green-500/10',
+      bubble: 'bg-green-500/15 text-green-600 dark:text-green-400',
+      text: 'text-green-600 dark:text-green-400',
+    },
+    'programado': {
+      border: 'border-blue-500/30',
+      bg: 'bg-blue-500/5',
+      ring: 'ring-blue-500/20',
+      shadow: 'shadow-blue-500/10',
+      bubble: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+      text: 'text-blue-600 dark:text-blue-400',
+    },
+    'finalizado': {
+      border: 'border-purple-500/30',
+      bg: 'bg-purple-500/5',
+      ring: 'ring-purple-500/20',
+      shadow: 'shadow-purple-500/10',
+      bubble: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
+      text: 'text-purple-600 dark:text-purple-400',
+    },
+    'em revisao': {
+      border: 'border-orange-500/30',
+      bg: 'bg-orange-500/5',
+      ring: 'ring-orange-500/20',
+      shadow: 'shadow-orange-500/10',
+      bubble: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
+      text: 'text-orange-600 dark:text-orange-400',
+    },
+    'revisao': {
+      border: 'border-orange-500/30',
+      bg: 'bg-orange-500/5',
+      ring: 'ring-orange-500/20',
+      shadow: 'shadow-orange-500/10',
+      bubble: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
+      text: 'text-orange-600 dark:text-orange-400',
+    },
+    'em andamento': {
+      border: 'border-primary/30',
+      bg: 'bg-primary/5',
+      ring: 'ring-primary/20',
+      shadow: 'shadow-primary/10',
+      bubble: 'bg-primary/15 text-primary',
+      text: 'text-primary',
+    },
+    'proxima captacao': {
+      border: 'border-[#bff720]/40',
+      bg: 'bg-[#bff720]/5',
+      ring: 'ring-[#bff720]/30',
+      shadow: 'shadow-[#bff720]/15',
+      bubble: 'bg-[#bff720]/20 text-[#5a7a00] dark:text-[#bff720]',
+      text: 'text-[#5a7a00] dark:text-[#bff720]',
+    },
+    'ideia': {
+      border: 'border-border',
+      bg: 'bg-muted/30',
+      ring: 'ring-border',
+      shadow: 'shadow-none',
+      bubble: 'bg-muted text-muted-foreground',
+      text: 'text-muted-foreground',
+    },
+    'ideias': {
+      border: 'border-border',
+      bg: 'bg-muted/30',
+      ring: 'ring-border',
+      shadow: 'shadow-none',
+      bubble: 'bg-muted text-muted-foreground',
+      text: 'text-muted-foreground',
+    },
+    'ideias / backlog': {
+      border: 'border-border',
+      bg: 'bg-muted/30',
+      ring: 'ring-border',
+      shadow: 'shadow-none',
+      bubble: 'bg-muted text-muted-foreground',
+      text: 'text-muted-foreground',
+    },
+  };
+  return map[ns] || {
+    border: 'border-border',
+    bg: 'bg-card',
+    ring: 'ring-primary/10',
+    shadow: 'shadow-primary/5',
+    bubble: 'bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary',
+    text: 'text-primary',
+  };
 }
 
 // ─── Lightbox ────────────────────────────────────────────────────────────────
