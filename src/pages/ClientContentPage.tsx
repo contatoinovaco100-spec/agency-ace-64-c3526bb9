@@ -756,7 +756,7 @@ export default function ClientContentPage() {
     return true;
   });
   const postedTasks = tasks.filter(t => t.status === 'Postado');
-  const displayedTasks = showPosted ? tasks.filter(t => t.status !== 'Concluído') : pendingTasks;
+  const displayedTasks = pendingTasks;
   const allTasks = tasks.filter(t => t.status !== 'Concluído');
 
   return (
