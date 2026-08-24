@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAgency } from '@/contexts/AgencyContext';
 import { Task, TaskChecklistItem, TaskComment, TaskAttachment, Client, TeamMember, TaskStageHistory } from '@/types/agency';
 import { supabase } from '@/integrations/supabase/client';
@@ -72,6 +72,19 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftId, setDraftId] = useState<string>(() => newDraftId());
+
+  const scriptRef = useRef<HTMLTextAreaElement>(null);
+  const adjustScriptHeight = useCallback(() => {
+    const el = scriptRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const next = Math.max(el.scrollHeight, form.taskType === 'Arte' ? 420 : 260);
+    el.style.height = `${next}px`;
+  }, [form.taskType]);
+
+  useEffect(() => {
+    adjustScriptHeight();
+  }, [form.fullScript, form.taskType, adjustScriptHeight]);
 
   useEffect(() => {
     setValidationAttempted(false);
@@ -502,10 +515,18 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
             <div>
               <Label className={cn("text-xs", labelClass(form.fullScript))}>Roteiro</Label>
               <Textarea
+                ref={scriptRef}
                 value={form.fullScript || ''}
-                onChange={e => setForm({ ...form, fullScript: e.target.value })}
+                onChange={e => {
+                  setForm({ ...form, fullScript: e.target.value });
+                  requestAnimationFrame(adjustScriptHeight);
+                }}
                 placeholder="Cole o roteiro completo aqui..."
-                className={cn('mt-1 min-h-[220px] resize-y text-sm leading-relaxed', fieldClass(form.fullScript))}
+                className={cn(
+                  'mt-1 min-h-[260px] max-h-[70vh] resize-y overflow-hidden text-sm leading-relaxed',
+                  form.taskType === 'Arte' && 'min-h-[420px]',
+                  fieldClass(form.fullScript)
+                )}
               />
             </div>
             <div>
