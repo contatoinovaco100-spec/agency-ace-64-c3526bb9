@@ -331,6 +331,8 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
   const isProgramado = task.status === 'Programado';
   const isProximaCaptacao = task.status === 'Proxima Captação';
 
+  const styles = statusCardStyles(task.status);
+  const tagStyles = statusTagStyles(task.status);
 
   const displayDate = task.post_date || task.scheduled_date || task.due_date;
   const formattedDate = displayDate
