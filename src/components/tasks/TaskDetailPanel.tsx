@@ -161,7 +161,6 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
     const isArte = form.taskType === 'Arte';
     const required: { label: string; value?: string }[] = [
       { label: 'Nome da tarefa', value: form.videoName || form.title },
-      { label: 'Descrição', value: form.description },
       { label: 'Cliente', value: form.clientId },
       { label: 'Responsável', value: form.assignee },
       { label: 'Prioridade', value: form.priority },
@@ -173,7 +172,6 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         { label: 'Plataforma', value: form.platform },
         { label: 'Formato', value: form.format },
         { label: 'Objetivo', value: form.videoObjective },
-        { label: 'Ideia do vídeo', value: form.videoIdea },
         { label: 'Roteiro', value: form.fullScript },
         { label: 'Referências', value: form.videoReferences },
       ]),
