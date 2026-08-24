@@ -570,7 +570,6 @@ export default function ClientContentPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [showPosted, setShowPosted] = useState(false);
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
   const isInternal = !!user && isAdmin;
@@ -756,8 +755,7 @@ export default function ClientContentPage() {
     if (dateStr < todayStr && !isInternal && !isArte && !awaitingApproval && !isProximaCaptacao) return false;
     return true;
   });
-  const postedTasks = tasks.filter(t => t.status === 'Postado');
-  const displayedTasks = showPosted ? tasks.filter(t => t.status !== 'Concluído') : pendingTasks;
+  const displayedTasks = pendingTasks;
   const allTasks = tasks.filter(t => t.status !== 'Concluído');
 
   return (
@@ -845,26 +843,6 @@ export default function ClientContentPage() {
             </div>
           ))}
         </div>
-
-        {/* Toggle show posted */}
-        {postedTasks.length > 0 && (
-          <div className="mb-6 flex items-center justify-between rounded-xl border border-border bg-card p-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
-                <span className="text-xs font-bold text-primary">{postedTasks.length}</span>
-              </div>
-              <p className="text-sm font-medium text-foreground">
-                {showPosted ? 'Todos os conteúdos' : 'Conteúdos pendentes'}
-              </p>
-            </div>
-            <button
-              onClick={() => setShowPosted(!showPosted)}
-              className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
-            >
-              {showPosted ? `Ocultar publicados` : `+ Ver publicados`}
-            </button>
-          </div>
-        )}
 
         {/* Task list */}
         <div className="space-y-4">
