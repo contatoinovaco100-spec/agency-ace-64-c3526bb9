@@ -755,7 +755,6 @@ export default function ClientContentPage() {
     if (dateStr < todayStr && !isInternal && !isArte && !awaitingApproval && !isProximaCaptacao) return false;
     return true;
   });
-  const postedTasks = tasks.filter(t => t.status === 'Postado');
   const displayedTasks = pendingTasks;
   const allTasks = tasks.filter(t => t.status !== 'Concluído');
 
