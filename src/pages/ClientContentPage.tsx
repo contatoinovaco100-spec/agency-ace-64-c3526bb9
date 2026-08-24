@@ -400,8 +400,6 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
             {open ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />}
           </div>
 
-  const tagStyles = statusTagStyles(task.status);
-
           {/* Tags row */}
           <div className="flex flex-wrap items-center gap-1.5">
             <StatusBadge status={task.status} isArte={isArte} />
