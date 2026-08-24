@@ -240,8 +240,11 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
   return (
     <div className={cn(
       'group rounded-2xl border bg-card overflow-hidden shadow-sm transition-all duration-200',
-      isPosted ? 'border-green-500/30 opacity-75' : 'border-border hover:border-primary/30 hover:shadow-md',
-      open && !isPosted && 'border-primary/40 shadow-md ring-1 ring-primary/10'
+      isPosted ? 'border-green-500/30 opacity-75' :
+      isProximaCaptacao ? 'border-[#bff720]/60 bg-[#bff720]/5 shadow-[#bff720]/20 ring-1 ring-[#bff720]/30' :
+      'border-border hover:border-primary/30 hover:shadow-md',
+      open && !isPosted && !isProximaCaptacao && 'border-primary/40 shadow-md ring-1 ring-primary/10',
+      open && isProximaCaptacao && 'border-[#bff720] shadow-lg shadow-[#bff720]/15 ring-2 ring-[#bff720]/40'
     )}>
       {/* Card Header */}
       <button
