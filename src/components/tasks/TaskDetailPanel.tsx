@@ -67,13 +67,17 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   const fieldClass = (value?: unknown) => isInvalidField(value) ? 'border-destructive ring-1 ring-destructive/40 focus-visible:ring-destructive' : '';
   const labelClass = (value?: unknown) => isInvalidField(value) ? 'text-destructive' : 'text-muted-foreground';
 
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const DRAFT_KEY = 'inova:task-draft';
+
   useEffect(() => {
     setValidationAttempted(false);
     if (task) {
       setForm({ ...task });
       loadData(task.id);
     } else {
-      setForm({
+      const base: Partial<Task> = {
         taskType: defaultTaskType || 'Produção de Vídeo',
         status: (defaultStatus || 'Ideias / Backlog') as any,
         dueDate: defaultDueDate || '',
@@ -85,12 +89,65 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         recordingNotes: '', editorComments: '',
         copywriter: '', director: '', videomaker: '', editor: '',
         platform: '', format: '', videoObjective: '', currentStageOwner: '',
-      });
+      };
+      let restored = false;
+      try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as { form: Partial<Task>; savedAt: string };
+          if (parsed?.form && Object.values(parsed.form).some(v => typeof v === 'string' && v.trim())) {
+            setForm({ ...base, ...parsed.form });
+            setDraftSavedAt(parsed.savedAt || null);
+            restored = true;
+          }
+        }
+      } catch { /* rascunho inválido */ }
+      setDraftRestored(restored);
+      if (!restored) { setForm(base); setDraftSavedAt(null); }
       setChecklist([]);
       setComments([]);
       setAttachments([]);
     }
   }, [task, defaultClientId, defaultTaskType, defaultDueDate, defaultStatus]);
+
+  // Salva rascunho automaticamente enquanto cria um card novo
+  useEffect(() => {
+    if (!isNew || !form || Object.keys(form).length === 0) return;
+    const t = setTimeout(() => {
+      try {
+        const savedAt = new Date().toISOString();
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ form, savedAt }));
+        setDraftSavedAt(savedAt);
+      } catch { /* ignore */ }
+    }, 600);
+    return () => clearTimeout(t);
+  }, [form, isNew]);
+
+  const clearDraft = () => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+    setDraftSavedAt(null);
+    setDraftRestored(false);
+  };
+
+  const discardDraft = () => {
+    clearDraft();
+    setForm({
+      taskType: defaultTaskType || 'Produção de Vídeo',
+      status: (defaultStatus || 'Ideias / Backlog') as any,
+      dueDate: defaultDueDate || '',
+      priority: 'Média',
+      clientId: defaultClientId || '',
+      videoName: '', title: '', description: '', assignee: '',
+      videoIdea: '', fullScript: '', videoReferences: '', observations: '',
+      creativeDirection: '', editingStyle: '', strategicNotes: '',
+      recordingNotes: '', editorComments: '',
+      copywriter: '', director: '', videomaker: '', editor: '',
+      platform: '', format: '', videoObjective: '', currentStageOwner: '',
+      caption: '', postDate: '', postTime: '',
+    });
+    toast.success('Rascunho descartado');
+  };
+
 
   const loadData = async (id: string) => {
     const [ch, co, at, hi] = await Promise.all([getChecklist(id), getComments(id), getAttachments(id), getStageHistory(id)]);
