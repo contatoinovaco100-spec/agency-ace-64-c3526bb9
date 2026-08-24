@@ -416,10 +416,6 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.videoName || form.title))}>Nome da tarefa / vídeo</Label>
               <Input value={form.videoName || form.title || ''} onChange={e => setForm({ ...form, videoName: e.target.value, title: e.target.value })} placeholder="Ex: Reels de lançamento" className={cn('mt-1', fieldClass(form.videoName || form.title))} />
             </div>
-            <div>
-              <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.description))}>Descrição</Label>
-              <Textarea rows={2} value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Descreva a tarefa..." className={cn('mt-1', fieldClass(form.description))} />
-            </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
               <div>
                 <Label className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Tipo de entrega</Label>
