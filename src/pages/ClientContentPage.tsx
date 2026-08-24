@@ -612,6 +612,7 @@ export default function ClientContentPage() {
     // Para o link específico do cliente, exibe apenas: Copy finalizada, Revisão, Finalizado
     if (taskId === '48e60f29-5c9c-4449-858d-52e2ce6edc8f') {
       const allowed = ['copy finalizada', 'revisao', 'em revisao', 'finalizado'];
+      if (normalizedStatus === 'concluido') return false;
       return allowed.includes(normalizedStatus);
     }
     if (t.status === 'Concluído') return false;
