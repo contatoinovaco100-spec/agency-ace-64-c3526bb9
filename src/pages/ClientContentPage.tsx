@@ -807,7 +807,7 @@ export default function ClientContentPage() {
         </div>
 
         {/* Summary */}
-        <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             {
               label: 'Próxima Captação',
@@ -820,6 +820,12 @@ export default function ClientContentPage() {
               count: tasks.filter(t => t.status === 'Revisão' || t.status === 'Em revisão').length,
               icon: Clock,
               cls: 'bg-orange-500/15 border-orange-500/30 text-orange-600 dark:text-orange-400',
+            },
+            {
+              label: 'Artes',
+              count: tasks.filter(t => t.task_type === 'Arte' && t.status !== 'Concluído').length,
+              icon: Palette,
+              cls: 'bg-purple-500/15 border-purple-500/30 text-purple-600 dark:text-purple-400',
             },
             {
               label: 'Finalizados',
