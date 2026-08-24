@@ -1012,11 +1012,17 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
         <Button onClick={handleSave} className="flex-1 h-9 sm:h-10 text-sm" disabled={saving}>
           {saving ? 'Salvando...' : isNew ? 'Criar' : 'Salvar'}
         </Button>
+        {isNew && draftSavedAt && (
+          <Button variant="outline" size="sm" className="h-9 text-muted-foreground" onClick={discardDraft}>
+            <Trash2 className="mr-1 h-3.5 w-3.5" /> Descartar rascunho
+          </Button>
+        )}
         {!isNew && task && (
           <Button variant="outline" size="sm" className="text-destructive hover:text-destructive h-9" onClick={() => onDelete(task.id)}>
             <Trash2 className="mr-1 h-3.5 w-3.5" /> Excluir
           </Button>
         )}
+
       </div>
     </div>
   );
