@@ -570,7 +570,6 @@ export default function ClientContentPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [showPosted, setShowPosted] = useState(false);
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
   const isInternal = !!user && isAdmin;
