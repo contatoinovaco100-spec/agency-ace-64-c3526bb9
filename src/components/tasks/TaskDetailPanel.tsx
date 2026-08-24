@@ -34,8 +34,12 @@ interface Props {
 
 const priorities = ['Alta', 'Média', 'Baixa'] as const;
 
+/** Prefixo usado para diferenciar solicitações de alteração das notas comuns. */
+const ALTERATION_PREFIX = '[ALTERAÇÃO] ';
+const ALTERATION_STAGE = 'Alteração';
+
 export default function TaskDetailPanel({ task, isNew, clients, team, defaultClientId, defaultTaskType, defaultDueDate, defaultStatus, onSave, onDelete, onClose }: Props) {
-  const { getChecklist, upsertChecklistItem, deleteChecklistItem, getComments, addComment, getAttachments, addAttachment, deleteAttachment, getStageHistory } = useAgency();
+  const { getChecklist, upsertChecklistItem, deleteChecklistItem, getComments, addComment, getAttachments, addAttachment, deleteAttachment, getStageHistory, moveTaskToStage } = useAgency();
 
   const [form, setForm] = useState<Partial<Task>>({});
   const [checklist, setChecklist] = useState<TaskChecklistItem[]>([]);
@@ -44,12 +48,18 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   const [stageHistory, setStageHistory] = useState<TaskStageHistory[]>([]);
   const [newComment, setNewComment] = useState('');
   const [commentAuthor, setCommentAuthor] = useState('');
+  const [newAlteration, setNewAlteration] = useState('');
+  const [alterationAuthor, setAlterationAuthor] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [newCheckLabel, setNewCheckLabel] = useState('');
   const [refLinkInput, setRefLinkInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [validationAttempted, setValidationAttempted] = useState(false);
+
+  const alterations = comments.filter(c => c.content.startsWith(ALTERATION_PREFIX));
+  const plainComments = comments.filter(c => !c.content.startsWith(ALTERATION_PREFIX));
+
 
   const isInvalidField = (value?: unknown) => validationAttempted && !String(value ?? '').trim();
   const fieldClass = (value?: unknown) => isInvalidField(value) ? 'border-destructive ring-1 ring-destructive/40 focus-visible:ring-destructive' : '';
