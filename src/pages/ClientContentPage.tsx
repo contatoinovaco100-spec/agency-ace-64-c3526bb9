@@ -9,7 +9,8 @@ import {
   Clapperboard, Calendar, Target, FileText, Link2, MessageSquare,
   Loader2, ChevronDown, ChevronRight, Palette, RefreshCw, Download,
   CheckCircle2, Clock, Play, Instagram, Youtube, ExternalLink, X, ZoomIn,
-  Sparkles, LayoutList, Image as ImageIcon,
+  Sparkles, LayoutList, Image as ImageIcon, Video,
+
 } from 'lucide-react';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import UniversalVideoPlayer from '@/components/UniversalVideoPlayer';
