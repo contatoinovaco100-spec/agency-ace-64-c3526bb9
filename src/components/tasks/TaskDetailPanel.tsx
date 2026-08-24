@@ -218,11 +218,13 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   // Alterações — solicitação de ajuste que move o card para a etapa "Alteração"
   const handleAddAlteration = async () => {
     if (!newAlteration.trim() || !alterationAuthor || !task) return;
+    const target = alterationTarget.trim();
+    const body = target ? `@${target} — ${newAlteration.trim()}` : newAlteration.trim();
     const comment: TaskComment = {
       id: crypto.randomUUID(),
       taskId: task.id,
       author: alterationAuthor,
-      content: `${ALTERATION_PREFIX}${newAlteration.trim()}`,
+      content: `${ALTERATION_PREFIX}${body}`,
       createdAt: new Date().toISOString(),
     };
     await addComment(comment);
@@ -230,12 +232,28 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
     setNewAlteration('');
     try {
       await moveTaskToStage(task.id, ALTERATION_STAGE);
-      setForm(f => ({ ...f, status: ALTERATION_STAGE as any }));
-      toast.warning('Alteração registrada — card movido para "Alteração"');
+      setForm(f => ({ ...f, status: ALTERATION_STAGE as any, ...(target ? { assignee: target } : {}) }));
+      if (target) {
+        await supabase.from('tasks').update({ assignee: target } as any).eq('id', task.id);
+      }
+      toast.warning(`Alteração registrada${target ? ` para ${target}` : ''} — card movido para "Alteração"`);
     } catch {
       toast.error('Alteração salva, mas não consegui mover o card.');
     }
   };
+
+  const handleDeleteAlteration = async (id: string) => {
+    try {
+      const { error } = await supabase.from('task_comments').delete().eq('id', id);
+      if (error) throw error;
+      setComments(prev => prev.filter(c => c.id !== id));
+      toast.success('Pedido de alteração excluído');
+    } catch (e: any) {
+      toast.error(`Erro ao excluir: ${e?.message || 'tente novamente'}`);
+    }
+  };
+
+
 
 
   // Attachments
