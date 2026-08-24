@@ -50,6 +50,8 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   const [commentAuthor, setCommentAuthor] = useState('');
   const [newAlteration, setNewAlteration] = useState('');
   const [alterationAuthor, setAlterationAuthor] = useState('');
+  const [alterationTarget, setAlterationTarget] = useState('');
+
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [newCheckLabel, setNewCheckLabel] = useState('');
