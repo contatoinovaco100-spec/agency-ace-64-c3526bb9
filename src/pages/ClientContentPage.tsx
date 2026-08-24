@@ -353,7 +353,16 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
                           <section.icon className="h-3.5 w-3.5 text-primary" />
                         </div>
                         <h4 className="text-xs font-bold text-foreground uppercase tracking-wide">{section.label}</h4>
+                        {section.copyable && (
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(section.content); toast.success('Legenda copiada!'); }}
+                            className="ml-auto text-[11px] font-semibold text-primary hover:underline"
+                          >
+                            Copiar
+                          </button>
+                        )}
                       </div>
+
                       {section.isLinks ? (
                         <div className="space-y-1.5 mt-2">
                           {section.content!.split('\n').filter(Boolean).map((line, j) => (
