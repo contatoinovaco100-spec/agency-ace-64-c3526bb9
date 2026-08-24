@@ -344,27 +344,28 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
 
 
 
+  const styles = statusCardStyles(task.status);
+
   return (
     <div className={cn(
-      'group rounded-2xl border bg-card overflow-hidden shadow-sm transition-all duration-200',
-      isPosted ? 'border-green-500/30 opacity-75' :
-      isProximaCaptacao ? 'border-[#bff720]/60 bg-[#bff720]/5 shadow-[#bff720]/20 ring-1 ring-[#bff720]/30' :
-      'border-border hover:border-primary/30 hover:shadow-md',
-      open && !isPosted && !isProximaCaptacao && 'border-primary/40 shadow-md ring-1 ring-primary/10',
-      open && isProximaCaptacao && 'border-[#bff720] shadow-lg shadow-[#bff720]/15 ring-2 ring-[#bff720]/40'
+      'group rounded-2xl border overflow-hidden shadow-sm transition-all duration-200',
+      styles.border,
+      styles.bg,
+      isPosted ? 'opacity-75' : 'hover:shadow-md',
+      open && `shadow-md ring-1 ${styles.ring} ${styles.shadow}`
     )}>
       {/* Card Header */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-start gap-4 p-5 text-left transition-colors hover:bg-secondary/10"
+        className={cn(
+          'flex w-full items-start gap-4 p-5 text-left transition-colors',
+          !isPosted && 'hover:bg-black/5 dark:hover:bg-white/5'
+        )}
       >
         {/* Index bubble */}
         <div className={cn(
           'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold',
-          isPosted ? 'bg-green-500/15 text-green-600 dark:text-green-400' :
-          isProximaCaptacao ? 'bg-[#bff720]/20 text-[#7a9a00] dark:text-[#bff720] animate-pulse' :
-          isArte ? 'bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-600 dark:text-pink-400' :
-          'bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary'
+          styles.bubble
         )}>
           {isPosted ? <CheckCircle2 className="h-5 w-5" /> :
            isProximaCaptacao ? <Video className="h-5 w-5" /> :
