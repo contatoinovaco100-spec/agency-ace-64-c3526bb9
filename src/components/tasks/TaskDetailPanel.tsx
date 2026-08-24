@@ -69,7 +69,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
 
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
-  const DRAFT_KEY = 'inova:task-draft';
+  const [draftId, setDraftId] = useState<string>(() => newDraftId());
 
   useEffect(() => {
     setValidationAttempted(false);
@@ -92,42 +92,39 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
       };
       let restored = false;
       try {
-        const raw = localStorage.getItem(DRAFT_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw) as { form: Partial<Task>; savedAt: string };
-          if (parsed?.form && Object.values(parsed.form).some(v => typeof v === 'string' && v.trim())) {
-            setForm({ ...base, ...parsed.form });
-            setDraftSavedAt(parsed.savedAt || null);
-            restored = true;
-          }
+        const draft = openDraftId ? getDraft(openDraftId) : null;
+        if (draft) {
+          setForm({ ...base, ...(draft.form as Partial<Task>) });
+          setDraftSavedAt(draft.savedAt || null);
+          setDraftId(draft.id);
+          restored = true;
         }
       } catch { /* rascunho inválido */ }
       setDraftRestored(restored);
-      if (!restored) { setForm(base); setDraftSavedAt(null); }
+      if (!restored) { setForm(base); setDraftSavedAt(null); setDraftId(newDraftId()); }
       setChecklist([]);
       setComments([]);
       setAttachments([]);
     }
-  }, [task, defaultClientId, defaultTaskType, defaultDueDate, defaultStatus]);
+  }, [task, defaultClientId, defaultTaskType, defaultDueDate, defaultStatus, openDraftId]);
 
   // Salva rascunho automaticamente enquanto cria um card novo
   useEffect(() => {
     if (!isNew || !form || Object.keys(form).length === 0) return;
     const t = setTimeout(() => {
-      try {
-        const savedAt = new Date().toISOString();
-        localStorage.setItem(DRAFT_KEY, JSON.stringify({ form, savedAt }));
-        setDraftSavedAt(savedAt);
-      } catch { /* ignore */ }
+      const savedAt = saveDraft(draftId, form as Record<string, unknown>);
+      if (savedAt) setDraftSavedAt(savedAt);
     }, 600);
     return () => clearTimeout(t);
-  }, [form, isNew]);
+  }, [form, isNew, draftId]);
 
   const clearDraft = () => {
-    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+    deleteDraft(draftId);
     setDraftSavedAt(null);
     setDraftRestored(false);
+    setDraftId(newDraftId());
   };
+
 
   const discardDraft = () => {
     clearDraft();
