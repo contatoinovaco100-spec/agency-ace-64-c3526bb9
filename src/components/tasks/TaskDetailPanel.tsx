@@ -616,7 +616,9 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                     <TabsTrigger value="caption" className={cn('flex-1 gap-1 text-[10px] sm:text-xs py-1.5', isInvalidField(form.caption) && 'text-destructive border-destructive')}><FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Legenda</TabsTrigger>
                   )}
                   <TabsTrigger value="checklist" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><CheckSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Check</TabsTrigger>
-                  <TabsTrigger value="comments" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><MessageSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Notas ({comments.length})</TabsTrigger>
+                  <TabsTrigger value="alterations" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5 data-[state=active]:text-warning"><AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Alteração ({alterations.length})</TabsTrigger>
+                  <TabsTrigger value="comments" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><MessageSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Notas ({plainComments.length})</TabsTrigger>
+
                   <TabsTrigger value="attachments" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Arq ({attachments.length})</TabsTrigger>
                   <TabsTrigger value="history" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><History className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Hist ({stageHistory.length})</TabsTrigger>
                 </TabsList>
