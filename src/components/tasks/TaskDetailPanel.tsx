@@ -754,9 +754,18 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                       <div key={c.id} className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-semibold text-warning">{c.author}</span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {new Date(c.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date(c.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <button
+                              onClick={() => handleDeleteAlteration(c.id)}
+                              title="Excluir pedido de alteração"
+                              className="text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
                         <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: renderMentions(c.content.replace(ALTERATION_PREFIX, '')) }} />
                       </div>
@@ -773,6 +782,11 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                           <option value="">Selecione seu nome</option>
                           {team.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
                         </select>
+                        <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={alterationTarget} onChange={e => setAlterationTarget(e.target.value)}>
+                          <option value="">Enviar para (responsável pela alteração)</option>
+                          {team.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+                        </select>
+
                         <Textarea
                           placeholder="Descreva a alteração necessária para o editor..."
                           value={newAlteration}
