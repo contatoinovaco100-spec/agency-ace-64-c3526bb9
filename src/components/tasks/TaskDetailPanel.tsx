@@ -725,10 +725,58 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                   )}
                 </TabsContent>
 
+                {/* Alterações */}
+                <TabsContent value="alterations" className="space-y-3 mt-3">
+                  <div className="max-h-[220px] space-y-2 overflow-y-auto">
+                    {alterations.map(c => (
+                      <div key={c.id} className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-semibold text-warning">{c.author}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(c.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: renderMentions(c.content.replace(ALTERATION_PREFIX, '')) }} />
+                      </div>
+                    ))}
+                    {alterations.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma alteração solicitada.</p>}
+                  </div>
+                  {isNew ? (
+                    <p className="text-sm text-muted-foreground">Salve o card para solicitar alterações.</p>
+                  ) : (
+                    <>
+                      <Separator />
+                      <div className="space-y-2">
+                        <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={alterationAuthor} onChange={e => setAlterationAuthor(e.target.value)}>
+                          <option value="">Selecione seu nome</option>
+                          {team.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+                        </select>
+                        <Textarea
+                          placeholder="Descreva a alteração necessária para o editor..."
+                          value={newAlteration}
+                          onChange={e => setNewAlteration(e.target.value)}
+                          rows={3}
+                        />
+                        <Button
+                          className="w-full gap-2"
+                          variant="outline"
+                          onClick={handleAddAlteration}
+                          disabled={!newAlteration.trim() || !alterationAuthor}
+                        >
+                          <AlertTriangle className="h-4 w-4 text-warning" /> Solicitar alteração
+                        </Button>
+                        <p className="text-[11px] text-muted-foreground">
+                          Ao solicitar, o card é movido automaticamente para a etapa <strong>Alteração</strong> e o responsável recebe um alerta sonoro diferente.
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </TabsContent>
+
                 {/* Comments */}
                 <TabsContent value="comments" className="space-y-3 mt-3">
                   <div className="max-h-[200px] space-y-2 overflow-y-auto">
-                    {comments.map(c => (
+                    {plainComments.map(c => (
                       <div key={c.id} className="rounded-md bg-secondary/30 px-3 py-2">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-semibold text-primary">{c.author}</span>
@@ -739,8 +787,9 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                         <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: renderMentions(c.content) }} />
                       </div>
                     ))}
-                    {comments.length === 0 && <p className="text-sm text-muted-foreground">Nenhum comentário.</p>}
+                    {plainComments.length === 0 && <p className="text-sm text-muted-foreground">Nenhum comentário.</p>}
                   </div>
+
                   {isNew ? (
                     <p className="text-sm text-muted-foreground">Salve o card para adicionar notas.</p>
                   ) : (
