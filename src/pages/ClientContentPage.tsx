@@ -314,6 +314,18 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
       {open && (
         <div className="border-t border-border">
           <div className="p-5 space-y-5">
+            {isProximaCaptacao && (
+              <div className="flex items-center gap-3 rounded-xl bg-[#bff720]/10 border border-[#bff720]/30 px-4 py-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#bff720]/20">
+                  <Video className="h-4 w-4 text-[#5a7a00] dark:text-[#bff720]" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-[#5a7a00] dark:text-[#bff720]">Próxima Captação</p>
+                  <p className="text-xs text-[#5a7a00]/80 dark:text-[#bff720]/80">Esse vídeo está na fila para gravação. Fique atento às orientações da equipe Inova.</p>
+                </div>
+              </div>
+            )}
+
             {task.description && (
               <p className="text-sm text-muted-foreground leading-relaxed">{task.description}</p>
             )}
