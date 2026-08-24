@@ -366,8 +366,6 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
 
 
 
-  const styles = statusCardStyles(task.status);
-
   return (
     <div className={cn(
       'group rounded-2xl border overflow-hidden shadow-sm transition-all duration-200',
