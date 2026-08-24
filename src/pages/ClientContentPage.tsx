@@ -9,7 +9,8 @@ import {
   Clapperboard, Calendar, Target, FileText, Link2, MessageSquare,
   Loader2, ChevronDown, ChevronRight, Palette, RefreshCw, Download,
   CheckCircle2, Clock, Play, Instagram, Youtube, ExternalLink, X, ZoomIn,
-  Sparkles, LayoutList, Image as ImageIcon,
+  Sparkles, LayoutList, Image as ImageIcon, Video,
+
 } from 'lucide-react';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import UniversalVideoPlayer from '@/components/UniversalVideoPlayer';
@@ -118,16 +119,23 @@ function platformIcon(platform: string) {
 }
 
 function StatusBadge({ status, isArte }: { status: string; isArte?: boolean }) {
-  const cfg: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
-    'Postado':      { label: 'Postado',      cls: 'bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30',  icon: <CheckCircle2 className="h-3 w-3" /> },
-    'Programado':   { label: 'Programado',   cls: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',      icon: <Calendar className="h-3 w-3" /> },
-    'Finalizado':   { label: isArte ? 'Arte pronta' : 'Finalizado', cls: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30', icon: <Sparkles className="h-3 w-3" /> },
-    'Em revisão':   { label: 'Em revisão',   cls: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30', icon: <Clock className="h-3 w-3" /> },
-    'Revisão':      { label: 'Revisão',      cls: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30', icon: <Clock className="h-3 w-3" /> },
-    'Em andamento': { label: 'Em andamento', cls: 'bg-primary/15 text-primary border-primary/30',                              icon: <Play className="h-3 w-3" /> },
+  const norm = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+
+  const normalizedStatus = norm(status);
+
+  const entries: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
+    'postado':      { label: 'Postado',      cls: 'bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30',  icon: <CheckCircle2 className="h-3 w-3" /> },
+    'programado':   { label: 'Programado',   cls: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',      icon: <Calendar className="h-3 w-3" /> },
+    'finalizado':   { label: isArte ? 'Arte pronta' : 'Finalizado', cls: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30', icon: <Sparkles className="h-3 w-3" /> },
+    'em revisao':   { label: 'Em revisão',   cls: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30', icon: <Clock className="h-3 w-3" /> },
+    'revisao':      { label: 'Revisão',      cls: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30', icon: <Clock className="h-3 w-3" /> },
+    'em andamento': { label: 'Em andamento', cls: 'bg-primary/15 text-primary border-primary/30',                              icon: <Play className="h-3 w-3" /> },
+    'proxima captacao': { label: 'Próxima Captação', cls: 'bg-[#bff720]/20 text-[#5a7a00] dark:text-[#bff720] border-[#bff720]/40', icon: <Video className="h-3 w-3" /> },
     'default':      { label: status,         cls: 'bg-muted text-muted-foreground border-border',                              icon: <LayoutList className="h-3 w-3" /> },
   };
-  const { label, cls, icon } = cfg[status] || cfg['default'];
+  const { label, cls, icon } = entries[normalizedStatus] || entries['default'];
+
   return (
     <span className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', cls)}>
       {icon}{label}
@@ -203,6 +211,8 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
   const videoName = isArte ? (task.title || 'Arte sem título') : (task.video_name || task.title || 'Sem título');
   const isPosted = task.status === 'Postado';
   const isProgramado = task.status === 'Programado';
+  const isProximaCaptacao = task.status === 'Proxima Captação';
+
 
   const displayDate = task.post_date || task.scheduled_date || task.due_date;
   const formattedDate = displayDate
@@ -237,8 +247,11 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
   return (
     <div className={cn(
       'group rounded-2xl border bg-card overflow-hidden shadow-sm transition-all duration-200',
-      isPosted ? 'border-green-500/30 opacity-75' : 'border-border hover:border-primary/30 hover:shadow-md',
-      open && !isPosted && 'border-primary/40 shadow-md ring-1 ring-primary/10'
+      isPosted ? 'border-green-500/30 opacity-75' :
+      isProximaCaptacao ? 'border-[#bff720]/60 bg-[#bff720]/5 shadow-[#bff720]/20 ring-1 ring-[#bff720]/30' :
+      'border-border hover:border-primary/30 hover:shadow-md',
+      open && !isPosted && !isProximaCaptacao && 'border-primary/40 shadow-md ring-1 ring-primary/10',
+      open && isProximaCaptacao && 'border-[#bff720] shadow-lg shadow-[#bff720]/15 ring-2 ring-[#bff720]/40'
     )}>
       {/* Card Header */}
       <button
@@ -249,10 +262,13 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
         <div className={cn(
           'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold',
           isPosted ? 'bg-green-500/15 text-green-600 dark:text-green-400' :
+          isProximaCaptacao ? 'bg-[#bff720]/20 text-[#7a9a00] dark:text-[#bff720] animate-pulse' :
           isArte ? 'bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-600 dark:text-pink-400' :
           'bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary'
         )}>
-          {isPosted ? <CheckCircle2 className="h-5 w-5" /> : `${index + 1}`}
+          {isPosted ? <CheckCircle2 className="h-5 w-5" /> :
+           isProximaCaptacao ? <Video className="h-5 w-5" /> :
+           `${index + 1}`}
         </div>
 
         <div className="flex-1 min-w-0 space-y-2">
@@ -298,6 +314,18 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
       {open && (
         <div className="border-t border-border">
           <div className="p-5 space-y-5">
+            {isProximaCaptacao && (
+              <div className="flex items-center gap-3 rounded-xl bg-[#bff720]/10 border border-[#bff720]/30 px-4 py-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#bff720]/20">
+                  <Video className="h-4 w-4 text-[#5a7a00] dark:text-[#bff720]" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-[#5a7a00] dark:text-[#bff720]">Próxima Captação</p>
+                  <p className="text-xs text-[#5a7a00]/80 dark:text-[#bff720]/80">Esse vídeo está na fila para gravação. Fique atento às orientações da equipe Inova.</p>
+                </div>
+              </div>
+            )}
+
             {task.description && (
               <p className="text-sm text-muted-foreground leading-relaxed">{task.description}</p>
             )}
@@ -582,9 +610,11 @@ export default function ClientContentPage() {
     const isArte = t.task_type === 'Arte';
     if (t.status === 'Concluído') return false;
     if (t.status === 'Postado') return false;
-    if (isArte && t.status !== 'Finalizado' && t.status !== 'Em revisão') return false;
+    if (isArte && t.status !== 'Finalizado' && t.status !== 'Em revisão' && t.status !== 'Revisão') return false;
     // Vídeos aguardando aprovação do cliente sempre aparecem, mesmo com data passada.
     const awaitingApproval = !isArte && (t.status === 'Revisão' || t.status === 'Em revisão' || t.status === 'Finalizado');
+    // Vídeos em "Próxima Captação" aparecem para o cliente se preparar.
+    const isProximaCaptacao = !isArte && t.status === 'Proxima Captação';
     const taskDate = t.post_date || t.scheduled_date || t.due_date;
     if (!taskDate) return true;
     // Compara só a data (YYYY-MM-DD) no fuso local — evita que tarefas com entrega
@@ -592,7 +622,7 @@ export default function ClientContentPage() {
     const dateStr = String(taskDate).slice(0, 10);
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    if (dateStr < todayStr && !isInternal && !isArte && !awaitingApproval) return false;
+    if (dateStr < todayStr && !isInternal && !isArte && !awaitingApproval && !isProximaCaptacao) return false;
     return true;
   });
   const postedTasks = tasks.filter(t => t.status === 'Postado');
