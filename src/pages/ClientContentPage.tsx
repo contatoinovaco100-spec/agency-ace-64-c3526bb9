@@ -217,7 +217,6 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
     { icon: FileText, label: 'Legenda', content: (task as any).caption, copyable: true },
     { icon: FileText, label: 'Descrição', content: task.description },
     { icon: Target, label: 'Objetivo', content: task.video_objective },
-    { icon: FileText, label: 'Ideia do Vídeo', content: task.video_idea },
     { icon: FileText, label: 'Roteiro', content: task.full_script, large: true },
     { icon: Link2, label: 'Referências', content: task.video_references, isLinks: true },
     { icon: Clapperboard, label: 'Direção Criativa', content: task.creative_direction },
