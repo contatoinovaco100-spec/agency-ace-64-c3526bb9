@@ -203,6 +203,29 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
     setNewComment('');
   };
 
+  // Alterações — solicitação de ajuste que move o card para a etapa "Alteração"
+  const handleAddAlteration = async () => {
+    if (!newAlteration.trim() || !alterationAuthor || !task) return;
+    const comment: TaskComment = {
+      id: crypto.randomUUID(),
+      taskId: task.id,
+      author: alterationAuthor,
+      content: `${ALTERATION_PREFIX}${newAlteration.trim()}`,
+      createdAt: new Date().toISOString(),
+    };
+    await addComment(comment);
+    setComments(prev => [...prev, comment]);
+    setNewAlteration('');
+    try {
+      await moveTaskToStage(task.id, ALTERATION_STAGE);
+      setForm(f => ({ ...f, status: ALTERATION_STAGE as any }));
+      toast.warning('Alteração registrada — card movido para "Alteração"');
+    } catch {
+      toast.error('Alteração salva, mas não consegui mover o card.');
+    }
+  };
+
+
   // Attachments
   // Nomes de arquivo com acentos, espaços, emojis ou caracteres especiais quebravam
   // o upload (InvalidKey no Storage). Aqui o nome é normalizado para a chave, mas o
