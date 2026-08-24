@@ -582,9 +582,11 @@ export default function ClientContentPage() {
     const isArte = t.task_type === 'Arte';
     if (t.status === 'Concluído') return false;
     if (t.status === 'Postado') return false;
-    if (isArte && t.status !== 'Finalizado' && t.status !== 'Em revisão') return false;
+    if (isArte && t.status !== 'Finalizado' && t.status !== 'Em revisão' && t.status !== 'Revisão') return false;
     // Vídeos aguardando aprovação do cliente sempre aparecem, mesmo com data passada.
     const awaitingApproval = !isArte && (t.status === 'Revisão' || t.status === 'Em revisão' || t.status === 'Finalizado');
+    // Vídeos em "Próxima Captação" aparecem para o cliente se preparar.
+    const isProximaCaptacao = !isArte && t.status === 'Proxima Captação';
     const taskDate = t.post_date || t.scheduled_date || t.due_date;
     if (!taskDate) return true;
     // Compara só a data (YYYY-MM-DD) no fuso local — evita que tarefas com entrega
@@ -592,7 +594,7 @@ export default function ClientContentPage() {
     const dateStr = String(taskDate).slice(0, 10);
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    if (dateStr < todayStr && !isInternal && !isArte && !awaitingApproval) return false;
+    if (dateStr < todayStr && !isInternal && !isArte && !awaitingApproval && !isProximaCaptacao) return false;
     return true;
   });
   const postedTasks = tasks.filter(t => t.status === 'Postado');
