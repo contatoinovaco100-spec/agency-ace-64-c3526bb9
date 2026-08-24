@@ -278,11 +278,7 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
           <div className="flex flex-wrap items-center gap-1.5">
             <StatusBadge status={task.status} isArte={isArte} />
 
-            {isProximaCaptacao && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#bff720]/20 border border-[#bff720]/40 px-2.5 py-0.5 text-[11px] font-bold text-[#5a7a00] dark:text-[#bff720]">
-                <Video className="h-3 w-3" /> Próxima Captação
-              </span>
-            )}
+
 
 
             {task.platform && (
