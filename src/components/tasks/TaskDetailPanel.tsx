@@ -168,11 +168,11 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
       { label: 'Data de postagem', value: form.postDate },
       { label: 'Hora de postagem', value: form.postTime },
       { label: 'Legenda', value: form.caption },
+      { label: 'Roteiro', value: form.fullScript },
       ...(isArte ? [] : [
         { label: 'Plataforma', value: form.platform },
         { label: 'Formato', value: form.format },
         { label: 'Objetivo', value: form.videoObjective },
-        { label: 'Roteiro', value: form.fullScript },
         { label: 'Referências', value: form.videoReferences },
       ]),
     ];
@@ -497,6 +497,29 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
             </div>
           </div>
 
+          {/* ── Common content fields: Roteiro + Legenda ── */}
+          <div className="space-y-4">
+            <div>
+              <Label className={cn("text-xs", labelClass(form.fullScript))}>Roteiro</Label>
+              <Textarea
+                value={form.fullScript || ''}
+                onChange={e => setForm({ ...form, fullScript: e.target.value })}
+                placeholder="Cole o roteiro completo aqui..."
+                className={cn('mt-1 min-h-[220px] resize-y text-sm leading-relaxed', fieldClass(form.fullScript))}
+              />
+            </div>
+            <div>
+              <Label className={cn("text-xs", labelClass(form.caption))}>Legenda</Label>
+              <Textarea
+                rows={3}
+                value={form.caption || ''}
+                onChange={e => setForm({ ...form, caption: e.target.value })}
+                placeholder="Legenda do post..."
+                className={cn('mt-1', fieldClass(form.caption))}
+              />
+            </div>
+          </div>
+
           {form.taskType !== 'Arte' && (<>
           <Separator />
 
@@ -566,16 +589,8 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
               </div>
             </div>
             <div>
-              <Label className={cn("text-xs", labelClass(form.fullScript))}>Roteiro</Label>
-              <Textarea rows={3} value={form.fullScript || ''} onChange={e => setForm({ ...form, fullScript: e.target.value })} placeholder="Cole o roteiro aqui..." className={cn('mt-1', fieldClass(form.fullScript))} />
-            </div>
-            <div>
               <Label className={cn("text-xs", labelClass(form.videoReferences))}>Referências (links)</Label>
               <Textarea rows={2} value={form.videoReferences || ''} onChange={e => setForm({ ...form, videoReferences: e.target.value })} placeholder="Links de referência..." className={cn('mt-1', fieldClass(form.videoReferences))} />
-            </div>
-            <div>
-              <Label className={cn("text-xs", labelClass(form.caption))}>Legenda</Label>
-              <Textarea rows={2} value={form.caption || ''} onChange={e => setForm({ ...form, caption: e.target.value })} placeholder="Legenda do post..." className={cn('mt-1', fieldClass(form.caption))} />
             </div>
 
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
