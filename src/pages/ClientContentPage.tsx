@@ -98,6 +98,9 @@ interface TaskData {
   strategic_notes: string;
   video_url?: string | null;
   task_type?: string | null;
+  caption?: string | null;
+  recording_notes?: string | null;
+
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
