@@ -168,11 +168,11 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
       { label: 'Data de postagem', value: form.postDate },
       { label: 'Hora de postagem', value: form.postTime },
       { label: 'Legenda', value: form.caption },
+      { label: 'Roteiro', value: form.fullScript },
       ...(isArte ? [] : [
         { label: 'Plataforma', value: form.platform },
         { label: 'Formato', value: form.format },
         { label: 'Objetivo', value: form.videoObjective },
-        { label: 'Roteiro', value: form.fullScript },
         { label: 'Referências', value: form.videoReferences },
       ]),
     ];
