@@ -515,11 +515,15 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
             <div>
               <Label className={cn("text-xs", labelClass(form.fullScript))}>Roteiro</Label>
               <Textarea
+                ref={scriptRef}
                 value={form.fullScript || ''}
-                onChange={e => setForm({ ...form, fullScript: e.target.value })}
+                onChange={e => {
+                  setForm({ ...form, fullScript: e.target.value });
+                  requestAnimationFrame(adjustScriptHeight);
+                }}
                 placeholder="Cole o roteiro completo aqui..."
                 className={cn(
-                  'mt-1 min-h-[260px] resize-y text-sm leading-relaxed',
+                  'mt-1 min-h-[260px] max-h-[70vh] resize-y overflow-hidden text-sm leading-relaxed',
                   form.taskType === 'Arte' && 'min-h-[420px]',
                   fieldClass(form.fullScript)
                 )}
