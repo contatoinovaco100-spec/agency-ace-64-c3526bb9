@@ -219,6 +219,15 @@ export default function VideoSchedulePage() {
     setWeekStart(getMonday(d));
   };
 
+  const summary = useMemo(() => {
+    const videos = entries.filter(e => (e.board ?? 'video') === 'video').length;
+    const artes = entries.filter(e => (e.board ?? 'video') === 'arte').length;
+    const clientIds = Array.from(new Set(entries.map(e => e.client_id).filter(Boolean) as string[]));
+    const alteracao = clientIds.filter(id => clientVideoState.get(id) === 'alteracao').length;
+    const semEdicao = clientIds.filter(id => clientVideoState.get(id) === 'sem-edicao').length;
+    return { videos, artes, alteracao, semEdicao };
+  }, [entries, clientVideoState]);
+
   const getClientName = (id: string | null) =>
     id ? clients.find(c => c.id === id)?.companyName || '—' : '';
 
