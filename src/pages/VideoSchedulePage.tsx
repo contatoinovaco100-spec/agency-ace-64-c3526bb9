@@ -46,6 +46,18 @@ function fmtBR(d: Date): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
+const normalizeClientName = (value: string) => value
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, ' ')
+  .trim();
+
+const IGNORED_NAME_WORDS = new Set([
+  'da', 'de', 'do', 'das', 'dos', 'e', 'ltda', 'me', 'empresa', 'clinica',
+  'barbearia', 'veterinaria', 'instituto', 'auto', 'escola',
+]);
+
 export default function VideoSchedulePage() {
   const { clients, tasks } = useAgency();
   const { toast } = useToast();
@@ -68,13 +80,44 @@ export default function VideoSchedulePage() {
     [clients],
   );
 
+  // A agenda antiga foi cadastrada com rótulos livres. Resolve esses rótulos para
+  // o cadastro real do cliente para consultar corretamente os status das tarefas.
+  const resolveEntryClientId = useMemo(() => {
+    const normalizedClients = clients.map(client => ({
+      id: client.id,
+      normalized: normalizeClientName(client.companyName),
+      words: normalizeClientName(client.companyName)
+        .split(' ')
+        .filter(word => word.length >= 3 && !IGNORED_NAME_WORDS.has(word)),
+    }));
+
+    return (entry: ScheduleEntry): string | null => {
+      if (entry.client_id) return entry.client_id;
+      const label = normalizeClientName(entry.custom_label ?? '');
+      if (!label) return null;
+
+      const directMatches = normalizedClients.filter(client =>
+        client.normalized.includes(label) || label.includes(client.normalized),
+      );
+      if (directMatches.length === 1) return directMatches[0].id;
+
+      const labelWords = label
+        .split(' ')
+        .filter(word => word.length >= 3 && !IGNORED_NAME_WORDS.has(word));
+      const tokenMatches = normalizedClients.filter(client =>
+        labelWords.length > 0 && labelWords.every(word => client.words.includes(word)),
+      );
+      return tokenMatches.length === 1 ? tokenMatches[0].id : null;
+    };
+  }, [clients]);
+
   // Situação do cliente com base nas tarefas de vídeo:
   // 'alteracao' (amarelo) quando existe vídeo em alteração,
   // 'sem-edicao' (vermelho) quando não há nenhum vídeo em edição.
   const clientVideoState = useMemo(() => {
     const map = new Map<string, 'ok' | 'alteracao' | 'sem-edicao'>();
     for (const c of clients) {
-      const clientTasks = tasks.filter(t => t.clientId === c.id && t.taskType !== 'Arte');
+      const clientTasks = tasks.filter(t => t.clientId === c.id && t.taskType === 'Produção de Vídeo');
       const hasAlteracao = clientTasks.some(t => String(t.status).toLowerCase().includes('altera'));
       const hasEdicao = clientTasks.some(t => String(t.status).toLowerCase().includes('edição') || String(t.status).toLowerCase().includes('edicao'));
       map.set(c.id, hasAlteracao ? 'alteracao' : hasEdicao ? 'ok' : 'sem-edicao');
@@ -222,11 +265,16 @@ export default function VideoSchedulePage() {
   const summary = useMemo(() => {
     const videos = entries.filter(e => (e.board ?? 'video') === 'video').length;
     const artes = entries.filter(e => (e.board ?? 'video') === 'arte').length;
-    const clientIds = Array.from(new Set(entries.map(e => e.client_id).filter(Boolean) as string[]));
+    const clientIds = Array.from(new Set(
+      entries
+        .filter(e => (e.board ?? 'video') === 'video')
+        .map(resolveEntryClientId)
+        .filter((id): id is string => Boolean(id)),
+    ));
     const alteracao = clientIds.filter(id => clientVideoState.get(id) === 'alteracao').length;
     const semEdicao = clientIds.filter(id => clientVideoState.get(id) === 'sem-edicao').length;
     return { videos, artes, alteracao, semEdicao };
-  }, [entries, clientVideoState]);
+  }, [entries, clientVideoState, resolveEntryClientId]);
 
   const getClientName = (id: string | null) =>
     id ? clients.find(c => c.id === id)?.companyName || '—' : '';
@@ -288,7 +336,9 @@ export default function VideoSchedulePage() {
                   {board === 'arte' ? 'Sem artes' : 'Sem vídeos'}
                 </p>
               )}
-              {dayEntries.map(entry => (
+              {dayEntries.map(entry => {
+                const resolvedClientId = resolveEntryClientId(entry);
+                return (
                 <div
                   key={entry.id}
                   draggable={isAdmin}
@@ -301,8 +351,8 @@ export default function VideoSchedulePage() {
                   <div className="min-w-0 flex-1">
                     <p className={cn(
                       'font-medium truncate uppercase',
-                      entry.client_id && clientVideoState.get(entry.client_id) === 'sem-edicao' && 'text-red-400',
-                      entry.client_id && clientVideoState.get(entry.client_id) === 'alteracao' && 'text-yellow-400',
+                      board === 'video' && resolvedClientId && clientVideoState.get(resolvedClientId) === 'sem-edicao' && 'text-red-400',
+                      board === 'video' && resolvedClientId && clientVideoState.get(resolvedClientId) === 'alteracao' && 'text-yellow-400',
                     )}>
                       {entry.client_id ? getClientName(entry.client_id) : entry.custom_label}
                     </p>
@@ -320,7 +370,8 @@ export default function VideoSchedulePage() {
                     </button>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
         );
