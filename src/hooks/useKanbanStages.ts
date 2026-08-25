@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export type KanbanBoard = 'tasks' | 'crm' | 'artes';
+export type KanbanBoard = 'tasks' | 'crm' | 'artes' | 'pre';
 
 export interface KanbanStage {
   id: string;
