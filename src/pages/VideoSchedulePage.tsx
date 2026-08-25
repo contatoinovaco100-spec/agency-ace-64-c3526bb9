@@ -346,8 +346,34 @@ export default function VideoSchedulePage() {
           <Button variant="ghost" size="sm" onClick={() => setWeekStart(getMonday(new Date()))}>
             Hoje
           </Button>
+          {isAdmin && (
+            <Button variant="outline" size="sm" onClick={copyPreviousWeek} disabled={copying}>
+              {copying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+              <span className="ml-1 hidden sm:inline">Copiar semana anterior</span>
+            </Button>
+          )}
         </div>
       </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="p-3">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Vídeos na semana</p>
+          <p className="text-2xl font-bold text-primary">{summary.videos}</p>
+        </Card>
+        <Card className="p-3">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Artes na semana</p>
+          <p className="text-2xl font-bold text-purple-400">{summary.artes}</p>
+        </Card>
+        <Card className="p-3 border-yellow-500/40">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Com alteração</p>
+          <p className="text-2xl font-bold text-yellow-400">{summary.alteracao}</p>
+        </Card>
+        <Card className="p-3 border-red-500/40">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sem vídeo em edição</p>
+          <p className="text-2xl font-bold text-red-400">{summary.semEdicao}</p>
+        </Card>
+      </div>
+
 
       {loading ? (
         <div className="flex justify-center py-16">
