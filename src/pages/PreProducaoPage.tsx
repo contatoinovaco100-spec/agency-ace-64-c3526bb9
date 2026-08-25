@@ -71,10 +71,10 @@ export default function PreProducaoPage() {
     [stageNames, byStage],
   );
 
-  /** Ao finalizar a decupagem, o card do kanban principal vai para "Em Edição". */
+  /** Ao finalizar a decupagem, o card do kanban principal vai para "Em edição". */
   const withMainStatus = (task: Task, stage: string): Task => {
-    if (stage === 'Finalizado' && task.status !== 'Em Edição') {
-      return { ...task, preStage: stage, status: 'Em Edição' };
+    if (stage === 'Finalizado' && task.status !== 'Em edição') {
+      return { ...task, preStage: stage, status: 'Em edição' };
     }
     return { ...task, preStage: stage };
   };
@@ -85,7 +85,7 @@ export default function PreProducaoPage() {
       await updateTask(withMainStatus(task, stage));
       toast.success(
         stage === 'Finalizado'
-          ? 'Decupagem finalizada — card enviado para Em Edição no kanban'
+          ? 'Decupagem finalizada — card enviado para Em edição no kanban'
           : `Movido para ${stage}`,
       );
     } catch {
