@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, Trash2, Loader2, Palette, Video, Lock } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, Trash2, Loader2, Palette, Video, Lock, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -47,13 +47,14 @@ function fmtBR(d: Date): string {
 }
 
 export default function VideoSchedulePage() {
-  const { clients } = useAgency();
+  const { clients, tasks } = useAgency();
   const { toast } = useToast();
   const { isAdmin } = useUserRole();
   const [weekStart, setWeekStart] = useState<Date>(getMonday(new Date()));
   const [entries, setEntries] = useState<ScheduleEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [copying, setCopying] = useState(false);
   const [dialogDay, setDialogDay] = useState<number | null>(null);
   const [dialogBoard, setDialogBoard] = useState<BoardKind>('video');
   const [selectedClientId, setSelectedClientId] = useState<string>('');
@@ -66,6 +67,20 @@ export default function VideoSchedulePage() {
     () => clients.filter(c => c.status !== 'Cancelado').sort((a, b) => a.companyName.localeCompare(b.companyName)),
     [clients],
   );
+
+  // Situação do cliente com base nas tarefas de vídeo:
+  // 'alteracao' (amarelo) quando existe vídeo em alteração,
+  // 'sem-edicao' (vermelho) quando não há nenhum vídeo em edição.
+  const clientVideoState = useMemo(() => {
+    const map = new Map<string, 'ok' | 'alteracao' | 'sem-edicao'>();
+    for (const c of clients) {
+      const clientTasks = tasks.filter(t => t.clientId === c.id && t.taskType !== 'Arte');
+      const hasAlteracao = clientTasks.some(t => String(t.status).toLowerCase().includes('altera'));
+      const hasEdicao = clientTasks.some(t => String(t.status).toLowerCase().includes('edição') || String(t.status).toLowerCase().includes('edicao'));
+      map.set(c.id, hasAlteracao ? 'alteracao' : hasEdicao ? 'ok' : 'sem-edicao');
+    }
+    return map;
+  }, [clients, tasks]);
 
   const load = async () => {
     setLoading(true);
@@ -154,11 +169,64 @@ export default function VideoSchedulePage() {
     }
   };
 
+  const copyPreviousWeek = async () => {
+    const prevMonday = new Date(weekStart);
+    prevMonday.setDate(prevMonday.getDate() - 7);
+    const prevISO = fmtISO(prevMonday);
+    setCopying(true);
+    const { data, error } = await (supabase as any)
+      .from('video_schedule')
+      .select('*')
+      .eq('week_start', prevISO);
+    if (error) {
+      setCopying(false);
+      toast({ title: 'Erro ao buscar semana anterior', description: error.message, variant: 'destructive' });
+      return;
+    }
+    const rows = (data as ScheduleEntry[]) || [];
+    if (rows.length === 0) {
+      setCopying(false);
+      toast({ title: 'Semana anterior está vazia', variant: 'destructive' });
+      return;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    const payload = rows.map(r => ({
+      week_start: weekStartISO,
+      day_of_week: r.day_of_week,
+      board: r.board ?? 'video',
+      position: r.position,
+      client_id: r.client_id,
+      custom_label: r.custom_label,
+      note: r.note,
+      created_by: user?.id ?? null,
+    }));
+    const { data: inserted, error: insErr } = await (supabase as any)
+      .from('video_schedule')
+      .insert(payload)
+      .select();
+    setCopying(false);
+    if (insErr) {
+      toast({ title: 'Erro ao copiar', description: insErr.message, variant: 'destructive' });
+      return;
+    }
+    setEntries(prev => [...prev, ...((inserted as ScheduleEntry[]) || [])]);
+    toast({ title: `${payload.length} itens copiados da semana anterior` });
+  };
+
   const shiftWeek = (delta: number) => {
     const d = new Date(weekStart);
     d.setDate(d.getDate() + delta * 7);
     setWeekStart(getMonday(d));
   };
+
+  const summary = useMemo(() => {
+    const videos = entries.filter(e => (e.board ?? 'video') === 'video').length;
+    const artes = entries.filter(e => (e.board ?? 'video') === 'arte').length;
+    const clientIds = Array.from(new Set(entries.map(e => e.client_id).filter(Boolean) as string[]));
+    const alteracao = clientIds.filter(id => clientVideoState.get(id) === 'alteracao').length;
+    const semEdicao = clientIds.filter(id => clientVideoState.get(id) === 'sem-edicao').length;
+    return { videos, artes, alteracao, semEdicao };
+  }, [entries, clientVideoState]);
 
   const getClientName = (id: string | null) =>
     id ? clients.find(c => c.id === id)?.companyName || '—' : '';
@@ -231,7 +299,11 @@ export default function VideoSchedulePage() {
                   )}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate uppercase">
+                    <p className={cn(
+                      'font-medium truncate uppercase',
+                      entry.client_id && clientVideoState.get(entry.client_id) === 'sem-edicao' && 'text-red-400',
+                      entry.client_id && clientVideoState.get(entry.client_id) === 'alteracao' && 'text-yellow-400',
+                    )}>
                       {entry.client_id ? getClientName(entry.client_id) : entry.custom_label}
                     </p>
                     {entry.note && (
@@ -283,8 +355,34 @@ export default function VideoSchedulePage() {
           <Button variant="ghost" size="sm" onClick={() => setWeekStart(getMonday(new Date()))}>
             Hoje
           </Button>
+          {isAdmin && (
+            <Button variant="outline" size="sm" onClick={copyPreviousWeek} disabled={copying}>
+              {copying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+              <span className="ml-1 hidden sm:inline">Copiar semana anterior</span>
+            </Button>
+          )}
         </div>
       </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="p-3">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Vídeos na semana</p>
+          <p className="text-2xl font-bold text-primary">{summary.videos}</p>
+        </Card>
+        <Card className="p-3">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Artes na semana</p>
+          <p className="text-2xl font-bold text-purple-400">{summary.artes}</p>
+        </Card>
+        <Card className="p-3 border-yellow-500/40">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Com alteração</p>
+          <p className="text-2xl font-bold text-yellow-400">{summary.alteracao}</p>
+        </Card>
+        <Card className="p-3 border-red-500/40">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sem vídeo em edição</p>
+          <p className="text-2xl font-bold text-red-400">{summary.semEdicao}</p>
+        </Card>
+      </div>
+
 
       {loading ? (
         <div className="flex justify-center py-16">
