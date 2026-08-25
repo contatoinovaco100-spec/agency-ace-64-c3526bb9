@@ -3695,6 +3695,7 @@ export type Database = {
       }
       video_schedule: {
         Row: {
+          board: string
           client_id: string | null
           created_at: string
           created_by: string | null
@@ -3707,6 +3708,7 @@ export type Database = {
           week_start: string
         }
         Insert: {
+          board?: string
           client_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -3719,6 +3721,7 @@ export type Database = {
           week_start: string
         }
         Update: {
+          board?: string
           client_id?: string | null
           created_at?: string
           created_by?: string | null
