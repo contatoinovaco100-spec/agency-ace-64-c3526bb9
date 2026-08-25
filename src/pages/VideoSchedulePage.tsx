@@ -290,7 +290,11 @@ export default function VideoSchedulePage() {
                   )}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate uppercase">
+                    <p className={cn(
+                      'font-medium truncate uppercase',
+                      entry.client_id && clientVideoState.get(entry.client_id) === 'sem-edicao' && 'text-red-400',
+                      entry.client_id && clientVideoState.get(entry.client_id) === 'alteracao' && 'text-yellow-400',
+                    )}>
                       {entry.client_id ? getClientName(entry.client_id) : entry.custom_label}
                     </p>
                     {entry.note && (
