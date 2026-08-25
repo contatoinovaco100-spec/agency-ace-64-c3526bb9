@@ -71,11 +71,23 @@ export default function PreProducaoPage() {
     [stageNames, byStage],
   );
 
+  /** Ao finalizar a decupagem, o card do kanban principal vai para "Em Edição". */
+  const withMainStatus = (task: Task, stage: string): Task => {
+    if (stage === 'Finalizado' && task.status !== 'Em Edição') {
+      return { ...task, preStage: stage, status: 'Em Edição' };
+    }
+    return { ...task, preStage: stage };
+  };
+
   const moveTo = async (task: Task, stage: string) => {
     if ((task.preStage || firstStage) === stage) return;
     try {
-      await updateTask({ ...task, preStage: stage });
-      toast.success(`Movido para ${stage}`);
+      await updateTask(withMainStatus(task, stage));
+      toast.success(
+        stage === 'Finalizado'
+          ? 'Decupagem finalizada — card enviado para Em Edição no kanban'
+          : `Movido para ${stage}`,
+      );
     } catch {
       toast.error('Não foi possível mover o card.');
     }
@@ -90,7 +102,8 @@ export default function PreProducaoPage() {
     if (!selected) return;
     setSaving(true);
     try {
-      await updateTask({ ...selected, ...form } as Task);
+      const merged = { ...selected, ...form } as Task;
+      await updateTask(withMainStatus(merged, merged.preStage || firstStage));
       toast.success('Card atualizado');
       setSelected(null);
     } catch {
@@ -98,6 +111,7 @@ export default function PreProducaoPage() {
     } finally {
       setSaving(false);
     }
+
   };
 
   return (
