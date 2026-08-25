@@ -286,6 +286,10 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     raw_footage_url: t.rawFootageUrl || null,
     post_date: t.postDate || null, post_time: t.postTime || null,
     caption: t.caption || null,
+    pre_stage: t.preStage || null,
+    decupador: t.decupador || null,
+    decupagem_notes: t.decupagemNotes || null,
+    cuts_url: t.cutsUrl || null,
   });
 
   const addClient = async (c: Client) => {
