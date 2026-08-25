@@ -47,7 +47,7 @@ function fmtBR(d: Date): string {
 }
 
 export default function VideoSchedulePage() {
-  const { clients } = useAgency();
+  const { clients, tasks } = useAgency();
   const { toast } = useToast();
   const { isAdmin } = useUserRole();
   const [weekStart, setWeekStart] = useState<Date>(getMonday(new Date()));
