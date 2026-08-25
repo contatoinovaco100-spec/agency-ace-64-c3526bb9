@@ -67,6 +67,20 @@ export default function VideoSchedulePage() {
     [clients],
   );
 
+  // Situação do cliente com base nas tarefas de vídeo:
+  // 'alteracao' (amarelo) quando existe vídeo em alteração,
+  // 'sem-edicao' (vermelho) quando não há nenhum vídeo em edição.
+  const clientVideoState = useMemo(() => {
+    const map = new Map<string, 'ok' | 'alteracao' | 'sem-edicao'>();
+    for (const c of clients) {
+      const clientTasks = tasks.filter(t => t.clientId === c.id && t.taskType !== 'Arte');
+      const hasAlteracao = clientTasks.some(t => String(t.status).toLowerCase().includes('altera'));
+      const hasEdicao = clientTasks.some(t => String(t.status).toLowerCase().includes('edição') || String(t.status).toLowerCase().includes('edicao'));
+      map.set(c.id, hasAlteracao ? 'alteracao' : hasEdicao ? 'ok' : 'sem-edicao');
+    }
+    return map;
+  }, [clients, tasks]);
+
   const load = async () => {
     setLoading(true);
     const { data, error } = await (supabase as any)
