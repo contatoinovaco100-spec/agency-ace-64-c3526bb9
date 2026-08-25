@@ -94,6 +94,11 @@ export interface Task {
   approvedAt?: string;
   // Soft delete
   deletedAt?: string | null;
+  // Pré-produção (decupagem)
+  preStage?: string;
+  decupador?: string;
+  decupagemNotes?: string;
+  cutsUrl?: string;
 }
 
 export interface TaskChecklistItem {

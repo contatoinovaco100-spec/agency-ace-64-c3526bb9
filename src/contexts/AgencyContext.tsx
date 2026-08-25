@@ -93,6 +93,10 @@ function rowToTask(row: any): Task {
     copywriter: row.copywriter || '', director: row.director || '', videomaker: row.videomaker || '',
     videoUrl: row.video_url || '',
     rawFootageUrl: row.raw_footage_url || '',
+    preStage: (row as any).pre_stage || '',
+    decupador: (row as any).decupador || '',
+    decupagemNotes: (row as any).decupagem_notes || '',
+    cutsUrl: (row as any).cuts_url || '',
     caption: (row as any).caption || '',
     postDate: row.post_date || '', postTime: row.post_time || '',
     approvedByClient: row.approved_by_client || false,
@@ -282,6 +286,10 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     raw_footage_url: t.rawFootageUrl || null,
     post_date: t.postDate || null, post_time: t.postTime || null,
     caption: t.caption || null,
+    pre_stage: t.preStage || null,
+    decupador: t.decupador || null,
+    decupagem_notes: t.decupagemNotes || null,
+    cuts_url: t.cutsUrl || null,
   });
 
   const addClient = async (c: Client) => {

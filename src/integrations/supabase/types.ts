@@ -3455,6 +3455,9 @@ export type Database = {
           created_at: string
           creative_direction: string
           current_stage_owner: string
+          cuts_url: string | null
+          decupador: string | null
+          decupagem_notes: string | null
           deleted_at: string | null
           description: string
           director: string
@@ -3469,6 +3472,7 @@ export type Database = {
           platform: string
           post_date: string | null
           post_time: string | null
+          pre_stage: string | null
           priority: string
           raw_footage_url: string | null
           recording_notes: string
@@ -3493,6 +3497,9 @@ export type Database = {
           created_at?: string
           creative_direction?: string
           current_stage_owner?: string
+          cuts_url?: string | null
+          decupador?: string | null
+          decupagem_notes?: string | null
           deleted_at?: string | null
           description?: string
           director?: string
@@ -3507,6 +3514,7 @@ export type Database = {
           platform?: string
           post_date?: string | null
           post_time?: string | null
+          pre_stage?: string | null
           priority?: string
           raw_footage_url?: string | null
           recording_notes?: string
@@ -3531,6 +3539,9 @@ export type Database = {
           created_at?: string
           creative_direction?: string
           current_stage_owner?: string
+          cuts_url?: string | null
+          decupador?: string | null
+          decupagem_notes?: string | null
           deleted_at?: string | null
           description?: string
           director?: string
@@ -3545,6 +3556,7 @@ export type Database = {
           platform?: string
           post_date?: string | null
           post_time?: string | null
+          pre_stage?: string | null
           priority?: string
           raw_footage_url?: string | null
           recording_notes?: string
@@ -4016,6 +4028,9 @@ export type Database = {
           created_at: string
           creative_direction: string
           current_stage_owner: string
+          cuts_url: string | null
+          decupador: string | null
+          decupagem_notes: string | null
           deleted_at: string | null
           description: string
           director: string
@@ -4030,6 +4045,7 @@ export type Database = {
           platform: string
           post_date: string | null
           post_time: string | null
+          pre_stage: string | null
           priority: string
           raw_footage_url: string | null
           recording_notes: string

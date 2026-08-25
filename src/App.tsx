@@ -49,6 +49,7 @@ const TasksPage            = lazy(() => import("./pages/TasksPage"));
 const ArtesPage            = lazy(() => import("./pages/ArtesPage"));
 const VideosFinalizadosPage = lazy(() => import("./pages/VideosFinalizadosPage"));
 const VideoSchedulePage    = lazy(() => import("./pages/VideoSchedulePage"));
+const PreProducaoPage      = lazy(() => import("./pages/PreProducaoPage"));
 const VideoEditorPage      = lazy(() => import("./pages/VideoEditorPage"));
 const ThreadsPublishPage   = lazy(() => import("./pages/ThreadsPublishPage"));
 const PublicArtesPage      = lazy(() => import("./pages/PublicArtesPage"));
@@ -240,6 +241,7 @@ function AppRoutes() {
                     <Route path="/artes"               element={<ArtesPage />} />
                     <Route path="/videos-finalizados"  element={<VideosFinalizadosPage />} />
                     <Route path="/agenda-videos"       element={<VideoSchedulePage />} />
+                    <Route path="/pre-producao"        element={<PreProducaoPage />} />
                     <Route path="/editor-video"        element={<VideoEditorPage />} />
                     <Route path="/publicar-threads"     element={<ThreadsPublishPage />} />
                     <Route path="/equipe"              element={<TeamPage />} />

@@ -78,6 +78,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/artes',               label: 'Artes Estáticas',     icon: Palette,         category: 'Operacional' },
   { path: '/videos-finalizados',  label: 'Vídeos Finalizados',  icon: Play,            category: 'Operacional' },
   { path: '/agenda-videos',       label: 'Agenda de Vídeos',    icon: CalendarDays,    category: 'Operacional' },
+  { path: '/pre-producao',        label: 'Pré-Produção',        icon: Scissors,        category: 'Operacional' },
   { path: '/editor-video',        label: 'Editor de Vídeo',     icon: Scissors,        category: 'Operacional' },
   { path: '/escopos',             label: 'Escopo do Cliente',   icon: ListChecks,      category: 'Operacional' },
   { path: '/nota-cliente',        label: 'Nota do Cliente',     icon: Gauge,           category: 'Operacional' },

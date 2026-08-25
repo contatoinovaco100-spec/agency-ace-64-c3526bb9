@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export type KanbanBoard = 'tasks' | 'crm' | 'artes';
+export type KanbanBoard = 'tasks' | 'crm' | 'artes' | 'pre';
 
 export interface KanbanStage {
   id: string;
@@ -32,6 +32,14 @@ const FALLBACKS: Record<KanbanBoard, Omit<KanbanStage, 'id'>[]> = {
     { board: 'artes', name: 'Revisão',          position: 4, color: 'destructive', is_system: false },
     { board: 'artes', name: 'Finalizado',       position: 5, color: 'success',     is_system: true },
     { board: 'artes', name: 'Concluído',        position: 6, color: 'muted',       is_system: true },
+  ],
+  pre: [
+    { board: 'pre', name: 'Material Bruto Recebido', position: 0, color: 'muted',       is_system: false },
+    { board: 'pre', name: 'Em Decupagem',            position: 1, color: 'warning',     is_system: false },
+    { board: 'pre', name: 'Cortes Prontos',          position: 2, color: 'info',        is_system: false },
+    { board: 'pre', name: 'Em Edição',               position: 3, color: 'accent',      is_system: false },
+    { board: 'pre', name: 'Revisão',                 position: 4, color: 'destructive', is_system: false },
+    { board: 'pre', name: 'Finalizado',              position: 5, color: 'success',     is_system: true },
   ],
   crm: [
     { board: 'crm', name: 'Lead novo',         position: 0, color: 'info',        is_system: false },
