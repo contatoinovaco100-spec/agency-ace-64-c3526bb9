@@ -28,7 +28,13 @@ As etapas ficam editáveis pelo admin na tela de Etapas do Kanban, igual aos out
 
 ## Visão do card
 
-Abre o mesmo painel de detalhes já usado hoje (Roteiro, Referências, Alteração, Legenda, Vídeo), com um bloco novo de **Decupagem**: link da pasta bruta, marcações de tempo / melhores trechos e observações do decupador para o editor.
+Abre o mesmo painel de detalhes já usado hoje. O decupador vê logo no topo, sem precisar procurar:
+
+- **Link da pasta do Drive** com o material bruto (botão para abrir direto).
+- **Referências** do vídeo.
+- **Roteiro** completo, em campo grande para leitura.
+
+Abaixo, um bloco novo de **Decupagem**: marcações de tempo / melhores trechos, link dos cortes prontos e observações do decupador para o editor.
 
 ## Sumário no topo
 
