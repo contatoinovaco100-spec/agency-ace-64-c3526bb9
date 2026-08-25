@@ -21,6 +21,7 @@ const BOARDS: { value: KanbanBoard; label: string }[] = [
   { value: 'tasks', label: 'Tarefas' },
   { value: 'crm',   label: 'CRM' },
   { value: 'artes', label: 'Artes' },
+  { value: 'pre',   label: 'Pré-Produção' },
 ];
 
 function BoardEditor({ board }: { board: KanbanBoard }) {
