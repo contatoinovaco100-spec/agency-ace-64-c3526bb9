@@ -117,7 +117,7 @@ export default function VideoSchedulePage() {
   const clientVideoState = useMemo(() => {
     const map = new Map<string, 'ok' | 'alteracao' | 'sem-edicao'>();
     for (const c of clients) {
-      const clientTasks = tasks.filter(t => t.clientId === c.id && t.taskType !== 'Arte');
+      const clientTasks = tasks.filter(t => t.clientId === c.id && t.taskType === 'Produção de Vídeo');
       const hasAlteracao = clientTasks.some(t => String(t.status).toLowerCase().includes('altera'));
       const hasEdicao = clientTasks.some(t => String(t.status).toLowerCase().includes('edição') || String(t.status).toLowerCase().includes('edicao'));
       map.set(c.id, hasAlteracao ? 'alteracao' : hasEdicao ? 'ok' : 'sem-edicao');
@@ -351,8 +351,8 @@ export default function VideoSchedulePage() {
                   <div className="min-w-0 flex-1">
                     <p className={cn(
                       'font-medium truncate uppercase',
-                      resolvedClientId && clientVideoState.get(resolvedClientId) === 'sem-edicao' && 'text-red-400',
-                      resolvedClientId && clientVideoState.get(resolvedClientId) === 'alteracao' && 'text-yellow-400',
+                      board === 'video' && resolvedClientId && clientVideoState.get(resolvedClientId) === 'sem-edicao' && 'text-red-400',
+                      board === 'video' && resolvedClientId && clientVideoState.get(resolvedClientId) === 'alteracao' && 'text-yellow-400',
                     )}>
                       {entry.client_id ? getClientName(entry.client_id) : entry.custom_label}
                     </p>
