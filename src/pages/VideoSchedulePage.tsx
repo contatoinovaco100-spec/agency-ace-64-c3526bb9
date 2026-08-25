@@ -54,6 +54,7 @@ export default function VideoSchedulePage() {
   const [entries, setEntries] = useState<ScheduleEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [copying, setCopying] = useState(false);
   const [dialogDay, setDialogDay] = useState<number | null>(null);
   const [dialogBoard, setDialogBoard] = useState<BoardKind>('video');
   const [selectedClientId, setSelectedClientId] = useState<string>('');
