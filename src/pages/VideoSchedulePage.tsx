@@ -168,6 +168,50 @@ export default function VideoSchedulePage() {
     }
   };
 
+  const copyPreviousWeek = async () => {
+    const prevMonday = new Date(weekStart);
+    prevMonday.setDate(prevMonday.getDate() - 7);
+    const prevISO = fmtISO(prevMonday);
+    setCopying(true);
+    const { data, error } = await (supabase as any)
+      .from('video_schedule')
+      .select('*')
+      .eq('week_start', prevISO);
+    if (error) {
+      setCopying(false);
+      toast({ title: 'Erro ao buscar semana anterior', description: error.message, variant: 'destructive' });
+      return;
+    }
+    const rows = (data as ScheduleEntry[]) || [];
+    if (rows.length === 0) {
+      setCopying(false);
+      toast({ title: 'Semana anterior está vazia', variant: 'destructive' });
+      return;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    const payload = rows.map(r => ({
+      week_start: weekStartISO,
+      day_of_week: r.day_of_week,
+      board: r.board ?? 'video',
+      position: r.position,
+      client_id: r.client_id,
+      custom_label: r.custom_label,
+      note: r.note,
+      created_by: user?.id ?? null,
+    }));
+    const { data: inserted, error: insErr } = await (supabase as any)
+      .from('video_schedule')
+      .insert(payload)
+      .select();
+    setCopying(false);
+    if (insErr) {
+      toast({ title: 'Erro ao copiar', description: insErr.message, variant: 'destructive' });
+      return;
+    }
+    setEntries(prev => [...prev, ...((inserted as ScheduleEntry[]) || [])]);
+    toast({ title: `${payload.length} itens copiados da semana anterior` });
+  };
+
   const shiftWeek = (delta: number) => {
     const d = new Date(weekStart);
     d.setDate(d.getDate() + delta * 7);
