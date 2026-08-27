@@ -227,6 +227,31 @@ export default function PublicPortfolioPage() {
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 200]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
+  useSeo({
+    title: 'INOVA Co. — Produtora Audiovisual e Marketing Digital',
+    description:
+      'Produtora audiovisual e agência de marketing em Guarapari (ES). Vídeos institucionais, social media, tráfego pago e edição com estúdio próprio. Peça seu orçamento.',
+    canonical: 'https://inovamarketing.online/vitrine',
+    image: escritorioAsset.url,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'ProfessionalService',
+      name: 'INOVA Co.',
+      description:
+        'Produtora audiovisual e agência de marketing digital com estúdio de gravação próprio: vídeos institucionais, social media, tráfego pago e edição.',
+      url: 'https://inovamarketing.online/vitrine',
+      image: 'https://inovamarketing.online' + escritorioAsset.url,
+      areaServed: 'Brasil',
+      address: { '@type': 'PostalAddress', addressRegion: 'ES', addressCountry: 'BR' },
+      sameAs: ['https://www.instagram.com/inovalab.mov/'],
+      makesOffer: SERVICES.map(s => ({
+        '@type': 'Offer',
+        itemOffered: { '@type': 'Service', name: s.title, description: s.desc },
+      })),
+    },
+  });
+
+
   const DEMO_PROJECTS: Project[] = [
     { id: '1', title: 'Reel Institucional', description: 'Vídeo institucional para redes sociais', video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', thumbnail_url: '', category: 'Institucional', completed_at: null },
     { id: '2', title: 'Comercial Produto', description: 'Campanha publicitária para e-commerce', video_url: '', thumbnail_url: '', category: 'Publicitário', completed_at: null },
