@@ -852,13 +852,14 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
 
   const doneGroups = useMemo(() => {
     const today = todaySP();
+    const clientName = (id: string) => clients.find((c) => c.id === id)?.companyName || '';
     return groupTasksByDate(
       finalizadasTasks,
       (t) => t.postDate || t.dueDate,
       today,
       (a, b) => {
-        const ca = getClientName(a.clientId);
-        const cb = getClientName(b.clientId);
+        const ca = clientName(a.clientId);
+        const cb = clientName(b.clientId);
         if (ca !== cb) return ca.localeCompare(cb, 'pt-BR');
         return (a.videoName || a.title || '').localeCompare(
           b.videoName || b.title || '',
@@ -866,7 +867,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
         );
       },
     );
-  }, [finalizadasTasks]);
+  }, [finalizadasTasks, clients]);
 
   // Deleted tasks: filter out tasks older than 7 days (auto-hide)
   const trashTasks = useMemo(() => {
