@@ -1,29 +1,37 @@
-# Recuperar as marcações dos últimos funcionários
+# Divisão por dia na área de Finalizados
 
-## O que foi encontrado
-
-- 37 tarefas estão com o responsável marcado como texto de ex-funcionário:
-  - `[Ex-funcionário: lucas]` — 19 tarefas (vídeos de autoescola, clínica, imóveis etc.)
-  - `[Ex-funcionário: Marcos Romero]` — 18 tarefas (vídeos Lauer, doces, prova social etc.)
-  - 1 tarefa também tem `[Ex-funcionário: lucas]` no campo Videomaker.
-- A tabela de Equipe hoje só tem 2 cadastros: **Fernando Veloso** e um registro chamado **"Scanner Admin"** com e-mail estranho (`scannerkix7szh56e@web-library.net`) — provável resquício do incidente de segurança.
-- Existem perfis de acesso recentes com os nomes **Lucas Maia** e **Marcos Romero** não aparece na Equipe.
+## Objetivo
+Agrupar os conteúdos já finalizados por data, tanto na página de **Vídeos Finalizados** quanto na aba **Finalizadas** do kanban de artes, facilitando a visualização do que precisa ser postado em cada dia.
 
 ## O que será feito
 
-1. **Restaurar as marcações**: trocar `[Ex-funcionário: lucas]` por **Lucas Maia** e `[Ex-funcionário: Marcos Romero]` por **Marcos Romero** nas 37 tarefas (campo responsável) e no campo Videomaker da tarefa afetada.
-2. **Recadastrar na Equipe**: criar novamente os cadastros de **Lucas Maia** e **Marcos Romero** na aba Equipe (função Filmmaker/Editor, permissões padrão de tarefas/calendário/gravações), para que voltem a aparecer nos seletores de responsável dos cards.
-3. **Limpar o cadastro suspeito**: remover o registro "Scanner Admin" da Equipe (não é um funcionário real).
-4. **Conferência**: rodar uma verificação final mostrando quantas tarefas ficaram com cada nome e confirmando que nenhuma marcação `[Ex-funcionário: ...]` sobrou.
+### 1. Vídeos Finalizados (`/videos-finalizados`)
+- Manter o filtro de busca e o botão "Marcar como Postado".
+- Dividir a lista em seções por data:
+  - **Hoje**, **Amanhã**, dias da semana + data completa.
+  - Grupo **"Sem data programada"** para tarefas sem `postDate`/`dueDate`.
+- Dentro de cada dia, ordenar por `postTime` (quando existir) e depois por cliente.
+- Se não houver vídeos, manter o estado vazio atual.
 
-## Observações
+### 2. Artes Finalizadas (aba "Finalizadas" em `/artes`)
+- Substituir a visualização atual da aba **Finalizadas** (que mostra colunas de kanban) por uma lista agrupada por dia.
+- Usar o mesmo critério de data (`postDate` ou `dueDate`).
+- Preservar as ações do card:
+  - abrir detalhe,
+  - duplicar,
+  - pré-visualizar anexos,
+  - reabrir/reverter etapa.
+- Manter o contador de finalizadas no botão da aba.
 
-- Nenhuma tarefa é apagada — apenas o nome do responsável é corrigido, incluindo as já concluídas (para manter o histórico correto).
-- Se algum desses dois nomes estiver escrito diferente do que você usa hoje (ex.: "Lucas" em vez de "Lucas Maia"), me avise que ajusto antes de aplicar.
-- Se houver outros funcionários que sumiram além desses dois, me passe os nomes e funções que eu recadastro junto.
+### 3. Helper compartilhado
+- Criar/utilizar `src/lib/kanbanDateGroups.ts` para evitar duplicar a lógica de agrupamento e rótulos de datas.
 
-## Detalhes técnicos
+## Arquivos envolvidos
+- `src/pages/VideosFinalizadosPage.tsx`
+- `src/pages/TasksPage.tsx` (renderização da aba `arteTab === 'done'`)
+- `src/lib/kanbanDateGroups.ts` (função de agrupamento reutilizável)
 
-- Atualização de dados em `public.tasks` nos campos `assignee` e `videomaker` (SQL de dados, sem mudança de estrutura).
-- Inserção de linhas em `public.team_members` (nome, função, e-mail, permissões) e remoção da linha "Scanner Admin".
-- Nenhuma alteração de código no frontend é necessária.
+## Não será alterado
+- Estrutura do banco de dados ou RLS.
+- Lógica de finalização/postagem dos cards.
+- Kanban de produção em andamento (aba "Em produção").
