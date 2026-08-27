@@ -74,6 +74,7 @@ Deno.serve(async (req) => {
     await admin.from("publish_jobs").update({ status: "processing" }).eq("id", job_id);
 
     const run = async () => {
+      let claimedTargets = 0;
       await Promise.allSettled((targets || []).map(async (target: any) => {
         try {
           // Trava atômica: cron, clique manual e abas abertas podem disparar o
@@ -86,6 +87,7 @@ Deno.serve(async (req) => {
             .maybeSingle();
           if (claimError) throw claimError;
           if (!claimed) return;
+          claimedTargets++;
 
           const { data: acc } = await admin
             .from("social_accounts").select("*").eq("id", target.account_id).maybeSingle();
@@ -140,6 +142,10 @@ Deno.serve(async (req) => {
           }).eq("id", target.id);
         }
       }));
+
+      // Outra execução já assumiu todos os destinos. Não sobrescreve o status
+      // do job enquanto ela ainda está publicando.
+      if (claimedTargets === 0) return;
 
       const { data: finals } = await admin
         .from("publish_targets").select("status").eq("job_id", job_id);
