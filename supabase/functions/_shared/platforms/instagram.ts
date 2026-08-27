@@ -12,6 +12,10 @@ const GRAPH = "https://graph.facebook.com/v22.0";
 const APP_ID = Deno.env.get("META_APP_ID") || "2235928767163276";
 const APP_SECRET = Deno.env.get("META_APP_SECRET") || "";
 
+/** Erros de processamento da Meta que costumam passar em uma nova tentativa. */
+const TRANSIENT_MEDIA =
+  /2207052|2207003|2207020|2207001|2207026|transient|temporar|try again|unknown error/i;
+
 /** Aguarda o container ficar FINISHED (vídeo demora bem mais que imagem). */
 async function waitContainer(token: string, containerId: string, isVideo: boolean) {
   const maxTries = isVideo ? 60 : 15;
@@ -36,6 +40,46 @@ async function waitContainer(token: string, containerId: string, isVideo: boolea
   }
   if (isVideo) throw new Error("Tempo esgotado no processamento da mídia");
 }
+
+/**
+ * Cria o container e espera o processamento, refazendo tudo quando a Meta
+ * devolve um erro transitório (ex.: 2207052 — "Media upload has failed").
+ */
+async function createContainerWithRetry(
+  account: AccountContext,
+  params: URLSearchParams,
+  isVideo: boolean,
+  tries = 3,
+): Promise<string> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < tries; attempt++) {
+    try {
+      const container = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
+        method: "POST",
+        body: new URLSearchParams(params),
+      });
+      await waitContainer(account.accessToken, container.id, isVideo);
+      return container.id;
+    } catch (e) {
+      lastErr = e;
+      const msg = e instanceof Error ? e.message : String(e);
+      if (attempt < tries - 1 && TRANSIENT_MEDIA.test(msg)) {
+        console.warn(`container transitório falhou (tentativa ${attempt + 1}): ${msg}`);
+        await sleep(15000 * (attempt + 1));
+        continue;
+      }
+      if (TRANSIENT_MEDIA.test(msg)) {
+        throw new Error(
+          "A Meta não conseguiu processar o vídeo após 3 tentativas (erro temporário 2207052). " +
+            "Tente novamente em alguns minutos ou reexporte o arquivo em MP4 (H.264 + AAC, até 90s).",
+        );
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+
 
 async function publishContainer(account: AccountContext, containerId: string): Promise<string> {
   const params = new URLSearchParams();
@@ -187,12 +231,8 @@ export const instagramAdapter: PlatformAdapter = {
         } else {
           cp.set("image_url", urls[i]);
         }
-        const item = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
-          method: "POST",
-          body: cp,
-        });
-        await waitContainer(account.accessToken, item.id, types[i] === "video");
-        children.push(item.id);
+        const childId = await createContainerWithRetry(account, cp, types[i] === "video");
+        children.push(childId);
       }
 
       const parentParams = new URLSearchParams();
@@ -252,44 +292,10 @@ export const instagramAdapter: PlatformAdapter = {
       }
     }
 
-    const container = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
-      method: "POST",
-      body: params,
-    });
-
-
-    // Aguarda o container ficar pronto (vídeo ~5 min, imagem ~45s)
-    const maxTries = input.mediaType === "video" ? 60 : 15;
-    const waitMs = input.mediaType === "video" ? 5000 : 3000;
-    let ready = false;
-    let noStatus = 0;
-    for (let i = 0; i < maxTries; i++) {
-      await sleep(waitMs);
-      let st: any;
-      try {
-        st = await jsonFetch(
-          `${GRAPH}/${container.id}?fields=status_code,status&access_token=${account.accessToken}`,
-        );
-      } catch (_) {
-        continue;
-      }
-      if (st.status_code === "FINISHED") { ready = true; break; }
-      if (st.status_code === "ERROR" || st.status_code === "EXPIRED") {
-        throw new Error(`Falha no processamento da mídia: ${st.status || st.status_code}`);
-      }
-      if (!st.status_code) {
-        noStatus++;
-        // imagens nem sempre expõem status_code — segue após algumas checagens
-        if (input.mediaType !== "video" && noStatus >= 2) { ready = true; break; }
-      }
-    }
-    if (!ready && input.mediaType === "video") {
-      throw new Error("Tempo esgotado no processamento do vídeo");
-    }
-
+    const containerId = await createContainerWithRetry(account, params, isVideo);
 
     const publishParams = new URLSearchParams();
-    publishParams.set("creation_id", container.id);
+    publishParams.set("creation_id", containerId);
     publishParams.set("access_token", account.accessToken);
 
     let published: any;
@@ -298,7 +304,7 @@ export const instagramAdapter: PlatformAdapter = {
       try {
         published = await jsonFetch(`${GRAPH}/${account.externalId}/media_publish`, {
           method: "POST",
-          body: publishParams,
+          body: new URLSearchParams(publishParams),
         });
         lastErr = undefined;
         break;
@@ -314,6 +320,7 @@ export const instagramAdapter: PlatformAdapter = {
       }
     }
     if (lastErr) throw lastErr;
+
 
 
     if (input.firstComment) {
