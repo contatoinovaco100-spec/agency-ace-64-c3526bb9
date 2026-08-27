@@ -7,11 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { useAgency } from '@/contexts/AgencyContext';
 import { useToast } from '@/hooks/use-toast';
 import { Task } from '@/types/agency';
+import { groupTasksByDate, todaySP } from '@/lib/kanbanDateGroups';
 
 /**
  * Página para Social Media — lista vídeos que o editor já finalizou
  * (status === 'Finalizado' + videoUrl preenchido) e ainda não foram postados.
  * Ao clicar em "Marcar como Postado", o card some.
+ * Os vídeos são agrupados por dia (postDate || dueDate).
  */
 export default function VideosFinalizadosPage() {
   const { tasks, clients, moveTaskToStage } = useAgency();
@@ -19,25 +21,50 @@ export default function VideosFinalizadosPage() {
   const [search, setSearch] = useState('');
   const [posting, setPosting] = useState<string | null>(null);
 
+  const today = todaySP();
+
   const videos = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return tasks
-      .filter(
-        (t) =>
-          t.taskType === 'Produção de Vídeo' &&
-          t.status === 'Finalizado' &&
-          !!t.videoUrl?.trim(),
-      )
-      .filter((t) => {
-        if (!q) return true;
-        const client = clients.find((c) => c.id === t.clientId)?.companyName || '';
-        return (
-          t.title.toLowerCase().includes(q) ||
-          (t.videoName || '').toLowerCase().includes(q) ||
-          client.toLowerCase().includes(q)
-        );
-      });
+    return tasks.filter((t) => {
+      if (
+        t.taskType !== 'Produção de Vídeo' ||
+        t.status !== 'Finalizado' ||
+        !t.videoUrl?.trim()
+      ) {
+        return false;
+      }
+      if (!q) return true;
+      const client = clients.find((c) => c.id === t.clientId)?.companyName || '';
+      return (
+        t.title.toLowerCase().includes(q) ||
+        (t.videoName || '').toLowerCase().includes(q) ||
+        client.toLowerCase().includes(q)
+      );
+    });
   }, [tasks, clients, search]);
+
+  const groups = useMemo(() => {
+    const clientName = (t: Task) =>
+      clients.find((c) => c.id === t.clientId)?.companyName || '';
+
+    return groupTasksByDate(
+      videos,
+      (t) => t.postDate || t.dueDate,
+      today,
+      (a, b) => {
+        const ta = a.postTime || '';
+        const tb = b.postTime || '';
+        if (ta !== tb) return ta.localeCompare(tb);
+        const ca = clientName(a);
+        const cb = clientName(b);
+        if (ca !== cb) return ca.localeCompare(cb, 'pt-BR');
+        return (a.videoName || a.title || '').localeCompare(
+          b.videoName || b.title || '',
+          'pt-BR',
+        );
+      },
+    );
+  }, [videos, clients, today]);
 
   const markPosted = async (task: Task) => {
     setPosting(task.id);
@@ -70,7 +97,7 @@ export default function VideosFinalizadosPage() {
             <Video className="h-6 w-6 text-primary" /> Vídeos Finalizados
           </h1>
           <p className="text-sm text-muted-foreground">
-            Vídeos prontos para postar — assim que você marcar como postado, o card some daqui.
+            Vídeos prontos para postar — agrupados por dia de publicação.
           </p>
         </div>
         <div className="relative w-full sm:w-72">
@@ -95,81 +122,98 @@ export default function VideosFinalizadosPage() {
           </p>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {videos.map((task) => {
-            const client = clients.find((c) => c.id === task.clientId);
-            return (
-              <Card
-                key={task.id}
-                className="p-4 border-l-4 border-l-primary flex flex-col gap-3 hover:shadow-lg transition-shadow"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold leading-tight">{task.title}</h3>
-                    <Badge variant="secondary" className="shrink-0 text-[10px]">
-                      Finalizado
-                    </Badge>
-                  </div>
-                  {task.videoName && (
-                    <p className="text-xs text-muted-foreground truncate">{task.videoName}</p>
-                  )}
-                </div>
+        <div className="space-y-8">
+          {groups.map((group) => (
+            <section key={group.key}>
+              <div className="mb-3 flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-bold uppercase tracking-wide text-foreground">
+                  {group.label}
+                </h2>
+                <span className="text-xs text-muted-foreground">· {group.subtitle}</span>
+                <span className="ml-auto flex h-5 min-w-[22px] items-center justify-center rounded-full bg-primary/15 px-1.5 text-[10px] font-bold tabular-nums text-primary">
+                  {group.tasks.length}
+                </span>
+              </div>
 
-                <div className="text-xs space-y-1 text-muted-foreground">
-                  {client && (
-                    <div className="flex items-center gap-1.5">
-                      <User className="h-3 w-3" /> {client.companyName}
-                    </div>
-                  )}
-                  {task.platform && (
-                    <div>
-                      <span className="font-medium">Plataforma:</span> {task.platform}
-                      {task.format ? ` · ${task.format}` : ''}
-                    </div>
-                  )}
-                  {(task.postDate || task.dueDate) && (
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="h-3 w-3" />
-                      {task.postDate || task.dueDate}
-                      {task.postTime ? ` às ${task.postTime}` : ''}
-                    </div>
-                  )}
-                  {task.editor && (
-                    <div>
-                      <span className="font-medium">Editor:</span> {task.editor}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-2 mt-auto">
-                  <div className="flex gap-1">
-                    <Button asChild size="sm" variant="outline" className="flex-1 gap-1">
-                      <a href={task.videoUrl} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-3.5 w-3.5" /> Abrir vídeo
-                      </a>
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => copyLink(task.videoUrl || '')}
-                      title="Copiar link"
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {group.tasks.map((task) => {
+                  const client = clients.find((c) => c.id === task.clientId);
+                  return (
+                    <Card
+                      key={task.id}
+                      className="p-4 border-l-4 border-l-primary flex flex-col gap-3 hover:shadow-lg transition-shadow"
                     >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => markPosted(task)}
-                    disabled={posting === task.id}
-                    className="gap-1"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    {posting === task.id ? 'Salvando...' : 'Marcar como Postado'}
-                  </Button>
-                </div>
-              </Card>
-            );
-          })}
+                      <div className="space-y-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-semibold leading-tight">{task.title}</h3>
+                          <Badge variant="secondary" className="shrink-0 text-[10px]">
+                            Finalizado
+                          </Badge>
+                        </div>
+                        {task.videoName && (
+                          <p className="text-xs text-muted-foreground truncate">{task.videoName}</p>
+                        )}
+                      </div>
+
+                      <div className="text-xs space-y-1 text-muted-foreground">
+                        {client && (
+                          <div className="flex items-center gap-1.5">
+                            <User className="h-3 w-3" /> {client.companyName}
+                          </div>
+                        )}
+                        {task.platform && (
+                          <div>
+                            <span className="font-medium">Plataforma:</span> {task.platform}
+                            {task.format ? ` · ${task.format}` : ''}
+                          </div>
+                        )}
+                        {(task.postDate || task.dueDate) && (
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="h-3 w-3" />
+                            {task.postDate || task.dueDate}
+                            {task.postTime ? ` às ${task.postTime}` : ''}
+                          </div>
+                        )}
+                        {task.editor && (
+                          <div>
+                            <span className="font-medium">Editor:</span> {task.editor}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-2 mt-auto">
+                        <div className="flex gap-1">
+                          <Button asChild size="sm" variant="outline" className="flex-1 gap-1">
+                            <a href={task.videoUrl} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-3.5 w-3.5" /> Abrir vídeo
+                            </a>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copyLink(task.videoUrl || '')}
+                            title="Copiar link"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => markPosted(task)}
+                          disabled={posting === task.id}
+                          className="gap-1"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          {posting === task.id ? 'Salvando...' : 'Marcar como Postado'}
+                        </Button>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       )}
     </div>

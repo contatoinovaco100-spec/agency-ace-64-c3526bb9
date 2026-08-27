@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { useAgency } from '@/contexts/AgencyContext';
 import { Task } from '@/types/agency';
-import { Plus, Filter, Search, X, Users, ChevronDown, ChevronLeft, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film, FolderOpen, FileSpreadsheet, Undo2, Trash2, RotateCcw, FileEdit } from 'lucide-react';
+import { Plus, Filter, Search, X, Users, ChevronDown, ChevronLeft, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film, FolderOpen, FileSpreadsheet, Undo2, Trash2, RotateCcw, FileEdit, Calendar } from 'lucide-react';
 import { BulkImportDialog } from '@/components/tasks/BulkImportDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { todaySP, normalizeDate, dateGroupMeta, formatFullDate, addDays } from '@/lib/kanbanDateGroups';
+import { todaySP, normalizeDate, dateGroupMeta, formatFullDate, addDays, groupTasksByDate } from '@/lib/kanbanDateGroups';
 import TaskDetailPanel from '@/components/tasks/TaskDetailPanel';
 import { listDrafts, deleteDraft, draftTitle, DRAFTS_EVENT, type TaskDraft } from '@/lib/taskDrafts';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
@@ -850,6 +850,25 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const finalizadasCount = finalizadasTasks.length;
   const productionCount = filteredTasks.length - finalizadasCount;
 
+  const doneGroups = useMemo(() => {
+    const today = todaySP();
+    const clientName = (id: string) => clients.find((c) => c.id === id)?.companyName || '';
+    return groupTasksByDate(
+      finalizadasTasks,
+      (t) => t.postDate || t.dueDate,
+      today,
+      (a, b) => {
+        const ca = clientName(a.clientId);
+        const cb = clientName(b.clientId);
+        if (ca !== cb) return ca.localeCompare(cb, 'pt-BR');
+        return (a.videoName || a.title || '').localeCompare(
+          b.videoName || b.title || '',
+          'pt-BR',
+        );
+      },
+    );
+  }, [finalizadasTasks, clients]);
+
   // Deleted tasks: filter out tasks older than 7 days (auto-hide)
   const trashTasks = useMemo(() => {
     const sevenDaysAgo = new Date();
@@ -1312,45 +1331,41 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
               )}
             </div>
           ) : arteTab === 'done' ? (
-            <div className="space-y-5">
-              {finalizadasTasks.length === 0 ? (
+            <div className="space-y-6">
+              {doneGroups.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
                   {taskTypeFilter === 'Arte' ? 'Nenhuma arte finalizada ainda.' : 'Nenhuma tarefa finalizada ainda.'}
                 </div>
               ) : (
-                <div className="space-y-2 rounded-xl border border-success/40 bg-success/5 p-3">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-success" />
-                    <span className="text-sm font-bold uppercase tracking-wide text-foreground">Finalizadas</span>
-                    <span className="hidden sm:inline text-xs text-muted-foreground">Prontas para o cliente — arraste de volta para refazer</span>
-                    <span className="ml-auto flex h-5 min-w-[22px] items-center justify-center rounded-full bg-success/20 px-1.5 text-[10px] font-bold tabular-nums text-success">
-                      {finalizadasTasks.length}
-                    </span>
-                  </div>
-                  <div className="flex gap-2 overflow-x-auto pb-2 scroller-hide">
-                    {kanbanStages.map(stage => {
-                      const isDone = finalizadoStageNames.has(stage.name);
-                      return (
-                        <div key={stage.id} className="min-w-[220px] lg:min-w-0 lg:flex-1 flex flex-col">
-                          <KanbanColumn
-                            prefix="GROUP::finalizadas"
-                            stage={stage}
-                            tasks={isDone ? finalizadasTasks : []}
-                            onCardClick={openCard}
-                            onAdd={() => {}}
-                            getClientName={getClientName}
-                            onAdvanceTask={(task, nextStage) => moveTaskToStage(task.id, nextStage)}
-                            nextStageName={getNextStageName(stage.name)}
-                            showAddButton={false}
-                            onDuplicateTask={handleDuplicateTask}
-                            onArtPreview={openArtPreview}
-                            onReopenTask={isFinalStage(stage.name) ? handleReopenTask : undefined}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                doneGroups.map((group) => (
+                  <section key={group.key}>
+                    <div className="mb-3 flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-success" />
+                      <h2 className="text-sm font-bold uppercase tracking-wide text-foreground">
+                        {group.label}
+                      </h2>
+                      <span className="text-xs text-muted-foreground">· {group.subtitle}</span>
+                      <span className="ml-auto flex h-5 min-w-[22px] items-center justify-center rounded-full bg-success/20 px-1.5 text-[10px] font-bold tabular-nums text-success">
+                        {group.tasks.length}
+                      </span>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {group.tasks.map((task) => (
+                        <DraggableCard
+                          key={task.id}
+                          task={task}
+                          stageName="Finalizado"
+                          borderClass="border-l-success"
+                          clientName={getClientName(task.clientId)}
+                          onClick={() => openCard(task)}
+                          onDuplicate={() => handleDuplicateTask(task)}
+                          onArtPreview={openArtPreview}
+                          onReopen={() => handleReopenTask(task)}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ))
               )}
             </div>
           ) : (
