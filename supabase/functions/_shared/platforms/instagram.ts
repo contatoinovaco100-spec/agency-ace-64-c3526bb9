@@ -41,9 +41,66 @@ async function waitContainer(token: string, containerId: string, isVideo: boolea
   if (isVideo) throw new Error("Tempo esgotado no processamento da mídia");
 }
 
+const RUPLOAD = "https://rupload.facebook.com/ig-api-upload/v22.0";
+/** Acima disso o vídeo não é carregado em memória — cai no fluxo por URL. */
+const MAX_RESUMABLE_BYTES = 180 * 1024 * 1024;
+
+/**
+ * Envia o vídeo byte a byte para a Meta (upload resumável) em vez de pedir que
+ * ela baixe a nossa URL assinada. É o caminho recomendado quando aparece o
+ * erro 2207052 ("Media upload has failed"), quase sempre causado por falha da
+ * Meta ao buscar/processar o arquivo remoto.
+ * Retorna o id do container ou null se não for possível (arquivo grande, etc.).
+ */
+async function createVideoContainerResumable(
+  account: AccountContext,
+  baseParams: URLSearchParams,
+  videoUrl: string,
+): Promise<string | null> {
+  let bytes: Uint8Array;
+  try {
+    const res = await fetch(videoUrl);
+    if (!res.ok) return null;
+    const len = Number(res.headers.get("content-length") || "0");
+    if (len > MAX_RESUMABLE_BYTES) return null;
+    bytes = new Uint8Array(await res.arrayBuffer());
+    if (!bytes.byteLength || bytes.byteLength > MAX_RESUMABLE_BYTES) return null;
+  } catch (_) {
+    return null;
+  }
+
+  const params = new URLSearchParams(baseParams);
+  params.delete("video_url");
+  params.set("upload_type", "resumable");
+
+  const container = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
+    method: "POST",
+    body: params,
+  });
+
+  const upload = await fetch(`${RUPLOAD}/${container.id}`, {
+    method: "POST",
+    headers: {
+      "Authorization": `OAuth ${account.accessToken}`,
+      "offset": "0",
+      "file_size": String(bytes.byteLength),
+      "Content-Type": "application/octet-stream",
+    },
+    body: bytes,
+  });
+  if (!upload.ok) {
+    const text = await upload.text().catch(() => "");
+    throw new Error(`Falha no upload do vídeo para a Meta: ${text.slice(0, 200)}`);
+  }
+
+  await waitContainer(account.accessToken, container.id, true);
+  return container.id;
+}
+
 /**
  * Cria o container e espera o processamento, refazendo tudo quando a Meta
  * devolve um erro transitório (ex.: 2207052 — "Media upload has failed").
+ * Para vídeos, tenta primeiro o upload resumável (bytes diretos).
  */
 async function createContainerWithRetry(
   account: AccountContext,
@@ -51,9 +108,25 @@ async function createContainerWithRetry(
   isVideo: boolean,
   tries = 3,
 ): Promise<string> {
+  const videoUrl = params.get("video_url") || "";
   let lastErr: unknown;
   for (let attempt = 0; attempt < tries; attempt++) {
     try {
+      if (isVideo && videoUrl) {
+        try {
+          const id = await createVideoContainerResumable(account, params, videoUrl);
+          if (id) return id;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.warn(`upload resumável falhou (tentativa ${attempt + 1}): ${msg}`);
+          if (attempt < tries - 1) {
+            await sleep(10000 * (attempt + 1));
+            continue;
+          }
+          // última tentativa: cai para o fluxo por URL abaixo
+        }
+      }
+
       const container = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
         method: "POST",
         body: new URLSearchParams(params),
@@ -79,6 +152,7 @@ async function createContainerWithRetry(
   }
   throw lastErr;
 }
+
 
 
 async function publishContainer(account: AccountContext, containerId: string): Promise<string> {
