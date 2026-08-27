@@ -42,52 +42,77 @@ async function waitContainer(token: string, containerId: string, isVideo: boolea
 }
 
 const RUPLOAD = "https://rupload.facebook.com/ig-api-upload/v22.0";
-/** Acima disso o vídeo não é carregado em memória — cai no fluxo por URL. */
-const MAX_RESUMABLE_BYTES = 180 * 1024 * 1024;
+/** Evita estourar a memória do Edge Runtime no envio binário. */
+const MAX_BINARY_UPLOAD_BYTES = 80 * 1024 * 1024;
 
 /**
  * Envia o vídeo byte a byte para a Meta (upload resumável) em vez de pedir que
  * ela baixe a nossa URL assinada. É o caminho recomendado quando aparece o
  * erro 2207052 ("Media upload has failed"), quase sempre causado por falha da
  * Meta ao buscar/processar o arquivo remoto.
- * Retorna o id do container ou null se não for possível (arquivo grande, etc.).
+ * Para arquivos menores envia os bytes; para os maiores pede ao endpoint de
+ * upload da Meta que busque a URL. Este fluxo é diferente do video_url comum:
+ * o arquivo é transferido antes do processamento e pode ser retomado.
  */
 async function createVideoContainerResumable(
   account: AccountContext,
   baseParams: URLSearchParams,
   videoUrl: string,
-): Promise<string | null> {
-  let bytes: Uint8Array;
-  try {
-    const res = await fetch(videoUrl);
-    if (!res.ok) return null;
-    const len = Number(res.headers.get("content-length") || "0");
-    if (len > MAX_RESUMABLE_BYTES) return null;
-    bytes = new Uint8Array(await res.arrayBuffer());
-    if (!bytes.byteLength || bytes.byteLength > MAX_RESUMABLE_BYTES) return null;
-  } catch (_) {
-    return null;
-  }
-
+): Promise<string> {
   const params = new URLSearchParams(baseParams);
   params.delete("video_url");
   params.set("upload_type", "resumable");
 
+  // A inicialização resumível exige explicitamente um destes três valores.
+  // Não confiar no parâmetro herdado evita o erro "Only photo or video...".
+  const isCarouselItem = params.get("is_carousel_item") === "true";
+  const requestedType = params.get("media_type");
+  const mediaType = isCarouselItem
+    ? "VIDEO"
+    : requestedType === "STORIES"
+    ? "STORIES"
+    : "REELS";
+  params.set("media_type", mediaType);
+
   const container = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
     method: "POST",
-    body: params,
+    headers: {
+      "Authorization": `Bearer ${account.accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(Object.fromEntries(params)),
   });
 
-  const upload = await fetch(`${RUPLOAD}/${container.id}`, {
-    method: "POST",
-    headers: {
-      "Authorization": `OAuth ${account.accessToken}`,
-      "offset": "0",
-      "file_size": String(bytes.byteLength),
-      "Content-Type": "application/octet-stream",
-    },
-    body: bytes,
-  });
+  let upload: Response;
+  const source = await fetch(videoUrl);
+  if (!source.ok) {
+    throw new Error(`Não foi possível ler o vídeo armazenado (${source.status})`);
+  }
+  const declaredSize = Number(source.headers.get("content-length") || "0");
+
+  if (declaredSize > 0 && declaredSize <= MAX_BINARY_UPLOAD_BYTES) {
+    const bytes = new Uint8Array(await source.arrayBuffer());
+    upload = await fetch(container.uri || `${RUPLOAD}/${container.id}`, {
+      method: "POST",
+      headers: {
+        "Authorization": `OAuth ${account.accessToken}`,
+        "offset": "0",
+        "file_size": String(bytes.byteLength),
+        "Content-Type": "application/octet-stream",
+      },
+      body: bytes,
+    });
+  } else {
+    // Não mantém vídeos grandes na memória do runtime.
+    try { await source.body?.cancel(); } catch (_) { /* ignore */ }
+    upload = await fetch(container.uri || `${RUPLOAD}/${container.id}`, {
+      method: "POST",
+      headers: {
+        "Authorization": `OAuth ${account.accessToken}`,
+        "file_url": videoUrl,
+      },
+    });
+  }
   if (!upload.ok) {
     const text = await upload.text().catch(() => "");
     throw new Error(`Falha no upload do vídeo para a Meta: ${text.slice(0, 200)}`);
@@ -114,8 +139,7 @@ async function createContainerWithRetry(
     try {
       if (isVideo && videoUrl) {
         try {
-          const id = await createVideoContainerResumable(account, params, videoUrl);
-          if (id) return id;
+          return await createVideoContainerResumable(account, params, videoUrl);
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           console.warn(`upload resumável falhou (tentativa ${attempt + 1}): ${msg}`);
