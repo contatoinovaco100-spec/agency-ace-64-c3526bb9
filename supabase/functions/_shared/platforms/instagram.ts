@@ -12,6 +12,10 @@ const GRAPH = "https://graph.facebook.com/v22.0";
 const APP_ID = Deno.env.get("META_APP_ID") || "2235928767163276";
 const APP_SECRET = Deno.env.get("META_APP_SECRET") || "";
 
+/** Erros de processamento da Meta que costumam passar em uma nova tentativa. */
+const TRANSIENT_MEDIA =
+  /2207052|2207003|2207020|2207001|2207026|transient|temporar|try again|unknown error/i;
+
 /** Aguarda o container ficar FINISHED (vídeo demora bem mais que imagem). */
 async function waitContainer(token: string, containerId: string, isVideo: boolean) {
   const maxTries = isVideo ? 60 : 15;
@@ -36,6 +40,46 @@ async function waitContainer(token: string, containerId: string, isVideo: boolea
   }
   if (isVideo) throw new Error("Tempo esgotado no processamento da mídia");
 }
+
+/**
+ * Cria o container e espera o processamento, refazendo tudo quando a Meta
+ * devolve um erro transitório (ex.: 2207052 — "Media upload has failed").
+ */
+async function createContainerWithRetry(
+  account: AccountContext,
+  params: URLSearchParams,
+  isVideo: boolean,
+  tries = 3,
+): Promise<string> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < tries; attempt++) {
+    try {
+      const container = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
+        method: "POST",
+        body: new URLSearchParams(params),
+      });
+      await waitContainer(account.accessToken, container.id, isVideo);
+      return container.id;
+    } catch (e) {
+      lastErr = e;
+      const msg = e instanceof Error ? e.message : String(e);
+      if (attempt < tries - 1 && TRANSIENT_MEDIA.test(msg)) {
+        console.warn(`container transitório falhou (tentativa ${attempt + 1}): ${msg}`);
+        await sleep(15000 * (attempt + 1));
+        continue;
+      }
+      if (TRANSIENT_MEDIA.test(msg)) {
+        throw new Error(
+          "A Meta não conseguiu processar o vídeo após 3 tentativas (erro temporário 2207052). " +
+            "Tente novamente em alguns minutos ou reexporte o arquivo em MP4 (H.264 + AAC, até 90s).",
+        );
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+
 
 async function publishContainer(account: AccountContext, containerId: string): Promise<string> {
   const params = new URLSearchParams();
