@@ -6,7 +6,10 @@ import {
   BarChart3, TrendingUp, ArrowUpRight, Camera, Megaphone, Clapperboard, Wand2, Users, Award, Zap,
 } from 'lucide-react';
 import logoInova from '@/assets/logo-inova.png';
+import escritorioAsset from '@/assets/escritorio-inova-recepcao.jpg.asset.json';
 import { InstagramEmbed } from '@/components/InstagramEmbed';
+import { useSeo } from '@/lib/seo';
+
 
 interface Project {
   id: string; title: string; description: string; video_url: string;
