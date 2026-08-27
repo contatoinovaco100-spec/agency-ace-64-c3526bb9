@@ -241,11 +241,11 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
 
 // ── Draggable Card ─────────────────────────────────────────
 function DraggableCard({
-  task, onClick, clientName, borderClass, onAdvance, nextStageLabel, onDuplicate, onArtPreview, onReopen, stageName,
+  task, onClick, clientName, borderClass, onAdvance, nextStageLabel, onDuplicate, onArtPreview, onReopen, stageName, onConclude,
 }: {
   task: Task; onClick: () => void; clientName?: string; borderClass: string;
   onAdvance?: () => void; nextStageLabel?: string | null; onDuplicate?: () => void; onArtPreview?: (urls: string[], index: number) => void;
-  onReopen?: () => void; stageName?: string;
+  onReopen?: () => void; stageName?: string; onConclude?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
@@ -306,6 +306,16 @@ function DraggableCard({
           className="mt-1 flex w-full items-center justify-center gap-1 rounded bg-primary/10 py-0.5 text-[9px] font-semibold text-primary transition-colors hover:bg-primary/20"
         >
           <CheckCircle2 className="h-3 w-3" /> → {nextStageLabel}
+        </button>
+      )}
+      {onConclude && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onConclude(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          title="Marcar como postado/concluído"
+          className="mt-1 flex w-full items-center justify-center gap-1 rounded bg-success/10 py-0.5 text-[9px] font-semibold text-success transition-colors hover:bg-success/20"
+        >
+          <CheckCircle2 className="h-3 w-3" /> Passar p/ Concluído
         </button>
       )}
       {onReopen && (
