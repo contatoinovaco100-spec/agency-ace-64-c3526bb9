@@ -36,3 +36,55 @@ export function dateGroupMeta(dateStr: string, today: string): { label: string; 
   const wd = new Date(`${dateStr}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long' });
   return { label: wd.charAt(0).toUpperCase() + wd.slice(1), subtitle };
 }
+
+export interface DateGroup<T> {
+  key: string;
+  label: string;
+  subtitle: string;
+  dateStr: string | null;
+  tasks: T[];
+}
+
+export function groupTasksByDate<T>(
+  tasks: T[],
+  getDate: (task: T) => string | null | undefined,
+  today: string,
+  sortBy?: (a: T, b: T) => number,
+): DateGroup<T>[] {
+  const byDate = new Map<string, T[]>();
+  const noDate: T[] = [];
+
+  for (const t of tasks) {
+    const d = normalizeDate(getDate(t));
+    if (!d) {
+      noDate.push(t);
+      continue;
+    }
+    if (!byDate.has(d)) byDate.set(d, []);
+    byDate.get(d)!.push(t);
+  }
+
+  const sortedDates = Array.from(byDate.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  const groups: DateGroup<T>[] = sortedDates.map(([dateStr, items]) => {
+    const meta = dateGroupMeta(dateStr, today);
+    return {
+      key: dateStr,
+      dateStr,
+      label: meta.label,
+      subtitle: meta.subtitle,
+      tasks: sortBy ? items.sort(sortBy) : items,
+    };
+  });
+
+  if (noDate.length > 0) {
+    groups.push({
+      key: 'nodate',
+      dateStr: null,
+      label: 'Sem data programada',
+      subtitle: 'Tarefas sem postDate ou dueDate',
+      tasks: sortBy ? noDate.sort(sortBy) : noDate,
+    });
+  }
+
+  return groups;
+}
