@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { todaySP, normalizeDate, dateGroupMeta, formatFullDate, addDays } from '@/lib/kanbanDateGroups';
+import { todaySP, normalizeDate, dateGroupMeta, formatFullDate, addDays, groupTasksByDate } from '@/lib/kanbanDateGroups';
 import TaskDetailPanel from '@/components/tasks/TaskDetailPanel';
 import { listDrafts, deleteDraft, draftTitle, DRAFTS_EVENT, type TaskDraft } from '@/lib/taskDrafts';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
