@@ -159,7 +159,7 @@ export const publishingService = {
    *  no meio de uma publicação, job fica 'processing' e target 'publishing'
    *  para sempre — nada mais os reprocessa. Esta função os desbloqueia. */
   async recoverStuckJobs(): Promise<string[]> {
-    const STUCK_MS = 10 * 60 * 1000;
+    const STUCK_MS = 30 * 60 * 1000;
     const { data: jobs, error } = await supabase
       .from(JOBS)
       .select('id, status, scheduled_at, updated_at')

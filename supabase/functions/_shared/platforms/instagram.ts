@@ -117,6 +117,11 @@ async function createVideoContainerResumable(
     const text = await upload.text().catch(() => "");
     throw new Error(`Falha no upload do vídeo para a Meta: ${text.slice(0, 200)}`);
   }
+  const uploadBody = await upload.json().catch(() => ({ success: true }));
+  if (uploadBody?.success === false || uploadBody?.debug_info) {
+    const detail = uploadBody?.debug_info?.message || uploadBody?.message || "Falha no processamento";
+    throw new Error(`Falha no upload do vídeo para a Meta: ${String(detail).slice(0, 300)}`);
+  }
 
   await waitContainer(account.accessToken, container.id, true);
   return container.id;
@@ -304,7 +309,7 @@ export const instagramAdapter: PlatformAdapter = {
   },
 
   async publish(account: AccountContext, input: PublishInput): Promise<PublishResult> {
-    const isVideo = input.mediaType === "video";
+    const isVideo = (input.mediaTypes?.[0] || input.mediaType) === "video";
     const urls = (input.mediaUrls && input.mediaUrls.length ? input.mediaUrls : [input.mediaUrl])
       .filter(Boolean);
     const types = input.mediaTypes && input.mediaTypes.length === urls.length

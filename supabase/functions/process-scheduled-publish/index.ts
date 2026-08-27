@@ -18,7 +18,8 @@ Deno.serve(async (req) => {
 
     const now = new Date();
     const nowIso = now.toISOString();
-    const cutoffIso = new Date(now.getTime() - 10 * 60 * 1000).toISOString();
+    // Upload + processamento e retries de vídeos grandes podem passar de 10 min.
+    const cutoffIso = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
 
     // Agendados vencidos + jobs travados em 'processing' (publicação antiga
     // cujo background foi encerrado antes de concluir).

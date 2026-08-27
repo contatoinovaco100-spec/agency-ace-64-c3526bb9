@@ -76,8 +76,16 @@ Deno.serve(async (req) => {
     const run = async () => {
       await Promise.allSettled((targets || []).map(async (target: any) => {
         try {
-          await admin.from("publish_targets")
-            .update({ status: "publishing", error_message: "" }).eq("id", target.id);
+          // Trava atômica: cron, clique manual e abas abertas podem disparar o
+          // mesmo job ao mesmo tempo. Só a chamada que mudar o status publica.
+          const { data: claimed, error: claimError } = await admin.from("publish_targets")
+            .update({ status: "publishing", error_message: "" })
+            .eq("id", target.id)
+            .in("status", ["pending", "failed"])
+            .select("id")
+            .maybeSingle();
+          if (claimError) throw claimError;
+          if (!claimed) return;
 
           const { data: acc } = await admin
             .from("social_accounts").select("*").eq("id", target.account_id).maybeSingle();
