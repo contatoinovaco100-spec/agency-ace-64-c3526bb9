@@ -850,6 +850,24 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
   const finalizadasCount = finalizadasTasks.length;
   const productionCount = filteredTasks.length - finalizadasCount;
 
+  const doneGroups = useMemo(() => {
+    const today = todaySP();
+    return groupTasksByDate(
+      finalizadasTasks,
+      (t) => t.postDate || t.dueDate,
+      today,
+      (a, b) => {
+        const ca = getClientName(a.clientId);
+        const cb = getClientName(b.clientId);
+        if (ca !== cb) return ca.localeCompare(cb, 'pt-BR');
+        return (a.videoName || a.title || '').localeCompare(
+          b.videoName || b.title || '',
+          'pt-BR',
+        );
+      },
+    );
+  }, [finalizadasTasks]);
+
   // Deleted tasks: filter out tasks older than 7 days (auto-hide)
   const trashTasks = useMemo(() => {
     const sevenDaysAgo = new Date();
