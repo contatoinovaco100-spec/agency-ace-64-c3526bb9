@@ -1360,7 +1360,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                           onClick={() => openCard(task)}
                           onDuplicate={() => handleDuplicateTask(task)}
                           onArtPreview={openArtPreview}
-                          onReopenTask={handleReopenTask}
+                          onReopen={() => handleReopenTask(task)}
                         />
                       ))}
                     </div>
