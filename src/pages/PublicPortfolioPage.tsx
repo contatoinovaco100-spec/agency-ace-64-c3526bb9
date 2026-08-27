@@ -6,7 +6,10 @@ import {
   BarChart3, TrendingUp, ArrowUpRight, Camera, Megaphone, Clapperboard, Wand2, Users, Award, Zap,
 } from 'lucide-react';
 import logoInova from '@/assets/logo-inova.png';
+import escritorioAsset from '@/assets/escritorio-inova-recepcao.jpg.asset.json';
 import { InstagramEmbed } from '@/components/InstagramEmbed';
+import { useSeo } from '@/lib/seo';
+
 
 interface Project {
   id: string; title: string; description: string; video_url: string;
@@ -224,6 +227,31 @@ export default function PublicPortfolioPage() {
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 200]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
+  useSeo({
+    title: 'INOVA Co. — Produtora Audiovisual e Marketing Digital',
+    description:
+      'Produtora audiovisual e agência de marketing em Guarapari (ES). Vídeos institucionais, social media, tráfego pago e edição com estúdio próprio. Peça seu orçamento.',
+    canonical: 'https://inovamarketing.online/vitrine',
+    image: escritorioAsset.url,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'ProfessionalService',
+      name: 'INOVA Co.',
+      description:
+        'Produtora audiovisual e agência de marketing digital com estúdio de gravação próprio: vídeos institucionais, social media, tráfego pago e edição.',
+      url: 'https://inovamarketing.online/vitrine',
+      image: 'https://inovamarketing.online' + escritorioAsset.url,
+      areaServed: 'Brasil',
+      address: { '@type': 'PostalAddress', addressRegion: 'ES', addressCountry: 'BR' },
+      sameAs: ['https://www.instagram.com/inovalab.mov/'],
+      makesOffer: SERVICES.map(s => ({
+        '@type': 'Offer',
+        itemOffered: { '@type': 'Service', name: s.title, description: s.desc },
+      })),
+    },
+  });
+
+
   const DEMO_PROJECTS: Project[] = [
     { id: '1', title: 'Reel Institucional', description: 'Vídeo institucional para redes sociais', video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', thumbnail_url: '', category: 'Institucional', completed_at: null },
     { id: '2', title: 'Comercial Produto', description: 'Campanha publicitária para e-commerce', video_url: '', thumbnail_url: '', category: 'Publicitário', completed_at: null },
@@ -289,6 +317,8 @@ export default function PublicPortfolioPage() {
           </a>
           <div className="hidden md:flex items-center gap-8 text-sm text-white/60">
             <a href="#trabalhos" className="hover:text-[#bff720] transition-colors">Trabalhos</a>
+            <a href="#estudio" className="hover:text-[#bff720] transition-colors">Estúdio</a>
+
             <a href="#servicos" className="hover:text-[#bff720] transition-colors">Serviços</a>
             <a href="#instagram" className="hover:text-[#bff720] transition-colors">Instagram</a>
             <a href="#contato" className="hover:text-[#bff720] transition-colors">Contato</a>
@@ -473,7 +503,98 @@ export default function PublicPortfolioPage() {
         </div>
       </section>
 
+      {/* Estúdio / Escritório */}
+      <section id="estudio" className="relative max-w-7xl mx-auto px-5 md:px-8 py-24 md:py-32">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/[0.02] text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50 mb-5">
+              <Camera className="h-3 w-3 text-[#bff720]" />
+              Nosso espaço
+            </div>
+            <h2 className="text-4xl md:text-6xl font-bold tracking-[-0.03em] leading-[1.05]">
+              Estúdio próprio,<br />
+              <span className="text-[#bff720]">produção sem limites.</span>
+            </h2>
+            <p className="mt-6 text-lg text-white/45 max-w-xl leading-relaxed">
+              Da recepção ao estúdio de gravação, a INOVA Co. tem estrutura completa para receber sua marca:
+              ambiente climatizado, iluminação profissional e uma equipe que acompanha cada etapa — roteiro,
+              captação, edição e publicação.
+            </p>
+            <ul className="mt-8 space-y-3">
+              {[
+                'Estúdio de gravação equipado e climatizado',
+                'Equipe de filmmakers, editores e social media no mesmo lugar',
+                'Agenda mensal de captação para cada cliente',
+              ].map(item => (
+                <li key={item} className="flex items-start gap-3 text-sm text-white/65">
+                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#bff720] shrink-0" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <a
+              href={ctaUrl}
+              onClick={() => trackBudgetClick('estudio')}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-9 inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-bold bg-[#bff720] text-black hover:bg-[#d4ff5c] transition-all hover:scale-[1.03]"
+            >
+              <MessageCircle className="h-4 w-4" /> Agendar uma visita
+            </a>
+          </motion.div>
+
+          <motion.figure
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="relative"
+          >
+            <div className="relative overflow-hidden rounded-[2rem] border border-white/[0.06]">
+              <img
+                src={escritorioAsset.url}
+                alt="Recepção do escritório da INOVA Co. com logo na parede e porta do estúdio de gravação"
+                loading="lazy"
+                width={1920}
+                height={1440}
+                className="w-full h-full object-cover aspect-[4/3] transition-transform duration-[1.4s] ease-out hover:scale-[1.04]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+              <figcaption className="absolute bottom-5 left-5 right-5 flex items-center gap-3">
+                <span className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] bg-[#bff720] text-black">
+                  Sede INOVA Co.
+                </span>
+                <span className="text-xs text-white/70">Recepção &amp; estúdio de gravação</span>
+              </figcaption>
+            </div>
+            <div className="absolute -z-10 -inset-6 bg-[radial-gradient(ellipse_at_center,_rgba(191,247,32,0.12),_transparent_70%)]" />
+          </motion.figure>
+        </div>
+      </section>
+
+      {/* Marquee */}
+      <div className="relative overflow-hidden border-y border-white/[0.06] py-6 md:py-8 bg-white/[0.015]">
+        <div className="flex gap-10 whitespace-nowrap animate-[marquee_28s_linear_infinite] will-change-transform">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-10 text-2xl md:text-4xl font-bold tracking-tight text-white/80">
+              <span>Criar</span>
+              <Sparkles className="h-5 w-5 text-[#bff720]" />
+              <span>Inspirar</span>
+              <Sparkles className="h-5 w-5 text-[#bff720]" />
+              <span>Performar</span>
+              <Sparkles className="h-5 w-5 text-[#bff720]" />
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Services */}
+
       <section id="servicos" className="relative max-w-7xl mx-auto px-5 md:px-8 py-24 md:py-32">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
