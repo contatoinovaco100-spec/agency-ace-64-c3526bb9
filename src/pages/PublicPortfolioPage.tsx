@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { motion, useInView, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import {
   Play, X, Instagram, Film, Sparkles, MessageCircle, ExternalLink as ExternalLinkIcon,
-  BarChart3, TrendingUp, ArrowUpRight, Camera, Megaphone, Clapperboard, Wand2, Users, Award, Zap,
+  BarChart3, TrendingUp, ArrowUpRight, Camera, Megaphone, Clapperboard, Wand2, Users, Award, Zap, MapPin, Navigation,
 } from 'lucide-react';
 import logoInova from '@/assets/logo-inova.png';
 import escritorioAsset from '@/assets/escritorio-inova-recepcao.jpg.asset.json';
@@ -228,21 +228,35 @@ export default function PublicPortfolioPage() {
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
   useSeo({
-    title: 'INOVA Co. — Produtora Audiovisual e Marketing Digital',
+    title: 'INOVA Co. — Marketing e Produtora Audiovisual em Volta Redonda (RJ)',
     description:
-      'Produtora audiovisual e agência de marketing em Guarapari (ES). Vídeos institucionais, social media, tráfego pago e edição com estúdio próprio. Peça seu orçamento.',
+      'Referência em marketing digital em Volta Redonda: produtora audiovisual com estúdio próprio, social media, tráfego pago e edição. Peça seu orçamento.',
     canonical: 'https://inovamarketing.online/vitrine',
     image: escritorioAsset.url,
     jsonLd: {
       '@context': 'https://schema.org',
-      '@type': 'ProfessionalService',
+      '@type': ['ProfessionalService', 'LocalBusiness'],
       name: 'INOVA Co.',
       description:
-        'Produtora audiovisual e agência de marketing digital com estúdio de gravação próprio: vídeos institucionais, social media, tráfego pago e edição.',
+        'Produtora audiovisual e agência de marketing digital em Volta Redonda (RJ), com estúdio de gravação próprio: vídeos institucionais, social media, tráfego pago e edição.',
       url: 'https://inovamarketing.online/vitrine',
       image: 'https://inovamarketing.online' + escritorioAsset.url,
-      areaServed: 'Brasil',
-      address: { '@type': 'PostalAddress', addressRegion: 'ES', addressCountry: 'BR' },
+      areaServed: [
+        { '@type': 'City', name: 'Volta Redonda' },
+        { '@type': 'State', name: 'Rio de Janeiro' },
+        'Brasil',
+      ],
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Volta Redonda',
+        addressRegion: 'RJ',
+        addressCountry: 'BR',
+      },
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: -22.5205,
+        longitude: -44.1042,
+      },
       sameAs: ['https://www.instagram.com/inovalab.mov/'],
       makesOffer: SERVICES.map(s => ({
         '@type': 'Offer',
@@ -318,6 +332,7 @@ export default function PublicPortfolioPage() {
           <div className="hidden md:flex items-center gap-8 text-sm text-white/60">
             <a href="#trabalhos" className="hover:text-[#bff720] transition-colors">Trabalhos</a>
             <a href="#estudio" className="hover:text-[#bff720] transition-colors">Estúdio</a>
+            <a href="#localizacao" className="hover:text-[#bff720] transition-colors">Onde estamos</a>
 
             <a href="#servicos" className="hover:text-[#bff720] transition-colors">Serviços</a>
             <a href="#instagram" className="hover:text-[#bff720] transition-colors">Instagram</a>
@@ -574,6 +589,76 @@ export default function PublicPortfolioPage() {
             </div>
             <div className="absolute -z-10 -inset-6 bg-[radial-gradient(ellipse_at_center,_rgba(191,247,32,0.12),_transparent_70%)]" />
           </motion.figure>
+        </div>
+      </section>
+
+      {/* Localização — Volta Redonda */}
+      <section id="localizacao" className="relative max-w-7xl mx-auto px-5 md:px-8 py-24 md:py-32 border-t border-white/[0.04]">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="relative order-2 lg:order-1"
+          >
+            <div className="relative overflow-hidden rounded-[2rem] border border-white/[0.06] bg-[#0a0a0a]">
+              <iframe
+                title="Mapa da INOVA Co. em Volta Redonda, Rio de Janeiro"
+                src="https://www.openstreetmap.org/export/embed.html?bbox=-44.1342%2C-22.5405%2C-44.0742%2C-22.5005&layer=mapnik&marker=-22.5205%2C-44.1042"
+                loading="lazy"
+                className="w-full aspect-[4/3] border-0 grayscale invert-[0.92] hue-rotate-180 contrast-[0.95]"
+              />
+              <div className="absolute bottom-5 left-5 right-5 flex items-center gap-3 pointer-events-none">
+                <span className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] bg-[#bff720] text-black flex items-center gap-1.5">
+                  <MapPin className="h-3 w-3" /> Volta Redonda · RJ
+                </span>
+              </div>
+            </div>
+            <div className="absolute -z-10 -inset-6 bg-[radial-gradient(ellipse_at_center,_rgba(191,247,32,0.10),_transparent_70%)]" />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="order-1 lg:order-2"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/[0.02] text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50 mb-5">
+              <MapPin className="h-3 w-3 text-[#bff720]" />
+              Onde estamos
+            </div>
+            <h2 className="text-4xl md:text-6xl font-bold tracking-[-0.03em] leading-[1.05]">
+              Referência em marketing<br />
+              <span className="text-[#bff720]">em Volta Redonda.</span>
+            </h2>
+            <p className="mt-6 text-lg text-white/45 max-w-xl leading-relaxed">
+              Estamos no coração do Sul Fluminense. A INOVA Co. é a produtora audiovisual e agência de
+              marketing que as empresas de Volta Redonda escolhem quando querem crescer de verdade —
+              com estúdio próprio, captação local e estratégia feita para a realidade da sua cidade.
+            </p>
+            <ul className="mt-8 space-y-3">
+              {[
+                'Atendimento presencial para empresas de Volta Redonda e região',
+                'Captação de vídeo e foto com deslocamento rápido na cidade',
+                'Conhecemos o mercado local: do comércio à indústria do Sul Fluminense',
+              ].map(item => (
+                <li key={item} className="flex items-start gap-3 text-sm text-white/65">
+                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#bff720] shrink-0" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <a
+              href="https://www.google.com/maps/search/?api=1&query=Volta+Redonda%2C+RJ"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-9 inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-bold border border-[#bff720]/40 text-[#bff720] hover:bg-[#bff720] hover:text-black transition-all hover:scale-[1.03]"
+            >
+              <Navigation className="h-4 w-4" /> Como chegar
+            </a>
+          </motion.div>
         </div>
       </section>
 
