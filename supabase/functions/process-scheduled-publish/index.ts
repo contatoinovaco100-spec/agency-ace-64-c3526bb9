@@ -18,7 +18,8 @@ Deno.serve(async (req) => {
 
     const now = new Date();
     const nowIso = now.toISOString();
-    const cutoffIso = new Date(now.getTime() - 10 * 60 * 1000).toISOString();
+    // Upload + processamento e retries de vídeos grandes podem passar de 10 min.
+    const cutoffIso = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
 
     // Agendados vencidos + jobs travados em 'processing' (publicação antiga
     // cujo background foi encerrado antes de concluir).
@@ -84,12 +85,25 @@ Deno.serve(async (req) => {
           .update({ status: "processing" })
           .eq("id", id);
 
-        const { error: invokeErr } = await admin.functions.invoke("social-publish", {
-          body: { job_id: id },
+        const backendUrl = Deno.env.get("SUPABASE_URL");
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (!backendUrl || !serviceKey) throw new Error("Backend environment unavailable");
+
+        // Envia explicitamente a credencial interna. functions.invoke pode
+        // preservar o apikey mas substituir Authorization em chamadas função→função.
+        const invokeResponse = await fetch(`${backendUrl}/functions/v1/social-publish`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${serviceKey}`,
+            "apikey": serviceKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ job_id: id }),
         });
 
-        if (invokeErr) {
-          console.error(`Failed to invoke social-publish for job ${id}:`, invokeErr);
+        if (!invokeResponse.ok) {
+          const detail = await invokeResponse.text().catch(() => "");
+          console.error(`Failed to invoke social-publish for job ${id}: ${invokeResponse.status} ${detail.slice(0, 300)}`);
           await admin
             .from("publish_jobs")
             .update({ status: "scheduled" })
