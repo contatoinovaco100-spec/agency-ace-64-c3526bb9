@@ -317,6 +317,8 @@ export default function PublicPortfolioPage() {
           </a>
           <div className="hidden md:flex items-center gap-8 text-sm text-white/60">
             <a href="#trabalhos" className="hover:text-[#bff720] transition-colors">Trabalhos</a>
+            <a href="#estudio" className="hover:text-[#bff720] transition-colors">Estúdio</a>
+
             <a href="#servicos" className="hover:text-[#bff720] transition-colors">Serviços</a>
             <a href="#instagram" className="hover:text-[#bff720] transition-colors">Instagram</a>
             <a href="#contato" className="hover:text-[#bff720] transition-colors">Contato</a>
