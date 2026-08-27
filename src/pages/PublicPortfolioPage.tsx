@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { motion, useInView, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import {
   Play, X, Instagram, Film, Sparkles, MessageCircle, ExternalLink as ExternalLinkIcon,
-  BarChart3, TrendingUp, ArrowUpRight, Camera, Megaphone, Clapperboard, Wand2, Users, Award, Zap,
+  BarChart3, TrendingUp, ArrowUpRight, Camera, Megaphone, Clapperboard, Wand2, Users, Award, Zap, MapPin, Navigation,
 } from 'lucide-react';
 import logoInova from '@/assets/logo-inova.png';
 import escritorioAsset from '@/assets/escritorio-inova-recepcao.jpg.asset.json';
@@ -228,21 +228,35 @@ export default function PublicPortfolioPage() {
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
   useSeo({
-    title: 'INOVA Co. — Produtora Audiovisual e Marketing Digital',
+    title: 'INOVA Co. — Marketing e Produtora Audiovisual em Volta Redonda (RJ)',
     description:
-      'Produtora audiovisual e agência de marketing em Guarapari (ES). Vídeos institucionais, social media, tráfego pago e edição com estúdio próprio. Peça seu orçamento.',
+      'Referência em marketing digital em Volta Redonda: produtora audiovisual com estúdio próprio, social media, tráfego pago e edição. Peça seu orçamento.',
     canonical: 'https://inovamarketing.online/vitrine',
     image: escritorioAsset.url,
     jsonLd: {
       '@context': 'https://schema.org',
-      '@type': 'ProfessionalService',
+      '@type': ['ProfessionalService', 'LocalBusiness'],
       name: 'INOVA Co.',
       description:
-        'Produtora audiovisual e agência de marketing digital com estúdio de gravação próprio: vídeos institucionais, social media, tráfego pago e edição.',
+        'Produtora audiovisual e agência de marketing digital em Volta Redonda (RJ), com estúdio de gravação próprio: vídeos institucionais, social media, tráfego pago e edição.',
       url: 'https://inovamarketing.online/vitrine',
       image: 'https://inovamarketing.online' + escritorioAsset.url,
-      areaServed: 'Brasil',
-      address: { '@type': 'PostalAddress', addressRegion: 'ES', addressCountry: 'BR' },
+      areaServed: [
+        { '@type': 'City', name: 'Volta Redonda' },
+        { '@type': 'State', name: 'Rio de Janeiro' },
+        'Brasil',
+      ],
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Volta Redonda',
+        addressRegion: 'RJ',
+        addressCountry: 'BR',
+      },
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: -22.5205,
+        longitude: -44.1042,
+      },
       sameAs: ['https://www.instagram.com/inovalab.mov/'],
       makesOffer: SERVICES.map(s => ({
         '@type': 'Offer',
