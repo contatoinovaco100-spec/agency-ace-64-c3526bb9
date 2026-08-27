@@ -296,44 +296,10 @@ export const instagramAdapter: PlatformAdapter = {
       }
     }
 
-    const container = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
-      method: "POST",
-      body: params,
-    });
-
-
-    // Aguarda o container ficar pronto (vídeo ~5 min, imagem ~45s)
-    const maxTries = input.mediaType === "video" ? 60 : 15;
-    const waitMs = input.mediaType === "video" ? 5000 : 3000;
-    let ready = false;
-    let noStatus = 0;
-    for (let i = 0; i < maxTries; i++) {
-      await sleep(waitMs);
-      let st: any;
-      try {
-        st = await jsonFetch(
-          `${GRAPH}/${container.id}?fields=status_code,status&access_token=${account.accessToken}`,
-        );
-      } catch (_) {
-        continue;
-      }
-      if (st.status_code === "FINISHED") { ready = true; break; }
-      if (st.status_code === "ERROR" || st.status_code === "EXPIRED") {
-        throw new Error(`Falha no processamento da mídia: ${st.status || st.status_code}`);
-      }
-      if (!st.status_code) {
-        noStatus++;
-        // imagens nem sempre expõem status_code — segue após algumas checagens
-        if (input.mediaType !== "video" && noStatus >= 2) { ready = true; break; }
-      }
-    }
-    if (!ready && input.mediaType === "video") {
-      throw new Error("Tempo esgotado no processamento do vídeo");
-    }
-
+    const containerId = await createContainerWithRetry(account, params, isVideo);
 
     const publishParams = new URLSearchParams();
-    publishParams.set("creation_id", container.id);
+    publishParams.set("creation_id", containerId);
     publishParams.set("access_token", account.accessToken);
 
     let published: any;
@@ -342,7 +308,7 @@ export const instagramAdapter: PlatformAdapter = {
       try {
         published = await jsonFetch(`${GRAPH}/${account.externalId}/media_publish`, {
           method: "POST",
-          body: publishParams,
+          body: new URLSearchParams(publishParams),
         });
         lastErr = undefined;
         break;
@@ -358,6 +324,7 @@ export const instagramAdapter: PlatformAdapter = {
       }
     }
     if (lastErr) throw lastErr;
+
 
 
     if (input.firstComment) {
