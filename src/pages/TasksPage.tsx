@@ -1370,6 +1370,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                           onClick={() => openCard(task)}
                           onDuplicate={() => handleDuplicateTask(task)}
                           onArtPreview={openArtPreview}
+                          onConclude={() => moveTaskToStage(task.id, 'Concluído')}
                           onReopen={() => handleReopenTask(task)}
                         />
                       ))}
