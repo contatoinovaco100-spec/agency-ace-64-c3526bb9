@@ -231,12 +231,8 @@ export const instagramAdapter: PlatformAdapter = {
         } else {
           cp.set("image_url", urls[i]);
         }
-        const item = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
-          method: "POST",
-          body: cp,
-        });
-        await waitContainer(account.accessToken, item.id, types[i] === "video");
-        children.push(item.id);
+        const childId = await createContainerWithRetry(account, cp, types[i] === "video");
+        children.push(childId);
       }
 
       const parentParams = new URLSearchParams();
