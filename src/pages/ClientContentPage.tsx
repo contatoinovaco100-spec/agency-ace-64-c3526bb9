@@ -16,6 +16,8 @@ import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import UniversalVideoPlayer from '@/components/UniversalVideoPlayer';
 import { resolveVideoUrl } from '@/lib/videoUrl';
 import { toast } from 'sonner';
+import { useSeo } from '@/lib/seo';
+import { PAGE_THUMBS } from '@/lib/pageThumbs';
 
 function ResolvedVideoSection({ url, fileName, reloadKey }: { url: string; fileName: string; reloadKey: number }) {
   const [localReload, setLocalReload] = useState(0);
@@ -564,6 +566,12 @@ function TaskCard({ task, index, defaultOpen, onConfirmPost, onConfirmProgram, i
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ClientContentPage() {
+  useSeo({
+    title: 'Aprovação de Conteúdo — INOVA Co.',
+    description: 'Veja e aprove os vídeos e artes da sua marca produzidos pela INOVA Co.',
+    image: PAGE_THUMBS.conteudo,
+    noindex: true,
+  });
   const { taskId } = useParams<{ taskId: string }>();
   const [tasks, setTasks] = useState<TaskData[]>([]);
   const [clientName, setClientName] = useState('');

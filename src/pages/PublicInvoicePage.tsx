@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Copy, CheckCircle2, Send, Loader2, Link2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { useSeo } from '@/lib/seo';
+import { PAGE_THUMBS } from '@/lib/pageThumbs';
 
 type Invoice = {
   id: string;
@@ -24,6 +26,12 @@ const formatBRL = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export default function PublicInvoicePage() {
+  useSeo({
+    title: 'Fatura — INOVA Co.',
+    description: 'Consulte e pague sua fatura da INOVA Co. via Pix com segurança.',
+    image: PAGE_THUMBS.comercial,
+    noindex: true,
+  });
   const { id } = useParams();
   const [inv, setInv] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);

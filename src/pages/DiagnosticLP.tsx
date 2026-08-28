@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import LogoInova from '@/assets/logo-inova.png';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSeo } from '@/lib/seo';
+import { PAGE_THUMBS } from '@/lib/pageThumbs';
 
 /* ═══════ THEME COLORS ═══════ */
 const THEMES: Record<string, { primary: string; primaryDark: string }> = {
@@ -71,6 +73,12 @@ const DEMO_CONFIG = {
 };
 
 export default function DiagnosticLP() {
+  useSeo({
+    title: 'Diagnóstico de Marketing — INOVA Co.',
+    description: 'Diagnóstico estratégico gratuito com os 4 pilares de marketing da INOVA Co.',
+    image: PAGE_THUMBS.diagnostico,
+    noindex: false,
+  });
   const { slug } = useParams();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);

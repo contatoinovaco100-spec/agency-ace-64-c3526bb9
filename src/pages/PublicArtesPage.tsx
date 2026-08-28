@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Palette, Calendar, User, Building2, AlertCircle, RefreshCw, X, Clock, FileText, Flag, ZoomIn, Download, Image as ImageIcon } from 'lucide-react';
 import logoInova from '@/assets/logo-inova.png';
 import { prepareImageAttachments, signPreparedAttachments, type AttachmentRow, type PreparedAttachment } from '@/lib/arteAttachments';
+import { useSeo } from '@/lib/seo';
+import { PAGE_THUMBS } from '@/lib/pageThumbs';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 const useArteAttachments = (taskId: string) => {
@@ -73,6 +75,12 @@ function formatDate(d: string | null) {
 }
 
 export default function PublicArtesPage() {
+  useSeo({
+    title: 'Painel de Artes — INOVA Co.',
+    description: 'Acompanhe as artes estáticas em produção e finalizadas pela INOVA Co.',
+    image: PAGE_THUMBS.conteudo,
+    noindex: true,
+  });
   const [tasks, setTasks] = useState<ArteTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

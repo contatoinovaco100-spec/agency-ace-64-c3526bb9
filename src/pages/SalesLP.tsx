@@ -12,6 +12,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import LogoInova from '@/assets/logo-inova.png';
+import { useSeo } from '@/lib/seo';
+import { PAGE_THUMBS } from '@/lib/pageThumbs';
 
 const ASSETS = {
   restaurant: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=1200",
@@ -35,6 +37,12 @@ const DEFAULTS = {
 };
 
 export default function SalesLP() {
+  useSeo({
+    title: 'Proposta Comercial — INOVA Co.',
+    description: 'Sua proposta personalizada de marketing e produção audiovisual com a INOVA Co.',
+    image: PAGE_THUMBS.comercial,
+    noindex: false,
+  });
   const { slug } = useParams();
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);

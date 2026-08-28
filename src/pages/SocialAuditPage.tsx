@@ -15,6 +15,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import LogoInova from '@/assets/logo-inova.png';
+import { useSeo } from '@/lib/seo';
+import { PAGE_THUMBS } from '@/lib/pageThumbs';
 
 type Status = 'good' | 'warning' | 'bad';
 
@@ -102,6 +104,12 @@ function getMetricIcon(name: string) {
 }
 
 export default function SocialAuditPage() {
+  useSeo({
+    title: 'Diagnóstico de Redes Sociais — INOVA Co.',
+    description: 'Análise do seu perfil: conteúdo, engajamento e oportunidades de crescimento. INOVA Co., Volta Redonda (RJ).',
+    image: PAGE_THUMBS.diagnostico,
+    noindex: false,
+  });
   const { user } = useAuth();
   const { slug: routeSlug } = useParams<{ slug?: string }>();
   const navigate = useNavigate();

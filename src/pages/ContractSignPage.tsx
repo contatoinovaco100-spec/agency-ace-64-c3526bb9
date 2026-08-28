@@ -10,6 +10,8 @@ import { Loader2, CheckCircle2, FileText, Shield, Hash, Copy } from 'lucide-reac
 import { toast } from 'sonner';
 import { usePushNotification } from '@/hooks/usePushNotification';
 import logoInova from '@/assets/logo-inova.png';
+import { useSeo } from '@/lib/seo';
+import { PAGE_THUMBS } from '@/lib/pageThumbs';
 
 interface Deliverable {
   label: string;
@@ -58,6 +60,12 @@ async function generateSignatureHash(data: string): Promise<string> {
 }
 
 export default function ContractSignPage() {
+  useSeo({
+    title: 'Assinatura de Contrato — INOVA Co.',
+    description: 'Revise e assine digitalmente seu contrato com a INOVA Co. de forma segura.',
+    image: PAGE_THUMBS.comercial,
+    noindex: true,
+  });
   const { contractId } = useParams<{ contractId: string }>();
   const { triggerNotification } = usePushNotification();
   const [contract, setContract] = useState<Contract | null>(null);
