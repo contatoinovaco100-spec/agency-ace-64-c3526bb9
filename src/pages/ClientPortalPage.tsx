@@ -7,6 +7,8 @@ import { Calendar, Tag, Target, Video, CheckCircle2, VideoIcon, Eye, ArrowRight,
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
+import { useSeo } from '@/lib/seo';
+import { PAGE_THUMBS } from '@/lib/pageThumbs';
 
 interface EditorialLine {
   niche: string;
@@ -35,6 +37,12 @@ interface ContentScript {
 }
 
 export default function ClientPortalPage() {
+  useSeo({
+    title: 'Portal do Cliente — INOVA Co.',
+    description: 'Acompanhe seus conteúdos, entregas e cronograma com a INOVA Co.',
+    image: PAGE_THUMBS.conteudo,
+    noindex: true,
+  });
   const { clientId } = useParams<{ clientId: string }>();
   
   const [loading, setLoading] = useState(true);
