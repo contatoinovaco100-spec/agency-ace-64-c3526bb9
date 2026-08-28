@@ -34,17 +34,19 @@ function upsertLink(rel: string, href: string) {
  * Aplica metadados de SEO (title, description, canonical, Open Graph, JSON-LD)
  * na página atual. Como o app é SPA, os robôs que executam JS leem estas tags.
  */
-export function useSeo({ title, description, canonical, image, jsonLd }: SeoOptions) {
+export function useSeo({ title, description, canonical, image, noindex, jsonLd }: SeoOptions) {
   useEffect(() => {
     document.title = title;
     upsertMeta('name', 'description', description);
     upsertMeta('property', 'og:title', title);
     upsertMeta('property', 'og:description', description);
     upsertMeta('property', 'og:type', 'website');
+    upsertMeta('property', 'og:site_name', 'INOVA Co.');
     upsertMeta('name', 'twitter:card', 'summary_large_image');
     upsertMeta('name', 'twitter:title', title);
     upsertMeta('name', 'twitter:description', description);
-    upsertMeta('name', 'robots', 'index, follow');
+    upsertMeta('name', 'robots', noindex ? 'noindex, nofollow' : 'index, follow');
+
 
     const url = canonical || window.location.origin + window.location.pathname;
     upsertLink('canonical', url);
