@@ -70,5 +70,5 @@ export function useSeo({ title, description, canonical, image, noindex, jsonLd }
     return () => {
       if (script && script.parentNode) script.parentNode.removeChild(script);
     };
-  }, [title, description, canonical, image, JSON.stringify(jsonLd)]);
+  }, [title, description, canonical, image, noindex, JSON.stringify(jsonLd)]);
 }
