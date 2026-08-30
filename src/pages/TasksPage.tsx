@@ -51,8 +51,10 @@ const byPriority = (a: Task, b: Task) =>
 // Map raw DB statuses (some legacy) onto the closest UI column name.
 function buildStatusToColumn(columnNames: string[]) {
   const set = new Set(columnNames);
+  const lower = new Map(columnNames.map(n => [n.toLowerCase(), n]));
   return (status: string): string => {
-    if (!status) return columnNames[0] || '';
+    const fallback = columnNames[0] || '';
+    if (!status) return fallback;
     if (set.has(status)) return status;
     const legacy: Record<string, string> = {
       'A fazer': 'Ideias / Backlog',
@@ -69,9 +71,14 @@ function buildStatusToColumn(columnNames: string[]) {
     };
     const mapped = legacy[status];
     if (mapped && set.has(mapped)) return mapped;
-    return status;
+    const ci = lower.get(status.toLowerCase());
+    if (ci) return ci;
+    // Nunca deixar o card sumir: se a etapa não existe nesse quadro,
+    // ele volta para a primeira coluna.
+    return fallback;
   };
 }
+
 
 // ── Helpers ────────────────────────────────────────────────
 function isRevisionStage(stageName?: string | null) {
