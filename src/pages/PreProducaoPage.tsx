@@ -71,16 +71,17 @@ export default function PreProducaoPage() {
   };
 
   const byStageGroups = useMemo(() => {
-    const map: Record<string, DateGroup<Task>[]> = {};
-    stageNames.forEach(n => { map[n] = []; });
+    const tasksByStage: Record<string, Task[]> = {};
+    stageNames.forEach(n => { tasksByStage[n] = []; });
     boardTasks.forEach(t => {
       const stage = t.preStage && stageNames.includes(t.preStage) ? t.preStage : firstStage;
-      (map[stage] ||= []).push(t);
+      (tasksByStage[stage] ||= []).push(t);
     });
-    Object.keys(map).forEach(stage => {
-      map[stage] = groupTasksByDate(map[stage], taskDate, today, sortByTimeAndClient);
+    const groupsByStage: Record<string, DateGroup<Task>[]> = {};
+    Object.keys(tasksByStage).forEach(stage => {
+      groupsByStage[stage] = groupTasksByDate(tasksByStage[stage], taskDate, today, sortByTimeAndClient);
     });
-    return map;
+    return groupsByStage;
   }, [boardTasks, stageNames, firstStage, today]);
 
   const summary = useMemo(
