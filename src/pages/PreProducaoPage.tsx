@@ -54,22 +54,41 @@ export default function PreProducaoPage() {
     });
   }, [tasks, filterClient, filterDecupador, filterEditor, search, clients]);
 
-  const byStage = useMemo(() => {
-    const map: Record<string, Task[]> = {};
+  const today = todaySP();
+
+  const taskDate = (t: Task) => t.dueDate || t.postDate;
+
+  const sortByTimeAndClient = (a: Task, b: Task) => {
+    const aDate = taskDate(a);
+    const bDate = taskDate(b);
+    const aTime = a.postTime && a.postDate === aDate ? a.postTime : '';
+    const bTime = b.postTime && b.postDate === bDate ? b.postTime : '';
+    if (aTime && bTime && aTime !== bTime) return aTime.localeCompare(bTime);
+    const aClient = clientName(a.clientId);
+    const bClient = clientName(b.clientId);
+    if (aClient !== bClient) return aClient.localeCompare(bClient);
+    return a.title.localeCompare(b.title);
+  };
+
+  const byStageGroups = useMemo(() => {
+    const map: Record<string, DateGroup<Task>[]> = {};
     stageNames.forEach(n => { map[n] = []; });
     boardTasks.forEach(t => {
       const stage = t.preStage && stageNames.includes(t.preStage) ? t.preStage : firstStage;
       (map[stage] ||= []).push(t);
     });
-    Object.values(map).forEach(list =>
-      list.sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999')),
-    );
+    Object.keys(map).forEach(stage => {
+      map[stage] = groupTasksByDate(map[stage], taskDate, today, sortByTimeAndClient);
+    });
     return map;
-  }, [boardTasks, stageNames, firstStage]);
+  }, [boardTasks, stageNames, firstStage, today]);
 
   const summary = useMemo(
-    () => stageNames.map(n => ({ name: n, count: byStage[n]?.length || 0 })),
-    [stageNames, byStage],
+    () => stageNames.map(n => ({ name: n, count: boardTasks.filter(t => {
+      const stage = t.preStage && stageNames.includes(t.preStage) ? t.preStage : firstStage;
+      return stage === n;
+    }).length })),
+    [stageNames, boardTasks, firstStage],
   );
 
   /** Ao finalizar a decupagem, o card do kanban principal vai para "Em edição". */
