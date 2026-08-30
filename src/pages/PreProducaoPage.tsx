@@ -12,6 +12,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Film, FolderOpen, Scissors, ExternalLink, Save } from 'lucide-react';
+import { todaySP, groupTasksByDate, DateGroup } from '@/lib/kanbanDateGroups';
 
 const ALL = '__all__';
 const NONE = '__none__';
@@ -53,22 +54,42 @@ export default function PreProducaoPage() {
     });
   }, [tasks, filterClient, filterDecupador, filterEditor, search, clients]);
 
-  const byStage = useMemo(() => {
-    const map: Record<string, Task[]> = {};
-    stageNames.forEach(n => { map[n] = []; });
+  const today = todaySP();
+
+  const taskDate = (t: Task) => t.dueDate || t.postDate;
+
+  const sortByTimeAndClient = (a: Task, b: Task) => {
+    const aDate = taskDate(a);
+    const bDate = taskDate(b);
+    const aTime = a.postTime && a.postDate === aDate ? a.postTime : '';
+    const bTime = b.postTime && b.postDate === bDate ? b.postTime : '';
+    if (aTime && bTime && aTime !== bTime) return aTime.localeCompare(bTime);
+    const aClient = clientName(a.clientId);
+    const bClient = clientName(b.clientId);
+    if (aClient !== bClient) return aClient.localeCompare(bClient);
+    return a.title.localeCompare(b.title);
+  };
+
+  const byStageGroups = useMemo(() => {
+    const tasksByStage: Record<string, Task[]> = {};
+    stageNames.forEach(n => { tasksByStage[n] = []; });
     boardTasks.forEach(t => {
       const stage = t.preStage && stageNames.includes(t.preStage) ? t.preStage : firstStage;
-      (map[stage] ||= []).push(t);
+      (tasksByStage[stage] ||= []).push(t);
     });
-    Object.values(map).forEach(list =>
-      list.sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999')),
-    );
-    return map;
-  }, [boardTasks, stageNames, firstStage]);
+    const groupsByStage: Record<string, DateGroup<Task>[]> = {};
+    Object.keys(tasksByStage).forEach(stage => {
+      groupsByStage[stage] = groupTasksByDate(tasksByStage[stage], taskDate, today, sortByTimeAndClient);
+    });
+    return groupsByStage;
+  }, [boardTasks, stageNames, firstStage, today]);
 
   const summary = useMemo(
-    () => stageNames.map(n => ({ name: n, count: byStage[n]?.length || 0 })),
-    [stageNames, byStage],
+    () => stageNames.map(n => ({ name: n, count: boardTasks.filter(t => {
+      const stage = t.preStage && stageNames.includes(t.preStage) ? t.preStage : firstStage;
+      return stage === n;
+    }).length })),
+    [stageNames, boardTasks, firstStage],
   );
 
   /** Ao finalizar a decupagem, o card do kanban principal vai para "Em edição". */
@@ -170,11 +191,12 @@ export default function PreProducaoPage() {
       <div className="flex gap-3 overflow-x-auto pb-4">
         {stages.map(stage => {
           const cls = colorClasses(stage.color);
-          const list = byStage[stage.name] || [];
+          const groups = byStageGroups[stage.name] || [];
+          const total = groups.reduce((sum, g) => sum + g.tasks.length, 0);
           return (
             <div
               key={stage.id}
-              className="min-w-[260px] w-[260px] shrink-0"
+              className="min-w-[280px] w-[280px] shrink-0"
               onDragOver={e => e.preventDefault()}
               onDrop={() => {
                 const t = boardTasks.find(x => x.id === dragId);
@@ -187,31 +209,47 @@ export default function PreProducaoPage() {
                   <span className={`h-2 w-2 rounded-full ${cls.dot}`} />
                   {stage.name}
                 </span>
-                <Badge variant="secondary">{list.length}</Badge>
+                <Badge variant="secondary">{total}</Badge>
               </div>
-              <div className="border border-t-0 rounded-b-lg p-2 space-y-2 min-h-[220px] bg-card/40">
-                {list.map(t => (
-                  <div
-                    key={t.id}
-                    draggable
-                    onDragStart={() => setDragId(t.id)}
-                    onClick={() => openCard(t)}
-                    className={`cursor-pointer rounded-md border border-l-4 ${cls.border} bg-card px-2.5 py-2 hover:bg-accent/40 transition-colors`}
-                  >
-                    <p className="text-sm font-medium leading-tight line-clamp-2">{t.title}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{clientName(t.clientId)}</p>
-                    <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
-                      {t.rawFootageUrl && <FolderOpen className="h-3 w-3 text-warning" />}
-                      {t.cutsUrl && <Scissors className="h-3 w-3 text-info" />}
-                      {t.videoUrl && <Film className="h-3 w-3 text-success" />}
-                      {t.decupador && <span className="truncate">{t.decupador}</span>}
-                      {t.dueDate && <span className="ml-auto">{t.dueDate.slice(5)}</span>}
+              <div className="border border-t-0 rounded-b-lg p-2 space-y-3 min-h-[220px] bg-card/40">
+                {groups.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-6">Sem cards</p>
+                )}
+                {groups.map(group => (
+                  <div key={group.key} className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground">
+                        {group.label}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">{group.subtitle}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {group.tasks.map(t => (
+                        <div
+                          key={t.id}
+                          draggable
+                          onDragStart={() => setDragId(t.id)}
+                          onClick={() => openCard(t)}
+                          className={`cursor-pointer rounded-md border border-l-4 ${cls.border} bg-card px-2.5 py-2 hover:bg-accent/40 transition-colors`}
+                        >
+                          <p className="text-sm font-medium leading-tight line-clamp-2">{t.title}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{clientName(t.clientId)}</p>
+                          <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
+                            {t.rawFootageUrl && <FolderOpen className="h-3 w-3 text-warning" />}
+                            {t.cutsUrl && <Scissors className="h-3 w-3 text-info" />}
+                            {t.videoUrl && <Film className="h-3 w-3 text-success" />}
+                            {t.decupador && <span className="truncate">{t.decupador}</span>}
+                            {(t.postTime || t.dueDate) && (
+                              <span className="ml-auto">
+                                {t.postTime ? t.postTime.slice(0, 5) : t.dueDate ? t.dueDate.slice(5) : ''}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
-                {list.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-6">Sem cards</p>
-                )}
               </div>
             </div>
           );
