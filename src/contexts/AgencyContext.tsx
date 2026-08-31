@@ -196,12 +196,12 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     }
     setLoading(true);
     const [cRes, tRes, lRes, pRes, rRes, eRes] = await Promise.all([
-      supabase.from('clients').select('*').order('created_at').limit(10000),
-      supabase.from('tasks').select('*').order('created_at').limit(10000),
-      supabase.from('leads').select('*').order('created_at').limit(10000),
+      supabase.from('clients').select('*').order('created_at', { ascending: false }).limit(10000),
+      supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(10000),
+      supabase.from('leads').select('*').order('created_at', { ascending: false }).limit(10000),
       supabase.from('profiles').select('id, full_name, username, job_title, avatar_url, is_active').not('username', 'is', null).eq('is_active', true).limit(10000),
       supabase.from('user_roles').select('user_id').eq('role', 'admin').limit(10000),
-      supabase.from('calendar_events').select('*').order('date').limit(10000),
+      supabase.from('calendar_events').select('*').order('date', { ascending: false }).limit(10000),
     ]);
     if (cRes.data) setAllClients(cRes.data.map(rowToClient));
     if (tRes.data) setTasks(tRes.data.map(rowToTask));
