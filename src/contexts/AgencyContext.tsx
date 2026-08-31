@@ -307,14 +307,20 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addTask = async (t: Task) => {
+    // Optimistic update: show the card immediately before the DB round-trip.
+    setTasks(prev => [...prev, t]);
     const { error } = await supabase.from('tasks').insert(taskToRow(t) as any);
-    if (error) { console.error('Error inserting task:', error); throw error; }
+    if (error) {
+      // Rollback the optimistic update if the insert fails.
+      setTasks(prev => prev.filter(x => x.id !== t.id));
+      console.error('Error inserting task:', error);
+      throw error;
+    }
     if (t.taskType === 'Produção de Vídeo') {
       const items = ['Corte correto', 'Legendas aplicadas', 'Música aplicada', 'Identidade visual aplicada', 'Revisão final feita']
         .map((label, i) => ({ id: crypto.randomUUID(), task_id: t.id, label, checked: false, sort_order: i }));
       await supabase.from('task_checklist_items').insert(items);
     }
-    setTasks(prev => [...prev, t]);
   };
 
   const updateTask = async (t: Task) => {
