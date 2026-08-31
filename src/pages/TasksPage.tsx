@@ -967,7 +967,9 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
 
       const currentColumn = mapStatusToColumn(task.status);
       const statusChanged = currentColumn !== newColumn;
-      const dateChanged = newDueDate !== null && newDueDate !== (task.dueDate || '');
+      // Só altera a data quando o card permanece na mesma coluna e muda de grupo de data.
+      // Ao trocar de coluna (ex.: ir para Pré-Produção), a data original é mantida.
+      const dateChanged = !statusChanged && newDueDate !== null && newDueDate !== (task.dueDate || '');
       if (!statusChanged && !dateChanged) return;
       try {
         if (dateChanged) {
