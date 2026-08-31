@@ -71,11 +71,9 @@ function buildStatusToColumn(columnNames: string[]) {
     };
     const mapped = legacy[status];
     if (mapped && set.has(mapped)) return mapped;
-    const ci = lower.get(status.toLowerCase());
-    if (ci) return ci;
-    // Nunca deixar o card sumir: se a etapa não existe nesse quadro,
-    // ele volta para a primeira coluna.
-    return fallback;
+    // Se o status não for encontrado nos estágios do banco (ex: mudaram o nome), 
+    // retorna a primeira coluna para o card não sumir silenciosamente da interface.
+    return columnNames.length > 0 ? columnNames[0] : status;
   };
 }
 
