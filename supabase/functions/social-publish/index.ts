@@ -28,12 +28,13 @@ Deno.serve(async (req) => {
     const isInternal = token === serviceKey;
 
     if (!isInternal) {
+      // Valida o JWT do usuário usando auth.getUser (getClaims não existe no SDK v2).
       const anon = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_ANON_KEY")!,
       );
-      const { data: claimsData, error: claimsError } = await anon.auth.getClaims(token);
-      if (claimsError || !claimsData?.claims) return json({ error: "Unauthorized" }, 401);
+      const { data: userData, error: userError } = await anon.auth.getUser(token);
+      if (userError || !userData?.user) return json({ error: "Unauthorized" }, 401);
     }
 
     const admin = createClient(
@@ -78,94 +79,84 @@ Deno.serve(async (req) => {
 
     await admin.from("publish_jobs").update({ status: "processing" }).eq("id", job_id);
 
-    const run = async () => {
-      let claimedTargets = 0;
-      await Promise.allSettled((targets || []).map(async (target: any) => {
-        try {
-          // Trava atômica: cron, clique manual e abas abertas podem disparar o
-          // mesmo job ao mesmo tempo. Só a chamada que mudar o status publica.
-          const { data: claimed, error: claimError } = await admin.from("publish_targets")
-            .update({ status: "publishing", error_message: "" })
-            .eq("id", target.id)
-            .in("status", ["pending", "failed"])
-            .select("id")
-            .maybeSingle();
-          if (claimError) throw claimError;
-          if (!claimed) return;
-          claimedTargets++;
+    let claimedTargets = 0;
+    await Promise.allSettled((targets || []).map(async (target: any) => {
+      try {
+        // Trava atômica: cron, clique manual e abas abertas podem disparar o
+        // mesmo job ao mesmo tempo. Só a chamada que mudar o status publica.
+        const { data: claimed, error: claimError } = await admin.from("publish_targets")
+          .update({ status: "publishing", error_message: "" })
+          .eq("id", target.id)
+          .in("status", ["pending", "failed"])
+          .select("id")
+          .maybeSingle();
+        if (claimError) throw claimError;
+        if (!claimed) return;
+        claimedTargets++;
 
-          const { data: acc } = await admin
-            .from("social_accounts").select("*").eq("id", target.account_id).maybeSingle();
-          if (!acc) throw new Error("Conta desconectada");
+        const { data: acc } = await admin
+          .from("social_accounts").select("*").eq("id", target.account_id).maybeSingle();
+        if (!acc) throw new Error("Conta desconectada");
 
-          const { data: secret } = await admin
-            .from("social_account_secrets").select("access_token, refresh_token")
-            .eq("account_id", acc.id).maybeSingle();
-          if (!secret?.access_token) throw new Error("Token indisponível — reconecte a conta");
+        const { data: secret } = await admin
+          .from("social_account_secrets").select("access_token, refresh_token")
+          .eq("account_id", acc.id).maybeSingle();
+        if (!secret?.access_token) throw new Error("Token indisponível — reconecte a conta");
 
-          const adapter = getAdapter(acc.platform);
-          const result = await adapter.publish(
-            {
-              id: acc.id,
-              externalId: acc.external_id || "",
-              username: acc.username,
-              accessToken: secret.access_token,
-              refreshToken: secret.refresh_token,
-            },
-            {
-              mediaUrl,
-              mediaUrls,
-              mediaTypes,
-              mediaType: (job.media_type === "image" ? "image" : "video"),
-              caption: job.caption || "",
-              firstComment: job.first_comment || "",
-              thumbnailUrl: job.thumbnail_url || "",
-              postType: job.post_type || "auto",
-              shareToFeed: job.share_to_feed !== false,
-              collaborators: job.collaborators || [],
-              locationId: job.location_id || "",
-              userTags: job.user_tags || [],
-              coverUrl: job.cover_url || "",
-              thumbOffset: job.thumb_offset || 0,
-              audioName: job.audio_name || "",
-            },
+        const adapter = getAdapter(acc.platform);
+        const result = await adapter.publish(
+          {
+            id: acc.id,
+            externalId: acc.external_id || "",
+            username: acc.username,
+            accessToken: secret.access_token,
+            refreshToken: secret.refresh_token,
+          },
+          {
+            mediaUrl,
+            mediaUrls,
+            mediaTypes,
+            mediaType: (job.media_type === "image" ? "image" : "video"),
+            caption: job.caption || "",
+            firstComment: job.first_comment || "",
+            thumbnailUrl: job.thumbnail_url || "",
+            postType: job.post_type || "auto",
+            shareToFeed: job.share_to_feed !== false,
+            collaborators: job.collaborators || [],
+            locationId: job.location_id || "",
+            userTags: job.user_tags || [],
+            coverUrl: job.cover_url || "",
+            thumbOffset: job.thumb_offset || 0,
+            audioName: job.audio_name || "",
+          },
 
-          );
+        );
 
-          await admin.from("publish_targets").update({
-            status: "published",
-            remote_post_id: result.remotePostId,
-            permalink: result.permalink,
-            published_at: new Date().toISOString(),
-          }).eq("id", target.id);
-        } catch (e) {
-          const message = String((e as Error).message || e);
-          console.error(`publish target ${target.id} failed:`, message);
-          await admin.from("publish_targets").update({
-            status: "failed",
-            error_message: message.slice(0, 500),
-          }).eq("id", target.id);
-        }
-      }));
+        await admin.from("publish_targets").update({
+          status: "published",
+          remote_post_id: result.remotePostId,
+          permalink: result.permalink,
+          published_at: new Date().toISOString(),
+        }).eq("id", target.id);
+      } catch (e) {
+        const message = String((e as Error).message || e);
+        console.error(`publish target ${target.id} failed:`, message);
+        await admin.from("publish_targets").update({
+          status: "failed",
+          error_message: message.slice(0, 500),
+        }).eq("id", target.id);
+      }
+    }));
 
-      // Outra execução já assumiu todos os destinos. Não sobrescreve o status
-      // do job enquanto ela ainda está publicando.
-      if (claimedTargets === 0) return;
-
+    // Outra execução já assumiu todos os destinos. Não sobrescreve o status
+    // do job enquanto ela ainda está publicando.
+    if (claimedTargets > 0) {
       const { data: finals } = await admin
         .from("publish_targets").select("status").eq("job_id", job_id);
       const published = (finals || []).filter((t: any) => t.status === "published").length;
       const failed = (finals || []).filter((t: any) => t.status === "failed").length;
       const status = failed === 0 ? "published" : published === 0 ? "failed" : "partial";
       await admin.from("publish_jobs").update({ status }).eq("id", job_id);
-    };
-
-    // @ts-ignore EdgeRuntime existe no runtime do Supabase
-    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
-      // @ts-ignore
-      EdgeRuntime.waitUntil(run());
-    } else {
-      run();
     }
 
     return json({ success: true, targets: targets.length });

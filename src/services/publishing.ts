@@ -146,12 +146,23 @@ export const publishingService = {
 
   /** Dispara a publicação real em paralelo (Edge Function). */
   async run(jobId: string) {
-    const { data, error } = await supabase.functions.invoke('social-publish', {
-      body: { job_id: jobId },
-    });
-    if (error) throw error;
-    if (data?.error) throw new Error(data.error);
-    return data as { success: boolean; targets: number };
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4 * 60 * 1000); // 4 min
+    try {
+      const { data, error } = await supabase.functions.invoke('social-publish', {
+        body: { job_id: jobId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { success: boolean; targets: number };
+    } catch (e: any) {
+      if (e?.name === 'AbortError') {
+        throw new Error('Tempo esgotado na publicação. O job pode ter sido publicado — verifique o status.');
+      }
+      throw e;
+    } finally {
+      clearTimeout(timeout);
+    }
   },
 
   /** Recupera jobs travados em 'processing' (targets 'publishing' → 'pending').

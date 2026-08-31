@@ -18,8 +18,8 @@ const TRANSIENT_MEDIA =
 
 /** Aguarda o container ficar FINISHED (vídeo demora bem mais que imagem). */
 async function waitContainer(token: string, containerId: string, isVideo: boolean) {
-  const maxTries = isVideo ? 60 : 15;
-  const waitMs = isVideo ? 5000 : 3000;
+  const maxTries = isVideo ? 40 : 10;
+  const waitMs = isVideo ? 4000 : 2000;
   let noStatus = 0;
   for (let i = 0; i < maxTries; i++) {
     await sleep(waitMs);
@@ -148,11 +148,15 @@ async function createContainerWithRetry(
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           console.warn(`upload resumável falhou (tentativa ${attempt + 1}): ${msg}`);
+          // Erro definitivo da Meta (ex.: formato rejeitado, 2207052 definitivo):
+          // não compensa reenviar o arquivo inteiro nem cair no fluxo por URL —
+          // falha rápido em vez de repetir o upload de arquivos grandes.
+          if (!TRANSIENT_MEDIA.test(msg)) throw e;
           if (attempt < tries - 1) {
             await sleep(10000 * (attempt + 1));
             continue;
           }
-          // última tentativa: cai para o fluxo por URL abaixo
+          // última tentativa transitória: cai para o fluxo por URL abaixo
         }
       }
 
@@ -200,7 +204,7 @@ async function publishContainer(account: AccountContext, containerId: string): P
       lastErr = e;
       const msg = e instanceof Error ? e.message : String(e);
       if (/Media ID is not available|not available|transient/i.test(msg)) {
-        await sleep(5000 * (attempt + 1));
+        await sleep(3000 * (attempt + 1));
         continue;
       }
       throw e;
@@ -416,7 +420,7 @@ export const instagramAdapter: PlatformAdapter = {
         const msg = e instanceof Error ? e.message : String(e);
         // container ainda não indexado pela Meta — tenta de novo
         if (/Media ID is not available|not available|transient/i.test(msg)) {
-          await sleep(5000 * (attempt + 1));
+          await sleep(3000 * (attempt + 1));
           continue;
         }
         throw e;
