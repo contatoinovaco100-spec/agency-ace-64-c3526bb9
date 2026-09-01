@@ -372,16 +372,23 @@ export const instagramAdapter: PlatformAdapter = {
     if (!isStory) params.set("caption", input.caption || "");
 
     if (isVideo) {
-      params.set("media_type", isStory ? "STORIES" : "REELS");
-      params.set("video_url", input.mediaUrl);
-      if (!isStory) {
+      if (isStory) {
+        params.set("media_type", "STORIES");
+      } else {
+        params.set("media_type", "REELS");
         params.set("share_to_feed", input.shareToFeed === false ? "false" : "true");
         if (input.coverUrl) params.set("cover_url", input.coverUrl);
         else if (input.thumbOffset) params.set("thumb_offset", String(input.thumbOffset));
         if (input.audioName) params.set("audio_name", input.audioName);
       }
+      params.set("video_url", input.mediaUrl);
     } else {
-      if (isStory) params.set("media_type", "STORIES");
+      // Foto / Imagem única
+      if (isStory) {
+        params.set("media_type", "STORIES");
+      } else {
+        params.delete("media_type"); // Foto simples no Feed não deve enviar media_type
+      }
       params.set("image_url", input.mediaUrl);
     }
 
