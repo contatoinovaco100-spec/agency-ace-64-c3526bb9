@@ -21,26 +21,28 @@ export function TargetStatusList({ targets }: { targets: PublishTarget[] }) {
         return (
           <div
             key={t.id}
-            className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-md bg-muted/40 px-2.5 py-1.5 text-xs"
+            className="flex flex-col gap-1 rounded-md bg-muted/40 px-2.5 py-1.5 text-xs"
           >
-            <span className="flex min-w-0 items-center gap-2">
-              <Platform className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span className="truncate">@{t.username}</span>
-            </span>
-            <span className="flex items-center gap-1.5 shrink-0">
-              {t.status === 'failed' && t.error_message && (
-                <span className="max-w-[140px] truncate text-[10px] text-destructive/80" title={t.error_message}>
-                  {t.error_message}
-                </span>
-              )}
-              {t.permalink && (
-                <a href={t.permalink} target="_blank" rel="noreferrer" className="text-[10px] underline text-muted-foreground">
-                  ver
-                </a>
-              )}
-              <Icon className={`h-3.5 w-3.5 ${m.cls}`} />
-              <span className={m.cls.replace('animate-spin', '')}>{m.label}</span>
-            </span>
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <span className="flex min-w-0 items-center gap-2">
+                <Platform className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <span className="truncate font-medium">@{t.username}</span>
+              </span>
+              <span className="flex items-center gap-1.5 shrink-0">
+                {t.permalink && (
+                  <a href={t.permalink} target="_blank" rel="noreferrer" className="text-[10px] underline text-muted-foreground hover:text-foreground">
+                    ver post
+                  </a>
+                )}
+                <Icon className={`h-3.5 w-3.5 ${m.cls}`} />
+                <span className={m.cls.replace('animate-spin', '')}>{m.label}</span>
+              </span>
+            </div>
+            {t.status === 'failed' && t.error_message && (
+              <p className="text-[11px] text-destructive/90 bg-destructive/10 rounded px-2 py-1 leading-tight break-words">
+                {t.error_message}
+              </p>
+            )}
           </div>
         );
       })}

@@ -18,10 +18,9 @@ const TRANSIENT_MEDIA =
 
 /** Aguarda o container ficar FINISHED (vídeo demora bem mais que imagem). */
 async function waitContainer(token: string, containerId: string, isVideo: boolean) {
-  const maxTries = isVideo ? 40 : 10;
-  const waitMs = isVideo ? 4000 : 2000;
-  // Falha rápido em vez de consumir todo o orçamento do Edge Runtime.
-  const deadline = Date.now() + (isVideo ? 150_000 : 25_000);
+  const maxTries = isVideo ? 25 : 8;
+  const waitMs = isVideo ? 3000 : 1500;
+  const deadline = Date.now() + (isVideo ? 120_000 : 25_000);
   let noStatus = 0;
   for (let i = 0; i < maxTries; i++) {
     if (Date.now() > deadline) break;
@@ -29,19 +28,21 @@ async function waitContainer(token: string, containerId: string, isVideo: boolea
     let st: any;
     try {
       st = await jsonFetch(`${GRAPH}/${containerId}?fields=status_code,status&access_token=${token}`);
-    } catch (_) {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/Token de acesso|OAuthException|Permissão/i.test(msg)) throw err;
       continue;
     }
     if (st.status_code === "FINISHED") return;
     if (st.status_code === "ERROR" || st.status_code === "EXPIRED") {
-      throw new Error(`Falha no processamento da mídia: ${st.status || st.status_code}`);
+      throw new Error(`Falha no processamento da mídia pela Meta: ${st.status || st.status_code}`);
     }
     if (!st.status_code) {
       noStatus++;
       if (!isVideo && noStatus >= 2) return;
     }
   }
-  if (isVideo) throw new Error("Tempo esgotado no processamento da mídia");
+  if (isVideo) throw new Error("Tempo esgotado no processamento do vídeo pela Meta");
 }
 
 const RUPLOAD = "https://rupload.facebook.com/ig-api-upload/v22.0";
@@ -53,9 +54,6 @@ const MAX_BINARY_UPLOAD_BYTES = 80 * 1024 * 1024;
  * ela baixe a nossa URL assinada. É o caminho recomendado quando aparece o
  * erro 2207052 ("Media upload has failed"), quase sempre causado por falha da
  * Meta ao buscar/processar o arquivo remoto.
- * Para arquivos menores envia os bytes; para os maiores pede ao endpoint de
- * upload da Meta que busque a URL. Este fluxo é diferente do video_url comum:
- * o arquivo é transferido antes do processamento e pode ser retomado.
  */
 async function createVideoContainerResumable(
   account: AccountContext,
@@ -66,8 +64,6 @@ async function createVideoContainerResumable(
   params.delete("video_url");
   params.set("upload_type", "resumable");
 
-  // A inicialização resumível exige explicitamente um destes três valores.
-  // Não confiar no parâmetro herdado evita o erro "Only photo or video...".
   const isCarouselItem = params.get("is_carousel_item") === "true";
   const requestedType = params.get("media_type");
   const mediaType = isCarouselItem
@@ -109,7 +105,6 @@ async function createVideoContainerResumable(
       signal: AbortSignal.timeout(240_000),
     });
   } else {
-    // Não mantém vídeos grandes na memória do runtime.
     try { await source.body?.cancel(); } catch (_) { /* ignore */ }
     upload = await fetch(container.uri || `${RUPLOAD}/${container.id}`, {
       method: "POST",
@@ -135,9 +130,8 @@ async function createVideoContainerResumable(
 }
 
 /**
- * Cria o container e espera o processamento, refazendo apenas quando a Meta
- * devolve um erro transitório. Os orçamentos de retry do upload resumável e do
- * fluxo por URL são independentes, para não estourar o tempo do runtime.
+ * Cria o container e espera o processamento.
+ * Falha rápido em erros definitivos (ex.: token expirado, permissão, proporção).
  */
 async function createContainerWithRetry(
   account: AccountContext,
@@ -157,9 +151,11 @@ async function createContainerWithRetry(
         lastErr = e;
         const msg = e instanceof Error ? e.message : String(e);
         console.warn(`upload resumável falhou (tentativa ${attempt + 1}): ${msg}`);
-        // Erro definitivo da Meta: não reenvia o arquivo inteiro.
-        if (!TRANSIENT_MEDIA.test(msg)) throw e;
-        if (attempt < tries - 1) await sleep(5000 * (attempt + 1));
+        // Se for erro de autenticação ou erro definitivo, falha na hora
+        if (/Token de acesso|OAuthException|Permissão|Proporção/i.test(msg) || !TRANSIENT_MEDIA.test(msg)) {
+          throw e;
+        }
+        if (attempt < tries - 1) await sleep(4000);
       }
     }
   }
@@ -176,15 +172,18 @@ async function createContainerWithRetry(
     } catch (e) {
       lastErr = e;
       const msg = e instanceof Error ? e.message : String(e);
+      if (/Token de acesso|OAuthException|Permissão|Proporção/i.test(msg) || !TRANSIENT_MEDIA.test(msg)) {
+        throw e;
+      }
       if (attempt < tries - 1 && TRANSIENT_MEDIA.test(msg)) {
         console.warn(`container transitório falhou (tentativa ${attempt + 1}): ${msg}`);
-        await sleep(8000 * (attempt + 1));
+        await sleep(5000);
         continue;
       }
       if (TRANSIENT_MEDIA.test(msg)) {
         throw new Error(
-          "A Meta não conseguiu processar o vídeo (erro temporário 2207052). " +
-            "Tente novamente em alguns minutos ou reexporte o arquivo em MP4 (H.264 + AAC, até 90s).",
+          "A Meta não conseguiu processar o vídeo temporariamente (erro 2207052). " +
+            "Tente novamente em instantes ou confira o arquivo MP4 (H.264 + AAC).",
         );
       }
       throw e;
@@ -193,15 +192,12 @@ async function createContainerWithRetry(
   throw lastErr;
 }
 
-
-
-
 async function publishContainer(account: AccountContext, containerId: string): Promise<string> {
   const params = new URLSearchParams();
   params.set("creation_id", containerId);
   params.set("access_token", account.accessToken);
   let lastErr: unknown;
-  for (let attempt = 0; attempt < 6; attempt++) {
+  for (let attempt = 0; attempt < 5; attempt++) {
     try {
       const published = await jsonFetch(`${GRAPH}/${account.externalId}/media_publish`, {
         method: "POST",
@@ -211,8 +207,9 @@ async function publishContainer(account: AccountContext, containerId: string): P
     } catch (e) {
       lastErr = e;
       const msg = e instanceof Error ? e.message : String(e);
+      if (/Token de acesso|OAuthException|Permissão/i.test(msg)) throw e;
       if (/Media ID is not available|not available|transient/i.test(msg)) {
-        await sleep(3000 * (attempt + 1));
+        await sleep(2000 * (attempt + 1));
         continue;
       }
       throw e;

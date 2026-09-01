@@ -71,7 +71,21 @@ export async function jsonFetch(url: string, init?: RequestInit) {
     body = { raw: text };
   }
   if (!res.ok) {
-    const msg = body?.error?.message || body?.error?.message_detail || body?.message || text;
+    const errObj = body?.error;
+    let msg = errObj?.message || errObj?.message_detail || body?.message || text;
+    const code = errObj?.code;
+    const subcode = errObj?.error_subcode;
+    const type = errObj?.type;
+
+    // Erros conhecidos de autenticação / permissão da Meta
+    if (type === "OAuthException" || code === 190 || subcode === 463 || subcode === 467 || /access token/i.test(msg)) {
+      msg = "Token de acesso expirado ou inválido. Reconecte sua conta do Instagram/Facebook.";
+    } else if (code === 10 || code === 200 || /permission/i.test(msg)) {
+      msg = "Permissão insuficiente na Página/Instagram. Reconecte a conta garantindo todas as permissões.";
+    } else if (/aspect ratio/i.test(msg) || /invalid aspect ratio/i.test(msg)) {
+      msg = "Proporção de imagem/vídeo inválida para o Instagram. Use formato entre 4:5 e 1.91:1.";
+    }
+
     throw new Error(`[${res.status}] ${msg}`);
   }
   return body;
