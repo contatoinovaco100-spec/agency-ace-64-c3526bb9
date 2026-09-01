@@ -510,6 +510,19 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
             </div>
           </div>
 
+          {/* ── Copy da Arte (H1 / H2 / CTA) ── */}
+          {form.taskType === 'Arte' && (
+            <div>
+              <Label className={cn("text-xs", labelClass(form.description))}>Copy da Arte (H1 / H2 / CTA)</Label>
+              <Textarea
+                value={form.description || ''}
+                onChange={e => setForm({ ...form, description: e.target.value })}
+                placeholder={'H1 (Headline):\n[escreva aqui a headline principal da arte]\n\nH2 (Texto corpo da arte):\n[escreva aqui o texto de apoio / corpo]\n\nCTA (Chamada para ação):\n[escreva aqui a chamada para ação]'}
+                className={cn('mt-1 min-h-[220px] resize-y text-sm leading-relaxed whitespace-pre-wrap', fieldClass(form.description))}
+              />
+            </div>
+          )}
+
           {/* ── Common content fields: Roteiro + Legenda ── */}
           <div className="space-y-4">
             <div>
