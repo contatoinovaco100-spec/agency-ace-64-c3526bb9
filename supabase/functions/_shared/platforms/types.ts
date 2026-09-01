@@ -61,7 +61,8 @@ export interface PlatformAdapter {
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function jsonFetch(url: string, init?: RequestInit) {
-  const res = await fetch(url, init);
+  // Sem timeout, uma conexão travada com a Meta segura o isolate até morrer.
+  const res = await fetch(url, { ...init, signal: init?.signal ?? AbortSignal.timeout(45_000) });
   const text = await res.text();
   let body: any;
   try {
