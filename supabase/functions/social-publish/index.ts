@@ -77,10 +77,21 @@ Deno.serve(async (req) => {
     if (!mediaUrl) return json({ error: "Mídia não encontrada" }, 400);
 
 
-    await admin.from("publish_jobs").update({ status: "processing" }).eq("id", job_id);
+    // Só assume o job se ele ainda não foi concluído — evita que um disparo
+    // duplicado (cron + clique) reabra um job já publicado.
+    const { data: claimedJob } = await admin
+      .from("publish_jobs")
+      .update({ status: "processing" })
+      .eq("id", job_id)
+      .in("status", ["pending", "scheduled", "failed", "partial", "processing"])
+      .select("id")
+      .maybeSingle();
+    if (!claimedJob) return json({ success: true, skipped: true });
 
     let claimedTargets = 0;
-    await Promise.allSettled((targets || []).map(async (target: any) => {
+    // Publica em lotes para não estourar memória/tempo do runtime com vários vídeos.
+    const CONCURRENCY = 3;
+    const publishTarget = async (target: any) => {
       try {
         // Trava atômica: cron, clique manual e abas abertas podem disparar o
         // mesmo job ao mesmo tempo. Só a chamada que mudar o status publica.
