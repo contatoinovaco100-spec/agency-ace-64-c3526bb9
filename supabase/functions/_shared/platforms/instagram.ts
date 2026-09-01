@@ -135,38 +135,38 @@ async function createVideoContainerResumable(
 }
 
 /**
- * Cria o container e espera o processamento, refazendo tudo quando a Meta
- * devolve um erro transitório (ex.: 2207052 — "Media upload has failed").
- * Para vídeos, tenta primeiro o upload resumável (bytes diretos).
+ * Cria o container e espera o processamento, refazendo apenas quando a Meta
+ * devolve um erro transitório. Os orçamentos de retry do upload resumável e do
+ * fluxo por URL são independentes, para não estourar o tempo do runtime.
  */
 async function createContainerWithRetry(
   account: AccountContext,
   params: URLSearchParams,
   isVideo: boolean,
-  tries = 3,
+  tries = 2,
 ): Promise<string> {
   const videoUrl = params.get("video_url") || "";
   let lastErr: unknown;
+
+  // 1) Upload resumável (bytes diretos) — caminho preferido para vídeo.
+  if (isVideo && videoUrl) {
+    for (let attempt = 0; attempt < tries; attempt++) {
+      try {
+        return await createVideoContainerResumable(account, params, videoUrl);
+      } catch (e) {
+        lastErr = e;
+        const msg = e instanceof Error ? e.message : String(e);
+        console.warn(`upload resumável falhou (tentativa ${attempt + 1}): ${msg}`);
+        // Erro definitivo da Meta: não reenvia o arquivo inteiro.
+        if (!TRANSIENT_MEDIA.test(msg)) throw e;
+        if (attempt < tries - 1) await sleep(5000 * (attempt + 1));
+      }
+    }
+  }
+
+  // 2) Fallback: pede que a Meta busque a URL assinada (com retry próprio).
   for (let attempt = 0; attempt < tries; attempt++) {
     try {
-      if (isVideo && videoUrl) {
-        try {
-          return await createVideoContainerResumable(account, params, videoUrl);
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          console.warn(`upload resumável falhou (tentativa ${attempt + 1}): ${msg}`);
-          // Erro definitivo da Meta (ex.: formato rejeitado, 2207052 definitivo):
-          // não compensa reenviar o arquivo inteiro nem cair no fluxo por URL —
-          // falha rápido em vez de repetir o upload de arquivos grandes.
-          if (!TRANSIENT_MEDIA.test(msg)) throw e;
-          if (attempt < tries - 1) {
-            await sleep(10000 * (attempt + 1));
-            continue;
-          }
-          // última tentativa transitória: cai para o fluxo por URL abaixo
-        }
-      }
-
       const container = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
         method: "POST",
         body: new URLSearchParams(params),
@@ -178,12 +178,12 @@ async function createContainerWithRetry(
       const msg = e instanceof Error ? e.message : String(e);
       if (attempt < tries - 1 && TRANSIENT_MEDIA.test(msg)) {
         console.warn(`container transitório falhou (tentativa ${attempt + 1}): ${msg}`);
-        await sleep(15000 * (attempt + 1));
+        await sleep(8000 * (attempt + 1));
         continue;
       }
       if (TRANSIENT_MEDIA.test(msg)) {
         throw new Error(
-          "A Meta não conseguiu processar o vídeo após 3 tentativas (erro temporário 2207052). " +
+          "A Meta não conseguiu processar o vídeo (erro temporário 2207052). " +
             "Tente novamente em alguns minutos ou reexporte o arquivo em MP4 (H.264 + AAC, até 90s).",
         );
       }
@@ -192,6 +192,7 @@ async function createContainerWithRetry(
   }
   throw lastErr;
 }
+
 
 
 
