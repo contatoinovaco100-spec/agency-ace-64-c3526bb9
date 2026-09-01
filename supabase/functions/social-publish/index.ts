@@ -157,7 +157,12 @@ Deno.serve(async (req) => {
           error_message: message.slice(0, 500),
         }).eq("id", target.id);
       }
-    }));
+    };
+
+    for (let i = 0; i < (targets || []).length; i += CONCURRENCY) {
+      await Promise.allSettled(targets.slice(i, i + CONCURRENCY).map(publishTarget));
+    }
+
 
     // Outra execução já assumiu todos os destinos. Não sobrescreve o status
     // do job enquanto ela ainda está publicando.
