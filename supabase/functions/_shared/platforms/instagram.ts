@@ -409,32 +409,9 @@ export const instagramAdapter: PlatformAdapter = {
 
     const containerId = await createContainerWithRetry(account, params, isVideo);
 
-    const publishParams = new URLSearchParams();
-    publishParams.set("creation_id", containerId);
-    publishParams.set("access_token", account.accessToken);
+    // Reaproveita a lógica única de publicação com retry.
+    const published = { id: await publishContainer(account, containerId) };
 
-    let published: any;
-    let lastErr: unknown;
-    for (let attempt = 0; attempt < 6; attempt++) {
-      try {
-        published = await jsonFetch(`${GRAPH}/${account.externalId}/media_publish`, {
-          method: "POST",
-          body: new URLSearchParams(publishParams),
-        });
-        lastErr = undefined;
-        break;
-      } catch (e) {
-        lastErr = e;
-        const msg = e instanceof Error ? e.message : String(e);
-        // container ainda não indexado pela Meta — tenta de novo
-        if (/Media ID is not available|not available|transient/i.test(msg)) {
-          await sleep(3000 * (attempt + 1));
-          continue;
-        }
-        throw e;
-      }
-    }
-    if (lastErr) throw lastErr;
 
 
 
