@@ -87,23 +87,26 @@ async function createVideoContainerResumable(
   });
 
   let upload: Response;
-  const source = await fetch(videoUrl);
+  const source = await fetch(videoUrl, { signal: AbortSignal.timeout(60_000) });
   if (!source.ok) {
     throw new Error(`Não foi possível ler o vídeo armazenado (${source.status})`);
   }
   const declaredSize = Number(source.headers.get("content-length") || "0");
 
   if (declaredSize > 0 && declaredSize <= MAX_BINARY_UPLOAD_BYTES) {
-    const bytes = new Uint8Array(await source.arrayBuffer());
+    // Faz streaming: não materializa o vídeo inteiro na memória do runtime.
     upload = await fetch(container.uri || `${RUPLOAD}/${container.id}`, {
       method: "POST",
       headers: {
         "Authorization": `OAuth ${account.accessToken}`,
         "offset": "0",
-        "file_size": String(bytes.byteLength),
+        "file_size": String(declaredSize),
         "Content-Type": "application/octet-stream",
       },
-      body: bytes,
+      body: source.body,
+      // @ts-ignore: exigido pelo fetch do Deno para corpos em stream
+      duplex: "half",
+      signal: AbortSignal.timeout(240_000),
     });
   } else {
     // Não mantém vídeos grandes na memória do runtime.
@@ -114,6 +117,7 @@ async function createVideoContainerResumable(
         "Authorization": `OAuth ${account.accessToken}`,
         "file_url": videoUrl,
       },
+      signal: AbortSignal.timeout(240_000),
     });
   }
   if (!upload.ok) {
