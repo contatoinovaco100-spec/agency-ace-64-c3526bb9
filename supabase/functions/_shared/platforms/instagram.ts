@@ -20,8 +20,11 @@ const TRANSIENT_MEDIA =
 async function waitContainer(token: string, containerId: string, isVideo: boolean) {
   const maxTries = isVideo ? 40 : 10;
   const waitMs = isVideo ? 4000 : 2000;
+  // Falha rápido em vez de consumir todo o orçamento do Edge Runtime.
+  const deadline = Date.now() + (isVideo ? 150_000 : 25_000);
   let noStatus = 0;
   for (let i = 0; i < maxTries; i++) {
+    if (Date.now() > deadline) break;
     await sleep(waitMs);
     let st: any;
     try {
