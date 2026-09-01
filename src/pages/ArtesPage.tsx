@@ -35,7 +35,7 @@ export default function ArtesPage() {
       assignee: '',
       priority: 'Média',
       dueDate: '',
-      status: 'Ideias / Backlog',
+      status: 'A fazer',
       taskType: 'Arte',
       videoName: '',
       platform: '',
