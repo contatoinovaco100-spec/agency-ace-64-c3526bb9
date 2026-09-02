@@ -1721,10 +1721,12 @@ function ActionPlanSection({ acoes }: { acoes: Diagnosis['planoDeAcao'] }) {
 }
 
 function AlertsSection({ alertas }: { alertas: Diagnosis['alertas'] }) {
+  const items = (alertas || []).filter((a) => hasInfo(a?.mensagem));
+  if (!items.length) return null;
   return (
-    <Section title="Alertas importantes" subtitle="Pontos de atenção que precisam de ação imediata">
+    <Section title="Recomendações do consultor" subtitle="Próximos passos sugeridos para acelerar os resultados">
       <div className="space-y-2">
-        {alertas.map((a, i) => {
+        {items.map((a, i) => {
           const s = STATUS_STYLES[a.tipo] || STATUS_STYLES.warning;
           const Icon = s.icon;
           return (
