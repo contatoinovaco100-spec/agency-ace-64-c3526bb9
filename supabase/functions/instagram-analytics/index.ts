@@ -235,9 +235,11 @@ Deno.serve(async (req) => {
       .sort((a, b) => b.reach - a.reach);
 
     const totalReach = daily.reduce((s: number, d: any) => s + (d.reach || 0), 0);
-    const totalProfileViews = daily.reduce((s: number, d: any) => s + (d.profile_views || 0), 0);
-    const totalViews = daily.reduce((s: number, d: any) => s + (d.views || 0), 0);
-    const totalImpressions = daily.reduce((s: number, d: any) => s + (d.impressions || 0), 0);
+    // profile_views e views só existem como total_value (não há série diária na Graph API v22)
+    const totalProfileViews = Number(totalProfileViewsApi) || 0;
+    const totalViews = Number(totalViewsApi) || 0;
+    // "impressions" foi descontinuada em nível de conta: somamos o que vier das publicações
+    const totalImpressions = media.reduce((s, m) => s + (m.impressions || 0), 0);
     const gainedFollowers = daily.reduce((s: number, d: any) => s + (d.follower_count || 0), 0);
 
 
