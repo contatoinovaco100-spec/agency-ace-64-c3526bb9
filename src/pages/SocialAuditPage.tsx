@@ -105,6 +105,11 @@ function isCompleteMetric(m: MetricReading): boolean {
   return hasInfo(m?.name) && hasInfo(m?.value) && hasInfo(m?.classification) && hasInfo(m?.interpretation);
 }
 
+/** Lista de métricas exibíveis — remove qualquer item sem informação */
+function cleanMetrics(metricas?: MetricReading[]): MetricReading[] {
+  return (metricas || []).filter(isCompleteMetric);
+}
+
 /** Quebra o rótulo do eixo em até 2 linhas, sem truncar o nome da métrica */
 function wrapLabel(text: string, max = 18): string[] {
   const words = (text || '').split(' ');
