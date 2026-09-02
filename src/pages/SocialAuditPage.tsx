@@ -1098,10 +1098,13 @@ function ScoreGauge({ score, status }: { score: number; status: Status }) {
 }
 
 function KpisSection({ kpis }: { kpis: NonNullable<Diagnosis['kpisDestaque']> }) {
+  // Nunca exibe KPI sem valor real
+  const items = (kpis || []).filter((k) => hasInfo(k?.label) && hasInfo(k?.value));
+  if (!items.length) return null;
   return (
     <Section title="KPIs em destaque" subtitle="Os indicadores que mais impactam o resultado da campanha">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {kpis.map((kpi, i) => {
+        {items.map((kpi, i) => {
           const s = STATUS_STYLES[kpi.status] || STATUS_STYLES.warning;
           return (
             <motion.div
@@ -1112,7 +1115,7 @@ function KpisSection({ kpis }: { kpis: NonNullable<Diagnosis['kpisDestaque']> })
             >
               <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-2">{kpi.label}</p>
               <p className={cn('text-2xl sm:text-4xl font-black tabular-nums tracking-tight', s.text)}>{kpi.value}</p>
-              {kpi.delta && (
+              {hasInfo(kpi.delta) && (
                 <p className="text-xs text-muted-foreground mt-2 leading-tight">{kpi.delta}</p>
               )}
             </motion.div>
@@ -1124,15 +1127,20 @@ function KpisSection({ kpis }: { kpis: NonNullable<Diagnosis['kpisDestaque']> })
 }
 
 function ScoresSection({ scores }: { scores: NonNullable<Diagnosis['scores']> }) {
+  const validScore = (v: any) => typeof v === 'number' && Number.isFinite(v) && v > 0;
   const items = [
-    { label: 'Criativo', value: scores.criativo, icon: Sparkles },
-    { label: 'Público', value: scores.publico, icon: Users },
-    { label: 'Oferta', value: scores.oferta, icon: Target },
-    { label: 'Estrutura', value: scores.estrutura, icon: BarChart3 },
-  ];
+    { label: 'Criativo', value: scores?.criativo, icon: Sparkles },
+    { label: 'Público', value: scores?.publico, icon: Users },
+    { label: 'Oferta', value: scores?.oferta, icon: Target },
+    { label: 'Estrutura', value: scores?.estrutura, icon: BarChart3 },
+  ].filter((i) => validScore(i.value)) as { label: string; value: number; icon: any }[];
+
+  // Sem score real, a seção inteira desaparece (nada de barras vazias)
+  if (!items.length) return null;
+
   return (
     <Section title="Scores por dimensão" subtitle="Performance da campanha em cada pilar estratégico">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={cn('grid gap-4', items.length >= 3 ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2')}>
         {items.map((item, i) => {
           const status: Status = item.value >= 70 ? 'good' : item.value >= 40 ? 'warning' : 'bad';
           const s = STATUS_STYLES[status];
