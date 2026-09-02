@@ -1468,8 +1468,8 @@ function GlossarySection({ metricas }: { metricas: MetricReading[] }) {
   // Explica o termo de cada métrica em linguagem simples
   const items = (metricas || []).map((m) => ({
     name: m.name,
-    meaning: GLOSSARY[Object.keys(GLOSSARY).find((k) => m.name.toLowerCase().includes(k)) || ''] || m.interpretation,
-  })).filter((g) => g.meaning);
+    meaning: GLOSSARY[Object.keys(GLOSSARY).find((k) => (m.name || '').toLowerCase().includes(k)) || ''] || m.interpretation,
+  })).filter((g) => hasInfo(g.name) && hasInfo(g.meaning));
 
   if (!items.length) return null;
 
