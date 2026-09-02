@@ -333,7 +333,12 @@ REGRAS DE OURO:
 
 1. Capture os VALORES REAIS visíveis no print (ex: "CTR: 1.24%", "Gasto: R$ 1.847,50"). Use os valores exatos.
 2. Identifique a plataforma (Meta/Facebook, Google, TikTok) e o objetivo da campanha se visível.
-3. Para CADA métrica visível, dê: valor real, valor do período anterior (se visível no print, ex: comparação "vs período anterior" ou print de outro mês — use em valueBefore), benchmark do mercado BR, classificação (Excelente/Boa/Média/Baixa/Crítica), performance de 0-100 (o quão próximo está da meta) e 1 frase prática do que significa, escrita para um cliente leigo. Se houver prints de períodos diferentes (ex: um de agosto e um de setembro), SEMPRE preencha valueBefore com o valor mais antigo e value com o mais recente.
+3. Para CADA métrica visível, dê: valor real, valor do período anterior (valueBefore — OBRIGATÓRIO sempre que possível), benchmark do mercado BR, classificação (Excelente/Boa/Média/Baixa/Crítica), performance de 0-100 (o quão próximo está da meta) e 1 frase prática do que significa, escrita para um cliente leigo.
+   REGRAS PARA valueBefore (preencher para TODAS as métricas):
+   a) Se o print mostrar comparação percentual (ex: "vs período anterior: +25%" ou "↑ 25%"), CALCULE o valor anterior: valueBefore = value / (1 + pct/100). Ex: alcance hoje = 10.000 com "+25%" → valueBefore = "8.000".
+   b) Se houver prints de períodos diferentes (ex: agosto e setembro), use o valor mais antigo em valueBefore e o mais recente em value.
+   c) Se o print mostrar um gráfico com datas, use o valor aproximado do início do período como valueBefore e o valor atual como value.
+   d) Somente se for realmente impossível saber o valor anterior, omita valueBefore.
 4. Seja DIRETO. Sem jargão. O cliente é leigo.
 5. Score geral de 0-100 baseado em performance global.
 6. Scores por dimensão (criativo, publico, oferta, estrutura) de 0-100.
@@ -1081,6 +1086,47 @@ function ScoresSection({ scores }: { scores: NonNullable<Diagnosis['scores']> })
   );
 }
 
+/** Deriva o valor "antes" de uma métrica a partir de valueBefore, % no texto ou delta do KPI */
+function deriveBefore(
+  m: MetricReading,
+  kpis?: NonNullable<Diagnosis['kpisDestaque']>
+): { now: number; before: number; estimated: boolean } | null {
+  const now = parseNum(m.value);
+  if (now == null) return null;
+  let before: number | null = parseNum(m.valueBefore);
+  let estimated = false;
+
+  // Fallback 1: % de variação embutida no próprio texto da métrica
+  // (ex: "10.000 (+25%)" ou interpretation com "cresceu 25% vs período anterior")
+  if (before == null) {
+    const blob = `${m.value || ''} ${m.benchmark || ''} ${m.interpretation || ''}`;
+    const pctMatch = blob.match(/([+-]?\d+(?:[.,]\d+)?)\s*%/);
+    if (pctMatch && /vs|ante|per[ií]odo|cres|aumen|redu|queda|subiu|caiu|↑|↓/i.test(blob)) {
+      const pct = parseFloat(pctMatch[1].replace(',', '.'));
+      if (Number.isFinite(pct) && pct !== -100) {
+        before = now / (1 + pct / 100);
+        estimated = true;
+      }
+    }
+  }
+
+  // Fallback 2: deriva o "antes" a partir do delta % do KPI com mesmo nome
+  if (before == null && kpis?.length) {
+    const kpi = kpis.find((k) =>
+      m.name.toLowerCase().replace(/[^a-zà-ú]/g, '').includes(
+        k.label.toLowerCase().replace(/[^a-zà-ú]/g, '').slice(0, 10)
+      )
+    );
+    const pct = parseNum(kpi?.delta || '');
+    if (kpi && pct != null && (kpi.delta || '').includes('%') && pct !== -100) {
+      before = now / (1 + pct / 100);
+      estimated = true;
+    }
+  }
+  if (before == null) return null;
+  return { now, before, estimated };
+}
+
 function BeforeAfterSection({
   metricas,
   kpis,
@@ -1092,24 +1138,9 @@ function BeforeAfterSection({
 }) {
   const rows = (metricas || [])
     .map((m) => {
-      const now = parseNum(m.value);
-      let before: number | null = parseNum(m.valueBefore);
-      let estimated = false;
-
-      // Fallback: deriva o "antes" a partir do delta % do KPI com mesmo nome
-      if (before == null && kpis?.length) {
-        const kpi = kpis.find((k) =>
-          m.name.toLowerCase().replace(/[^a-zà-ú]/g, '').includes(
-            k.label.toLowerCase().replace(/[^a-zà-ú]/g, '').slice(0, 10)
-          )
-        );
-        const pct = parseNum(kpi?.delta || '');
-        if (kpi && pct != null && (kpi.delta || '').includes('%') && now != null && pct !== -100) {
-          before = now / (1 + pct / 100);
-          estimated = true;
-        }
-      }
-      if (now == null || before == null) return null;
+      const derived = deriveBefore(m, kpis);
+      if (!derived) return null;
+      const { now, before, estimated } = derived;
       const delta = before !== 0 ? ((now - before) / Math.abs(before)) * 100 : 0;
       return {
         name: m.name.length > 20 ? m.name.slice(0, 18) + '…' : m.name,
@@ -1368,6 +1399,32 @@ function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
               {m.value && (
                 <p className="text-2xl sm:text-3xl font-black tabular-nums text-foreground mb-2">{m.value}</p>
               )}
+              {/* Antes x Hoje inline por métrica */}
+              {(() => {
+                const derived = deriveBefore(m);
+                if (!derived) return null;
+                const delta = derived.before !== 0
+                  ? ((derived.now - derived.before) / Math.abs(derived.before)) * 100
+                  : 0;
+                const up = delta >= 0;
+                return (
+                  <div className="flex items-center gap-2 mb-3 text-xs flex-wrap">
+                    <span className="text-muted-foreground">
+                      Antes: <span className="font-semibold text-foreground tabular-nums">
+                        {numberFmt(derived.before)}{numSuffix(m.value)}{derived.estimated && '*'}
+                      </span>
+                    </span>
+                    <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                    <span className={cn(
+                      'flex items-center gap-1 rounded-full px-2 py-0.5 font-black tabular-nums',
+                      up ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'
+                    )}>
+                      {up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      {up ? '+' : ''}{delta.toFixed(1).replace('.', ',')}%
+                    </span>
+                  </div>
+                );
+              })()}
               {/* Barra de progresso até a meta */}
               <div className="mb-2">
                 <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1">
