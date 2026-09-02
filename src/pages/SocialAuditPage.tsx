@@ -88,6 +88,63 @@ function numSuffix(raw?: string): string {
 const numberFmt = (n: number) =>
   new Intl.NumberFormat('pt-BR', { maximumFractionDigits: Number.isInteger(n) ? 0 : 2 }).format(n);
 
+/** Arredonda valores estimados para não exibir "49,52 seguidores" */
+const smartRound = (n: number) => (Math.abs(n) >= 100 ? Math.round(n) : Math.round(n * 10) / 10);
+
+const EMPTY_TOKENS = /^(n\/?a|na|nd|-{1,3}|—|–|null|undefined|indispon[íi]vel|n[ãa]o dispon[íi]vel|sem dados?|desconhecido|vari[áa]vel|depende.*)$/i;
+
+/** true quando o texto realmente carrega informação */
+function hasInfo(raw?: string | null): boolean {
+  const t = (raw ?? '').toString().trim();
+  if (!t) return false;
+  return !EMPTY_TOKENS.test(t);
+}
+
+/** Só entram no relatório métricas com informação completa */
+function isCompleteMetric(m: MetricReading): boolean {
+  return hasInfo(m?.name) && hasInfo(m?.value) && hasInfo(m?.classification) && hasInfo(m?.interpretation);
+}
+
+/** Quebra o rótulo do eixo em até 2 linhas, sem truncar o nome da métrica */
+function wrapLabel(text: string, max = 18): string[] {
+  const words = (text || '').split(' ');
+  const lines: string[] = [];
+  let current = '';
+  for (const w of words) {
+    if ((current + ' ' + w).trim().length <= max) {
+      current = (current + ' ' + w).trim();
+    } else {
+      if (current) lines.push(current);
+      current = w;
+    }
+  }
+  if (current) lines.push(current);
+  if (lines.length > 2) return [lines[0], lines.slice(1).join(' ')];
+  return lines;
+}
+
+/** Tick do eixo Y com rótulo completo em duas linhas */
+const WrappedTick = ({ x, y, payload }: any) => {
+  const lines = wrapLabel(String(payload?.value ?? ''));
+  const offset = -((lines.length - 1) * 6);
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {lines.map((l, i) => (
+        <text
+          key={i}
+          x={-8}
+          y={offset + i * 13}
+          dy={4}
+          textAnchor="end"
+          style={{ fontSize: 11, fill: 'hsl(var(--foreground))' }}
+        >
+          {l}
+        </text>
+      ))}
+    </g>
+  );
+};
+
 
 
 interface Diagnosis {
