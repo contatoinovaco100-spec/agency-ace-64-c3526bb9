@@ -1399,6 +1399,32 @@ function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
               {m.value && (
                 <p className="text-2xl sm:text-3xl font-black tabular-nums text-foreground mb-2">{m.value}</p>
               )}
+              {/* Antes x Hoje inline por métrica */}
+              {(() => {
+                const derived = deriveBefore(m);
+                if (!derived) return null;
+                const delta = derived.before !== 0
+                  ? ((derived.now - derived.before) / Math.abs(derived.before)) * 100
+                  : 0;
+                const up = delta >= 0;
+                return (
+                  <div className="flex items-center gap-2 mb-3 text-xs flex-wrap">
+                    <span className="text-muted-foreground">
+                      Antes: <span className="font-semibold text-foreground tabular-nums">
+                        {numberFmt(derived.before)}{numSuffix(m.value)}{derived.estimated && '*'}
+                      </span>
+                    </span>
+                    <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                    <span className={cn(
+                      'flex items-center gap-1 rounded-full px-2 py-0.5 font-black tabular-nums',
+                      up ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'
+                    )}>
+                      {up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      {up ? '+' : ''}{delta.toFixed(1).replace('.', ',')}%
+                    </span>
+                  </div>
+                );
+              })()}
               {/* Barra de progresso até a meta */}
               <div className="mb-2">
                 <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1">
