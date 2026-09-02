@@ -1596,30 +1596,44 @@ function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
 }
 
 function StrategicSection({ diag }: { diag: Diagnosis['diagnosticoEstrategico'] }) {
-  return (
-    <Section title="Diagnóstico estratégico" subtitle="Onde está o gargalo real da campanha">
-      <div className="rounded-3xl bg-gradient-to-br from-primary/10 via-card to-card border border-primary/20 p-6 sm:p-8 mb-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Target className="w-5 h-5 text-primary" />
-          <span className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Gargalo identificado</span>
-          <span className="px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider">
-            {diag.gargalo}
-          </span>
-        </div>
-        <h3 className="text-xl sm:text-2xl font-black text-foreground mb-3 leading-tight">{diag.problemaPrincipal}</h3>
-        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{diag.detalhe}</p>
-      </div>
+  if (!diag) return null;
+  const fortes = (diag.pontosFortes || []).filter(hasInfo);
+  const oportunidades = (diag.pontosFracos || []).filter(hasInfo);
+  const hasHeader = hasInfo(diag.problemaPrincipal) || hasInfo(diag.detalhe) || hasInfo(diag.gargalo);
+  if (!hasHeader && !fortes.length && !oportunidades.length) return null;
 
-      {(diag.pontosFortes?.length || diag.pontosFracos?.length) ? (
-        <div className="grid sm:grid-cols-2 gap-4">
-          {diag.pontosFortes && diag.pontosFortes.length > 0 && (
+  return (
+    <Section title="Leitura estratégica" subtitle="Onde está a maior alavanca de crescimento">
+      {hasHeader && (
+        <div className="rounded-3xl bg-gradient-to-br from-primary/10 via-card to-card border border-primary/20 p-6 sm:p-8 mb-4">
+          {hasInfo(diag.gargalo) && (
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <Target className="w-5 h-5 text-primary" />
+              <span className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Foco de crescimento</span>
+              <span className="px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider">
+                {diag.gargalo}
+              </span>
+            </div>
+          )}
+          {hasInfo(diag.problemaPrincipal) && (
+            <h3 className="text-xl sm:text-2xl font-black text-foreground mb-3 leading-tight">{diag.problemaPrincipal}</h3>
+          )}
+          {hasInfo(diag.detalhe) && (
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{diag.detalhe}</p>
+          )}
+        </div>
+      )}
+
+      {(fortes.length || oportunidades.length) ? (
+        <div className={cn('grid gap-4', fortes.length && oportunidades.length ? 'sm:grid-cols-2' : '')}>
+          {fortes.length > 0 && (
             <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <h4 className="text-sm font-black uppercase tracking-widest text-emerald-400">Pontos fortes</h4>
+                <h4 className="text-sm font-black uppercase tracking-widest text-emerald-400">O que já está funcionando</h4>
               </div>
               <ul className="space-y-2">
-                {diag.pontosFortes.map((p, i) => (
+                {fortes.map((p, i) => (
                   <li key={i} className="flex gap-2 text-sm text-foreground">
                     <span className="text-emerald-400">✓</span>
                     <span>{p}</span>
@@ -1628,16 +1642,16 @@ function StrategicSection({ diag }: { diag: Diagnosis['diagnosticoEstrategico'] 
               </ul>
             </div>
           )}
-          {diag.pontosFracos && diag.pontosFracos.length > 0 && (
-            <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-5">
+          {oportunidades.length > 0 && (
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
               <div className="flex items-center gap-2 mb-3">
-                <TrendingDown className="w-5 h-5 text-red-400" />
-                <h4 className="text-sm font-black uppercase tracking-widest text-red-400">Pontos fracos</h4>
+                <Rocket className="w-5 h-5 text-primary" />
+                <h4 className="text-sm font-black uppercase tracking-widest text-primary">Oportunidades de evolução</h4>
               </div>
               <ul className="space-y-2">
-                {diag.pontosFracos.map((p, i) => (
+                {oportunidades.map((p, i) => (
                   <li key={i} className="flex gap-2 text-sm text-foreground">
-                    <span className="text-red-400">✗</span>
+                    <span className="text-primary">↗</span>
                     <span>{p}</span>
                   </li>
                 ))}
