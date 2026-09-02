@@ -1232,26 +1232,32 @@ function BeforeAfterSection({
       const { now, before, estimated } = derived;
       const delta = before !== 0 ? ((now - before) / Math.abs(before)) * 100 : 0;
       return {
-        name: m.name.length > 20 ? m.name.slice(0, 18) + '…' : m.name,
+        name: m.name,
         fullName: m.name,
         suffix: numSuffix(m.value),
         before,
         now,
-        delta,
+        delta: Math.round(delta * 10) / 10,
         estimated,
       };
     })
-    .filter(Boolean) as { name: string; fullName: string; suffix: string; before: number; now: number; delta: number; estimated: boolean }[];
+    .filter(Boolean)
+    .sort((a: any, b: any) => b.delta - a.delta) as {
+      name: string; fullName: string; suffix: string;
+      before: number; now: number; delta: number; estimated: boolean;
+    }[];
 
   if (!rows.length) return null;
 
+  const anyEstimated = rows.some((r) => r.estimated);
+
   return (
     <Section
-      title="Antes x Hoje"
-      subtitle={periodo ? `Evolução do perfil no período (${periodo})` : 'Evolução de cada indicador em relação ao período anterior'}
+      title="Antes x Depois"
+      subtitle={periodo ? `A evolução de cada indicador no período (${periodo})` : 'A evolução de cada indicador em relação ao período anterior'}
     >
-      {/* Cards didáticos */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
+      {/* Cards grandes de comparação */}
+      <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
         {rows.map((r, i) => {
           const up = r.delta >= 0;
           return (
@@ -1260,48 +1266,84 @@ function BeforeAfterSection({
               initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
               transition={{ delay: i * 0.05 }}
               className={cn(
-                'rounded-2xl border p-4',
-                up ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-red-500/30 bg-red-500/5'
+                'rounded-2xl border-2 p-5',
+                up ? 'border-primary/40 bg-primary/5' : 'border-amber-500/40 bg-amber-500/5'
               )}
             >
-              <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-3">{r.fullName}</p>
-              <div className="flex items-center gap-3 flex-wrap">
-                <div>
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Antes</p>
-                  <p className="text-lg font-bold tabular-nums text-muted-foreground">
-                    {numberFmt(r.before)}{r.suffix}{r.estimated && '*'}
-                  </p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Hoje</p>
-                  <p className="text-2xl font-black tabular-nums text-foreground">{numberFmt(r.now)}{r.suffix}</p>
-                </div>
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <p className="text-xs uppercase font-black tracking-widest text-foreground leading-tight">{r.fullName}</p>
                 <span
                   className={cn(
-                    'ml-auto flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black tabular-nums',
-                    up ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'
+                    'shrink-0 flex items-center gap-1 rounded-full px-3 py-1 text-sm font-black tabular-nums',
+                    up ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
                   )}
                 >
-                  {up ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                  {up ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                   {up ? '+' : ''}{r.delta.toFixed(1).replace('.', ',')}%
                 </span>
               </div>
+              <div className="flex items-end gap-3 sm:gap-4">
+                <div className="min-w-0">
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground/70 mb-0.5">Antes</p>
+                  <p className="text-xl sm:text-2xl font-bold tabular-nums text-muted-foreground line-through decoration-muted-foreground/40">
+                    {numberFmt(r.before)}{r.suffix}{r.estimated && '*'}
+                  </p>
+                </div>
+                <ArrowRight className="w-5 h-5 mb-1.5 shrink-0 text-primary" />
+                <div className="min-w-0">
+                  <p className="text-[9px] uppercase tracking-widest text-primary mb-0.5">Depois (hoje)</p>
+                  <p className="text-3xl sm:text-4xl font-black tabular-nums text-primary leading-none">
+                    {numberFmt(r.now)}{r.suffix}
+                  </p>
+                </div>
+              </div>
+              {/* Barra proporcional antes vs depois (escala própria da métrica) */}
+              {(() => {
+                const max = Math.max(r.before, r.now) || 1;
+                return (
+                  <div className="mt-4 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-12 shrink-0 text-[9px] uppercase tracking-widest text-muted-foreground">Antes</span>
+                      <div className="h-2.5 flex-1 rounded-full bg-muted overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }} whileInView={{ width: `${(r.before / max) * 100}%` }} viewport={{ once: true }}
+                          transition={{ duration: 0.8 }}
+                          className="h-full rounded-full bg-muted-foreground/50"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-12 shrink-0 text-[9px] uppercase tracking-widest text-primary">Depois</span>
+                      <div className="h-2.5 flex-1 rounded-full bg-muted overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }} whileInView={{ width: `${(r.now / max) * 100}%` }} viewport={{ once: true }}
+                          transition={{ duration: 0.8, delay: 0.15 }}
+                          className="h-full rounded-full bg-primary"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </motion.div>
           );
         })}
       </div>
 
-      {/* Gráfico comparativo */}
+      {/* Gráfico de evolução percentual — todas as métricas na mesma escala */}
       <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
-        <div className="h-[260px] sm:h-[320px]">
+        <p className="mb-1 text-sm font-black uppercase tracking-widest text-foreground">Evolução por indicador</p>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Quanto cada métrica cresceu (ou recuou) em relação ao período anterior, em %
+        </p>
+        <div style={{ height: Math.max(200, rows.length * 46) }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }} barGap={2}>
+            <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 56, left: 8, bottom: 4 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-muted" />
               <XAxis type="number" hide />
               <YAxis
-                type="category" dataKey="name" width={130}
-                tick={{ fontSize: 11, fill: 'hsl(var(--foreground))' }}
+                type="category" dataKey="name" width={170}
+                tick={<WrappedTick />}
                 tickLine={false} axisLine={false}
               />
               <Tooltip
@@ -1314,23 +1356,31 @@ function BeforeAfterSection({
                     <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-lg">
                       <p className="font-bold text-foreground">{d.fullName}</p>
                       <p className="text-muted-foreground">Antes: <span className="font-semibold text-foreground">{numberFmt(d.before)}{d.suffix}</span></p>
-                      <p className="text-muted-foreground">Hoje: <span className="font-semibold text-foreground">{numberFmt(d.now)}{d.suffix}</span></p>
-                      <p className="mt-1 font-bold" style={{ color: up ? PERF_COLORS.good : PERF_COLORS.bad }}>
+                      <p className="text-muted-foreground">Depois: <span className="font-semibold text-foreground">{numberFmt(d.now)}{d.suffix}</span></p>
+                      <p className="mt-1 font-bold" style={{ color: up ? PERF_COLORS.good : PERF_COLORS.warning }}>
                         {up ? '+' : ''}{d.delta.toFixed(1).replace('.', ',')}% de evolução
                       </p>
                     </div>
                   );
                 }}
               />
-              <Bar dataKey="before" name="Antes" fill="hsl(var(--muted-foreground) / 0.45)" radius={[0, 6, 6, 0]} barSize={10} />
-              <Bar dataKey="now" name="Hoje" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} barSize={10} />
+              <Bar dataKey="delta" radius={[0, 8, 8, 0]} barSize={22}>
+                {rows.map((r, i) => (
+                  <Cell key={i} fill={r.delta >= 0 ? PERF_COLORS.good : PERF_COLORS.warning} />
+                ))}
+                <LabelList
+                  dataKey="delta" position="right"
+                  formatter={(v: any) => `${Number(v) >= 0 ? '+' : ''}${Number(v).toFixed(1).replace('.', ',')}%`}
+                  style={{ fontSize: 11, fontWeight: 800, fill: 'hsl(var(--foreground))' }}
+                />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
         <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-border pt-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/50" /> Antes (período anterior)</span>
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-primary" /> Hoje (período atual)</span>
-          {rows.some((r) => r.estimated) && (
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: PERF_COLORS.good }} /> Cresceu no período</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: PERF_COLORS.warning }} /> Oportunidade de retomada</span>
+          {anyEstimated && (
             <span className="italic">* valor do período anterior estimado a partir da variação informada</span>
           )}
         </div>
