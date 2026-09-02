@@ -17,6 +17,10 @@ import { cn } from '@/lib/utils';
 import LogoInova from '@/assets/logo-inova.png';
 import { useSeo } from '@/lib/seo';
 import { PAGE_THUMBS } from '@/lib/pageThumbs';
+import {
+  RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LabelList, Cell,
+} from 'recharts';
 
 type Status = 'good' | 'warning' | 'bad';
 
@@ -28,6 +32,32 @@ interface MetricReading {
   status: Status;
   interpretation: string;
   icon?: string;
+  /** 0-100: o quão próximo a métrica está da meta/benchmark */
+  performance?: number;
+}
+
+const CLASSIFICATION_SCORE: Record<string, number> = {
+  excelente: 100,
+  ótima: 95,
+  boa: 75,
+  média: 50,
+  media: 50,
+  baixa: 30,
+  crítica: 10,
+  critica: 10,
+};
+
+function metricPerformance(m: MetricReading): number {
+  if (typeof m.performance === 'number' && !isNaN(m.performance)) {
+    return Math.max(0, Math.min(100, m.performance));
+  }
+  const key = (m.classification || '').toLowerCase().trim();
+  return CLASSIFICATION_SCORE[key] ?? 50;
+}
+
+const PERF_COLORS = { good: '#10b981', warning: '#f59e0b', bad: '#ef4444' } as const;
+function perfColor(p: number): string {
+  return p >= 70 ? PERF_COLORS.good : p >= 40 ? PERF_COLORS.warning : PERF_COLORS.bad;
 }
 
 interface Diagnosis {
@@ -273,7 +303,7 @@ REGRAS DE OURO:
 
 1. Capture os VALORES REAIS visíveis no print (ex: "CTR: 1.24%", "Gasto: R$ 1.847,50"). Use os valores exatos.
 2. Identifique a plataforma (Meta/Facebook, Google, TikTok) e o objetivo da campanha se visível.
-3. Para CADA métrica visível, dê: valor real, benchmark do mercado BR, classificação (Excelente/Boa/Média/Baixa/Crítica) e 1 frase prática do que significa.
+3. Para CADA métrica visível, dê: valor real, benchmark do mercado BR, classificação (Excelente/Boa/Média/Baixa/Crítica), performance de 0-100 (o quão próximo está da meta) e 1 frase prática do que significa, escrita para um cliente leigo.
 4. Seja DIRETO. Sem jargão. O cliente é leigo.
 5. Score geral de 0-100 baseado em performance global.
 6. Scores por dimensão (criativo, publico, oferta, estrutura) de 0-100.
@@ -301,7 +331,7 @@ Retorne APENAS JSON neste formato:
     { "label": "CPA", "value": "R$ 47,80", "delta": "Acima do ideal", "status": "warning" }
   ],
   "metricas": [
-    { "name": "CTR", "value": "1.24%", "benchmark": "Ideal: > 1.5%", "classification": "Baixa", "status": "warning", "interpretation": "Poucas pessoas estão clicando — o criativo precisa chamar mais atenção." }
+    { "name": "CTR", "value": "1.24%", "benchmark": "Ideal: > 1.5%", "classification": "Baixa", "status": "warning", "performance": 55, "interpretation": "Poucas pessoas estão clicando — o criativo precisa chamar mais atenção." }
   ],
   "scores": {
     "criativo": 60,
@@ -793,8 +823,14 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
               {/* SCORES POR DIMENSÃO */}
               {diagnosis.scores && <ScoresSection scores={diagnosis.scores} />}
 
+              {/* GRÁFICO COMPARATIVO DAS MÉTRICAS */}
+              <MetricsChartSection metricas={diagnosis.metricas} />
+
               {/* MÉTRICAS DETALHADAS */}
               <MetricsSection metricas={diagnosis.metricas} />
+
+              {/* GLOSSÁRIO DIDÁTICO */}
+              <GlossarySection metricas={diagnosis.metricas} />
 
               {/* DIAGNÓSTICO ESTRATÉGICO */}
               <StrategicSection diag={diagnosis.diagnosticoEstrategico} />
@@ -1012,6 +1048,124 @@ function ScoresSection({ scores }: { scores: NonNullable<Diagnosis['scores']> })
   );
 }
 
+function MetricsChartSection({ metricas }: { metricas: MetricReading[] }) {
+  const data = (metricas || [])
+    .map((m) => ({
+      name: m.name.length > 18 ? m.name.slice(0, 16) + '…' : m.name,
+      fullName: m.name,
+      value: m.value || '—',
+      benchmark: m.benchmark || '',
+      perf: metricPerformance(m),
+    }))
+    .sort((a, b) => a.perf - b.perf);
+
+  if (!data.length) return null;
+
+  return (
+    <Section
+      title="Comparação visual das métricas"
+      subtitle="O quanto cada indicador está da meta do mercado (100% = no alvo ou acima)"
+    >
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+        <div className="h-[280px] sm:h-[340px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} layout="vertical" margin={{ top: 4, right: 40, left: 8, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-muted" />
+              <XAxis type="number" domain={[0, 100]} hide />
+              <YAxis
+                type="category" dataKey="name" width={110}
+                tick={{ fontSize: 11, fill: 'hsl(var(--foreground))' }}
+                tickLine={false} axisLine={false}
+              />
+              <Tooltip
+                cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
+                content={({ active, payload }: any) => {
+                  if (!active || !payload?.length) return null;
+                  const d = payload[0].payload;
+                  return (
+                    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-lg">
+                      <p className="font-bold text-foreground">{d.fullName}</p>
+                      <p className="text-muted-foreground">Real: <span className="font-semibold text-foreground">{d.value}</span></p>
+                      {d.benchmark && <p className="text-muted-foreground">Meta: <span className="font-semibold text-foreground">{d.benchmark}</span></p>}
+                      <p className="mt-1 font-bold" style={{ color: perfColor(d.perf) }}>{d.perf}% da meta</p>
+                    </div>
+                  );
+                }}
+              />
+              <Bar dataKey="perf" radius={[0, 8, 8, 0]} barSize={20}>
+                {data.map((d, i) => (
+                  <Cell key={i} fill={perfColor(d.perf)} />
+                ))}
+                <LabelList
+                  dataKey="perf" position="right"
+                  formatter={(v: any) => `${v}%`}
+                  style={{ fontSize: 11, fontWeight: 800, fill: 'hsl(var(--foreground))' }}
+                />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        {/* Legenda didática */}
+        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-border pt-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: PERF_COLORS.good }} /> No alvo (70%+)</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: PERF_COLORS.warning }} /> Pode melhorar (40–69%)</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: PERF_COLORS.bad }} /> Precisa de atenção (abaixo de 40%)</span>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function GlossarySection({ metricas }: { metricas: MetricReading[] }) {
+  // Explica o termo de cada métrica em linguagem simples
+  const items = (metricas || []).map((m) => ({
+    name: m.name,
+    meaning: GLOSSARY[Object.keys(GLOSSARY).find((k) => m.name.toLowerCase().includes(k)) || ''] || m.interpretation,
+  })).filter((g) => g.meaning);
+
+  if (!items.length) return null;
+
+  return (
+    <Section
+      title="Entenda cada métrica"
+      subtitle="Traduzimos os termos técnicos para você acompanhar sem dúvidas"
+    >
+      <div className="grid sm:grid-cols-2 gap-3">
+        {items.map((g, i) => (
+          <div key={i} className="flex gap-3 rounded-2xl border border-border bg-card p-4">
+            <div className="shrink-0 p-2 h-fit rounded-lg bg-primary/10">
+              <Lightbulb className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-foreground">{g.name}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed mt-1">{g.meaning}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+const GLOSSARY: Record<string, string> = {
+  seguidores: 'Total de pessoas que acompanham o perfil. É a base de fãs da marca — quanto maior e mais engajada, mais autoridade.',
+  alcance: 'Quantas pessoas diferentes viram o conteúdo. Mostra o potencial de visibilidade da marca.',
+  impressões: 'Quantas vezes o conteúdo foi exibido no total (uma mesma pessoa pode ver mais de uma vez).',
+  visitas: 'Quantas pessoas entraram no perfil. É o caminho para ganhar seguidores e clientes — por isso bio e destaques importam.',
+  engajamento: 'Percentual de pessoas que interagiram (curtiram, comentaram, salvaram, compartilharam) em relação ao que viram. Acima de 3% é considerado bom.',
+  ctr: 'Percentual de pessoas que viram o anúncio e clicaram. Quanto maior, mais atrativa está a peça.',
+  cpc: 'Quanto custa cada clique no anúncio. Quanto menor, mais eficiente.',
+  cpm: 'Custo para exibir o anúncio 1.000 vezes. Indica o preço de alcançar o público.',
+  roas: 'Retorno sobre o investimento: para cada R$ 1 investido, quanto voltou em vendas. Acima de 2x já é positivo.',
+  cpa: 'Custo para conquistar cada conversão (venda, lead ou cadastro).',
+  frequência: 'Quantas vezes, em média, a mesma pessoa viu o anúncio. Acima de 3 pode indicar cansaço do público.',
+  conversões: 'Quantas ações desejadas aconteceram (compras, cadastros, mensagens). É o resultado final que importa.',
+  leads: 'Quantas pessoas deixaram contato demonstrando interesse. É a porta de entrada de novos clientes.',
+  publicações: 'Quantidade de posts no período. Constância mantém o perfil ativo e o público engajado.',
+  viral: 'Publicação com desempenho muito acima da média. Mostra o tipo de conteúdo que a audiência mais gosta.',
+  gasto: 'Total investido em anúncios no período.',
+};
+
 function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
   return (
     <Section title="Leitura completa das métricas" subtitle="Cada número da sua campanha interpretado por um consultor sênior">
@@ -1043,6 +1197,21 @@ function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
               {m.value && (
                 <p className="text-2xl sm:text-3xl font-black tabular-nums text-foreground mb-2">{m.value}</p>
               )}
+              {/* Barra de progresso até a meta */}
+              <div className="mb-2">
+                <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1">
+                  <span>Quanto falta para a meta</span>
+                  <span>{metricPerformance(m)}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }} whileInView={{ width: `${metricPerformance(m)}%` }} viewport={{ once: true }}
+                    transition={{ duration: 0.9, delay: i * 0.05 }}
+                    className="h-full rounded-full"
+                    style={{ background: perfColor(metricPerformance(m)) }}
+                  />
+                </div>
+              </div>
               <p className="text-sm text-muted-foreground leading-relaxed">{m.interpretation}</p>
             </motion.div>
           );
