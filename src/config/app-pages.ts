@@ -3,7 +3,7 @@ import {
   Shield, FileText, BarChart3,   Film, Clapperboard, Palette, Play,
   LayoutList, Bot, Sparkles, Settings, Bell, Calendar, CalendarDays,
   MessageSquare, TrendingUp, Images, BookOpen, CalculatorIcon,
-  Gift, Link2, Video, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy, Scissors, AtSign, Gauge,
+  Gift, Link2, Video, NotebookPen, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy, Scissors, AtSign, Gauge,
 } from 'lucide-react';
 
 export type PageCategory =
@@ -82,6 +82,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/editor-video',        label: 'Editor de Vídeo',     icon: Scissors,        category: 'Operacional' },
   { path: '/escopos',             label: 'Escopo do Cliente',   icon: ListChecks,      category: 'Operacional' },
   { path: '/nota-cliente',        label: 'Nota do Cliente',     icon: Gauge,           category: 'Operacional' },
+  { path: '/observacoes-semanais', label: 'Observações Semanais', icon: NotebookPen,    category: 'Operacional' },
   { path: '/planejamento',        label: 'Planejamento',        icon: LayoutList,      category: 'Operacional' },
   { path: '/diagnostico/editar',  label: 'Diagnóstico',         icon: Target,          category: 'Operacional' },
   // { path: '/metas',               label: 'Metas',               icon: Target,          category: 'Operacional' },
