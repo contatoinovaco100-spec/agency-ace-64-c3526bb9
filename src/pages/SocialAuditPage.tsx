@@ -927,20 +927,24 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
                 <KpisSection kpis={diagnosis.kpisDestaque} />
               )}
 
+              {/* COMPARATIVO ANTES x HOJE (destaque logo após os KPIs) */}
+              <BeforeAfterSection
+                metricas={cleanMetrics(diagnosis.metricas)}
+                kpis={diagnosis.kpisDestaque}
+                periodo={diagnosis.campanha?.periodo}
+              />
+
               {/* SCORES POR DIMENSÃO */}
               {diagnosis.scores && <ScoresSection scores={diagnosis.scores} />}
 
-              {/* COMPARATIVO ANTES x HOJE */}
-              <BeforeAfterSection metricas={diagnosis.metricas} kpis={diagnosis.kpisDestaque} periodo={diagnosis.campanha?.periodo} />
-
               {/* GRÁFICO COMPARATIVO DAS MÉTRICAS */}
-              <MetricsChartSection metricas={diagnosis.metricas} />
+              <MetricsChartSection metricas={cleanMetrics(diagnosis.metricas)} />
 
               {/* MÉTRICAS DETALHADAS */}
-              <MetricsSection metricas={diagnosis.metricas} />
+              <MetricsSection metricas={cleanMetrics(diagnosis.metricas)} />
 
               {/* GLOSSÁRIO DIDÁTICO */}
-              <GlossarySection metricas={diagnosis.metricas} />
+              <GlossarySection metricas={cleanMetrics(diagnosis.metricas)} />
 
               {/* DIAGNÓSTICO ESTRATÉGICO */}
               <StrategicSection diag={diagnosis.diagnosticoEstrategico} />
