@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { CheckCircle, Eye, EyeOff } from 'lucide-react';
 import logoInova from '@/assets/logo-inova.png';
 
 export default function LoginPage() {
-  const { signIn, signUp } = useAuth();
+  const { user, loading: authLoading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,15 +28,22 @@ export default function LoginPage() {
   const [signUpPassword, setSignUpPassword] = useState('');
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
 
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate('/', { replace: true });
+    }
+  }, [authLoading, navigate, user]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     // Allow login by username only (auto-append @inova.mov for employees)
-    const emailToUse = loginEmail.includes('@') ? loginEmail : `${loginEmail.toLowerCase().trim()}@inova.mov`;
+    const normalizedLogin = loginEmail.trim().toLowerCase();
+    const emailToUse = normalizedLogin.includes('@') ? normalizedLogin : `${normalizedLogin}@inova.mov`;
     const { error } = await signIn(emailToUse, loginPassword);
-    setLoading(false);
     if (error) {
+      setLoading(false);
       setError('Usuário ou senha incorretos.');
     } else {
       const { supabase } = await import('@/integrations/supabase/client');
@@ -46,7 +53,7 @@ export default function LoginPage() {
         const { data: roleRow } = await supabase
           .from('user_roles').select('role')
           .eq('user_id', user.id).eq('role', 'admin').maybeSingle();
-        if (roleRow) { navigate('/'); return; }
+        if (roleRow) { navigate('/', { replace: true }); return; }
 
         // 2) Afiliado → /afiliado
         if (user.email) {
@@ -55,14 +62,14 @@ export default function LoginPage() {
             .select('id')
             .ilike('email', user.email)
             .limit(1);
-          if (affiliateRows && affiliateRows.length > 0) { navigate('/afiliado/leads'); return; }
+          if (affiliateRows && affiliateRows.length > 0) { navigate('/afiliado/leads', { replace: true }); return; }
         }
 
         // 3) Empresa da Rede de Negócios → feed /negocios
         const { data: companyRow } = await supabase
           .from('rede_companies').select('id')
           .eq('owner_user_id', user.id).maybeSingle();
-        if (companyRow) { navigate('/negocios'); return; }
+        if (companyRow) { navigate('/negocios', { replace: true }); return; }
 
         // 4) Funcionário Inova → primeira página permitida (ou minhas-tarefas)
         const { data: pageRows } = await supabase
@@ -73,9 +80,9 @@ export default function LoginPage() {
         const target = preferred.find(p => paths.includes(p))
           ?? paths.find(p => !p.startsWith('/afiliado'))
           ?? '/alterar-senha';
-        navigate(target);
+        navigate(target, { replace: true });
       } else {
-        navigate('/');
+        navigate('/', { replace: true });
       }
     }
   };
