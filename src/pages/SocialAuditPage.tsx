@@ -1391,14 +1391,16 @@ function BeforeAfterSection({
 
 function MetricsChartSection({ metricas }: { metricas: MetricReading[] }) {
   const data = (metricas || [])
+    .filter((m) => hasInfo(m?.name) && hasInfo(m?.value))
     .map((m) => ({
-      name: m.name.length > 18 ? m.name.slice(0, 16) + '…' : m.name,
+      name: m.name,
       fullName: m.name,
-      value: m.value || '—',
-      benchmark: m.benchmark || '',
+      value: m.value,
+      benchmark: hasInfo(m.benchmark) ? m.benchmark : '',
       perf: metricPerformance(m),
     }))
-    .sort((a, b) => a.perf - b.perf);
+    .filter((d) => Number.isFinite(d.perf) && d.perf > 0)
+    .sort((a, b) => b.perf - a.perf);
 
   if (!data.length) return null;
 
@@ -1408,15 +1410,20 @@ function MetricsChartSection({ metricas }: { metricas: MetricReading[] }) {
       subtitle="O quanto cada indicador está da meta do mercado (100% = no alvo ou acima)"
     >
       <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
-        <div className="h-[280px] sm:h-[340px]">
+        <div style={{ height: Math.max(220, data.length * 46) }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ top: 4, right: 40, left: 8, bottom: 4 }}>
+            <BarChart data={data} layout="vertical" margin={{ top: 4, right: 56, left: 8, bottom: 4 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-muted" />
               <XAxis type="number" domain={[0, 100]} hide />
               <YAxis
-                type="category" dataKey="name" width={110}
-                tick={{ fontSize: 11, fill: 'hsl(var(--foreground))' }}
+                type="category" dataKey="name" width={170}
+                tick={<WrappedTick />}
                 tickLine={false} axisLine={false}
+              />
+              {/* Marcador da meta de mercado */}
+              <ReferenceLine
+                x={100} stroke={PERF_COLORS.good} strokeDasharray="4 4"
+                label={{ value: 'Meta', position: 'top', fontSize: 10, fill: PERF_COLORS.good }}
               />
               <Tooltip
                 cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
