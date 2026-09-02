@@ -1101,7 +1101,21 @@ function BeforeAfterSection({
       let before: number | null = parseNum(m.valueBefore);
       let estimated = false;
 
-      // Fallback: deriva o "antes" a partir do delta % do KPI com mesmo nome
+      // Fallback 1: % de variação embutida no próprio texto da métrica
+      // (ex: "10.000 (+25%)" ou interpretation com "cresceu 25% vs período anterior")
+      if (before == null && now != null) {
+        const blob = `${m.value || ''} ${m.benchmark || ''} ${m.interpretation || ''}`;
+        const pctMatch = blob.match(/([+-]?\d+(?:[.,]\d+)?)\s*%/);
+        if (pctMatch && /vs|ante|per[ií]odo|cres|aumen|redu|queda|subiu|caiu|↑|↓/i.test(blob)) {
+          const pct = parseFloat(pctMatch[1].replace(',', '.'));
+          if (Number.isFinite(pct) && pct !== -100) {
+            before = now / (1 + pct / 100);
+            estimated = true;
+          }
+        }
+      }
+
+      // Fallback 2: deriva o "antes" a partir do delta % do KPI com mesmo nome
       if (before == null && kpis?.length) {
         const kpi = kpis.find((k) =>
           m.name.toLowerCase().replace(/[^a-zà-ú]/g, '').includes(
