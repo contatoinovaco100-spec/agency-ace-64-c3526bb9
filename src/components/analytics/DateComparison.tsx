@@ -132,7 +132,7 @@ export default function DateComparison({ daily, onEarliestDateChange }: Props) {
           </p>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2">
           {METRICS.map(m => {
             const a = sum.a[m.key];
             const b = sum.b[m.key];
