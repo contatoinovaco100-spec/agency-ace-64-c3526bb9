@@ -89,16 +89,25 @@ Deno.serve(async (req) => {
       `💰 Valor: ${value}/mês\n` +
       `📅 ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
 
+    const CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
     const response = await fetch(`${ZAPI_BASE}/send-text`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(CLIENT_TOKEN ? { 'Client-Token': CLIENT_TOKEN } : {}),
+      },
       body: JSON.stringify({ phone: NOTIFY_PHONE, message }),
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(`Z-API send failed [${response.status}]: ${JSON.stringify(data)}`);
+      // A assinatura já foi registrada; não falhar a requisição por causa do WhatsApp
+      console.error(`Z-API send failed [${response.status}]: ${JSON.stringify(data)}`);
+      return new Response(JSON.stringify({ success: true, whatsapp: false, warning: 'WhatsApp notification failed' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
