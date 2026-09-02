@@ -217,19 +217,23 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
     }
   };
 
-  const chartData = (data?.daily ?? []).map(d => ({
-    date: d.date.slice(5),
-    Alcance: d.reach ?? 0,
-    Impressões: d.impressions ?? 0,
-    Visitas: d.profile_views ?? 0,
-  }));
+  const chartData = (data?.daily ?? [])
+    .filter(d => d.date <= new Date().toISOString().slice(0, 10))
+    .map(d => ({
+      date: new Date(`${d.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+      Alcance: d.reach ?? 0,
+      'Novos seguidores': d.follower_count ?? 0,
+    }));
+
+  const hasChartData = chartData.some(d => d.Alcance > 0 || d['Novos seguidores'] > 0);
 
   const kpis = [
-    { label: 'Seguidores', value: nf(data?.profile.followers ?? 0), icon: Users },
-    { label: 'Alcance', value: nf(data?.summary.reach ?? 0), icon: Eye },
-    { label: 'Impressões', value: nf(data?.summary.impressions ?? 0), icon: BarChart3 },
-    { label: 'Visitas ao perfil', value: nf(data?.summary.profile_views ?? 0), icon: TrendingUp },
-    { label: 'Novos seguidores', value: nf(data?.summary.gained_followers ?? 0), icon: TrendingUp },
+    { label: 'Seguidores', value: nf(data?.profile.followers ?? 0), icon: Users, hint: 'Total atual' },
+    { label: 'Alcance', value: nf(data?.summary.reach ?? 0), icon: Eye, hint: `Últimos ${days} dias` },
+    { label: 'Visualizações', value: nf(data?.summary.views ?? 0), icon: BarChart3, hint: 'Views do período' },
+    { label: 'Visitas ao perfil', value: nf(data?.summary.profile_views ?? 0), icon: TrendingUp, hint: 'Período' },
+    { label: 'Novos seguidores', value: nf(data?.summary.gained_followers ?? 0), icon: Users, hint: 'Saldo do período' },
+    { label: 'Engaj. médio', value: `${(data?.summary.avg_engagement_rate ?? 0).toString().replace('.', ',')}%`, icon: Heart, hint: 'Por publicação' },
   ];
 
   return (
