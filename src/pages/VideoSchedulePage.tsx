@@ -232,8 +232,18 @@ export default function VideoSchedulePage() {
       toast({ title: 'Semana anterior está vazia', variant: 'destructive' });
       return;
     }
+    // Evita duplicar: ignora itens que já existem na semana atual
+    const keyOf = (r: any) =>
+      `${r.day_of_week}|${r.board ?? 'video'}|${r.client_id ?? ''}|${(r.custom_label ?? '').trim().toLowerCase()}`;
+    const existing = new Set(entries.filter(e => e.week_start === weekStartISO).map(keyOf));
+    const toCopy = rows.filter(r => !existing.has(keyOf(r)));
+    if (toCopy.length === 0) {
+      setCopying(false);
+      toast({ title: 'Nada a copiar', description: 'Todos os itens da semana anterior já estão nesta semana.' });
+      return;
+    }
     const { data: { user } } = await supabase.auth.getUser();
-    const payload = rows.map(r => ({
+    const payload = toCopy.map(r => ({
       week_start: weekStartISO,
       day_of_week: r.day_of_week,
       board: r.board ?? 'video',
@@ -254,6 +264,7 @@ export default function VideoSchedulePage() {
     }
     setEntries(prev => [...prev, ...((inserted as ScheduleEntry[]) || [])]);
     toast({ title: `${payload.length} itens copiados da semana anterior` });
+
   };
 
   const shiftWeek = (delta: number) => {
