@@ -705,6 +705,56 @@ export type Database = {
           },
         ]
       }
+      client_weekly_notes: {
+        Row: {
+          author_name: string
+          author_user_id: string | null
+          client_id: string
+          content: string
+          created_at: string
+          highlight: string
+          id: string
+          is_account_manager: boolean
+          title: string
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          author_name?: string
+          author_user_id?: string | null
+          client_id: string
+          content?: string
+          created_at?: string
+          highlight?: string
+          id?: string
+          is_account_manager?: boolean
+          title?: string
+          updated_at?: string
+          week_start?: string
+        }
+        Update: {
+          author_name?: string
+          author_user_id?: string | null
+          client_id?: string
+          content?: string
+          created_at?: string
+          highlight?: string
+          id?: string
+          is_account_manager?: boolean
+          title?: string
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_weekly_notes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_weekly_results: {
         Row: {
           ad_spend: number
