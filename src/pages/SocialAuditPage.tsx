@@ -19,7 +19,7 @@ import { useSeo } from '@/lib/seo';
 import { PAGE_THUMBS } from '@/lib/pageThumbs';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LabelList, Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LabelList, Cell, ReferenceLine,
 } from 'recharts';
 
 type Status = 'good' | 'warning' | 'bad';
@@ -87,6 +87,68 @@ function numSuffix(raw?: string): string {
 
 const numberFmt = (n: number) =>
   new Intl.NumberFormat('pt-BR', { maximumFractionDigits: Number.isInteger(n) ? 0 : 2 }).format(n);
+
+/** Arredonda valores estimados para não exibir "49,52 seguidores" */
+const smartRound = (n: number) => (Math.abs(n) >= 100 ? Math.round(n) : Math.round(n * 10) / 10);
+
+const EMPTY_TOKENS = /^(n\/?a|na|nd|-{1,3}|—|–|null|undefined|indispon[íi]vel|n[ãa]o dispon[íi]vel|sem dados?|desconhecido|vari[áa]vel|depende.*)$/i;
+
+/** true quando o texto realmente carrega informação */
+function hasInfo(raw?: string | null): boolean {
+  const t = (raw ?? '').toString().trim();
+  if (!t) return false;
+  return !EMPTY_TOKENS.test(t);
+}
+
+/** Só entram no relatório métricas com informação completa */
+function isCompleteMetric(m: MetricReading): boolean {
+  return hasInfo(m?.name) && hasInfo(m?.value) && hasInfo(m?.classification) && hasInfo(m?.interpretation);
+}
+
+/** Lista de métricas exibíveis — remove qualquer item sem informação */
+function cleanMetrics(metricas?: MetricReading[]): MetricReading[] {
+  return (metricas || []).filter(isCompleteMetric);
+}
+
+/** Quebra o rótulo do eixo em até 2 linhas, sem truncar o nome da métrica */
+function wrapLabel(text: string, max = 18): string[] {
+  const words = (text || '').split(' ');
+  const lines: string[] = [];
+  let current = '';
+  for (const w of words) {
+    if ((current + ' ' + w).trim().length <= max) {
+      current = (current + ' ' + w).trim();
+    } else {
+      if (current) lines.push(current);
+      current = w;
+    }
+  }
+  if (current) lines.push(current);
+  if (lines.length > 2) return [lines[0], lines.slice(1).join(' ')];
+  return lines;
+}
+
+/** Tick do eixo Y com rótulo completo em duas linhas */
+const WrappedTick = ({ x, y, payload }: any) => {
+  const lines = wrapLabel(String(payload?.value ?? ''));
+  const offset = -((lines.length - 1) * 6);
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {lines.map((l, i) => (
+        <text
+          key={i}
+          x={-8}
+          y={offset + i * 13}
+          dy={4}
+          textAnchor="end"
+          style={{ fontSize: 11, fill: 'hsl(var(--foreground))' }}
+        >
+          {l}
+        </text>
+      ))}
+    </g>
+  );
+};
 
 
 
@@ -320,7 +382,17 @@ export default function SocialAuditPage() {
       }));
 
       const toneInstruction = tone === 'positiva'
-        ? `TOM DA MENSAGEM: POSITIVO E ENCORAJADOR. Mesmo apontando problemas, destaque oportunidades, conquistas e o potencial de crescimento. Use linguagem otimista ("ótima base", "com pequenos ajustes", "potencial enorme"). Suavize críticas. Foque no que pode melhorar e na evolução. Evite alarmar o cliente.`
+        ? `TOM DA MENSAGEM: POSITIVO E ENCORAJADOR — ESTE É UM RELATÓRIO DE CONQUISTAS E OPORTUNIDADES.
+REGRAS OBRIGATÓRIAS DO TOM POSITIVO:
+- Comece SEMPRE celebrando o que já funciona. Toda métrica tem um lado bom: alcance alto = "conteúdo com enorme poder de alcance"; seguidores subindo = "base em expansão constante".
+- NUNCA use as palavras: "problema", "gargalo", "fraco", "falha", "ruim", "crítico", "baixo desempenho", "prejudicando", "limitando", "desperdício". Substitua por: "oportunidade", "alavanca de crescimento", "próximo nível", "potencial ainda não explorado", "espaço para crescer".
+- Em "problemaPrincipal", escreva a MAIOR OPORTUNIDADE como alavanca positiva. Ex: "O perfil já atrai multidões — o próximo salto é transformar esse alcance em uma comunidade de seguidores fiéis".
+- Em "gargalo", use o pilar como OPORTUNIDADE (Criativo/Público/Oferta/Estrutura), sem conotação negativa.
+- Em "pontosFracos", escreva OPORTUNIDADES DE EVOLUÇÃO sempre com o ganho esperado. Ex: "Aumentar a frequência para 3-4 posts/semana pode acelerar o crescimento em até 2x".
+- "resumo.titulo" deve ser no mínimo "Boa" quando existir qualquer métrica saudável; prefira "Ótima base, pronta para escalar!" ou "Em crescimento, com potencial enorme!".
+- "resumo.scoreGeral" NUNCA abaixo de 60 quando houver resultados reais.
+- Em "alertas", escreva RECOMENDAÇÕES amigáveis começando com "Dica de ouro:" ou "Próximo passo sugerido:" — nunca alarmes.
+- Fale como um consultor parceiro que torce pelo cliente: "parabéns pelo alcance", "isso mostra que o conteúdo conecta", "com pequenos ajustes, o céu é o limite".`
         : `TOM DA MENSAGEM: CRÍTICO E DIRETO (NEGATIVO/ALERTA). Seja franco, urgente e mostre os riscos reais de manter a campanha como está. Use linguagem de alerta ("perda de dinheiro", "campanha sangrando verba", "urgente", "crítico"). Destaque o quanto está sendo desperdiçado e a necessidade de agir AGORA. Não suavize problemas.`;
 
       const systemPrompt = `Você é um Consultor Sênior de Tráfego Pago (Meta Ads, Google Ads, TikTok Ads) com 10+ anos de experiência.
@@ -341,11 +413,16 @@ REGRAS DE OURO:
    d) Somente se for realmente impossível saber o valor anterior, omita valueBefore.
 4. Seja DIRETO. Sem jargão. O cliente é leigo.
 5. Score geral de 0-100 baseado em performance global.
-6. Scores por dimensão (criativo, publico, oferta, estrutura) de 0-100.
+6. Scores por dimensão (criativo, publico, oferta, estrutura): SEMPRE os quatro preenchidos com número de 0-100. Nunca null, nunca 0 sem motivo, nunca omitir o objeto "scores".
 7. Plano de ação: 5-7 ações com TÍTULO + DESCRIÇÃO + prioridade.
 8. KPIs destaque: 3-4 indicadores principais para colocar em cards grandes no topo.
 9. Projeção: descreva cenário atual vs cenário otimizado e potencial de ganho %.
 10. Status válidos: "good" (verde), "warning" (amarelo), "bad" (vermelho).
+11. PROIBIDO CAMPO VAZIO OU SEM INFORMAÇÃO. Nunca escreva "N/A", "-", "—", "não disponível", "indisponível", "sem dados", "0" de enchimento ou string vazia em NENHUM campo.
+    - Se não souber o "delta" de um KPI, OMITA a chave "delta" (não escreva "N/A").
+    - Se não conseguir preencher value, benchmark, classification, performance E interpretation de uma métrica, NÃO INCLUA essa métrica na lista. Métrica listada = métrica 100% preenchida.
+    - Se não houver alertas/recomendações reais, devolva "alertas": [].
+    - Nunca cite ausência de dados/permissão de API como ponto do relatório: fale apenas do que existe.
 
 Retorne APENAS JSON neste formato:
 {
@@ -855,20 +932,24 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
                 <KpisSection kpis={diagnosis.kpisDestaque} />
               )}
 
+              {/* COMPARATIVO ANTES x HOJE (destaque logo após os KPIs) */}
+              <BeforeAfterSection
+                metricas={cleanMetrics(diagnosis.metricas)}
+                kpis={diagnosis.kpisDestaque}
+                periodo={diagnosis.campanha?.periodo}
+              />
+
               {/* SCORES POR DIMENSÃO */}
               {diagnosis.scores && <ScoresSection scores={diagnosis.scores} />}
 
-              {/* COMPARATIVO ANTES x HOJE */}
-              <BeforeAfterSection metricas={diagnosis.metricas} kpis={diagnosis.kpisDestaque} periodo={diagnosis.campanha?.periodo} />
-
               {/* GRÁFICO COMPARATIVO DAS MÉTRICAS */}
-              <MetricsChartSection metricas={diagnosis.metricas} />
+              <MetricsChartSection metricas={cleanMetrics(diagnosis.metricas)} />
 
               {/* MÉTRICAS DETALHADAS */}
-              <MetricsSection metricas={diagnosis.metricas} />
+              <MetricsSection metricas={cleanMetrics(diagnosis.metricas)} />
 
               {/* GLOSSÁRIO DIDÁTICO */}
-              <GlossarySection metricas={diagnosis.metricas} />
+              <GlossarySection metricas={cleanMetrics(diagnosis.metricas)} />
 
               {/* DIAGNÓSTICO ESTRATÉGICO */}
               <StrategicSection diag={diagnosis.diagnosticoEstrategico} />
@@ -1017,10 +1098,13 @@ function ScoreGauge({ score, status }: { score: number; status: Status }) {
 }
 
 function KpisSection({ kpis }: { kpis: NonNullable<Diagnosis['kpisDestaque']> }) {
+  // Nunca exibe KPI sem valor real
+  const items = (kpis || []).filter((k) => hasInfo(k?.label) && hasInfo(k?.value));
+  if (!items.length) return null;
   return (
     <Section title="KPIs em destaque" subtitle="Os indicadores que mais impactam o resultado da campanha">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {kpis.map((kpi, i) => {
+        {items.map((kpi, i) => {
           const s = STATUS_STYLES[kpi.status] || STATUS_STYLES.warning;
           return (
             <motion.div
@@ -1031,7 +1115,7 @@ function KpisSection({ kpis }: { kpis: NonNullable<Diagnosis['kpisDestaque']> })
             >
               <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-2">{kpi.label}</p>
               <p className={cn('text-2xl sm:text-4xl font-black tabular-nums tracking-tight', s.text)}>{kpi.value}</p>
-              {kpi.delta && (
+              {hasInfo(kpi.delta) && (
                 <p className="text-xs text-muted-foreground mt-2 leading-tight">{kpi.delta}</p>
               )}
             </motion.div>
@@ -1043,15 +1127,20 @@ function KpisSection({ kpis }: { kpis: NonNullable<Diagnosis['kpisDestaque']> })
 }
 
 function ScoresSection({ scores }: { scores: NonNullable<Diagnosis['scores']> }) {
+  const validScore = (v: any) => typeof v === 'number' && Number.isFinite(v) && v > 0;
   const items = [
-    { label: 'Criativo', value: scores.criativo, icon: Sparkles },
-    { label: 'Público', value: scores.publico, icon: Users },
-    { label: 'Oferta', value: scores.oferta, icon: Target },
-    { label: 'Estrutura', value: scores.estrutura, icon: BarChart3 },
-  ];
+    { label: 'Criativo', value: scores?.criativo, icon: Sparkles },
+    { label: 'Público', value: scores?.publico, icon: Users },
+    { label: 'Oferta', value: scores?.oferta, icon: Target },
+    { label: 'Estrutura', value: scores?.estrutura, icon: BarChart3 },
+  ].filter((i) => validScore(i.value)) as { label: string; value: number; icon: any }[];
+
+  // Sem score real, a seção inteira desaparece (nada de barras vazias)
+  if (!items.length) return null;
+
   return (
     <Section title="Scores por dimensão" subtitle="Performance da campanha em cada pilar estratégico">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={cn('grid gap-4', items.length >= 3 ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2')}>
         {items.map((item, i) => {
           const status: Status = item.value >= 70 ? 'good' : item.value >= 40 ? 'warning' : 'bad';
           const s = STATUS_STYLES[status];
@@ -1124,7 +1213,7 @@ function deriveBefore(
     }
   }
   if (before == null) return null;
-  return { now, before, estimated };
+  return { now, before: estimated ? smartRound(before) : before, estimated };
 }
 
 function BeforeAfterSection({
@@ -1143,26 +1232,32 @@ function BeforeAfterSection({
       const { now, before, estimated } = derived;
       const delta = before !== 0 ? ((now - before) / Math.abs(before)) * 100 : 0;
       return {
-        name: m.name.length > 20 ? m.name.slice(0, 18) + '…' : m.name,
+        name: m.name,
         fullName: m.name,
         suffix: numSuffix(m.value),
         before,
         now,
-        delta,
+        delta: Math.round(delta * 10) / 10,
         estimated,
       };
     })
-    .filter(Boolean) as { name: string; fullName: string; suffix: string; before: number; now: number; delta: number; estimated: boolean }[];
+    .filter(Boolean)
+    .sort((a: any, b: any) => b.delta - a.delta) as {
+      name: string; fullName: string; suffix: string;
+      before: number; now: number; delta: number; estimated: boolean;
+    }[];
 
   if (!rows.length) return null;
 
+  const anyEstimated = rows.some((r) => r.estimated);
+
   return (
     <Section
-      title="Antes x Hoje"
-      subtitle={periodo ? `Evolução do perfil no período (${periodo})` : 'Evolução de cada indicador em relação ao período anterior'}
+      title="Antes x Depois"
+      subtitle={periodo ? `A evolução de cada indicador no período (${periodo})` : 'A evolução de cada indicador em relação ao período anterior'}
     >
-      {/* Cards didáticos */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
+      {/* Cards grandes de comparação */}
+      <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
         {rows.map((r, i) => {
           const up = r.delta >= 0;
           return (
@@ -1171,48 +1266,84 @@ function BeforeAfterSection({
               initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
               transition={{ delay: i * 0.05 }}
               className={cn(
-                'rounded-2xl border p-4',
-                up ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-red-500/30 bg-red-500/5'
+                'rounded-2xl border-2 p-5',
+                up ? 'border-primary/40 bg-primary/5' : 'border-amber-500/40 bg-amber-500/5'
               )}
             >
-              <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-3">{r.fullName}</p>
-              <div className="flex items-center gap-3 flex-wrap">
-                <div>
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Antes</p>
-                  <p className="text-lg font-bold tabular-nums text-muted-foreground">
-                    {numberFmt(r.before)}{r.suffix}{r.estimated && '*'}
-                  </p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Hoje</p>
-                  <p className="text-2xl font-black tabular-nums text-foreground">{numberFmt(r.now)}{r.suffix}</p>
-                </div>
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <p className="text-xs uppercase font-black tracking-widest text-foreground leading-tight">{r.fullName}</p>
                 <span
                   className={cn(
-                    'ml-auto flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black tabular-nums',
-                    up ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'
+                    'shrink-0 flex items-center gap-1 rounded-full px-3 py-1 text-sm font-black tabular-nums',
+                    up ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
                   )}
                 >
-                  {up ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                  {up ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                   {up ? '+' : ''}{r.delta.toFixed(1).replace('.', ',')}%
                 </span>
               </div>
+              <div className="flex items-end gap-3 sm:gap-4">
+                <div className="min-w-0">
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground/70 mb-0.5">Antes</p>
+                  <p className="text-xl sm:text-2xl font-bold tabular-nums text-muted-foreground line-through decoration-muted-foreground/40">
+                    {numberFmt(r.before)}{r.suffix}{r.estimated && '*'}
+                  </p>
+                </div>
+                <ArrowRight className="w-5 h-5 mb-1.5 shrink-0 text-primary" />
+                <div className="min-w-0">
+                  <p className="text-[9px] uppercase tracking-widest text-primary mb-0.5">Depois (hoje)</p>
+                  <p className="text-3xl sm:text-4xl font-black tabular-nums text-primary leading-none">
+                    {numberFmt(r.now)}{r.suffix}
+                  </p>
+                </div>
+              </div>
+              {/* Barra proporcional antes vs depois (escala própria da métrica) */}
+              {(() => {
+                const max = Math.max(r.before, r.now) || 1;
+                return (
+                  <div className="mt-4 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-12 shrink-0 text-[9px] uppercase tracking-widest text-muted-foreground">Antes</span>
+                      <div className="h-2.5 flex-1 rounded-full bg-muted overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }} whileInView={{ width: `${(r.before / max) * 100}%` }} viewport={{ once: true }}
+                          transition={{ duration: 0.8 }}
+                          className="h-full rounded-full bg-muted-foreground/50"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-12 shrink-0 text-[9px] uppercase tracking-widest text-primary">Depois</span>
+                      <div className="h-2.5 flex-1 rounded-full bg-muted overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }} whileInView={{ width: `${(r.now / max) * 100}%` }} viewport={{ once: true }}
+                          transition={{ duration: 0.8, delay: 0.15 }}
+                          className="h-full rounded-full bg-primary"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </motion.div>
           );
         })}
       </div>
 
-      {/* Gráfico comparativo */}
+      {/* Gráfico de evolução percentual — todas as métricas na mesma escala */}
       <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
-        <div className="h-[260px] sm:h-[320px]">
+        <p className="mb-1 text-sm font-black uppercase tracking-widest text-foreground">Evolução por indicador</p>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Quanto cada métrica cresceu (ou recuou) em relação ao período anterior, em %
+        </p>
+        <div style={{ height: Math.max(200, rows.length * 46) }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }} barGap={2}>
+            <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 56, left: 8, bottom: 4 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-muted" />
               <XAxis type="number" hide />
               <YAxis
-                type="category" dataKey="name" width={130}
-                tick={{ fontSize: 11, fill: 'hsl(var(--foreground))' }}
+                type="category" dataKey="name" width={170}
+                tick={<WrappedTick />}
                 tickLine={false} axisLine={false}
               />
               <Tooltip
@@ -1225,23 +1356,31 @@ function BeforeAfterSection({
                     <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-lg">
                       <p className="font-bold text-foreground">{d.fullName}</p>
                       <p className="text-muted-foreground">Antes: <span className="font-semibold text-foreground">{numberFmt(d.before)}{d.suffix}</span></p>
-                      <p className="text-muted-foreground">Hoje: <span className="font-semibold text-foreground">{numberFmt(d.now)}{d.suffix}</span></p>
-                      <p className="mt-1 font-bold" style={{ color: up ? PERF_COLORS.good : PERF_COLORS.bad }}>
+                      <p className="text-muted-foreground">Depois: <span className="font-semibold text-foreground">{numberFmt(d.now)}{d.suffix}</span></p>
+                      <p className="mt-1 font-bold" style={{ color: up ? PERF_COLORS.good : PERF_COLORS.warning }}>
                         {up ? '+' : ''}{d.delta.toFixed(1).replace('.', ',')}% de evolução
                       </p>
                     </div>
                   );
                 }}
               />
-              <Bar dataKey="before" name="Antes" fill="hsl(var(--muted-foreground) / 0.45)" radius={[0, 6, 6, 0]} barSize={10} />
-              <Bar dataKey="now" name="Hoje" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} barSize={10} />
+              <Bar dataKey="delta" radius={[0, 8, 8, 0]} barSize={22}>
+                {rows.map((r, i) => (
+                  <Cell key={i} fill={r.delta >= 0 ? PERF_COLORS.good : PERF_COLORS.warning} />
+                ))}
+                <LabelList
+                  dataKey="delta" position="right"
+                  formatter={(v: any) => `${Number(v) >= 0 ? '+' : ''}${Number(v).toFixed(1).replace('.', ',')}%`}
+                  style={{ fontSize: 11, fontWeight: 800, fill: 'hsl(var(--foreground))' }}
+                />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
         <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-border pt-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/50" /> Antes (período anterior)</span>
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-primary" /> Hoje (período atual)</span>
-          {rows.some((r) => r.estimated) && (
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: PERF_COLORS.good }} /> Cresceu no período</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: PERF_COLORS.warning }} /> Oportunidade de retomada</span>
+          {anyEstimated && (
             <span className="italic">* valor do período anterior estimado a partir da variação informada</span>
           )}
         </div>
@@ -1252,14 +1391,16 @@ function BeforeAfterSection({
 
 function MetricsChartSection({ metricas }: { metricas: MetricReading[] }) {
   const data = (metricas || [])
+    .filter((m) => hasInfo(m?.name) && hasInfo(m?.value))
     .map((m) => ({
-      name: m.name.length > 18 ? m.name.slice(0, 16) + '…' : m.name,
+      name: m.name,
       fullName: m.name,
-      value: m.value || '—',
-      benchmark: m.benchmark || '',
+      value: m.value,
+      benchmark: hasInfo(m.benchmark) ? m.benchmark : '',
       perf: metricPerformance(m),
     }))
-    .sort((a, b) => a.perf - b.perf);
+    .filter((d) => Number.isFinite(d.perf) && d.perf > 0)
+    .sort((a, b) => b.perf - a.perf);
 
   if (!data.length) return null;
 
@@ -1269,15 +1410,20 @@ function MetricsChartSection({ metricas }: { metricas: MetricReading[] }) {
       subtitle="O quanto cada indicador está da meta do mercado (100% = no alvo ou acima)"
     >
       <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
-        <div className="h-[280px] sm:h-[340px]">
+        <div style={{ height: Math.max(220, data.length * 46) }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ top: 4, right: 40, left: 8, bottom: 4 }}>
+            <BarChart data={data} layout="vertical" margin={{ top: 4, right: 56, left: 8, bottom: 4 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-muted" />
               <XAxis type="number" domain={[0, 100]} hide />
               <YAxis
-                type="category" dataKey="name" width={110}
-                tick={{ fontSize: 11, fill: 'hsl(var(--foreground))' }}
+                type="category" dataKey="name" width={170}
+                tick={<WrappedTick />}
                 tickLine={false} axisLine={false}
+              />
+              {/* Marcador da meta de mercado */}
+              <ReferenceLine
+                x={100} stroke={PERF_COLORS.good} strokeDasharray="4 4"
+                label={{ value: 'Meta', position: 'top', fontSize: 10, fill: PERF_COLORS.good }}
               />
               <Tooltip
                 cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
@@ -1322,8 +1468,8 @@ function GlossarySection({ metricas }: { metricas: MetricReading[] }) {
   // Explica o termo de cada métrica em linguagem simples
   const items = (metricas || []).map((m) => ({
     name: m.name,
-    meaning: GLOSSARY[Object.keys(GLOSSARY).find((k) => m.name.toLowerCase().includes(k)) || ''] || m.interpretation,
-  })).filter((g) => g.meaning);
+    meaning: GLOSSARY[Object.keys(GLOSSARY).find((k) => (m.name || '').toLowerCase().includes(k)) || ''] || m.interpretation,
+  })).filter((g) => hasInfo(g.name) && hasInfo(g.meaning));
 
   if (!items.length) return null;
 
@@ -1369,10 +1515,12 @@ const GLOSSARY: Record<string, string> = {
 };
 
 function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
+  const items = cleanMetrics(metricas);
+  if (!items.length) return null;
   return (
     <Section title="Leitura completa das métricas" subtitle="Cada número da sua campanha interpretado por um consultor sênior">
       <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
-        {metricas?.map((m, i) => {
+        {items.map((m, i) => {
           const s = STATUS_STYLES[m.status] || STATUS_STYLES.warning;
           const Icon = getMetricIcon(m.name);
           return (
@@ -1389,17 +1537,17 @@ function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
                   </div>
                   <div>
                     <p className="font-black text-foreground text-sm uppercase tracking-wide">{m.name}</p>
-                    {m.benchmark && <p className="text-[10px] text-muted-foreground">{m.benchmark}</p>}
+                    {hasInfo(m.benchmark) && <p className="text-[10px] text-muted-foreground">{m.benchmark}</p>}
                   </div>
                 </div>
-                <span className={cn('text-[10px] uppercase font-black tracking-widest px-2 py-1 rounded-full', s.bg, s.text)}>
-                  {m.classification}
-                </span>
+                {hasInfo(m.classification) && (
+                  <span className={cn('text-[10px] uppercase font-black tracking-widest px-2 py-1 rounded-full', s.bg, s.text)}>
+                    {m.classification}
+                  </span>
+                )}
               </div>
-              {m.value && (
-                <p className="text-2xl sm:text-3xl font-black tabular-nums text-foreground mb-2">{m.value}</p>
-              )}
-              {/* Antes x Hoje inline por métrica */}
+              <p className="text-2xl sm:text-3xl font-black tabular-nums text-foreground mb-2">{m.value}</p>
+              {/* Antes x Depois inline por métrica */}
               {(() => {
                 const derived = deriveBefore(m);
                 if (!derived) return null;
@@ -1408,16 +1556,19 @@ function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
                   : 0;
                 const up = delta >= 0;
                 return (
-                  <div className="flex items-center gap-2 mb-3 text-xs flex-wrap">
+                  <div className="mb-3 flex items-center gap-2 rounded-xl border border-border bg-background/40 px-3 py-2 text-xs flex-wrap">
                     <span className="text-muted-foreground">
                       Antes: <span className="font-semibold text-foreground tabular-nums">
                         {numberFmt(derived.before)}{numSuffix(m.value)}{derived.estimated && '*'}
                       </span>
                     </span>
-                    <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                    <ArrowRight className="w-3 h-3 text-primary" />
+                    <span className="text-muted-foreground">
+                      Depois: <span className="font-black text-primary tabular-nums">{numberFmt(derived.now)}{numSuffix(m.value)}</span>
+                    </span>
                     <span className={cn(
-                      'flex items-center gap-1 rounded-full px-2 py-0.5 font-black tabular-nums',
-                      up ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'
+                      'ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 font-black tabular-nums',
+                      up ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'
                     )}>
                       {up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                       {up ? '+' : ''}{delta.toFixed(1).replace('.', ',')}%
@@ -1425,21 +1576,23 @@ function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
                   </div>
                 );
               })()}
-              {/* Barra de progresso até a meta */}
-              <div className="mb-2">
-                <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1">
-                  <span>Quanto falta para a meta</span>
-                  <span>{metricPerformance(m)}%</span>
+              {/* Barra de progresso até a meta (só quando existe meta calculável) */}
+              {metricPerformance(m) > 0 && (
+                <div className="mb-2">
+                  <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1">
+                    <span>Progresso em relação à meta</span>
+                    <span>{metricPerformance(m)}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }} whileInView={{ width: `${metricPerformance(m)}%` }} viewport={{ once: true }}
+                      transition={{ duration: 0.9, delay: i * 0.05 }}
+                      className="h-full rounded-full"
+                      style={{ background: perfColor(metricPerformance(m)) }}
+                    />
+                  </div>
                 </div>
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }} whileInView={{ width: `${metricPerformance(m)}%` }} viewport={{ once: true }}
-                    transition={{ duration: 0.9, delay: i * 0.05 }}
-                    className="h-full rounded-full"
-                    style={{ background: perfColor(metricPerformance(m)) }}
-                  />
-                </div>
-              </div>
+              )}
               <p className="text-sm text-muted-foreground leading-relaxed">{m.interpretation}</p>
             </motion.div>
           );
@@ -1450,30 +1603,44 @@ function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
 }
 
 function StrategicSection({ diag }: { diag: Diagnosis['diagnosticoEstrategico'] }) {
-  return (
-    <Section title="Diagnóstico estratégico" subtitle="Onde está o gargalo real da campanha">
-      <div className="rounded-3xl bg-gradient-to-br from-primary/10 via-card to-card border border-primary/20 p-6 sm:p-8 mb-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Target className="w-5 h-5 text-primary" />
-          <span className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Gargalo identificado</span>
-          <span className="px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider">
-            {diag.gargalo}
-          </span>
-        </div>
-        <h3 className="text-xl sm:text-2xl font-black text-foreground mb-3 leading-tight">{diag.problemaPrincipal}</h3>
-        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{diag.detalhe}</p>
-      </div>
+  if (!diag) return null;
+  const fortes = (diag.pontosFortes || []).filter(hasInfo);
+  const oportunidades = (diag.pontosFracos || []).filter(hasInfo);
+  const hasHeader = hasInfo(diag.problemaPrincipal) || hasInfo(diag.detalhe) || hasInfo(diag.gargalo);
+  if (!hasHeader && !fortes.length && !oportunidades.length) return null;
 
-      {(diag.pontosFortes?.length || diag.pontosFracos?.length) ? (
-        <div className="grid sm:grid-cols-2 gap-4">
-          {diag.pontosFortes && diag.pontosFortes.length > 0 && (
+  return (
+    <Section title="Leitura estratégica" subtitle="Onde está a maior alavanca de crescimento">
+      {hasHeader && (
+        <div className="rounded-3xl bg-gradient-to-br from-primary/10 via-card to-card border border-primary/20 p-6 sm:p-8 mb-4">
+          {hasInfo(diag.gargalo) && (
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <Target className="w-5 h-5 text-primary" />
+              <span className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Foco de crescimento</span>
+              <span className="px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider">
+                {diag.gargalo}
+              </span>
+            </div>
+          )}
+          {hasInfo(diag.problemaPrincipal) && (
+            <h3 className="text-xl sm:text-2xl font-black text-foreground mb-3 leading-tight">{diag.problemaPrincipal}</h3>
+          )}
+          {hasInfo(diag.detalhe) && (
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{diag.detalhe}</p>
+          )}
+        </div>
+      )}
+
+      {(fortes.length || oportunidades.length) ? (
+        <div className={cn('grid gap-4', fortes.length && oportunidades.length ? 'sm:grid-cols-2' : '')}>
+          {fortes.length > 0 && (
             <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <h4 className="text-sm font-black uppercase tracking-widest text-emerald-400">Pontos fortes</h4>
+                <h4 className="text-sm font-black uppercase tracking-widest text-emerald-400">O que já está funcionando</h4>
               </div>
               <ul className="space-y-2">
-                {diag.pontosFortes.map((p, i) => (
+                {fortes.map((p, i) => (
                   <li key={i} className="flex gap-2 text-sm text-foreground">
                     <span className="text-emerald-400">✓</span>
                     <span>{p}</span>
@@ -1482,16 +1649,16 @@ function StrategicSection({ diag }: { diag: Diagnosis['diagnosticoEstrategico'] 
               </ul>
             </div>
           )}
-          {diag.pontosFracos && diag.pontosFracos.length > 0 && (
-            <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-5">
+          {oportunidades.length > 0 && (
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
               <div className="flex items-center gap-2 mb-3">
-                <TrendingDown className="w-5 h-5 text-red-400" />
-                <h4 className="text-sm font-black uppercase tracking-widest text-red-400">Pontos fracos</h4>
+                <Rocket className="w-5 h-5 text-primary" />
+                <h4 className="text-sm font-black uppercase tracking-widest text-primary">Oportunidades de evolução</h4>
               </div>
               <ul className="space-y-2">
-                {diag.pontosFracos.map((p, i) => (
+                {oportunidades.map((p, i) => (
                   <li key={i} className="flex gap-2 text-sm text-foreground">
-                    <span className="text-red-400">✗</span>
+                    <span className="text-primary">↗</span>
                     <span>{p}</span>
                   </li>
                 ))}
@@ -1505,30 +1672,41 @@ function StrategicSection({ diag }: { diag: Diagnosis['diagnosticoEstrategico'] 
 }
 
 function ProjectionSection({ projecao }: { projecao: NonNullable<Diagnosis['projecao']> }) {
+  const hasAtual = hasInfo(projecao?.cenarioAtual);
+  const hasOtimizado = hasInfo(projecao?.cenarioOtimizado);
+  const hasPotencial = hasInfo(projecao?.potencial);
+  if (!hasAtual && !hasOtimizado && !hasPotencial) return null;
+  const cols = [hasAtual, hasOtimizado, hasPotencial].filter(Boolean).length;
   return (
     <Section title="Projeção de resultados" subtitle="O potencial real da sua campanha após os ajustes">
-      <div className="grid lg:grid-cols-3 gap-4">
-        <div className="rounded-2xl bg-card border border-border p-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Activity className="w-4 h-4 text-muted-foreground" />
-            <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Cenário atual</span>
+      <div className={cn('grid gap-4', cols === 3 ? 'lg:grid-cols-3' : cols === 2 ? 'lg:grid-cols-2' : '')}>
+        {hasAtual && (
+          <div className="rounded-2xl bg-card border border-border p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Activity className="w-4 h-4 text-muted-foreground" />
+              <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Cenário atual</span>
+            </div>
+            <p className="text-sm text-foreground leading-relaxed">{projecao.cenarioAtual}</p>
           </div>
-          <p className="text-sm text-foreground leading-relaxed">{projecao.cenarioAtual}</p>
-        </div>
-        <div className="rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 border-2 border-primary/30 p-6 lg:scale-105">
-          <div className="flex items-center gap-2 mb-3">
-            <Rocket className="w-4 h-4 text-primary" />
-            <span className="text-[10px] uppercase font-bold tracking-widest text-primary">Cenário otimizado</span>
+        )}
+        {hasOtimizado && (
+          <div className="rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 border-2 border-primary/30 p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Rocket className="w-4 h-4 text-primary" />
+              <span className="text-[10px] uppercase font-bold tracking-widest text-primary">Cenário otimizado</span>
+            </div>
+            <p className="text-sm text-foreground leading-relaxed font-medium">{projecao.cenarioOtimizado}</p>
           </div>
-          <p className="text-sm text-foreground leading-relaxed font-medium">{projecao.cenarioOtimizado}</p>
-        </div>
-        <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/30 p-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Trophy className="w-4 h-4 text-emerald-400" />
-            <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400">Potencial</span>
+        )}
+        {hasPotencial && (
+          <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/30 p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Trophy className="w-4 h-4 text-emerald-400" />
+              <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400">Potencial</span>
+            </div>
+            <p className="text-2xl font-black text-emerald-400 leading-tight">{projecao.potencial}</p>
           </div>
-          <p className="text-2xl font-black text-emerald-400 leading-tight">{projecao.potencial}</p>
-        </div>
+        )}
       </div>
     </Section>
   );
@@ -1540,10 +1718,12 @@ function ActionPlanSection({ acoes }: { acoes: Diagnosis['planoDeAcao'] }) {
     media: 'bg-amber-500 text-black',
     baixa: 'bg-zinc-500 text-white',
   };
+  const items = ((acoes as any[]) || []).filter((a) => hasInfo(typeof a === 'string' ? a : a?.titulo));
+  if (!items.length) return null;
   return (
-    <Section title="Plano de ação" subtitle="Passo a passo para destravar a performance" highlight>
+    <Section title="Plano de ação" subtitle="Passo a passo para acelerar a performance" highlight>
       <div className="space-y-3">
-        {acoes?.map((acao: any, i: number) => {
+        {items.map((acao: any, i: number) => {
           const a = typeof acao === 'string' ? { titulo: acao, descricao: '', prioridade: 'media' } : acao;
           return (
             <motion.div
@@ -1575,10 +1755,12 @@ function ActionPlanSection({ acoes }: { acoes: Diagnosis['planoDeAcao'] }) {
 }
 
 function AlertsSection({ alertas }: { alertas: Diagnosis['alertas'] }) {
+  const items = (alertas || []).filter((a) => hasInfo(a?.mensagem));
+  if (!items.length) return null;
   return (
-    <Section title="Alertas importantes" subtitle="Pontos de atenção que precisam de ação imediata">
+    <Section title="Recomendações do consultor" subtitle="Próximos passos sugeridos para acelerar os resultados">
       <div className="space-y-2">
-        {alertas.map((a, i) => {
+        {items.map((a, i) => {
           const s = STATUS_STYLES[a.tipo] || STATUS_STYLES.warning;
           const Icon = s.icon;
           return (
