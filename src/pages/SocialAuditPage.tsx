@@ -34,6 +34,8 @@ interface MetricReading {
   icon?: string;
   /** 0-100: o quão próximo a métrica está da meta/benchmark */
   performance?: number;
+  /** Valor do período anterior (ex: mês passado) para comparativo Antes x Hoje */
+  valueBefore?: string;
 }
 
 const CLASSIFICATION_SCORE: Record<string, number> = {
@@ -59,6 +61,34 @@ const PERF_COLORS = { good: '#10b981', warning: '#f59e0b', bad: '#ef4444' } as c
 function perfColor(p: number): string {
   return p >= 70 ? PERF_COLORS.good : p >= 40 ? PERF_COLORS.warning : PERF_COLORS.bad;
 }
+
+/** Converte "79.604", "3,55%", "+52", "R$ 1.847,50" em número. */
+function parseNum(raw?: string): number | null {
+  if (!raw) return null;
+  const cleaned = String(raw).replace(/[^0-9.,-]/g, '');
+  if (!cleaned || !/[0-9]/.test(cleaned)) return null;
+  let normalized = cleaned;
+  if (cleaned.includes(',')) {
+    normalized = cleaned.replace(/\./g, '').replace(',', '.');
+  } else if (cleaned.includes('.')) {
+    const parts = cleaned.split('.');
+    const last = parts[parts.length - 1];
+    normalized = last.length === 3 ? parts.join('') : cleaned;
+  }
+  const n = Number(normalized);
+  return isNaN(n) ? null : n;
+}
+
+function numSuffix(raw?: string): string {
+  if (!raw) return '';
+  if (raw.includes('%')) return '%';
+  return '';
+}
+
+const numberFmt = (n: number) =>
+  new Intl.NumberFormat('pt-BR', { maximumFractionDigits: Number.isInteger(n) ? 0 : 2 }).format(n);
+
+
 
 interface Diagnosis {
   campanha?: {
@@ -303,7 +333,7 @@ REGRAS DE OURO:
 
 1. Capture os VALORES REAIS visíveis no print (ex: "CTR: 1.24%", "Gasto: R$ 1.847,50"). Use os valores exatos.
 2. Identifique a plataforma (Meta/Facebook, Google, TikTok) e o objetivo da campanha se visível.
-3. Para CADA métrica visível, dê: valor real, benchmark do mercado BR, classificação (Excelente/Boa/Média/Baixa/Crítica), performance de 0-100 (o quão próximo está da meta) e 1 frase prática do que significa, escrita para um cliente leigo.
+3. Para CADA métrica visível, dê: valor real, valor do período anterior (se visível no print, ex: comparação "vs período anterior" ou print de outro mês — use em valueBefore), benchmark do mercado BR, classificação (Excelente/Boa/Média/Baixa/Crítica), performance de 0-100 (o quão próximo está da meta) e 1 frase prática do que significa, escrita para um cliente leigo. Se houver prints de períodos diferentes (ex: um de agosto e um de setembro), SEMPRE preencha valueBefore com o valor mais antigo e value com o mais recente.
 4. Seja DIRETO. Sem jargão. O cliente é leigo.
 5. Score geral de 0-100 baseado em performance global.
 6. Scores por dimensão (criativo, publico, oferta, estrutura) de 0-100.
@@ -331,7 +361,7 @@ Retorne APENAS JSON neste formato:
     { "label": "CPA", "value": "R$ 47,80", "delta": "Acima do ideal", "status": "warning" }
   ],
   "metricas": [
-    { "name": "CTR", "value": "1.24%", "benchmark": "Ideal: > 1.5%", "classification": "Baixa", "status": "warning", "performance": 55, "interpretation": "Poucas pessoas estão clicando — o criativo precisa chamar mais atenção." }
+    { "name": "CTR", "value": "1.24%", "valueBefore": "0.98%", "benchmark": "Ideal: > 1.5%", "classification": "Baixa", "status": "warning", "performance": 55, "interpretation": "Poucas pessoas estão clicando — o criativo precisa chamar mais atenção." }
   ],
   "scores": {
     "criativo": 60,
@@ -823,6 +853,9 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
               {/* SCORES POR DIMENSÃO */}
               {diagnosis.scores && <ScoresSection scores={diagnosis.scores} />}
 
+              {/* COMPARATIVO ANTES x HOJE */}
+              <BeforeAfterSection metricas={diagnosis.metricas} kpis={diagnosis.kpisDestaque} periodo={diagnosis.campanha?.periodo} />
+
               {/* GRÁFICO COMPARATIVO DAS MÉTRICAS */}
               <MetricsChartSection metricas={diagnosis.metricas} />
 
@@ -1043,6 +1076,144 @@ function ScoresSection({ scores }: { scores: NonNullable<Diagnosis['scores']> })
             </motion.div>
           );
         })}
+      </div>
+    </Section>
+  );
+}
+
+function BeforeAfterSection({
+  metricas,
+  kpis,
+  periodo,
+}: {
+  metricas: MetricReading[];
+  kpis?: NonNullable<Diagnosis['kpisDestaque']>;
+  periodo?: string;
+}) {
+  const rows = (metricas || [])
+    .map((m) => {
+      const now = parseNum(m.value);
+      let before: number | null = parseNum(m.valueBefore);
+      let estimated = false;
+
+      // Fallback: deriva o "antes" a partir do delta % do KPI com mesmo nome
+      if (before == null && kpis?.length) {
+        const kpi = kpis.find((k) =>
+          m.name.toLowerCase().replace(/[^a-zà-ú]/g, '').includes(
+            k.label.toLowerCase().replace(/[^a-zà-ú]/g, '').slice(0, 10)
+          )
+        );
+        const pct = parseNum(kpi?.delta || '');
+        if (kpi && pct != null && (kpi.delta || '').includes('%') && now != null && pct !== -100) {
+          before = now / (1 + pct / 100);
+          estimated = true;
+        }
+      }
+      if (now == null || before == null) return null;
+      const delta = before !== 0 ? ((now - before) / Math.abs(before)) * 100 : 0;
+      return {
+        name: m.name.length > 20 ? m.name.slice(0, 18) + '…' : m.name,
+        fullName: m.name,
+        suffix: numSuffix(m.value),
+        before,
+        now,
+        delta,
+        estimated,
+      };
+    })
+    .filter(Boolean) as { name: string; fullName: string; suffix: string; before: number; now: number; delta: number; estimated: boolean }[];
+
+  if (!rows.length) return null;
+
+  return (
+    <Section
+      title="Antes x Hoje"
+      subtitle={periodo ? `Evolução do perfil no período (${periodo})` : 'Evolução de cada indicador em relação ao período anterior'}
+    >
+      {/* Cards didáticos */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
+        {rows.map((r, i) => {
+          const up = r.delta >= 0;
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              transition={{ delay: i * 0.05 }}
+              className={cn(
+                'rounded-2xl border p-4',
+                up ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-red-500/30 bg-red-500/5'
+              )}
+            >
+              <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-3">{r.fullName}</p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div>
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Antes</p>
+                  <p className="text-lg font-bold tabular-nums text-muted-foreground">
+                    {numberFmt(r.before)}{r.suffix}{r.estimated && '*'}
+                  </p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Hoje</p>
+                  <p className="text-2xl font-black tabular-nums text-foreground">{numberFmt(r.now)}{r.suffix}</p>
+                </div>
+                <span
+                  className={cn(
+                    'ml-auto flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black tabular-nums',
+                    up ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'
+                  )}
+                >
+                  {up ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                  {up ? '+' : ''}{r.delta.toFixed(1).replace('.', ',')}%
+                </span>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Gráfico comparativo */}
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+        <div className="h-[260px] sm:h-[320px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }} barGap={2}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-muted" />
+              <XAxis type="number" hide />
+              <YAxis
+                type="category" dataKey="name" width={130}
+                tick={{ fontSize: 11, fill: 'hsl(var(--foreground))' }}
+                tickLine={false} axisLine={false}
+              />
+              <Tooltip
+                cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
+                content={({ active, payload }: any) => {
+                  if (!active || !payload?.length) return null;
+                  const d = payload[0].payload;
+                  const up = d.delta >= 0;
+                  return (
+                    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-lg">
+                      <p className="font-bold text-foreground">{d.fullName}</p>
+                      <p className="text-muted-foreground">Antes: <span className="font-semibold text-foreground">{numberFmt(d.before)}{d.suffix}</span></p>
+                      <p className="text-muted-foreground">Hoje: <span className="font-semibold text-foreground">{numberFmt(d.now)}{d.suffix}</span></p>
+                      <p className="mt-1 font-bold" style={{ color: up ? PERF_COLORS.good : PERF_COLORS.bad }}>
+                        {up ? '+' : ''}{d.delta.toFixed(1).replace('.', ',')}% de evolução
+                      </p>
+                    </div>
+                  );
+                }}
+              />
+              <Bar dataKey="before" name="Antes" fill="hsl(var(--muted-foreground) / 0.45)" radius={[0, 6, 6, 0]} barSize={10} />
+              <Bar dataKey="now" name="Hoje" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} barSize={10} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-border pt-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/50" /> Antes (período anterior)</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-primary" /> Hoje (período atual)</span>
+          {rows.some((r) => r.estimated) && (
+            <span className="italic">* valor do período anterior estimado a partir da variação informada</span>
+          )}
+        </div>
       </div>
     </Section>
   );
