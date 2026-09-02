@@ -1651,30 +1651,41 @@ function StrategicSection({ diag }: { diag: Diagnosis['diagnosticoEstrategico'] 
 }
 
 function ProjectionSection({ projecao }: { projecao: NonNullable<Diagnosis['projecao']> }) {
+  const hasAtual = hasInfo(projecao?.cenarioAtual);
+  const hasOtimizado = hasInfo(projecao?.cenarioOtimizado);
+  const hasPotencial = hasInfo(projecao?.potencial);
+  if (!hasAtual && !hasOtimizado && !hasPotencial) return null;
+  const cols = [hasAtual, hasOtimizado, hasPotencial].filter(Boolean).length;
   return (
     <Section title="Projeção de resultados" subtitle="O potencial real da sua campanha após os ajustes">
-      <div className="grid lg:grid-cols-3 gap-4">
-        <div className="rounded-2xl bg-card border border-border p-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Activity className="w-4 h-4 text-muted-foreground" />
-            <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Cenário atual</span>
+      <div className={cn('grid gap-4', cols === 3 ? 'lg:grid-cols-3' : cols === 2 ? 'lg:grid-cols-2' : '')}>
+        {hasAtual && (
+          <div className="rounded-2xl bg-card border border-border p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Activity className="w-4 h-4 text-muted-foreground" />
+              <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Cenário atual</span>
+            </div>
+            <p className="text-sm text-foreground leading-relaxed">{projecao.cenarioAtual}</p>
           </div>
-          <p className="text-sm text-foreground leading-relaxed">{projecao.cenarioAtual}</p>
-        </div>
-        <div className="rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 border-2 border-primary/30 p-6 lg:scale-105">
-          <div className="flex items-center gap-2 mb-3">
-            <Rocket className="w-4 h-4 text-primary" />
-            <span className="text-[10px] uppercase font-bold tracking-widest text-primary">Cenário otimizado</span>
+        )}
+        {hasOtimizado && (
+          <div className="rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 border-2 border-primary/30 p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Rocket className="w-4 h-4 text-primary" />
+              <span className="text-[10px] uppercase font-bold tracking-widest text-primary">Cenário otimizado</span>
+            </div>
+            <p className="text-sm text-foreground leading-relaxed font-medium">{projecao.cenarioOtimizado}</p>
           </div>
-          <p className="text-sm text-foreground leading-relaxed font-medium">{projecao.cenarioOtimizado}</p>
-        </div>
-        <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/30 p-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Trophy className="w-4 h-4 text-emerald-400" />
-            <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400">Potencial</span>
+        )}
+        {hasPotencial && (
+          <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/30 p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Trophy className="w-4 h-4 text-emerald-400" />
+              <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400">Potencial</span>
+            </div>
+            <p className="text-2xl font-black text-emerald-400 leading-tight">{projecao.potencial}</p>
           </div>
-          <p className="text-2xl font-black text-emerald-400 leading-tight">{projecao.potencial}</p>
-        </div>
+        )}
       </div>
     </Section>
   );
