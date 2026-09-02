@@ -36,10 +36,9 @@ interface Props {
   onEarliestDateChange?: (date: string) => void;
 }
 
+// A Graph API só entrega série diária para alcance e saldo de seguidores.
 const METRICS = [
   { key: 'reach', label: 'Alcance' },
-  { key: 'impressions', label: 'Impressões' },
-  { key: 'profile_views', label: 'Visitas ao perfil' },
   { key: 'follower_count', label: 'Novos seguidores' },
 ] as const;
 
@@ -133,7 +132,7 @@ export default function DateComparison({ daily, onEarliestDateChange }: Props) {
           </p>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2">
           {METRICS.map(m => {
             const a = sum.a[m.key];
             const b = sum.b[m.key];

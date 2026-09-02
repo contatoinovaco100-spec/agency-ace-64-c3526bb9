@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { BarChart3, Flame, Heart, MessageCircle, RefreshCw, Users, Eye, TrendingUp, Wand2, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -113,7 +113,7 @@ export default function InstagramAnalyticsPage() {
 Você vai receber um JSON contendo métricas reais de um perfil do Instagram (alcance, seguidores, visitas, publicações recentes, virais, etc).
 Analise os dados e gere UM ÚNICO RELATÓRIO ESTRATÉGICO COMPLETO.
 
-\${toneInstruction}
+${toneInstruction}
 
 REGRAS DE OURO:
 1. Use os valores reais fornecidos no JSON.
@@ -129,7 +129,7 @@ Retorne APENAS JSON neste formato:
   "campanha": {
     "nome": "Perfil analisado",
     "plataforma": "Instagram",
-    "periodo": "Últimos \${days} dias",
+    "periodo": "Últimos ${days} dias",
     "objetivo": "Crescimento e Engajamento"
   },
   "resumo": {
@@ -217,19 +217,23 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
     }
   };
 
-  const chartData = (data?.daily ?? []).map(d => ({
-    date: d.date.slice(5),
-    Alcance: d.reach ?? 0,
-    Impressões: d.impressions ?? 0,
-    Visitas: d.profile_views ?? 0,
-  }));
+  const chartData = (data?.daily ?? [])
+    .filter(d => d.date <= new Date().toISOString().slice(0, 10))
+    .map(d => ({
+      date: new Date(`${d.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+      Alcance: d.reach ?? 0,
+      'Novos seguidores': d.follower_count ?? 0,
+    }));
+
+  const hasChartData = chartData.some(d => d.Alcance > 0 || d['Novos seguidores'] > 0);
 
   const kpis = [
-    { label: 'Seguidores', value: nf(data?.profile.followers ?? 0), icon: Users },
-    { label: 'Alcance', value: nf(data?.summary.reach ?? 0), icon: Eye },
-    { label: 'Impressões', value: nf(data?.summary.impressions ?? 0), icon: BarChart3 },
-    { label: 'Visitas ao perfil', value: nf(data?.summary.profile_views ?? 0), icon: TrendingUp },
-    { label: 'Novos seguidores', value: nf(data?.summary.gained_followers ?? 0), icon: TrendingUp },
+    { label: 'Seguidores', value: nf(data?.profile.followers ?? 0), icon: Users, hint: 'Total atual' },
+    { label: 'Alcance', value: nf(data?.summary.reach ?? 0), icon: Eye, hint: `Últimos ${days} dias` },
+    { label: 'Visualizações', value: nf(data?.summary.views ?? 0), icon: BarChart3, hint: 'Views do período' },
+    { label: 'Visitas ao perfil', value: nf(data?.summary.profile_views ?? 0), icon: TrendingUp, hint: 'Período' },
+    { label: 'Novos seguidores', value: nf(data?.summary.gained_followers ?? 0), icon: Users, hint: 'Saldo do período' },
+    { label: 'Engaj. médio', value: `${(data?.summary.avg_engagement_rate ?? 0).toString().replace('.', ',')}%`, icon: Heart, hint: 'Por publicação' },
   ];
 
   return (
@@ -271,15 +275,46 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
         </CardContent></Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {kpis.map(k => (
-          <Card key={k.label}>
-            <CardContent className="flex items-center justify-between p-4">
-              <div>
-                <p className="text-xs text-muted-foreground">{k.label}</p>
-                {loading ? <Skeleton className="mt-1 h-7 w-20" /> : <p className="text-2xl font-bold">{k.value}</p>}
+      {data?.profile && (
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-4 p-4">
+            {data.profile.picture
+              ? <img src={data.profile.picture} alt={`Foto do perfil @${data.profile.username}`} className="h-14 w-14 rounded-full object-cover ring-2 ring-primary/40" />
+              : <div className="h-14 w-14 rounded-full bg-muted" />}
+            <div className="min-w-0">
+              <p className="truncate text-lg font-semibold leading-tight">{data.profile.name || data.profile.username}</p>
+              <p className="text-sm text-muted-foreground">@{data.profile.username}</p>
+            </div>
+            <div className="ml-auto flex gap-6 text-sm">
+              <div className="text-center">
+                <p className="font-bold">{nf(data.profile.media_count)}</p>
+                <p className="text-xs text-muted-foreground">Publicações</p>
               </div>
-              <k.icon className="h-5 w-5 text-primary" />
+              <div className="text-center">
+                <p className="font-bold">{nf(data.profile.followers)}</p>
+                <p className="text-xs text-muted-foreground">Seguidores</p>
+              </div>
+              <div className="text-center">
+                <p className="font-bold">{nf(data.profile.following)}</p>
+                <p className="text-xs text-muted-foreground">Seguindo</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {kpis.map(k => (
+          <Card key={k.label} className="transition-colors hover:border-primary/40">
+            <CardContent className="p-4">
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">{k.label}</p>
+                <k.icon className="h-4 w-4 shrink-0 text-primary" />
+              </div>
+              {loading
+                ? <Skeleton className="h-7 w-20" />
+                : <p className="text-2xl font-bold leading-tight">{k.value}</p>}
+              <p className="mt-1 text-[11px] text-muted-foreground">{k.hint}</p>
             </CardContent>
           </Card>
         ))}
@@ -294,46 +329,56 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
         </Card>
       )}
 
-      {/* Debug Panel - mostra erros da API */}
-      {!loading && data?._debug && (data._debug.errLog.length > 0 || (data.summary.reach === 0 && data.summary.profile_views === 0)) && (
-        <Card className="border-amber-500/30 bg-amber-500/5">
-          <CardContent className="p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-semibold text-amber-600">
-              <AlertTriangle className="h-4 w-4" /> Diagnóstico de Dados
-            </div>
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>IG ID: <code className="bg-muted px-1 rounded">{data._debug.igId}</code></p>
-              <p>Token: <code className="bg-muted px-1 rounded">{data._debug.tokenPrefix}</code></p>
-              <p>Janelas de consulta: {data._debug.windows} | Posts: {data._debug.mediaCount} | Dias: {data._debug.dailyCount}</p>
-              {data._debug.errLog.length > 0 && (
-                <div className="mt-2">
-                  <p className="font-semibold text-destructive">Erros da Graph API:</p>
-                  <ul className="list-disc list-inside text-destructive/80">
-                    {data._debug.errLog.map((err, i) => <li key={i}>{err}</li>)}
-                  </ul>
-                </div>
-              )}
-              {data.summary.reach === 0 && data.summary.profile_views === 0 && data._debug.errLog.length === 0 && (
-                <p className="text-amber-600">Nenhum erro retornado, mas métricas zeradas. Verifique se a conta Instagram Business tem insights habilitados.</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Diagnóstico técnico — só quando há erro real da API */}
+      {!loading && !!data?._debug?.errLog?.length && (
+        <details className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-xs">
+          <summary className="cursor-pointer text-sm font-semibold text-amber-600">
+            Diagnóstico de dados ({data._debug.errLog.length} avisos da API)
+          </summary>
+          <div className="mt-2 space-y-1 text-muted-foreground">
+            <p>Posts analisados: {data._debug.mediaCount} · Dias com dados: {data._debug.dailyCount}</p>
+            <ul className="list-inside list-disc text-destructive/80">
+              {data._debug.errLog.map((err, i) => <li key={i}>{err}</li>)}
+            </ul>
+          </div>
+        </details>
       )}
 
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Evolução diária</CardTitle></CardHeader>
-        <CardContent className="h-72">
-          {loading ? <Skeleton className="h-full w-full" /> : (
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Evolução diária</CardTitle>
+          <p className="text-xs text-muted-foreground">Alcance e saldo de seguidores por dia</p>
+        </CardHeader>
+        <CardContent className="h-80">
+          {loading ? <Skeleton className="h-full w-full" /> : !hasChartData ? (
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              Sem dados diários no período selecionado.
+            </div>
+          ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="date" fontSize={11} />
-                <YAxis fontSize={11} />
-                <Tooltip />
-                <Area type="monotone" dataKey="Alcance" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.2)" />
-                <Area type="monotone" dataKey="Impressões" stroke="hsl(var(--info))" fill="hsl(var(--info) / 0.1)" />
-                <Area type="monotone" dataKey="Visitas" stroke="hsl(var(--muted-foreground))" fill="hsl(var(--muted-foreground) / 0.1)" />
+              <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gReach" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.45} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
+                <XAxis dataKey="date" fontSize={11} tickLine={false} axisLine={false} minTickGap={16} />
+                <YAxis yAxisId="left" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => nf(Number(v))} />
+                <YAxis yAxisId="right" orientation="right" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip
+                  formatter={(v: any) => nf(Number(v))}
+                  contentStyle={{
+                    background: 'hsl(var(--popover))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Area yAxisId="left" type="monotone" dataKey="Alcance" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#gReach)" />
+                <Area yAxisId="right" type="monotone" dataKey="Novos seguidores" stroke="hsl(var(--muted-foreground))" strokeWidth={2} fillOpacity={0} />
               </AreaChart>
             </ResponsiveContainer>
           )}
@@ -341,6 +386,7 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
       </Card>
 
       <DateComparison daily={data?.daily ?? []} onEarliestDateChange={handleEarliestDate} />
+
 
 
 
