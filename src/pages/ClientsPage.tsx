@@ -49,33 +49,63 @@ export default function ClientsPage() {
 
       const norm = (s: string) => (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
-      // Dedupe contracts by normalized client name — keep most recent
-      const byName = new Map<string, any>();
-      for (const c of contracts || []) {
-        const key = norm(c.client_name);
-        if (!key) continue;
-        const prev = byName.get(key);
-        const cDate = new Date((c as any).signed_at || c.created_at || 0).getTime();
-        const pDate = prev ? new Date((prev as any).signed_at || prev.created_at || 0).getTime() : -1;
-        if (!prev || cDate >= pDate) byName.set(key, c);
-      }
-
-      // Preload existing clients to lookup by normalized name (avoids duplicate inserts)
+      // Preload existing clients
       const { data: existingClients } = await supabase
         .from('clients')
-        .select('id, company_name, monthly_value, scope, email');
-      const existingMap = new Map<string, any>();
-      for (const ec of existingClients || []) existingMap.set(norm(ec.company_name), ec);
+        .select('id, company_name, contact_name, monthly_value, scope, email, phone');
+      
+      const existingList = existingClients || [];
+
+      const findExistingClient = (c: any) => {
+        const comp = norm(c.client_company);
+        const name = norm(c.client_name);
+        const email = (c.client_email || '').trim().toLowerCase();
+
+        return existingList.find(ec => {
+          const ecComp = norm(ec.company_name);
+          const ecContact = norm(ec.contact_name);
+          const ecEmail = (ec.email || '').trim().toLowerCase();
+
+          if (comp && (ecComp === comp || ecContact === comp)) return true;
+          if (name && (ecComp === name || ecContact === name)) return true;
+          if (email && ecEmail && ecEmail === email) return true;
+          return false;
+        });
+      };
+
+      // Deduplicate contracts to keep the most recent for each client
+      const dedupedContracts: any[] = [];
+      for (const c of (contracts || []).sort((a, b) => new Date(b.signed_at || b.created_at || 0).getTime() - new Date(a.signed_at || a.created_at || 0).getTime())) {
+        const comp = norm(c.client_company);
+        const name = norm(c.client_name);
+        const email = (c.client_email || '').trim().toLowerCase();
+        
+        const alreadyInList = dedupedContracts.some(dc => {
+          const dcComp = norm(dc.client_company);
+          const dcName = norm(dc.client_name);
+          const dcEmail = (dc.client_email || '').trim().toLowerCase();
+
+          if (comp && (dcComp === comp || dcName === comp)) return true;
+          if (name && (dcComp === name || dcName === name)) return true;
+          if (email && dcEmail && dcEmail === email) return true;
+          return false;
+        });
+
+        if (!alreadyInList) dedupedContracts.push(c);
+      }
 
       let created = 0, updated = 0;
-      for (const [key, c] of byName) {
-        const name = (c.client_name || '').trim();
-        const existing = existingMap.get(key);
+      for (const c of dedupedContracts) {
+        const compName = (c.client_company || c.client_name || '').trim();
+        const contactName = (c.client_name || c.client_company || '').trim();
+        if (!compName && !contactName) continue;
+
+        const existing = findExistingClient(c);
         const payload = {
-          company_name: name,
-          contact_name: name,
+          company_name: compName || contactName,
+          contact_name: contactName || compName,
           email: c.client_email || existing?.email || '',
-          phone: '',
+          phone: c.client_phone || existing?.phone || '',
           contract_start_date: ((c as any).signed_at || c.created_at || new Date().toISOString()).split('T')[0],
           monthly_value: Number(c.monthly_value) || 0,
           scope: c.scope_description || c.services || (c.plan_name ? `Plano ${c.plan_name}` : '') || existing?.scope || '',
@@ -84,22 +114,27 @@ export default function ClientsPage() {
           status: 'Ativo',
           notes: `Sincronizado do contrato "${c.title}".`,
         };
+
         if (existing) {
           await supabase.from('clients').update({
-            monthly_value: payload.monthly_value,
-            scope: payload.scope,
-            email: payload.email,
+            company_name: existing.company_name || payload.company_name,
+            contact_name: existing.contact_name || payload.contact_name,
+            monthly_value: payload.monthly_value || existing.monthly_value,
+            scope: payload.scope || existing.scope,
+            email: payload.email || existing.email,
+            phone: payload.phone || existing.phone,
             status: 'Ativo',
           }).eq('id', existing.id);
           updated++;
         } else {
-          const { data: inserted } = await supabase.from('clients').insert(payload).select('id, company_name').single();
-          if (inserted) existingMap.set(key, inserted);
+          const { data: inserted } = await supabase.from('clients').insert(payload).select('id, company_name, contact_name, email, phone').single();
+          if (inserted) existingList.push(inserted as any);
           created++;
         }
       }
+
       await refresh();
-      toast.success(`Sincronização concluída: ${created} criados, ${updated} atualizados.`);
+      toast.success(`Sincronização concluída: ${created} novos, ${updated} atualizados.`);
     } catch (e: any) {
       toast.error('Erro ao sincronizar: ' + (e?.message || 'desconhecido'));
     } finally {

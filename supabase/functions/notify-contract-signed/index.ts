@@ -62,8 +62,11 @@ Deno.serve(async (req) => {
       await supabase.from('contracts').update({ status: 'assinado' }).eq('id', contract_id);
     }
 
-    // Client auto-creation is handled by the DB trigger `auto_create_client_on_signature`
-    // to avoid duplicates. Do not create the client here.
+    // NOTA: a criação automática do cliente é feita pelo trigger do banco de dados
+    // `auto_create_client_on_signature` (AFTER INSERT em contract_signatures), que
+    // usa uma advisory lock por nome para impedir duplicidade. NÃO recriar o cliente
+    // aqui — fazíamos isso antigamente e gerava clientes duplicados por correr em
+    // paralelo com o trigger (race condition).
 
     const INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
     const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
