@@ -1086,6 +1086,47 @@ function ScoresSection({ scores }: { scores: NonNullable<Diagnosis['scores']> })
   );
 }
 
+/** Deriva o valor "antes" de uma métrica a partir de valueBefore, % no texto ou delta do KPI */
+function deriveBefore(
+  m: MetricReading,
+  kpis?: NonNullable<Diagnosis['kpisDestaque']>
+): { now: number; before: number; estimated: boolean } | null {
+  const now = parseNum(m.value);
+  if (now == null) return null;
+  let before: number | null = parseNum(m.valueBefore);
+  let estimated = false;
+
+  // Fallback 1: % de variação embutida no próprio texto da métrica
+  // (ex: "10.000 (+25%)" ou interpretation com "cresceu 25% vs período anterior")
+  if (before == null) {
+    const blob = `${m.value || ''} ${m.benchmark || ''} ${m.interpretation || ''}`;
+    const pctMatch = blob.match(/([+-]?\d+(?:[.,]\d+)?)\s*%/);
+    if (pctMatch && /vs|ante|per[ií]odo|cres|aumen|redu|queda|subiu|caiu|↑|↓/i.test(blob)) {
+      const pct = parseFloat(pctMatch[1].replace(',', '.'));
+      if (Number.isFinite(pct) && pct !== -100) {
+        before = now / (1 + pct / 100);
+        estimated = true;
+      }
+    }
+  }
+
+  // Fallback 2: deriva o "antes" a partir do delta % do KPI com mesmo nome
+  if (before == null && kpis?.length) {
+    const kpi = kpis.find((k) =>
+      m.name.toLowerCase().replace(/[^a-zà-ú]/g, '').includes(
+        k.label.toLowerCase().replace(/[^a-zà-ú]/g, '').slice(0, 10)
+      )
+    );
+    const pct = parseNum(kpi?.delta || '');
+    if (kpi && pct != null && (kpi.delta || '').includes('%') && pct !== -100) {
+      before = now / (1 + pct / 100);
+      estimated = true;
+    }
+  }
+  if (before == null) return null;
+  return { now, before, estimated };
+}
+
 function BeforeAfterSection({
   metricas,
   kpis,
@@ -1097,38 +1138,9 @@ function BeforeAfterSection({
 }) {
   const rows = (metricas || [])
     .map((m) => {
-      const now = parseNum(m.value);
-      let before: number | null = parseNum(m.valueBefore);
-      let estimated = false;
-
-      // Fallback 1: % de variação embutida no próprio texto da métrica
-      // (ex: "10.000 (+25%)" ou interpretation com "cresceu 25% vs período anterior")
-      if (before == null && now != null) {
-        const blob = `${m.value || ''} ${m.benchmark || ''} ${m.interpretation || ''}`;
-        const pctMatch = blob.match(/([+-]?\d+(?:[.,]\d+)?)\s*%/);
-        if (pctMatch && /vs|ante|per[ií]odo|cres|aumen|redu|queda|subiu|caiu|↑|↓/i.test(blob)) {
-          const pct = parseFloat(pctMatch[1].replace(',', '.'));
-          if (Number.isFinite(pct) && pct !== -100) {
-            before = now / (1 + pct / 100);
-            estimated = true;
-          }
-        }
-      }
-
-      // Fallback 2: deriva o "antes" a partir do delta % do KPI com mesmo nome
-      if (before == null && kpis?.length) {
-        const kpi = kpis.find((k) =>
-          m.name.toLowerCase().replace(/[^a-zà-ú]/g, '').includes(
-            k.label.toLowerCase().replace(/[^a-zà-ú]/g, '').slice(0, 10)
-          )
-        );
-        const pct = parseNum(kpi?.delta || '');
-        if (kpi && pct != null && (kpi.delta || '').includes('%') && now != null && pct !== -100) {
-          before = now / (1 + pct / 100);
-          estimated = true;
-        }
-      }
-      if (now == null || before == null) return null;
+      const derived = deriveBefore(m, kpis);
+      if (!derived) return null;
+      const { now, before, estimated } = derived;
       const delta = before !== 0 ? ((now - before) / Math.abs(before)) * 100 : 0;
       return {
         name: m.name.length > 20 ? m.name.slice(0, 18) + '…' : m.name,
