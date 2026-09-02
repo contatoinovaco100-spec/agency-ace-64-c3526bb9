@@ -36,10 +36,9 @@ interface Props {
   onEarliestDateChange?: (date: string) => void;
 }
 
+// A Graph API só entrega série diária para alcance e saldo de seguidores.
 const METRICS = [
   { key: 'reach', label: 'Alcance' },
-  { key: 'impressions', label: 'Impressões' },
-  { key: 'profile_views', label: 'Visitas ao perfil' },
   { key: 'follower_count', label: 'Novos seguidores' },
 ] as const;
 
