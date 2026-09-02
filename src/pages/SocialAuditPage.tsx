@@ -19,7 +19,7 @@ import { useSeo } from '@/lib/seo';
 import { PAGE_THUMBS } from '@/lib/pageThumbs';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LabelList, Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LabelList, Cell, ReferenceLine,
 } from 'recharts';
 
 type Status = 'good' | 'warning' | 'bad';
