@@ -1213,7 +1213,7 @@ function deriveBefore(
     }
   }
   if (before == null) return null;
-  return { now, before, estimated };
+  return { now, before: estimated ? smartRound(before) : before, estimated };
 }
 
 function BeforeAfterSection({
