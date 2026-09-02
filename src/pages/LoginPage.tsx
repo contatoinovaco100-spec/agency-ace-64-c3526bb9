@@ -44,46 +44,20 @@ export default function LoginPage() {
     const { error } = await signIn(emailToUse, loginPassword);
     if (error) {
       setLoading(false);
-      setError('Usuário ou senha incorretos.');
-    } else {
-      const { supabase } = await import('@/integrations/supabase/client');
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // 1) Admin → dashboard
-        const { data: roleRow } = await supabase
-          .from('user_roles').select('role')
-          .eq('user_id', user.id).eq('role', 'admin').maybeSingle();
-        if (roleRow) { navigate('/', { replace: true }); return; }
-
-        // 2) Afiliado → /afiliado
-        if (user.email) {
-          const { data: affiliateRows } = await supabase
-            .from('affiliates')
-            .select('id')
-            .ilike('email', user.email)
-            .limit(1);
-          if (affiliateRows && affiliateRows.length > 0) { navigate('/afiliado/leads', { replace: true }); return; }
-        }
-
-        // 3) Empresa da Rede de Negócios → feed /negocios
-        const { data: companyRow } = await supabase
-          .from('rede_companies').select('id')
-          .eq('owner_user_id', user.id).maybeSingle();
-        if (companyRow) { navigate('/negocios', { replace: true }); return; }
-
-        // 4) Funcionário Inova → primeira página permitida (ou minhas-tarefas)
-        const { data: pageRows } = await supabase
-          .from('user_page_access').select('page_path')
-          .eq('user_id', user.id);
-        const paths = (pageRows ?? []).map(r => r.page_path);
-        const preferred = ['/minhas-tarefas', '/tarefas', '/calendario', '/clientes'];
-        const target = preferred.find(p => paths.includes(p))
-          ?? paths.find(p => !p.startsWith('/afiliado'))
-          ?? '/alterar-senha';
-        navigate(target, { replace: true });
+      const message = error.message.toLowerCase();
+      if (message.includes('email not confirmed')) {
+        setError('Confirme seu e-mail antes de entrar.');
+      } else if (message.includes('rate limit') || message.includes('too many')) {
+        setError('Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.');
+      } else if (message.includes('network') || message.includes('fetch')) {
+        setError('Não foi possível conectar. Verifique sua internet e tente novamente.');
       } else {
-        navigate('/', { replace: true });
+        setError('Usuário ou senha incorretos.');
       }
+    } else {
+      // ProtectedRoute is the single source of truth for the user's landing page.
+      // Avoid duplicate permission queries here, which previously raced session hydration.
+      navigate('/', { replace: true });
     }
   };
 

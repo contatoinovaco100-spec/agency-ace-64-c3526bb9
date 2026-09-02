@@ -165,7 +165,7 @@ export function usePageAccess() {
         setAllowedPaths(set);
         setLoading(false);
       });
-  }, [user, isAdmin, roleLoading, isRedeCompanyUser, redeLoading]);
+  }, [user, isAdmin, roleLoading, isRedeCompanyUser, redeLoading, isAffiliate, affiliateLoading]);
 
   const hasPageAccess = (path: string) => {
     if (isAffiliate && path.startsWith('/afiliado')) return true;
