@@ -333,7 +333,12 @@ REGRAS DE OURO:
 
 1. Capture os VALORES REAIS visíveis no print (ex: "CTR: 1.24%", "Gasto: R$ 1.847,50"). Use os valores exatos.
 2. Identifique a plataforma (Meta/Facebook, Google, TikTok) e o objetivo da campanha se visível.
-3. Para CADA métrica visível, dê: valor real, valor do período anterior (se visível no print, ex: comparação "vs período anterior" ou print de outro mês — use em valueBefore), benchmark do mercado BR, classificação (Excelente/Boa/Média/Baixa/Crítica), performance de 0-100 (o quão próximo está da meta) e 1 frase prática do que significa, escrita para um cliente leigo. Se houver prints de períodos diferentes (ex: um de agosto e um de setembro), SEMPRE preencha valueBefore com o valor mais antigo e value com o mais recente.
+3. Para CADA métrica visível, dê: valor real, valor do período anterior (valueBefore — OBRIGATÓRIO sempre que possível), benchmark do mercado BR, classificação (Excelente/Boa/Média/Baixa/Crítica), performance de 0-100 (o quão próximo está da meta) e 1 frase prática do que significa, escrita para um cliente leigo.
+   REGRAS PARA valueBefore (preencher para TODAS as métricas):
+   a) Se o print mostrar comparação percentual (ex: "vs período anterior: +25%" ou "↑ 25%"), CALCULE o valor anterior: valueBefore = value / (1 + pct/100). Ex: alcance hoje = 10.000 com "+25%" → valueBefore = "8.000".
+   b) Se houver prints de períodos diferentes (ex: agosto e setembro), use o valor mais antigo em valueBefore e o mais recente em value.
+   c) Se o print mostrar um gráfico com datas, use o valor aproximado do início do período como valueBefore e o valor atual como value.
+   d) Somente se for realmente impossível saber o valor anterior, omita valueBefore.
 4. Seja DIRETO. Sem jargão. O cliente é leigo.
 5. Score geral de 0-100 baseado em performance global.
 6. Scores por dimensão (criativo, publico, oferta, estrutura) de 0-100.
