@@ -320,7 +320,17 @@ export default function SocialAuditPage() {
       }));
 
       const toneInstruction = tone === 'positiva'
-        ? `TOM DA MENSAGEM: POSITIVO E ENCORAJADOR. Mesmo apontando problemas, destaque oportunidades, conquistas e o potencial de crescimento. Use linguagem otimista ("ótima base", "com pequenos ajustes", "potencial enorme"). Suavize críticas. Foque no que pode melhorar e na evolução. Evite alarmar o cliente.`
+        ? `TOM DA MENSAGEM: POSITIVO E ENCORAJADOR — ESTE É UM RELATÓRIO DE CONQUISTAS E OPORTUNIDADES.
+REGRAS OBRIGATÓRIAS DO TOM POSITIVO:
+- Comece SEMPRE celebrando o que já funciona. Toda métrica tem um lado bom: alcance alto = "conteúdo com enorme poder de alcance"; seguidores subindo = "base em expansão constante".
+- NUNCA use as palavras: "problema", "gargalo", "fraco", "falha", "ruim", "crítico", "baixo desempenho", "prejudicando", "limitando", "desperdício". Substitua por: "oportunidade", "alavanca de crescimento", "próximo nível", "potencial ainda não explorado", "espaço para crescer".
+- Em "problemaPrincipal", escreva a MAIOR OPORTUNIDADE como alavanca positiva. Ex: "O perfil já atrai multidões — o próximo salto é transformar esse alcance em uma comunidade de seguidores fiéis".
+- Em "gargalo", use o pilar como OPORTUNIDADE (Criativo/Público/Oferta/Estrutura), sem conotação negativa.
+- Em "pontosFracos", escreva OPORTUNIDADES DE EVOLUÇÃO sempre com o ganho esperado. Ex: "Aumentar a frequência para 3-4 posts/semana pode acelerar o crescimento em até 2x".
+- "resumo.titulo" deve ser no mínimo "Boa" quando existir qualquer métrica saudável; prefira "Ótima base, pronta para escalar!" ou "Em crescimento, com potencial enorme!".
+- "resumo.scoreGeral" NUNCA abaixo de 60 quando houver resultados reais.
+- Em "alertas", escreva RECOMENDAÇÕES amigáveis começando com "Dica de ouro:" ou "Próximo passo sugerido:" — nunca alarmes.
+- Fale como um consultor parceiro que torce pelo cliente: "parabéns pelo alcance", "isso mostra que o conteúdo conecta", "com pequenos ajustes, o céu é o limite".`
         : `TOM DA MENSAGEM: CRÍTICO E DIRETO (NEGATIVO/ALERTA). Seja franco, urgente e mostre os riscos reais de manter a campanha como está. Use linguagem de alerta ("perda de dinheiro", "campanha sangrando verba", "urgente", "crítico"). Destaque o quanto está sendo desperdiçado e a necessidade de agir AGORA. Não suavize problemas.`;
 
       const systemPrompt = `Você é um Consultor Sênior de Tráfego Pago (Meta Ads, Google Ads, TikTok Ads) com 10+ anos de experiência.
