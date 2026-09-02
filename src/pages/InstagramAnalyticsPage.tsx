@@ -113,7 +113,7 @@ export default function InstagramAnalyticsPage() {
 Você vai receber um JSON contendo métricas reais de um perfil do Instagram (alcance, seguidores, visitas, publicações recentes, virais, etc).
 Analise os dados e gere UM ÚNICO RELATÓRIO ESTRATÉGICO COMPLETO.
 
-\${toneInstruction}
+${toneInstruction}
 
 REGRAS DE OURO:
 1. Use os valores reais fornecidos no JSON.
