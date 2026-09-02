@@ -1537,17 +1537,17 @@ function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
                   </div>
                   <div>
                     <p className="font-black text-foreground text-sm uppercase tracking-wide">{m.name}</p>
-                    {m.benchmark && <p className="text-[10px] text-muted-foreground">{m.benchmark}</p>}
+                    {hasInfo(m.benchmark) && <p className="text-[10px] text-muted-foreground">{m.benchmark}</p>}
                   </div>
                 </div>
-                <span className={cn('text-[10px] uppercase font-black tracking-widest px-2 py-1 rounded-full', s.bg, s.text)}>
-                  {m.classification}
-                </span>
+                {hasInfo(m.classification) && (
+                  <span className={cn('text-[10px] uppercase font-black tracking-widest px-2 py-1 rounded-full', s.bg, s.text)}>
+                    {m.classification}
+                  </span>
+                )}
               </div>
-              {m.value && (
-                <p className="text-2xl sm:text-3xl font-black tabular-nums text-foreground mb-2">{m.value}</p>
-              )}
-              {/* Antes x Hoje inline por métrica */}
+              <p className="text-2xl sm:text-3xl font-black tabular-nums text-foreground mb-2">{m.value}</p>
+              {/* Antes x Depois inline por métrica */}
               {(() => {
                 const derived = deriveBefore(m);
                 if (!derived) return null;
@@ -1556,16 +1556,19 @@ function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
                   : 0;
                 const up = delta >= 0;
                 return (
-                  <div className="flex items-center gap-2 mb-3 text-xs flex-wrap">
+                  <div className="mb-3 flex items-center gap-2 rounded-xl border border-border bg-background/40 px-3 py-2 text-xs flex-wrap">
                     <span className="text-muted-foreground">
                       Antes: <span className="font-semibold text-foreground tabular-nums">
                         {numberFmt(derived.before)}{numSuffix(m.value)}{derived.estimated && '*'}
                       </span>
                     </span>
-                    <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                    <ArrowRight className="w-3 h-3 text-primary" />
+                    <span className="text-muted-foreground">
+                      Depois: <span className="font-black text-primary tabular-nums">{numberFmt(derived.now)}{numSuffix(m.value)}</span>
+                    </span>
                     <span className={cn(
-                      'flex items-center gap-1 rounded-full px-2 py-0.5 font-black tabular-nums',
-                      up ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'
+                      'ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 font-black tabular-nums',
+                      up ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'
                     )}>
                       {up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                       {up ? '+' : ''}{delta.toFixed(1).replace('.', ',')}%
@@ -1573,21 +1576,23 @@ function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
                   </div>
                 );
               })()}
-              {/* Barra de progresso até a meta */}
-              <div className="mb-2">
-                <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1">
-                  <span>Quanto falta para a meta</span>
-                  <span>{metricPerformance(m)}%</span>
+              {/* Barra de progresso até a meta (só quando existe meta calculável) */}
+              {metricPerformance(m) > 0 && (
+                <div className="mb-2">
+                  <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1">
+                    <span>Progresso em relação à meta</span>
+                    <span>{metricPerformance(m)}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }} whileInView={{ width: `${metricPerformance(m)}%` }} viewport={{ once: true }}
+                      transition={{ duration: 0.9, delay: i * 0.05 }}
+                      className="h-full rounded-full"
+                      style={{ background: perfColor(metricPerformance(m)) }}
+                    />
+                  </div>
                 </div>
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }} whileInView={{ width: `${metricPerformance(m)}%` }} viewport={{ once: true }}
-                    transition={{ duration: 0.9, delay: i * 0.05 }}
-                    className="h-full rounded-full"
-                    style={{ background: perfColor(metricPerformance(m)) }}
-                  />
-                </div>
-              </div>
+              )}
               <p className="text-sm text-muted-foreground leading-relaxed">{m.interpretation}</p>
             </motion.div>
           );
