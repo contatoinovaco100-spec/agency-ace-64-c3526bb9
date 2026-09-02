@@ -351,11 +351,16 @@ REGRAS DE OURO:
    d) Somente se for realmente impossível saber o valor anterior, omita valueBefore.
 4. Seja DIRETO. Sem jargão. O cliente é leigo.
 5. Score geral de 0-100 baseado em performance global.
-6. Scores por dimensão (criativo, publico, oferta, estrutura) de 0-100.
+6. Scores por dimensão (criativo, publico, oferta, estrutura): SEMPRE os quatro preenchidos com número de 0-100. Nunca null, nunca 0 sem motivo, nunca omitir o objeto "scores".
 7. Plano de ação: 5-7 ações com TÍTULO + DESCRIÇÃO + prioridade.
 8. KPIs destaque: 3-4 indicadores principais para colocar em cards grandes no topo.
 9. Projeção: descreva cenário atual vs cenário otimizado e potencial de ganho %.
 10. Status válidos: "good" (verde), "warning" (amarelo), "bad" (vermelho).
+11. PROIBIDO CAMPO VAZIO OU SEM INFORMAÇÃO. Nunca escreva "N/A", "-", "—", "não disponível", "indisponível", "sem dados", "0" de enchimento ou string vazia em NENHUM campo.
+    - Se não souber o "delta" de um KPI, OMITA a chave "delta" (não escreva "N/A").
+    - Se não conseguir preencher value, benchmark, classification, performance E interpretation de uma métrica, NÃO INCLUA essa métrica na lista. Métrica listada = métrica 100% preenchida.
+    - Se não houver alertas/recomendações reais, devolva "alertas": [].
+    - Nunca cite ausência de dados/permissão de API como ponto do relatório: fale apenas do que existe.
 
 Retorne APENAS JSON neste formato:
 {
