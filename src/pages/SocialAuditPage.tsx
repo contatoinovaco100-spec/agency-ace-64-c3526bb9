@@ -1197,6 +1197,21 @@ function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
               {m.value && (
                 <p className="text-2xl sm:text-3xl font-black tabular-nums text-foreground mb-2">{m.value}</p>
               )}
+              {/* Barra de progresso até a meta */}
+              <div className="mb-2">
+                <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1">
+                  <span>Quanto falta para a meta</span>
+                  <span>{metricPerformance(m)}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }} whileInView={{ width: `${metricPerformance(m)}%` }} viewport={{ once: true }}
+                    transition={{ duration: 0.9, delay: i * 0.05 }}
+                    className="h-full rounded-full"
+                    style={{ background: perfColor(metricPerformance(m)) }}
+                  />
+                </div>
+              </div>
               <p className="text-sm text-muted-foreground leading-relaxed">{m.interpretation}</p>
             </motion.div>
           );
