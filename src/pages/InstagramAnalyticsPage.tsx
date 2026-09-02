@@ -129,7 +129,7 @@ Retorne APENAS JSON neste formato:
   "campanha": {
     "nome": "Perfil analisado",
     "plataforma": "Instagram",
-    "periodo": "Últimos \${days} dias",
+    "periodo": "Últimos ${days} dias",
     "objetivo": "Crescimento e Engajamento"
   },
   "resumo": {
