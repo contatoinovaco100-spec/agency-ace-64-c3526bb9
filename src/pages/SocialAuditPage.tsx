@@ -1515,10 +1515,12 @@ const GLOSSARY: Record<string, string> = {
 };
 
 function MetricsSection({ metricas }: { metricas: MetricReading[] }) {
+  const items = cleanMetrics(metricas);
+  if (!items.length) return null;
   return (
     <Section title="Leitura completa das métricas" subtitle="Cada número da sua campanha interpretado por um consultor sênior">
       <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
-        {metricas?.map((m, i) => {
+        {items.map((m, i) => {
           const s = STATUS_STYLES[m.status] || STATUS_STYLES.warning;
           const Icon = getMetricIcon(m.name);
           return (
