@@ -1686,10 +1686,12 @@ function ActionPlanSection({ acoes }: { acoes: Diagnosis['planoDeAcao'] }) {
     media: 'bg-amber-500 text-black',
     baixa: 'bg-zinc-500 text-white',
   };
+  const items = ((acoes as any[]) || []).filter((a) => hasInfo(typeof a === 'string' ? a : a?.titulo));
+  if (!items.length) return null;
   return (
-    <Section title="Plano de ação" subtitle="Passo a passo para destravar a performance" highlight>
+    <Section title="Plano de ação" subtitle="Passo a passo para acelerar a performance" highlight>
       <div className="space-y-3">
-        {acoes?.map((acao: any, i: number) => {
+        {items.map((acao: any, i: number) => {
           const a = typeof acao === 'string' ? { titulo: acao, descricao: '', prioridade: 'media' } : acao;
           return (
             <motion.div
