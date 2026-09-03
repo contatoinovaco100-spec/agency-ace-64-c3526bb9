@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
     }
 
     const ZAPI_BASE = `https://api.z-api.io/instances/${INSTANCE_ID}/token/${ZAPI_TOKEN}`;
-    const NOTIFY_PHONE = '5502481474167';
+    const NOTIFY_PHONE = Deno.env.get('ZAPI_NOTIFY_PHONE') || '5502481474167';
 
     const value = Number(contract.monthly_value).toLocaleString('pt-BR', {
       style: 'currency', currency: 'BRL',

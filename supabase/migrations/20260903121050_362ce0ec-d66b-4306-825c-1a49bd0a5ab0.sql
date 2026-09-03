@@ -1,3 +1,15 @@
+-- =========================================================
+-- CORREÇÃO: trigger de criação automática de cliente na assinatura
+-- A migração 20260830223732 referenciava a coluna inexistente
+-- `contracts.client_phone`, o que impedia a compilação da função
+-- e a criação do trigger. Aqui recriamos a função e o trigger
+-- usando apenas colunas existentes da tabela contracts.
+-- =========================================================
+
+-- Remove os triggers antigos (tanto o antigo quanto o quebrado)
+DROP TRIGGER IF EXISTS trg_auto_create_client_on_signature ON public.contract_signatures;
+DROP TRIGGER IF EXISTS trg_mark_contract_signed ON public.contract_signatures;
+
 CREATE OR REPLACE FUNCTION public.auto_create_client_on_signature()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -62,7 +74,6 @@ BEGIN
 END;
 $function$;
 
-DROP TRIGGER IF EXISTS trg_auto_create_client_on_signature ON public.contract_signatures;
 CREATE TRIGGER trg_auto_create_client_on_signature
 AFTER INSERT ON public.contract_signatures
 FOR EACH ROW EXECUTE FUNCTION public.auto_create_client_on_signature();

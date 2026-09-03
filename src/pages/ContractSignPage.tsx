@@ -43,9 +43,6 @@ interface Contract {
 
 interface Signature {
   signer_name: string;
-  signer_cpf: string;
-  signer_email: string;
-  ip_address: string;
   signed_at: string;
   signature_hash: string;
 }
@@ -75,12 +72,25 @@ export default function ContractSignPage() {
   const [signing, setSigning] = useState(false);
   const [signed, setSigned] = useState(false);
   const [signatureHash, setSignatureHash] = useState('');
+  const [pixKey, setPixKey] = useState('');
 
   // Form
   const [signerName, setSignerName] = useState('');
   const [signerCpf, setSignerCpf] = useState('');
   const [signerEmail, setSignerEmail] = useState('');
   const [accepted, setAccepted] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await (supabase as any).rpc('get_public_pix_settings');
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row?.pix_key) setPixKey(row.pix_key);
+      } catch (e) {
+        console.warn('Falha ao carregar chave PIX:', e);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (!contractId) return;
@@ -295,16 +305,16 @@ export default function ContractSignPage() {
               💰 Dados para Pagamento via PIX
             </h3>
             <div className="space-y-2 text-sm text-gray-700">
-              <p><strong>Chave PIX (CNPJ):</strong></p>
+              <p><strong>Chave PIX {pixKey ? '' : '(CNPJ):'}</strong></p>
               <div className="flex items-center gap-2">
                 <code className="rounded bg-gray-50 px-3 py-1.5 text-base font-mono font-bold text-gray-900 border border-green-200">
-                  43.908.147/0001-97
+                  {pixKey || '43.908.147/0001-97'}
                 </code>
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-8 text-xs text-green-700 hover:bg-green-100"
-                  onClick={() => { navigator.clipboard.writeText('43908147000197'); toast.success('Chave PIX copiada!'); }}
+                  onClick={() => { navigator.clipboard.writeText(pixKey.replace(/\D/g, '') || '43908147000197'); toast.success('Chave PIX copiada!'); }}
                 >
                   <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
                 </Button>

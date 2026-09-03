@@ -84,6 +84,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/nota-cliente',        label: 'Nota do Cliente',     icon: Gauge,           category: 'Operacional' },
   { path: '/observacoes-semanais', label: 'Observações Semanais', icon: NotebookPen,    category: 'Operacional' },
   { path: '/planejamento',        label: 'Planejamento',        icon: LayoutList,      category: 'Operacional' },
+  { path: '/planejamento-pdf',    label: 'Planejamento PDF',     icon: FileText,        category: 'Operacional' },
   { path: '/diagnostico/editar',  label: 'Diagnóstico',         icon: Target,          category: 'Operacional' },
   // { path: '/metas',               label: 'Metas',               icon: Target,          category: 'Operacional' },
   // { path: '/resultados-semanais', label: 'Resultados Semanais', icon: TrendingUp,      category: 'Operacional' },

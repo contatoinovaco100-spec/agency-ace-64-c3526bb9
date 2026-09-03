@@ -166,18 +166,27 @@ export default function ContractsPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const [{ data: c }, { data: s }] = await Promise.all([
-      supabase.from('contracts').select('*').order('created_at', { ascending: false }),
-      supabase.from('contract_signatures').select('*'),
-    ]);
+    const { data: c } = await supabase.from('contracts').select('*').order('created_at', { ascending: false });
     if (c) {
       const parsed = c.map((contract: any) => ({
         ...contract,
         deliverables: Array.isArray(contract.deliverables) ? contract.deliverables : [],
       })) as Contract[];
-      setContracts(deduplicateContracts(parsed));
+      const deduped = deduplicateContracts(parsed);
+      setContracts(deduped);
+
+      // Busca apenas as assinaturas dos contratos em exibição (evita carregar a tabela inteira)
+      const ids = deduped.map(ct => ct.id);
+      if (ids.length > 0) {
+        const { data: s } = await supabase
+          .from('contract_signatures')
+          .select('*')
+          .in('contract_id', ids);
+        if (s) setSignatures(s as Signature[]);
+      } else {
+        setSignatures([]);
+      }
     }
-    if (s) setSignatures(s as Signature[]);
     setLoading(false);
   };
 
