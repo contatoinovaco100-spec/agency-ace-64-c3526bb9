@@ -178,8 +178,9 @@ export default function ContractSignPage() {
       });
 
       if (error) {
-        console.error('Error inserting signature:', error);
-        throw error;
+        console.error('Error inserting signature:', JSON.stringify(error, null, 2));
+        const detail = (error as any)?.details || (error as any)?.hint || '';
+        throw new Error(detail ? `${error.message} — ${detail}` : error.message);
       }
 
       // Optimistic update
