@@ -188,21 +188,27 @@ export async function parsePlanningExcel(file: File): Promise<PlanningItem[]> {
 
     // Localiza a linha de cabeçalho
     let headerRowIdx = -1;
-    let colIdxMap: { type?: number; date?: number; title?: number; format?: number; desc?: number; obs?: number } = {};
+    let colIdxMap: { type?: number; date?: number; turno?: number; status?: number; canal?: number; format?: number; objetivo?: number; title?: number; desc?: number; obs?: number } = {};
 
     for (let r = 0; r < Math.min(data.length, 10); r++) {
       const row = data[r].map(c => String(c).toLowerCase().trim());
       const hasDate = row.some(c => c.includes('data') || c.includes('dia'));
-      const hasTitle = row.some(c => c.includes('título') || c.includes('titulo') || c.includes('conteúdo') || c.includes('conteudo') || c.includes('tema'));
+      const hasDirecionamento = row.some(c => c.includes('direcionamento') || c.includes('título') || c.includes('titulo') || c.includes('conteúdo') || c.includes('tema'));
       
-      if (hasDate || hasTitle) {
+      if (hasDate || hasDirecionamento) {
         headerRowIdx = r;
         row.forEach((cell, idx) => {
           if (cell.includes('tipo')) colIdxMap.type = idx;
-          if (cell.includes('data') || cell.includes('dia') || cell.includes('publicação')) colIdxMap.date = idx;
-          if (cell.includes('título') || cell.includes('titulo') || cell.includes('tema') || cell.includes('conteúdo')) colIdxMap.title = idx;
-          if (cell.includes('formato') || cell.includes('plataforma')) colIdxMap.format = idx;
-          if (cell.includes('roteiro') || cell.includes('legenda') || cell.includes('copy') || cell.includes('descriç') || cell.includes('descric') || cell.includes('briefing')) colIdxMap.desc = idx;
+          if (cell.includes('data') || cell.includes('dia')) colIdxMap.date = idx;
+          if (cell.includes('turno')) colIdxMap.turno = idx;
+          if (cell.includes('status')) colIdxMap.status = idx;
+          if (cell.includes('canal') || cell.includes('rede') || cell.includes('plataforma')) colIdxMap.canal = idx;
+          if (cell.includes('formato')) colIdxMap.format = idx;
+          if (cell.includes('objetivo') || cell.includes('pilar')) colIdxMap.objetivo = idx;
+          if (cell.includes('direcionamento') || cell.includes('título') || cell.includes('titulo') || cell.includes('tema') || cell.includes('conteúdo') || cell.includes('roteiro') || cell.includes('legenda')) {
+            colIdxMap.title = idx;
+            colIdxMap.desc = idx;
+          }
           if (cell.includes('obs') || cell.includes('observa')) colIdxMap.obs = idx;
         });
         break;
@@ -216,47 +222,67 @@ export async function parsePlanningExcel(file: File): Promise<PlanningItem[]> {
       if (!row || row.length === 0) continue;
 
       // Extrai campos principais
-      const rawTitle = colIdxMap.title !== undefined ? String(row[colIdxMap.title] || '').trim() : (String(row[2] || row[1] || row[0] || '').trim());
-      if (!rawTitle || rawTitle.toLowerCase().includes('instruç') || rawTitle.toLowerCase().includes('dicas') || rawTitle.length < 2) {
-        continue; // Pula linhas de instrução ou vazias
+      const rawTextContent = colIdxMap.title !== undefined ? String(row[colIdxMap.title] || '').trim() : (String(row[6] || row[2] || row[1] || row[0] || '').trim());
+      
+      // Ignora linhas de cabeçalho ou instruções vazias
+      if (!rawTextContent || rawTextContent.toLowerCase().includes('cronograma de postagens') || rawTextContent.toLowerCase().includes('mês de referência') || rawTextContent.toLowerCase().includes('guia de opções') || rawTextContent.length < 2) {
+        continue;
       }
 
       const rawType = colIdxMap.type !== undefined ? String(row[colIdxMap.type] || '').trim() : '';
       const rawDate = colIdxMap.date !== undefined ? String(row[colIdxMap.date] || '').trim() : '';
+      const rawTurno = colIdxMap.turno !== undefined ? String(row[colIdxMap.turno] || '').trim() : '';
+      const rawStatus = colIdxMap.status !== undefined ? String(row[colIdxMap.status] || '').trim() : '';
+      const rawCanal = colIdxMap.canal !== undefined ? String(row[colIdxMap.canal] || '').trim() : '';
       const rawFormat = colIdxMap.format !== undefined ? String(row[colIdxMap.format] || '').trim() : '';
-      const rawDesc = colIdxMap.desc !== undefined ? String(row[colIdxMap.desc] || '').trim() : '';
+      const rawObjetivo = colIdxMap.objetivo !== undefined ? String(row[colIdxMap.objetivo] || '').trim() : '';
       const rawObs = colIdxMap.obs !== undefined ? String(row[colIdxMap.obs] || '').trim() : '';
 
-      // Classifica tipo
+      // Título resumido (primeiras palavras ou linha)
+      let title = rawTextContent;
+      if (title.length > 70) {
+        title = title.substring(0, 67) + '...';
+      }
+
+      // Classifica se é Vídeo ou Arte com base no formato/canal/tipo
+      const fullContext = `${rawType} ${rawFormat} ${rawCanal} ${sheetName} ${rawTextContent}`.toLowerCase();
       let itemType: PlanningItemType = sheetDefaultType;
-      if (rawType) {
-        itemType = classifyType(rawType + ' ' + rawTitle);
+      if (fullContext.includes('reels') || fullContext.includes('vídeo') || fullContext.includes('video') || fullContext.includes('tiktok') || fullContext.includes('shorts')) {
+        itemType = 'video';
+      } else if (fullContext.includes('card') || fullContext.includes('post') || fullContext.includes('carrossel') || fullContext.includes('arte') || fullContext.includes('stories') || fullContext.includes('story')) {
+        itemType = 'arte';
       } else {
-        itemType = classifyType(sheetName + ' ' + rawTitle + ' ' + rawFormat);
+        itemType = classifyType(fullContext);
       }
 
       // Converte data
       let dateIso = '';
       if (rawDate) {
-        // Verifica se é número de data do Excel
+        // Verifica se é número serial de data do Excel
         const num = Number(rawDate);
         if (!isNaN(num) && num > 20000 && num < 60000) {
           const excelDate = new Date(Math.round((num - 25569) * 86400 * 1000));
           dateIso = excelDate.toISOString().split('T')[0];
         } else {
-          dateIso = parseDateFromText(rawDate) || '';
+          // Limpa dias da semana como "QUA (08/10)"
+          const cleanedDate = rawDate.replace(/^[A-Za-zÀ-ÖØ-öø-ÿ]{3,}\s*\(/, '').replace(/\)$/, '').trim();
+          dateIso = parseDateFromText(cleanedDate) || parseDateFromText(rawDate) || '';
         }
       }
 
-      // Monta descrição formatada
+      // Monta descrição estruturada com os metadados do social media
       const descParts: string[] = [];
-      if (rawFormat) descParts.push(`📌 Formato: ${rawFormat}`);
-      if (rawDesc) descParts.push(rawDesc);
-      if (rawObs) descParts.push(`💬 Obs: ${rawObs}`);
+      if (rawCanal) descParts.push(`📱 **Canal**: ${rawCanal}`);
+      if (rawFormat) descParts.push(`📐 **Formato**: ${rawFormat}`);
+      if (rawTurno) descParts.push(`⏰ **Turno**: ${rawTurno}`);
+      if (rawObjetivo) descParts.push(`🎯 **Objetivo**: ${rawObjetivo}`);
+      if (rawStatus) descParts.push(`📊 **Status Planejado**: ${rawStatus}`);
+      descParts.push(`📝 **Direcionamento / Briefing**:\n${rawTextContent}`);
+      if (rawObs) descParts.push(`💬 **Obs**: ${rawObs}`);
 
       items.push({
         id: crypto.randomUUID(),
-        title: rawTitle,
+        title: title,
         date: dateIso,
         type: itemType,
         description: descParts.join('\n\n'),
