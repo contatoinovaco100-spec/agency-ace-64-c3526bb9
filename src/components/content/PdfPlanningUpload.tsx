@@ -1,9 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, Loader2, X, AlertCircle } from 'lucide-react';
+import { Upload, FileText, FileSpreadsheet, Loader2, X, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { parsePlanningPdf, type PlanningItem } from '@/lib/pdfPlanningParser';
+import { parsePlanningFile, type PlanningItem } from '@/lib/pdfPlanningParser';
 
 interface PdfPlanningUploadProps {
   onParsed: (items: PlanningItem[], rawText: string) => void;
@@ -16,14 +16,23 @@ export function PdfPlanningUpload({ onParsed }: PdfPlanningUploadProps) {
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const isExcel = (name?: string | null) => {
+    if (!name) return false;
+    const lower = name.toLowerCase();
+    return lower.endsWith('.xlsx') || lower.endsWith('.xls') || lower.endsWith('.csv');
+  };
+
   const handleFile = useCallback(async (file: File) => {
-    if (file.type !== 'application/pdf') {
-      setError('Por favor, selecione um arquivo PDF.');
+    const lowerName = file.name.toLowerCase();
+    const valid = lowerName.endsWith('.pdf') || lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls') || lowerName.endsWith('.csv') || file.type.includes('pdf') || file.type.includes('spreadsheet') || file.type.includes('excel');
+
+    if (!valid) {
+      setError('Por favor, selecione um arquivo Excel (.xlsx / .xls) ou PDF (.pdf).');
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      setError('O arquivo é muito grande. Máximo 10MB.');
+    if (file.size > 20 * 1024 * 1024) {
+      setError('O arquivo é muito grande. Máximo 20MB.');
       return;
     }
 
@@ -32,18 +41,18 @@ export function PdfPlanningUpload({ onParsed }: PdfPlanningUploadProps) {
     setIsProcessing(true);
 
     try {
-      const items = await parsePlanningPdf(file);
+      const items = await parsePlanningFile(file);
       if (items.length === 0) {
-        setError('Nenhum conteúdo foi extraído do PDF. Verifique o formato do arquivo.');
+        setError('Nenhum item com título/conteúdo foi encontrado no arquivo. Verifique a planilha ou PDF.');
         setIsProcessing(false);
         return;
       }
 
-      toast.success(`${items.length} itens extraídos do PDF com sucesso!`);
+      toast.success(`${items.length} itens extraídos do ${isExcel(file.name) ? 'Excel' : 'PDF'} com sucesso!`);
       onParsed(items, '');
     } catch (err: any) {
-      console.error('PDF parse error:', err);
-      setError(`Erro ao processar o PDF: ${err.message || 'Tente novamente'}`);
+      console.error('File parse error:', err);
+      setError(`Erro ao processar o arquivo: ${err.message || 'Tente novamente'}`);
     } finally {
       setIsProcessing(false);
     }
@@ -83,7 +92,7 @@ export function PdfPlanningUpload({ onParsed }: PdfPlanningUploadProps) {
       <input
         ref={inputRef}
         type="file"
-        accept=".pdf,application/pdf"
+        accept=".pdf,.xlsx,.xls,.csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
         onChange={handleInputChange}
         className="hidden"
       />
@@ -101,20 +110,24 @@ export function PdfPlanningUpload({ onParsed }: PdfPlanningUploadProps) {
               <div className="space-y-4">
                 <Loader2 className="w-12 h-12 text-primary mx-auto animate-spin" />
                 <div>
-                  <p className="text-white font-semibold">Processando PDF...</p>
+                  <p className="text-white font-semibold">Processando arquivo...</p>
                   <p className="text-zinc-400 text-sm mt-1">{fileName}</p>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
-                <FileText className="w-12 h-12 text-primary mx-auto" />
+                {isExcel(fileName) ? (
+                  <FileSpreadsheet className="w-12 h-12 text-emerald-400 mx-auto" />
+                ) : (
+                  <FileText className="w-12 h-12 text-primary mx-auto" />
+                )}
                 <div>
                   <p className="text-white font-semibold">{fileName}</p>
-                  <p className="text-green-400 text-sm mt-1">PDF processado com sucesso!</p>
+                  <p className="text-emerald-400 text-sm mt-1">Planejamento processado com sucesso!</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={reset} className="border-white/10">
                   <X className="w-4 h-4 mr-2" />
-                  Upload outro PDF
+                  Enviar outro arquivo
                 </Button>
               </div>
             )}
@@ -130,7 +143,7 @@ export function PdfPlanningUpload({ onParsed }: PdfPlanningUploadProps) {
             onDragLeave={handleDragLeave}
             onClick={() => inputRef.current?.click()}
             className={`
-              border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer
+              border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer
               transition-all duration-200
               ${isDragging
                 ? 'border-primary bg-primary/10 scale-[1.02]'
@@ -145,24 +158,30 @@ export function PdfPlanningUpload({ onParsed }: PdfPlanningUploadProps) {
                   <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
                   <div>
                     <p className="text-red-400 font-semibold">{error}</p>
-                    <p className="text-zinc-500 text-sm mt-2">Clique ou arraste um PDF para tentar novamente</p>
+                    <p className="text-zinc-500 text-sm mt-2">Clique ou arraste um arquivo Excel ou PDF para tentar novamente</p>
                   </div>
                 </>
               ) : (
                 <>
-                  <Upload className={`w-12 h-12 mx-auto transition-colors ${isDragging ? 'text-primary' : 'text-zinc-500'}`} />
+                  <div className="flex items-center justify-center gap-3">
+                    <FileSpreadsheet className={`w-10 h-10 transition-colors ${isDragging ? 'text-emerald-400' : 'text-emerald-500/70'}`} />
+                    <span className="text-zinc-600 font-bold">ou</span>
+                    <Upload className={`w-10 h-10 transition-colors ${isDragging ? 'text-primary' : 'text-zinc-500'}`} />
+                  </div>
                   <div>
-                    <p className="text-white font-semibold">
-                      {isDragging ? 'Solte o PDF aqui' : 'Arraste o planejamento em PDF'}
+                    <p className="text-white font-semibold text-base">
+                      {isDragging ? 'Solte o arquivo Excel ou PDF aqui' : 'Arraste a Planilha Excel (.xlsx) ou PDF'}
                     </p>
                     <p className="text-zinc-500 text-sm mt-1">
-                      ou clique para selecionar • Máximo 10MB
+                      Compatível com Excel, Google Sheets (.xlsx) e PDF • Máximo 20MB
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" className="border-primary/50 text-primary hover:bg-primary/10">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Selecionar PDF
-                  </Button>
+                  <div className="flex items-center justify-center gap-2 pt-1">
+                    <Button variant="outline" size="sm" className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10">
+                      <FileSpreadsheet className="w-4 h-4 mr-1.5" />
+                      Selecionar Excel / PDF
+                    </Button>
+                  </div>
                 </>
               )}
             </div>
@@ -172,3 +191,4 @@ export function PdfPlanningUpload({ onParsed }: PdfPlanningUploadProps) {
     </div>
   );
 }
+

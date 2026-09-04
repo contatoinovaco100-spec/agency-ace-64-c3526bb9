@@ -134,16 +134,51 @@ function drawFooter(doc: jsPDF, pageW: number, pageH: number) {
   doc.text('Preencha as colunas acima e faça upload na plataforma', pageW - 18, footerY, { align: 'right' });
 }
 
-export function generatePlanningTemplate(rows?: TemplateRow[]) {
+export interface PdfTemplateOptions {
+  clientName?: string;
+  monthName?: string;
+  rows?: TemplateRow[];
+}
+
+export function generatePlanningTemplate(options?: PdfTemplateOptions | TemplateRow[]) {
+  const opts: PdfTemplateOptions = Array.isArray(options) 
+    ? { rows: options } 
+    : (options || {});
+
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
 
-  drawHeader(doc, pageW);
+  const clientText = opts.clientName ? `CLIENTE: ${opts.clientName.toUpperCase()}` : 'INOVA Co. — Marketing & Audiovisual';
+  const monthText = opts.monthName ? `MÊS: ${opts.monthName.toUpperCase()}` : `Gerado em ${new Date().toLocaleDateString('pt-BR')}`;
+
+  // Header
+  doc.setFillColor(...COLORS.black);
+  doc.rect(0, 0, pageW, 32, 'F');
+
+  doc.setFillColor(...COLORS.primary);
+  doc.rect(0, 30, pageW, 2, 'F');
+
+  doc.setTextColor(...COLORS.primary);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text('PLANEJAMENTO MENSAL DE CONTEÚDO', 18, 15);
+
+  doc.setTextColor(...COLORS.white);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text(clientText, 18, 23);
+
+  doc.setTextColor(...COLORS.gray);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text(monthText, pageW - 18, 23, { align: 'right' });
+
+  const rows = opts.rows;
 
   // Videos section
   let y = 42;
-  y = drawSectionTitle(doc, y, '🎬 VÍDEOS', pageW);
+  y = drawSectionTitle(doc, y, '🎬 SEÇÃO 1: PRODUÇÃO DE VÍDEOS (REELS / TIKTOK / SHORTS)', pageW);
   y = drawTableHeader(doc, y, pageW);
 
   if (rows && rows.length > 0) {
@@ -161,7 +196,7 @@ export function generatePlanningTemplate(rows?: TemplateRow[]) {
 
   // Arts section
   y += 8;
-  y = drawSectionTitle(doc, y, '🎨 ARTES', pageW);
+  y = drawSectionTitle(doc, y, '🎨 SEÇÃO 2: ARTES & DESIGN (CARROSSEIS / POSTS / STORIES)', pageW);
   y = drawTableHeader(doc, y, pageW);
 
   if (rows && rows.length > 0) {
@@ -178,7 +213,7 @@ export function generatePlanningTemplate(rows?: TemplateRow[]) {
   }
 
   // Instructions box
-  y += 10;
+  y += 8;
   if (y + 30 < pageH - 20) {
     doc.setFillColor(20, 20, 20);
     doc.roundedRect(18, y, pageW - 36, 24, 2, 2, 'F');
@@ -188,17 +223,18 @@ export function generatePlanningTemplate(rows?: TemplateRow[]) {
     doc.setTextColor(...COLORS.primary);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.text('COMO USAR:', 24, y + 7);
+    doc.text('COMO USAR NO FLUXO MENSAL:', 24, y + 7);
 
     doc.setTextColor(...COLORS.lightGray);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.text('1. Preencha as datas, títulos e descrições na tabela acima.', 24, y + 13);
-    doc.text('2. Salve como PDF e faça upload na plataforma em /planejamento-pdf.', 24, y + 18);
-    doc.text('3. A plataforma interpretará os dados e criará os cards automaticamente.', 24, y + 23);
+    doc.text('1. Preencha as datas, títulos e descrições na tabela mensal acima ou na planilha Excel.', 24, y + 13);
+    doc.text('2. Faça upload do arquivo em PDF ou XLSX na plataforma em /planejamento-pdf.', 24, y + 18);
+    doc.text('3. Todos os cards de vídeos e artes serão criados automaticamente no Kanban do cliente.', 24, y + 23);
   }
 
   drawFooter(doc, pageW, pageH);
 
-  doc.save('template-planejamento-conteudo.pdf');
+  const cleanClient = opts.clientName ? opts.clientName.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'cliente';
+  doc.save(`planejamento-mensal-${cleanClient}.pdf`);
 }

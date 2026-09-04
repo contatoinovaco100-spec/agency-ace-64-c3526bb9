@@ -168,7 +168,116 @@ export function parsePlanningFromText(rawText: string): PlanningItem[] {
   return items;
 }
 
+import * as XLSX from 'xlsx';
+
+export async function parsePlanningExcel(file: File): Promise<PlanningItem[]> {
+  const arrayBuffer = await file.arrayBuffer();
+  const wb = XLSX.read(arrayBuffer, { type: 'array' });
+  const items: PlanningItem[] = [];
+
+  for (const sheetName of wb.SheetNames) {
+    const ws = wb.Sheets[sheetName];
+    const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (!data || data.length === 0) continue;
+
+    // Detecta se a aba é voltada a vídeos ou artes pelo nome da aba
+    const lowerSheet = sheetName.toLowerCase();
+    const sheetDefaultType: PlanningItemType = lowerSheet.includes('arte') || lowerSheet.includes('post') || lowerSheet.includes('design') 
+      ? 'arte' 
+      : 'video';
+
+    // Localiza a linha de cabeçalho
+    let headerRowIdx = -1;
+    let colIdxMap: { type?: number; date?: number; title?: number; format?: number; desc?: number; obs?: number } = {};
+
+    for (let r = 0; r < Math.min(data.length, 10); r++) {
+      const row = data[r].map(c => String(c).toLowerCase().trim());
+      const hasDate = row.some(c => c.includes('data') || c.includes('dia'));
+      const hasTitle = row.some(c => c.includes('título') || c.includes('titulo') || c.includes('conteúdo') || c.includes('conteudo') || c.includes('tema'));
+      
+      if (hasDate || hasTitle) {
+        headerRowIdx = r;
+        row.forEach((cell, idx) => {
+          if (cell.includes('tipo')) colIdxMap.type = idx;
+          if (cell.includes('data') || cell.includes('dia') || cell.includes('publicação')) colIdxMap.date = idx;
+          if (cell.includes('título') || cell.includes('titulo') || cell.includes('tema') || cell.includes('conteúdo')) colIdxMap.title = idx;
+          if (cell.includes('formato') || cell.includes('plataforma')) colIdxMap.format = idx;
+          if (cell.includes('roteiro') || cell.includes('legenda') || cell.includes('copy') || cell.includes('descriç') || cell.includes('descric') || cell.includes('briefing')) colIdxMap.desc = idx;
+          if (cell.includes('obs') || cell.includes('observa')) colIdxMap.obs = idx;
+        });
+        break;
+      }
+    }
+
+    const startRow = headerRowIdx >= 0 ? headerRowIdx + 1 : 0;
+
+    for (let r = startRow; r < data.length; r++) {
+      const row = data[r];
+      if (!row || row.length === 0) continue;
+
+      // Extrai campos principais
+      const rawTitle = colIdxMap.title !== undefined ? String(row[colIdxMap.title] || '').trim() : (String(row[2] || row[1] || row[0] || '').trim());
+      if (!rawTitle || rawTitle.toLowerCase().includes('instruç') || rawTitle.toLowerCase().includes('dicas') || rawTitle.length < 2) {
+        continue; // Pula linhas de instrução ou vazias
+      }
+
+      const rawType = colIdxMap.type !== undefined ? String(row[colIdxMap.type] || '').trim() : '';
+      const rawDate = colIdxMap.date !== undefined ? String(row[colIdxMap.date] || '').trim() : '';
+      const rawFormat = colIdxMap.format !== undefined ? String(row[colIdxMap.format] || '').trim() : '';
+      const rawDesc = colIdxMap.desc !== undefined ? String(row[colIdxMap.desc] || '').trim() : '';
+      const rawObs = colIdxMap.obs !== undefined ? String(row[colIdxMap.obs] || '').trim() : '';
+
+      // Classifica tipo
+      let itemType: PlanningItemType = sheetDefaultType;
+      if (rawType) {
+        itemType = classifyType(rawType + ' ' + rawTitle);
+      } else {
+        itemType = classifyType(sheetName + ' ' + rawTitle + ' ' + rawFormat);
+      }
+
+      // Converte data
+      let dateIso = '';
+      if (rawDate) {
+        // Verifica se é número de data do Excel
+        const num = Number(rawDate);
+        if (!isNaN(num) && num > 20000 && num < 60000) {
+          const excelDate = new Date(Math.round((num - 25569) * 86400 * 1000));
+          dateIso = excelDate.toISOString().split('T')[0];
+        } else {
+          dateIso = parseDateFromText(rawDate) || '';
+        }
+      }
+
+      // Monta descrição formatada
+      const descParts: string[] = [];
+      if (rawFormat) descParts.push(`📌 Formato: ${rawFormat}`);
+      if (rawDesc) descParts.push(rawDesc);
+      if (rawObs) descParts.push(`💬 Obs: ${rawObs}`);
+
+      items.push({
+        id: crypto.randomUUID(),
+        title: rawTitle,
+        date: dateIso,
+        type: itemType,
+        description: descParts.join('\n\n'),
+        rawText: row.join(' | '),
+      });
+    }
+  }
+
+  return items;
+}
+
 export async function parsePlanningPdf(file: File): Promise<PlanningItem[]> {
   const rawText = await extractTextFromPdf(file);
   return parsePlanningFromText(rawText);
 }
+
+export async function parsePlanningFile(file: File): Promise<PlanningItem[]> {
+  const fileName = file.name.toLowerCase();
+  if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv') || file.type.includes('spreadsheet') || file.type.includes('excel')) {
+    return parsePlanningExcel(file);
+  }
+  return parsePlanningPdf(file);
+}
+
