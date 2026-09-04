@@ -18,9 +18,9 @@ const TRANSIENT_MEDIA =
 
 /** Aguarda o container ficar FINISHED (vídeo demora bem mais que imagem). */
 async function waitContainer(token: string, containerId: string, isVideo: boolean) {
-  const maxTries = isVideo ? 25 : 8;
+  const maxTries = isVideo ? 35 : 10;
   const waitMs = isVideo ? 3000 : 1500;
-  const deadline = Date.now() + (isVideo ? 120_000 : 25_000);
+  const deadline = Date.now() + (isVideo ? 180_000 : 30_000);
   let noStatus = 0;
   for (let i = 0; i < maxTries; i++) {
     if (Date.now() > deadline) break;
@@ -42,7 +42,7 @@ async function waitContainer(token: string, containerId: string, isVideo: boolea
       if (!isVideo && noStatus >= 2) return;
     }
   }
-  if (isVideo) throw new Error("Tempo esgotado no processamento do vídeo pela Meta");
+  if (isVideo) throw new Error("Tempo esgotado no processamento do vídeo pela Meta. O vídeo pode ser muito longo ou a Meta demorou para codificar.");
 }
 
 const RUPLOAD = "https://rupload.facebook.com/ig-api-upload/v22.0";

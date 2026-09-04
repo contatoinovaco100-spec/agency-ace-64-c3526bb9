@@ -112,7 +112,9 @@ Deno.serve(async (req) => {
         const { data: secret } = await admin
           .from("social_account_secrets").select("access_token, refresh_token")
           .eq("account_id", acc.id).maybeSingle();
-        if (!secret?.access_token) throw new Error("Token indisponível — reconecte a conta");
+        const globalToken = Deno.env.get("META_ACCESS_TOKEN");
+        const accessToken = secret?.access_token || (acc.platform === "instagram" ? globalToken : "");
+        if (!accessToken) throw new Error("Token indisponível — reconecte a conta ou configure o token da Meta");
 
         const adapter = getAdapter(acc.platform);
         const result = await adapter.publish(
@@ -120,8 +122,8 @@ Deno.serve(async (req) => {
             id: acc.id,
             externalId: acc.external_id || "",
             username: acc.username,
-            accessToken: secret.access_token,
-            refreshToken: secret.refresh_token,
+            accessToken: accessToken,
+            refreshToken: secret?.refresh_token,
           },
           {
             mediaUrl,
