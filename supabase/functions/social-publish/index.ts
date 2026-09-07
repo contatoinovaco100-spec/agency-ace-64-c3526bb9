@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
     // Publica em lotes para não estourar memória/tempo do runtime com vários vídeos.
     const CONCURRENCY = 3;
     const publishTarget = async (target: any) => {
+      let accessTokenUsed = "";
       try {
         // Trava atômica: cron, clique manual e abas abertas podem disparar o
         // mesmo job ao mesmo tempo. Só a chamada que mudar o status publica.
