@@ -115,6 +115,7 @@ Deno.serve(async (req) => {
           .eq("account_id", acc.id).maybeSingle();
         const globalToken = Deno.env.get("META_ACCESS_TOKEN");
         const accessToken = secret?.access_token || (acc.platform === "instagram" ? globalToken : "");
+        accessTokenUsed = accessToken || "";
         if (!accessToken) throw new Error("Token indisponível — reconecte a conta ou configure o token da Meta");
 
         const adapter = getAdapter(acc.platform);
