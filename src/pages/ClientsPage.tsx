@@ -75,7 +75,7 @@ export default function ClientsPage() {
 
       // Deduplicate contracts to keep the most recent for each client
       const dedupedContracts: any[] = [];
-      for (const c of (contracts || []).sort((a, b) => new Date(b.signed_at || b.created_at || 0).getTime() - new Date(a.signed_at || a.created_at || 0).getTime())) {
+      for (const c of ((contracts || []) as any[]).sort((a: any, b: any) => new Date(b.signed_at || b.created_at || 0).getTime() - new Date(a.signed_at || a.created_at || 0).getTime())) {
         const comp = norm(c.client_company);
         const name = norm(c.client_name);
         const email = (c.client_email || '').trim().toLowerCase();
