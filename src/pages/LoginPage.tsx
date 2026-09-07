@@ -50,7 +50,8 @@ export default function LoginPage() {
       } else if (message.includes('rate limit') || message.includes('too many')) {
         setError('Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.');
       } else if (message.includes('network') || message.includes('fetch')) {
-        setError('Não foi possível conectar. Verifique sua internet e tente novamente.');
+        setError('O servidor de login está instável no momento. Aguarde alguns segundos e tente novamente.');
+
       } else {
         setError('Usuário ou senha incorretos.');
       }
