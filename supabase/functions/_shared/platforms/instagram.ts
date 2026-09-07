@@ -46,7 +46,7 @@ async function waitContainer(token: string, containerId: string, isVideo: boolea
 }
 
 const isAuthError = (message: string) =>
-  /Token de acesso|OAuthException|Permissão/i.test(message);
+  /Token de acesso expirado|Permissão insuficiente/i.test(message);
 
 /** A Meta ocasionalmente devolve code 190 ao criar a mídia mesmo com o token
  * ainda válido. Confirma o token antes de obrigar o usuário a reconectar. */
