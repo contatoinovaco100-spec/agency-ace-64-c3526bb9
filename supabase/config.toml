@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.consulta-cnpj]
 verify_jwt = false
+
+[functions.social-token-health]
+verify_jwt = false

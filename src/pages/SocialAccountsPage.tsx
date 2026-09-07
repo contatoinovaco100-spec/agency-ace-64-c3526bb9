@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Instagram, Music2, Share2, CalendarClock, AlertTriangle, Send, Loader2, LogIn,
+  Instagram, Share2, CalendarClock, AlertTriangle, Send, Loader2, LogIn,
   HelpCircle, CheckCircle2, ExternalLink, ChevronDown, ChevronUp, RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ import { useSocialAccounts } from '@/hooks/useSocialAccounts';
 import { usePublishJobs } from '@/hooks/usePublishJobs';
 import { socialAccountsService } from '@/services/socialAccounts';
 import type { SocialAccount, SocialPlatform } from '@/types/social';
+import { supabase } from '@/integrations/supabase/client';
 
 
 /** URI fixo — precisa estar cadastrado no app da Meta / TikTok. */
@@ -23,6 +24,31 @@ export default function SocialAccountsPage() {
   const { jobs } = usePublishJobs();
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [connecting, setConnecting] = useState<SocialPlatform | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  /** Testa, uma a uma, se as contas ainda estão conectadas ao Instagram. */
+  const checkConnections = async () => {
+    setChecking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('social-token-health', { body: {} });
+      if (error) throw error;
+      const broken = (data?.results || []).filter((r: any) => r.status !== 'ok');
+      if (!broken.length) {
+        toast.success(`Todas as ${data?.total ?? 0} contas estão conectadas.`);
+      } else {
+        toast.warning(`${broken.length} conta(s) precisam ser reconectadas`, {
+          description: broken.map((r: any) => '@' + r.username).join(', '),
+          duration: 10000,
+        });
+      }
+      reload();
+    } catch (e: any) {
+      toast.error('Não foi possível testar as conexões', { description: e?.message });
+    } finally {
+      setChecking(false);
+    }
+  };
+
 
   const offDomain = typeof window !== 'undefined' &&
     window.location.origin !== 'https://inovamarketing.online';
@@ -116,8 +142,8 @@ export default function SocialAccountsPage() {
 
   const sections: Array<{ platform: SocialPlatform; label: string; icon: any }> = [
     { platform: 'instagram', label: 'Instagram', icon: Instagram },
-    { platform: 'tiktok', label: 'TikTok', icon: Music2 },
   ];
+
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -128,11 +154,22 @@ export default function SocialAccountsPage() {
             Gerencie todas as contas conectadas e publique em várias delas de uma vez.
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => reload()} disabled={refreshing}>
-          <RefreshCw className={`mr-1 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={checkConnections} disabled={checking}>
+            {checking
+              ? <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              : <CheckCircle2 className="mr-1 h-4 w-4" />}
+            Testar conexões
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => reload()} disabled={refreshing}>
+            <RefreshCw className={`mr-1 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
+
+
+
 
       <Card className="border-primary/40 bg-primary/5">
         <CardContent className="flex items-start gap-3 p-4">
