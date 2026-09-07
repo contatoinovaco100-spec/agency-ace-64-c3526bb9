@@ -149,14 +149,8 @@ export const publishingService = {
       const file = isVid ? src : await toInstagramJpeg(src);
       const ext = isVid ? (file.name.split('.').pop() || 'mp4').toLowerCase() : 'jpg';
       const path = `publish/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: isVid ? (file.type || 'video/mp4') : 'image/jpeg',
-        });
-      if (upErr) throw upErr;
+      await uploadWithRetry(path, file, isVid ? (file.type || 'video/mp4') : 'image/jpeg');
+
       paths.push(path);
       input.onProgress?.(10 + Math.round(((i + 1) / sources.length) * 60));
     }
