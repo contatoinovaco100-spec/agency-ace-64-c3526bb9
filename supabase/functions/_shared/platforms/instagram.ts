@@ -46,7 +46,7 @@ async function waitContainer(token: string, containerId: string, isVideo: boolea
 }
 
 const isAuthError = (message: string) =>
-  /Token de acesso|OAuthException|Permissão/i.test(message);
+  /Token de acesso expirado|Permissão insuficiente/i.test(message);
 
 /** A Meta ocasionalmente devolve code 190 ao criar a mídia mesmo com o token
  * ainda válido. Confirma o token antes de obrigar o usuário a reconectar. */
@@ -91,6 +91,9 @@ async function createVideoContainerResumable(
 ): Promise<string> {
   const params = new URLSearchParams(baseParams);
   params.delete("video_url");
+  // O token vai no cabeçalho Bearer; mandá-lo também no corpo faz a Meta
+  // recusar a chamada com "parâmetro inválido".
+  params.delete("access_token");
   params.set("upload_type", "resumable");
 
   const isCarouselItem = params.get("is_carousel_item") === "true";
