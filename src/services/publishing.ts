@@ -93,14 +93,81 @@ async function toInstagramJpeg(file: File): Promise<File> {
   }
 }
 
+/** Envio retomável (em pedaços de 6 MB) para arquivos grandes.
+ *  Um vídeo de centenas de MB em uma única requisição cai facilmente em
+ *  internet instável; em pedaços, cada parte é reenviada sozinha e o envio
+ *  continua de onde parou. */
+async function resumableUpload(
+  path: string,
+  file: File,
+  contentType: string,
+  onProgress?: (pct: number) => void,
+): Promise<void> {
+  const { tus } = await import('tus-js-client');
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  const baseUrl = (import.meta as any).env.VITE_SUPABASE_URL as string;
+
+  await new Promise<void>((resolve, reject) => {
+    const upload = new tus.Upload(file, {
+      endpoint: `${baseUrl}/storage/v1/upload/resumable`,
+      retryDelays: [0, 2000, 5000, 10000, 20000],
+      headers: {
+        authorization: `Bearer ${token}`,
+        'x-upsert': 'true',
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      chunkSize: 6 * 1024 * 1024,
+      metadata: {
+        bucketName: BUCKET,
+        objectName: path,
+        contentType,
+        cacheControl: '3600',
+      },
+      onError: (error: any) => reject(error),
+      onProgress: (sent: number, total: number) => {
+        if (total) onProgress?.(sent / total);
+      },
+      onSuccess: () => resolve(),
+    });
+
+    upload.findPreviousUploads().then((prev: any[]) => {
+      if (prev.length) upload.resumeFromPreviousUpload(prev[0]);
+      upload.start();
+    }).catch(() => upload.start());
+  });
+}
+
 /** Envia com novas tentativas — conexões instáveis e máquinas lentas derrubam o
- *  primeiro envio com frequência. */
+ *  primeiro envio com frequência. Arquivos grandes vão por envio retomável. */
 async function uploadWithRetry(
   path: string,
   file: File,
   contentType: string,
   attempts = 3,
+  onProgress?: (pct: number) => void,
 ): Promise<void> {
+  const LARGE = 6 * 1024 * 1024;
+
+  if (file.size > LARGE) {
+    let lastError: any;
+    for (let i = 0; i < attempts; i++) {
+      try {
+        await resumableUpload(path, file, contentType, onProgress);
+        return;
+      } catch (e) {
+        lastError = e;
+        await new Promise(r => setTimeout(r, 2000 * (i + 1)));
+      }
+    }
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(0);
+    throw new Error(
+      `Falha ao enviar a mídia (${sizeMb} MB): ${String((lastError as any)?.message || lastError)}. ` +
+      'O envio tenta continuar de onde parou — verifique a internet e tente novamente.',
+    );
+  }
+
   let lastError: any;
   for (let i = 0; i < attempts; i++) {
     const { error } = await supabase.storage
@@ -119,6 +186,7 @@ async function uploadWithRetry(
     'Verifique a internet — arquivos grandes em conexões lentas podem cair.',
   );
 }
+
 
 
 /** Interpreta um valor datetime-local (sem fuso, ex.: "2026-08-07T15:30") como
