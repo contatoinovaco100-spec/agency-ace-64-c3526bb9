@@ -35,9 +35,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error as Error | null };
+    // O serviço de contas pode reiniciar/oscilar por alguns segundos.
+    // Nesses casos o supabase-js lança "Failed to fetch": tentamos novamente antes de falhar.
+    let lastError: Error | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (!error) return { error: null };
+        const msg = error.message.toLowerCase();
+        const retryable =
+          msg.includes('fetch') || msg.includes('network') || msg.includes('timeout') ||
+          (typeof (error as { status?: number }).status === 'number' && (error as { status?: number }).status! >= 500);
+        if (!retryable) return { error: error as Error };
+        lastError = error as Error;
+      } catch (e) {
+        lastError = e as Error;
+      }
+      await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+    }
+    return { error: lastError };
   };
+
 
   const signUp = async (email: string, password: string, fullName: string) => {
     const { error } = await supabase.auth.signUp({
