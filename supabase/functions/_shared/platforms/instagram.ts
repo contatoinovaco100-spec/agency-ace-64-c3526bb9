@@ -91,6 +91,9 @@ async function createVideoContainerResumable(
 ): Promise<string> {
   const params = new URLSearchParams(baseParams);
   params.delete("video_url");
+  // O token vai no cabeçalho Bearer; mandá-lo também no corpo faz a Meta
+  // recusar a chamada com "parâmetro inválido".
+  params.delete("access_token");
   params.set("upload_type", "resumable");
 
   const isCarouselItem = params.get("is_carousel_item") === "true";

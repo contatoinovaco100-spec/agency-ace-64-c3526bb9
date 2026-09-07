@@ -87,10 +87,10 @@ export async function jsonFetch(url: string, init?: RequestInit) {
       msg = "Token de acesso expirado ou inválido. Reconecte sua conta do Instagram/Facebook.";
     } else if (code === 10 || code === 200 || /permission/i.test(msg)) {
       msg = "Permissão insuficiente na Página/Instagram. Reconecte a conta garantindo todas as permissões.";
+    } else if (/aspect ratio/i.test(msg)) {
+      msg = "Proporção de imagem/vídeo inválida para o Instagram. Use formato entre 4:5 e 1.91:1.";
     } else if (type === "OAuthException" && code) {
       msg = `${msg} (código ${code}${subcode ? `/${subcode}` : ""})`;
-    } else if (/aspect ratio/i.test(msg) || /invalid aspect ratio/i.test(msg)) {
-      msg = "Proporção de imagem/vídeo inválida para o Instagram. Use formato entre 4:5 e 1.91:1.";
     }
 
     throw new Error(`[${res.status}] ${msg}`);
