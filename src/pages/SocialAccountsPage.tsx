@@ -128,11 +128,19 @@ export default function SocialAccountsPage() {
             Gerencie todas as contas conectadas e publique em várias delas de uma vez.
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => reload()} disabled={refreshing}>
-          <RefreshCw className={`mr-1 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
-      </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={checkConnections} disabled={checking}>
+            {checking
+              ? <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              : <CheckCircle2 className="mr-1 h-4 w-4" />}
+            Testar conexões
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => reload()} disabled={refreshing}>
+            <RefreshCw className={`mr-1 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
+
 
       <Card className="border-primary/40 bg-primary/5">
         <CardContent className="flex items-start gap-3 p-4">
