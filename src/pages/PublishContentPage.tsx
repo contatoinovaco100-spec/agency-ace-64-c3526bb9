@@ -188,7 +188,10 @@ export default function PublishContentPage() {
   const toggleAll = (ids: string[], checked: boolean) =>
     setSelected(p => (checked ? Array.from(new Set([...p, ...ids])) : p.filter(x => !ids.includes(x))));
 
-  const autoAccounts = selectedAccounts.filter(a => !!a.external_id);
+  const expiredAccounts = selectedAccounts.filter(a => !!a.external_id && (a.status === 'expired' || a.token_status === 'expired'));
+  const autoAccounts = selectedAccounts.filter(
+    a => !!a.external_id && a.status !== 'expired' && a.token_status !== 'expired',
+  );
   const manualAccounts = selectedAccounts.filter(a => !a.external_id);
 
   const commonOptions = () => ({
@@ -434,6 +437,12 @@ export default function PublishContentPage() {
 
   /** Modo em massa: cada vídeo/foto vira uma publicação separada. */
   const publishBulk = async () => {
+    if (expiredAccounts.length) {
+      toast.error('Reconecte as contas vencidas antes de publicar', {
+        description: expiredAccounts.map(a => `@${a.username}`).join(', '),
+      });
+      return;
+    }
     setPublishing(true);
     setProgress(2);
     setBulkDone(0);
@@ -525,6 +534,12 @@ export default function PublishContentPage() {
   const publish = async () => {
     if (!files.length) { toast.error('Envie ao menos uma mídia'); return; }
     if (!selectedAccounts.length) { toast.error('Selecione ao menos uma conta'); return; }
+    if (expiredAccounts.length) {
+      toast.error('Reconecte as contas vencidas antes de publicar', {
+        description: expiredAccounts.map(a => `@${a.username}`).join(', '),
+      });
+      return;
+    }
     if (bulkMode) return publishBulk();
 
     setPublishing(true);

@@ -95,6 +95,10 @@ export default function SocialAccountsPage() {
   };
 
   const reconnect = async (a: SocialAccount) => {
+    if (a.status === 'expired' || a.token_status === 'expired') {
+      await startLogin(a.platform);
+      return;
+    }
     setSyncingId(a.id);
     try {
       if (a.external_id) {

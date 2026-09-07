@@ -15,6 +15,9 @@ export interface SocialAccount {
   last_synced_at: string | null;
   created_at: string;
   updated_at: string;
+  token_status?: 'ok' | 'expired' | 'missing_token' | 'error' | null;
+  token_error?: string | null;
+  token_checked_at?: string | null;
 }
 
 export type JobStatus = 'pending' | 'processing' | 'published' | 'partial' | 'failed' | 'scheduled';

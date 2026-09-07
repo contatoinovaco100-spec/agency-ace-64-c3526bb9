@@ -18,8 +18,8 @@ const TRANSIENT_MEDIA =
 
 /** Aguarda o container ficar FINISHED (vídeo demora bem mais que imagem). */
 async function waitContainer(token: string, containerId: string, isVideo: boolean) {
-  const maxTries = isVideo ? 35 : 10;
-  const waitMs = isVideo ? 3000 : 1500;
+  const maxTries = isVideo ? 50 : 10;
+  const waitMs = isVideo ? 2000 : 1200;
   const deadline = Date.now() + (isVideo ? 180_000 : 30_000);
   let noStatus = 0;
   for (let i = 0; i < maxTries; i++) {
@@ -43,6 +43,35 @@ async function waitContainer(token: string, containerId: string, isVideo: boolea
     }
   }
   if (isVideo) throw new Error("Tempo esgotado no processamento do vídeo pela Meta. O vídeo pode ser muito longo ou a Meta demorou para codificar.");
+}
+
+const isAuthError = (message: string) =>
+  /Token de acesso|OAuthException|Permissão/i.test(message);
+
+/** A Meta ocasionalmente devolve code 190 ao criar a mídia mesmo com o token
+ * ainda válido. Confirma o token antes de obrigar o usuário a reconectar. */
+async function tokenIsStillValid(account: AccountContext): Promise<boolean> {
+  try {
+    await jsonFetch(
+      `${GRAPH}/${account.externalId}?fields=id&access_token=${encodeURIComponent(account.accessToken)}`,
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function createContainerFromUrl(
+  account: AccountContext,
+  params: URLSearchParams,
+  isVideo: boolean,
+): Promise<string> {
+  const container = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
+    method: "POST",
+    body: new URLSearchParams(params),
+  });
+  await waitContainer(account.accessToken, container.id, isVideo);
+  return container.id;
 }
 
 const RUPLOAD = "https://rupload.facebook.com/ig-api-upload/v22.0";
@@ -142,54 +171,55 @@ async function createContainerWithRetry(
   const videoUrl = params.get("video_url") || "";
   let lastErr: unknown;
 
-  // 1) Upload resumável (bytes diretos) — caminho preferido para vídeo.
+  // 1) A Meta busca a URL assinada diretamente. É o caminho mais rápido porque
+  // evita baixar o vídeo no backend e reenviá-lo inteiro uma segunda vez.
   if (isVideo && videoUrl) {
+    try {
+      return await createContainerFromUrl(account, params, true);
+    } catch (e) {
+      lastErr = e;
+      const msg = e instanceof Error ? e.message : String(e);
+      if (isAuthError(msg)) {
+        if (!(await tokenIsStillValid(account))) throw e;
+        console.warn("Meta recusou temporariamente um token válido; tentando novamente");
+        await sleep(1200);
+        return await createContainerFromUrl(account, params, true);
+      }
+      if (/Proporção/i.test(msg) || !TRANSIENT_MEDIA.test(msg)) throw e;
+      console.warn(`importação rápida falhou; usando upload alternativo: ${msg}`);
+    }
+
+    // 2) Só usa o envio binário, mais pesado, se a importação rápida falhar.
     for (let attempt = 0; attempt < tries; attempt++) {
       try {
         return await createVideoContainerResumable(account, params, videoUrl);
       } catch (e) {
         lastErr = e;
         const msg = e instanceof Error ? e.message : String(e);
-        console.warn(`upload resumável falhou (tentativa ${attempt + 1}): ${msg}`);
-        // Se for erro de autenticação ou erro definitivo, falha na hora
-        if (/Token de acesso|OAuthException|Permissão|Proporção/i.test(msg) || !TRANSIENT_MEDIA.test(msg)) {
+        console.warn(`upload alternativo falhou (tentativa ${attempt + 1}): ${msg}`);
+        if (isAuthError(msg)) {
+          if (!(await tokenIsStillValid(account))) throw e;
+        } else if (!TRANSIENT_MEDIA.test(msg)) {
           throw e;
         }
-        if (attempt < tries - 1) await sleep(4000);
+        if (attempt < tries - 1) await sleep(2000);
       }
     }
+    throw lastErr;
   }
 
-  // 2) Fallback: pede que a Meta busque a URL assinada (com retry próprio).
-  for (let attempt = 0; attempt < tries; attempt++) {
-    try {
-      const container = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
-        method: "POST",
-        body: new URLSearchParams(params),
-      });
-      await waitContainer(account.accessToken, container.id, isVideo);
-      return container.id;
-    } catch (e) {
-      lastErr = e;
-      const msg = e instanceof Error ? e.message : String(e);
-      if (/Token de acesso|OAuthException|Permissão|Proporção/i.test(msg) || !TRANSIENT_MEDIA.test(msg)) {
-        throw e;
-      }
-      if (attempt < tries - 1 && TRANSIENT_MEDIA.test(msg)) {
-        console.warn(`container transitório falhou (tentativa ${attempt + 1}): ${msg}`);
-        await sleep(5000);
-        continue;
-      }
-      if (TRANSIENT_MEDIA.test(msg)) {
-        throw new Error(
-          "A Meta não conseguiu processar o vídeo temporariamente (erro 2207052). " +
-            "Tente novamente em instantes ou confira o arquivo MP4 (H.264 + AAC).",
-        );
-      }
-      throw e;
+  // Imagens não precisam passar pelo upload binário.
+  try {
+    return await createContainerFromUrl(account, params, false);
+  } catch (e) {
+    lastErr = e;
+    const msg = e instanceof Error ? e.message : String(e);
+    if (isAuthError(msg) && await tokenIsStillValid(account)) {
+      await sleep(1000);
+      return await createContainerFromUrl(account, params, false);
     }
+    throw e;
   }
-  throw lastErr;
 }
 
 async function publishContainer(account: AccountContext, containerId: string): Promise<string> {
@@ -332,19 +362,26 @@ export const instagramAdapter: PlatformAdapter = {
 
     // ---- Carrossel (até 10 mídias) ----
     if (wantsCarousel && !isStory) {
-      const children: string[] = [];
-      for (let i = 0; i < Math.min(urls.length, 10); i++) {
-        const cp = new URLSearchParams();
-        cp.set("access_token", account.accessToken);
-        cp.set("is_carousel_item", "true");
-        if (types[i] === "video") {
-          cp.set("media_type", "VIDEO");
-          cp.set("video_url", urls[i]);
-        } else {
-          cp.set("image_url", urls[i]);
-        }
-        const childId = await createContainerWithRetry(account, cp, types[i] === "video");
-        children.push(childId);
+      const children: string[] = new Array(Math.min(urls.length, 10));
+      // Processa até três itens juntos: reduz bastante o tempo do carrossel sem
+      // sobrecarregar a Meta nem a memória do backend.
+      for (let start = 0; start < children.length; start += 3) {
+        const indexes = Array.from(
+          { length: Math.min(3, children.length - start) },
+          (_, offset) => start + offset,
+        );
+        await Promise.all(indexes.map(async (i) => {
+          const cp = new URLSearchParams();
+          cp.set("access_token", account.accessToken);
+          cp.set("is_carousel_item", "true");
+          if (types[i] === "video") {
+            cp.set("media_type", "VIDEO");
+            cp.set("video_url", urls[i]);
+          } else {
+            cp.set("image_url", urls[i]);
+          }
+          children[i] = await createContainerWithRetry(account, cp, types[i] === "video");
+        }));
       }
 
       const parentParams = new URLSearchParams();
