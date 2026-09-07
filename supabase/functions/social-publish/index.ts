@@ -154,6 +154,15 @@ Deno.serve(async (req) => {
       } catch (e) {
         const message = String((e as Error).message || e);
         console.error(`publish target ${target.id} failed:`, message);
+          const expiredToken = /Token de acesso expirado|OAuthException|code.?190/i.test(message);
+          if (expiredToken) {
+            await admin.from("social_accounts").update({
+              status: "expired",
+              token_status: "expired",
+              token_error: message.slice(0, 300),
+              token_checked_at: new Date().toISOString(),
+            }).eq("id", target.account_id);
+          }
         await admin.from("publish_targets").update({
           status: "failed",
           error_message: message.slice(0, 500),

@@ -23,6 +23,7 @@ export function AccountCard({ account, syncing, onReconnect, onRemove }: Props) 
   const synced = account.last_synced_at
     ? new Date(account.last_synced_at).toLocaleString('pt-BR')
     : '—';
+  const effectiveStatus = account.token_status === 'expired' ? 'expired' : account.status;
 
   return (
     <Card className="group transition-all hover:border-primary/40 hover:shadow-lg animate-in fade-in-50">
@@ -42,8 +43,8 @@ export function AccountCard({ account, syncing, onReconnect, onRemove }: Props) 
         </div>
 
         <div className="flex items-center justify-between gap-2">
-          <Badge variant="outline" className={statusVariant[account.status] ?? ''}>
-            {STATUS_LABEL[account.status] ?? account.status}
+          <Badge variant="outline" className={statusVariant[effectiveStatus] ?? ''}>
+            {STATUS_LABEL[effectiveStatus] ?? effectiveStatus}
           </Badge>
           <span className="text-[11px] text-muted-foreground">Sync: {synced}</span>
         </div>
@@ -56,7 +57,7 @@ export function AccountCard({ account, syncing, onReconnect, onRemove }: Props) 
             {syncing
               ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
               : <RefreshCw className="mr-1 h-3.5 w-3.5" />}
-            Atualizar
+            {effectiveStatus === 'expired' ? 'Reconectar' : 'Atualizar'}
           </Button>
           <Button size="sm" variant="ghost" onClick={() => onRemove(account)}>
             <Trash2 className="h-3.5 w-3.5 text-destructive" />
