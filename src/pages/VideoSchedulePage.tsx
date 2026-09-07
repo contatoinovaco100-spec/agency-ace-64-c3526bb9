@@ -113,14 +113,14 @@ export default function VideoSchedulePage() {
 
   // Situação do cliente com base nas tarefas de vídeo:
   // 'alteracao' (amarelo) quando existe vídeo em alteração,
-  // 'sem-edicao' (vermelho) quando não há nenhum vídeo em edição.
+  // 'sem-edicao' (vermelho) quando nenhum card de vídeo tem link da pasta do Drive (material bruto).
   const clientVideoState = useMemo(() => {
     const map = new Map<string, 'ok' | 'alteracao' | 'sem-edicao'>();
     for (const c of clients) {
       const clientTasks = tasks.filter(t => t.clientId === c.id && t.taskType === 'Produção de Vídeo');
       const hasAlteracao = clientTasks.some(t => String(t.status).toLowerCase().includes('altera'));
-      const hasEdicao = clientTasks.some(t => String(t.status).toLowerCase().includes('edição') || String(t.status).toLowerCase().includes('edicao'));
-      map.set(c.id, hasAlteracao ? 'alteracao' : hasEdicao ? 'ok' : 'sem-edicao');
+      const hasMaterialToEdit = clientTasks.some(t => Boolean(t.rawFootageUrl && String(t.rawFootageUrl).trim()));
+      map.set(c.id, hasAlteracao ? 'alteracao' : hasMaterialToEdit ? 'ok' : 'sem-edicao');
     }
     return map;
   }, [clients, tasks]);
