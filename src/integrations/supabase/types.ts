@@ -3088,6 +3088,9 @@ export type Database = {
           platform: string
           profile_picture: string
           status: string
+          token_checked_at: string | null
+          token_error: string | null
+          token_status: string | null
           updated_at: string
           username: string
         }
@@ -3103,6 +3106,9 @@ export type Database = {
           platform: string
           profile_picture?: string
           status?: string
+          token_checked_at?: string | null
+          token_error?: string | null
+          token_status?: string | null
           updated_at?: string
           username: string
         }
@@ -3118,6 +3124,9 @@ export type Database = {
           platform?: string
           profile_picture?: string
           status?: string
+          token_checked_at?: string | null
+          token_error?: string | null
+          token_status?: string | null
           updated_at?: string
           username?: string
         }
