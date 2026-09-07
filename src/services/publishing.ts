@@ -217,7 +217,14 @@ export const publishingService = {
       const file = isVid ? src : await toInstagramJpeg(src);
       const ext = isVid ? (file.name.split('.').pop() || 'mp4').toLowerCase() : 'jpg';
       const path = `publish/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      await uploadWithRetry(path, file, isVid ? (file.type || 'video/mp4') : 'image/jpeg');
+      await uploadWithRetry(
+        path,
+        file,
+        isVid ? (file.type || 'video/mp4') : 'image/jpeg',
+        3,
+        frac => input.onProgress?.(10 + Math.round(((i + frac) / sources.length) * 60)),
+      );
+
 
       paths.push(path);
       input.onProgress?.(10 + Math.round(((i + 1) / sources.length) * 60));
