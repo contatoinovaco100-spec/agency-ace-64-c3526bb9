@@ -140,6 +140,9 @@ export default function SocialAccountsPage() {
             Atualizar
           </Button>
         </div>
+      </div>
+
+
 
 
       <Card className="border-primary/40 bg-primary/5">
