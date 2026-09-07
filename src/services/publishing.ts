@@ -103,7 +103,7 @@ async function resumableUpload(
   contentType: string,
   onProgress?: (pct: number) => void,
 ): Promise<void> {
-  const { tus } = await import('tus-js-client');
+  const tus = await import('tus-js-client');
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData.session?.access_token;
   const baseUrl = (import.meta as any).env.VITE_SUPABASE_URL as string;
