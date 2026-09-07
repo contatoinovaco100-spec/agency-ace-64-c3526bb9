@@ -1003,12 +1003,9 @@ export default function PublishContentPage() {
                   Nenhuma conta conectada. Vá em <strong>Redes Sociais</strong> para conectar.
                 </p>
               ) : (
-                <>
-                  <AccountSelector platform="instagram" accounts={byPlatform('instagram')}
-                    selected={selected} onToggle={toggle} onToggleAll={toggleAll} />
-                  <AccountSelector platform="tiktok" accounts={byPlatform('tiktok')}
-                    selected={selected} onToggle={toggle} onToggleAll={toggleAll} />
-                </>
+                <AccountSelector platform="instagram" accounts={byPlatform('instagram')}
+                  selected={selected} onToggle={toggle} onToggleAll={toggleAll} />
+
               )}
             </CardContent>
           </Card>

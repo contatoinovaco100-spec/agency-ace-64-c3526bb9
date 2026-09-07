@@ -116,8 +116,8 @@ export default function SocialAccountsPage() {
 
   const sections: Array<{ platform: SocialPlatform; label: string; icon: any }> = [
     { platform: 'instagram', label: 'Instagram', icon: Instagram },
-    { platform: 'tiktok', label: 'TikTok', icon: Music2 },
   ];
+
 
   return (
     <div className="space-y-6 p-4 md:p-6">
