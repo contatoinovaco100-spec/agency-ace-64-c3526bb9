@@ -77,11 +77,18 @@ export async function jsonFetch(url: string, init?: RequestInit) {
     const subcode = errObj?.error_subcode;
     const type = errObj?.type;
 
-    // Erros conhecidos de autenticação / permissão da Meta
-    if (type === "OAuthException" || code === 190 || subcode === 463 || subcode === 467 || /access token/i.test(msg)) {
+    // Atenção: a Meta usa "OAuthException" para vários erros comuns
+    // (parâmetro inválido, mídia recusada...), então o tipo sozinho NÃO
+    // significa que o token venceu.
+    const realTokenError = code === 190 || subcode === 463 || subcode === 467 ||
+      subcode === 460 || subcode === 492 ||
+      /access token|session (is|has) (invalid|expired)/i.test(String(msg));
+    if (realTokenError) {
       msg = "Token de acesso expirado ou inválido. Reconecte sua conta do Instagram/Facebook.";
     } else if (code === 10 || code === 200 || /permission/i.test(msg)) {
       msg = "Permissão insuficiente na Página/Instagram. Reconecte a conta garantindo todas as permissões.";
+    } else if (type === "OAuthException" && code) {
+      msg = `${msg} (código ${code}${subcode ? `/${subcode}` : ""})`;
     } else if (/aspect ratio/i.test(msg) || /invalid aspect ratio/i.test(msg)) {
       msg = "Proporção de imagem/vídeo inválida para o Instagram. Use formato entre 4:5 e 1.91:1.";
     }
