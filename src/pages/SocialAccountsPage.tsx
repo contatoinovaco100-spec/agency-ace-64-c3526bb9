@@ -23,6 +23,31 @@ export default function SocialAccountsPage() {
   const { jobs } = usePublishJobs();
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [connecting, setConnecting] = useState<SocialPlatform | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  /** Testa, uma a uma, se as contas ainda estão conectadas ao Instagram. */
+  const checkConnections = async () => {
+    setChecking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('social-token-health', { body: {} });
+      if (error) throw error;
+      const broken = (data?.results || []).filter((r: any) => r.status !== 'ok');
+      if (!broken.length) {
+        toast.success(`Todas as ${data?.total ?? 0} contas estão conectadas.`);
+      } else {
+        toast.warning(`${broken.length} conta(s) precisam ser reconectadas`, {
+          description: broken.map((r: any) => '@' + r.username).join(', '),
+          duration: 10000,
+        });
+      }
+      reload();
+    } catch (e: any) {
+      toast.error('Não foi possível testar as conexões', { description: e?.message });
+    } finally {
+      setChecking(false);
+    }
+  };
+
 
   const offDomain = typeof window !== 'undefined' &&
     window.location.origin !== 'https://inovamarketing.online';
