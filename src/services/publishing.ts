@@ -29,26 +29,97 @@ export interface CreateJobInput {
 
 
 
-/** Instagram só aceita JPEG em fotos — converte qualquer imagem para JPEG e limita a 1440px. */
-async function toInstagramJpeg(file: File): Promise<File> {
-  const bitmap = await createImageBitmap(file);
-  const max = 1440;
-  const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-  const w = Math.round(bitmap.width * scale);
-  const h = Math.round(bitmap.height * scale);
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Não foi possível processar a imagem');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, w, h);
-  ctx.drawImage(bitmap, 0, 0, w, h);
-  const blob: Blob = await new Promise((resolve, reject) =>
-    canvas.toBlob(b => (b ? resolve(b) : reject(new Error('Falha ao converter imagem'))), 'image/jpeg', 0.92),
-  );
-  return new File([blob], 'post.jpg', { type: 'image/jpeg' });
+/** Decodifica a imagem do jeito mais leve disponível no aparelho.
+ *  PCs fracos/navegadores antigos podem não ter createImageBitmap — nesse caso
+ *  usamos um <img> comum, que consome menos memória de uma vez só. */
+async function decodeImage(file: File): Promise<{ src: CanvasImageSource; width: number; height: number; close: () => void }> {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bmp = await createImageBitmap(file);
+      return { src: bmp, width: bmp.width, height: bmp.height, close: () => bmp.close?.() };
+    } catch {
+      /* cai no fallback abaixo */
+    }
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error('Não foi possível ler a imagem'));
+      el.src = url;
+    });
+    return {
+      src: img,
+      width: img.naturalWidth,
+      height: img.naturalHeight,
+      close: () => URL.revokeObjectURL(url),
+    };
+  } catch (e) {
+    URL.revokeObjectURL(url);
+    throw e;
+  }
 }
+
+/** Instagram só aceita JPEG em fotos — converte qualquer imagem para JPEG e limita a 1440px.
+ *  Se o processamento local falhar (memória/canvas em máquina fraca) e o arquivo
+ *  já for JPEG, envia o original em vez de quebrar a publicação. */
+async function toInstagramJpeg(file: File): Promise<File> {
+  const alreadyJpeg = /jpe?g/i.test(file.type);
+  try {
+    const { src, width, height, close } = await decodeImage(file);
+    const max = 1440;
+    const scale = Math.min(1, max / Math.max(width, height));
+    const w = Math.round(width * scale);
+    const h = Math.round(height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas indisponível');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(src, 0, 0, w, h);
+    const blob: Blob = await new Promise((resolve, reject) =>
+      canvas.toBlob(b => (b ? resolve(b) : reject(new Error('Falha ao converter imagem'))), 'image/jpeg', 0.9),
+    );
+    close();
+    canvas.width = 0;
+    canvas.height = 0;
+    return new File([blob], 'post.jpg', { type: 'image/jpeg' });
+  } catch (e) {
+    if (alreadyJpeg) return file;
+    throw new Error('Não foi possível preparar a imagem neste computador. Salve-a como JPG e tente novamente.');
+  }
+}
+
+/** Envia com novas tentativas — conexões instáveis e máquinas lentas derrubam o
+ *  primeiro envio com frequência. */
+async function uploadWithRetry(
+  path: string,
+  file: File,
+  contentType: string,
+  attempts = 3,
+): Promise<void> {
+  let lastError: any;
+  for (let i = 0; i < attempts; i++) {
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, file, { cacheControl: '3600', upsert: true, contentType });
+    if (!error) return;
+    lastError = error;
+    const msg = String((error as any)?.message || '').toLowerCase();
+    const retriable = /network|fetch|timeout|failed|econn|abort|502|503|504/.test(msg);
+    if (!retriable) break;
+    await new Promise(r => setTimeout(r, 1500 * (i + 1)));
+  }
+  const size = (file.size / (1024 * 1024)).toFixed(0);
+  throw new Error(
+    `Falha ao enviar a mídia (${size} MB): ${String((lastError as any)?.message || lastError)}. ` +
+    'Verifique a internet — arquivos grandes em conexões lentas podem cair.',
+  );
+}
+
 
 /** Interpreta um valor datetime-local (sem fuso, ex.: "2026-08-07T15:30") como
  *  horário de São Paulo (UTC-3, fixo desde 2019 — sem horário de verão) e
