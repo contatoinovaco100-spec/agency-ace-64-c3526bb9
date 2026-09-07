@@ -154,14 +154,20 @@ Deno.serve(async (req) => {
       } catch (e) {
         const message = String((e as Error).message || e);
         console.error(`publish target ${target.id} failed:`, message);
-          const expiredToken = /Token de acesso expirado|OAuthException|code.?190/i.test(message);
-          if (expiredToken) {
-            await admin.from("social_accounts").update({
-              status: "expired",
-              token_status: "expired",
-              token_error: message.slice(0, 300),
-              token_checked_at: new Date().toISOString(),
-            }).eq("id", target.account_id);
+          // Só marca a conta como vencida se a Meta confirmar que o token
+          // realmente não vale mais — erros comuns também vinham como "OAuth".
+          if (/Token de acesso expirado/i.test(message)) {
+            const check = await fetch(
+              `https://graph.facebook.com/v22.0/me?fields=id&access_token=${encodeURIComponent(accessTokenUsed)}`,
+            ).catch(() => null);
+            if (!check || !check.ok) {
+              await admin.from("social_accounts").update({
+                status: "expired",
+                token_status: "expired",
+                token_error: message.slice(0, 300),
+                token_checked_at: new Date().toISOString(),
+              }).eq("id", target.account_id);
+            }
           }
         await admin.from("publish_targets").update({
           status: "failed",
