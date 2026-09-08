@@ -106,6 +106,11 @@ export default function SocialAccountsPage() {
         if (res.status === 'expired') {
           toast.error('Token expirado — refaça o login', { description: res.details });
         } else {
+          // Garante que token_status seja limpo ao sincronizar com sucesso
+          await (supabase as any)
+            .from('social_accounts')
+            .update({ token_status: 'ok', token_error: null, token_checked_at: new Date().toISOString() })
+            .eq('id', a.id);
           toast.success('Conta sincronizada');
         }
       } else {

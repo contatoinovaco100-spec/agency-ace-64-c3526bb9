@@ -256,8 +256,16 @@ export default function PublishContentPage() {
       for (const a of withExternal) {
         try {
           const res = await socialAccountsService.sync(a.id);
-          if (res.status !== 'expired') synced++;
-          else failed++;
+          if (res.status !== 'expired') {
+            synced++;
+            // Garante que token_status seja limpo ao reconectar com sucesso
+            await (supabase as any)
+              .from('social_accounts')
+              .update({ token_status: 'ok', token_error: null, token_checked_at: new Date().toISOString() })
+              .eq('id', a.id);
+          } else {
+            failed++;
+          }
         } catch {
           failed++;
         }

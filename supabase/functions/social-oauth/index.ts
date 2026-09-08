@@ -77,6 +77,9 @@ Deno.serve(async (req) => {
           display_name: acc.displayName,
           profile_picture: acc.profilePicture,
           status: "connected",
+          token_status: "ok",
+          token_error: null,
+          token_checked_at: new Date().toISOString(),
           expires_at: acc.expiresAt ?? null,
           last_synced_at: new Date().toISOString(),
           created_by: userId,
@@ -162,6 +165,9 @@ Deno.serve(async (req) => {
           display_name: profile.displayName,
           profile_picture: profile.profilePicture,
           status: "connected",
+          token_status: "ok",
+          token_error: null,
+          token_checked_at: new Date().toISOString(),
           last_synced_at: new Date().toISOString(),
         }).eq("id", accountId);
         return json({ success: true, status: "connected" });
