@@ -284,10 +284,13 @@ export const publishingService = {
     return job as unknown as PublishJob;
   },
 
-  /** Dispara a publicação real em paralelo (Edge Function). */
+  /** Dispara a publicação real (Edge Function). Vídeos longos podem ser
+   *  entregues em segundo plano (o job segue 'publishing' via cron), por isso
+   *  a chamada não precisa ficar pendurada por minutos — mas ainda espera aqui
+   *  o fluxo comum (upload + processamento de vídeos de até alguns minutos). */
   async run(jobId: string) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4 * 60 * 1000); // 4 min
+    const timeout = setTimeout(() => controller.abort(), 10 * 60 * 1000); // 10 min
     try {
       const { data, error } = await supabase.functions.invoke('social-publish', {
         body: { job_id: jobId },
@@ -308,9 +311,13 @@ export const publishingService = {
   /** Recupera jobs travados em 'processing' (targets 'publishing' → 'pending').
    *  Quando o background do social-publish é encerrado (timeout do Edge Runtime)
    *  no meio de uma publicação, job fica 'processing' e target 'publishing'
-   *  para sempre — nada mais os reprocessa. Esta função os desbloqueia. */
+   *  para sempre — nada mais os reprocessa. Esta função os desbloqueia.
+   *
+   *  Vídeos longos ficam 'publishing' com remote_container_id (aguardando a
+   *  Meta terminar de codificar) e são finalizados pelo cron — esses NÃO são
+   *  resetados aqui. */
   async recoverStuckJobs(): Promise<string[]> {
-    const STUCK_MS = 30 * 60 * 1000;
+    const STUCK_MS = 45 * 60 * 1000;
     const { data: jobs, error } = await supabase
       .from(JOBS)
       .select('id, status, scheduled_at, updated_at')
@@ -324,11 +331,27 @@ export const publishingService = {
       // Publicação real pode levar alguns minutos — só recupera se realmente travou.
       if (!updated || Date.now() - updated < STUCK_MS) continue;
 
-      await supabase
-        .from(TARGETS)
-        .update({ status: 'pending', error_message: '' } as any)
+      // Targets 'publishing' sem container pendente voltam a 'pending'.
+      const { data: stuckTargets } = await (supabase.from(TARGETS) as any)
+        .select('id, remote_container_id')
         .eq('job_id', (job as any).id)
         .in('status', ['publishing']);
+      const resettable = (stuckTargets ?? []).filter((t: any) => !t.remote_container_id).map((t: any) => t.id);
+      if (resettable.length) {
+        await supabase
+          .from(TARGETS)
+          .update({ status: 'pending', error_message: '' } as any)
+          .eq('job_id', (job as any).id)
+          .in('id', resettable);
+      }
+
+      // Se ainda existe target de container em andamento, o cron está finalizando;
+      // deixa o job em 'processing'. Senão, volta para scheduled/pending.
+      const { data: remaining } = await (supabase.from(TARGETS) as any)
+        .select('id')
+        .eq('job_id', (job as any).id)
+        .in('status', ['publishing']);
+      if (remaining?.length) continue;
 
       // Volta para 'scheduled' (mesmo vencido) para o pipeline existente
       // (auto-publish do navegador + cron) republicar. Só vira 'pending'

@@ -1,5 +1,6 @@
 import {
   AccountContext,
+  ContainerPendingError,
   jsonFetch,
   PlatformAdapter,
   ProfileInfo,
@@ -16,13 +17,22 @@ const APP_SECRET = Deno.env.get("META_APP_SECRET") || "";
 const TRANSIENT_MEDIA =
   /2207052|2207003|2207020|2207001|2207026|transient|temporar|try again|unknown error/i;
 
-/** Aguarda o container ficar FINISHED (vídeo demora bem mais que imagem). */
-async function waitContainer(token: string, containerId: string, isVideo: boolean) {
-  const maxTries = isVideo ? 50 : 10;
-  const waitMs = isVideo ? 2000 : 1200;
-  const deadline = Date.now() + (isVideo ? 180_000 : 30_000);
+/** Aguarda o container ficar FINISHED (vídeo demora bem mais que imagem).
+ *  Se o tempo acabar e o container já tiver sido criado, não falha de vez:
+ *  joga ContainerPendingError com o id do container para ele ser finalizado
+ *  em segundo plano (cron), sem depender do teto de tempo de uma Edge Function.
+ *  Vídeos de até alguns minutos ficam prontos na própria chamada, então o
+ *  usuário recebe o resultado imediatamente. */
+async function waitContainer(
+  token: string,
+  containerId: string,
+  isVideo: boolean,
+  maxWaitMs = isVideo ? 170_000 : 30_000,
+) {
+  const waitMs = isVideo ? 3000 : 1500;
+  const deadline = Date.now() + maxWaitMs;
   let noStatus = 0;
-  for (let i = 0; i < maxTries; i++) {
+  for (;;) {
     if (Date.now() > deadline) break;
     await sleep(waitMs);
     let st: any;
@@ -42,7 +52,12 @@ async function waitContainer(token: string, containerId: string, isVideo: boolea
       if (!isVideo && noStatus >= 2) return;
     }
   }
-  if (isVideo) throw new Error("Tempo esgotado no processamento do vídeo pela Meta. O vídeo pode ser muito longo ou a Meta demorou para codificar.");
+  if (isVideo) {
+    // Container aceito mas ainda IN_PROGRESS (vídeo longo codificando) —
+    // entrega o id para a finalização em segundo plano.
+    throw new ContainerPendingError(containerId);
+  }
+  throw new Error("Tempo esgotado no processamento da mídia pela Meta.");
 }
 
 const isAuthError = (message: string) =>
@@ -61,18 +76,15 @@ async function tokenIsStillValid(account: AccountContext): Promise<boolean> {
   }
 }
 
-async function createContainerFromUrl(
-  account: AccountContext,
-  params: URLSearchParams,
-  isVideo: boolean,
-): Promise<string> {
-  const container = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
-    method: "POST",
-    body: new URLSearchParams(params),
-  });
-  await waitContainer(account.accessToken, container.id, isVideo);
-  return container.id;
-}
+/** Entrega o container para a finalização em 2º plano (cron). Em carrosséis
+ * isso não é possível, então vira erro definitivo com mensagem clara. */
+const requireContainerNotPending = (e: unknown, allowPendings: boolean) => {
+  if (isContainerPending(e) && !allowPendings) {
+    throw new Error(
+      "O vídeo é longo demais e o processamento da Meta demorou. Em carrosséis, use vídeos com até alguns minutos.",
+    );
+  }
+};
 
 const RUPLOAD = "https://rupload.facebook.com/ig-api-upload/v22.0";
 /** Evita estourar a memória do Edge Runtime no envio binário. */
@@ -91,9 +103,6 @@ async function createVideoContainerResumable(
 ): Promise<string> {
   const params = new URLSearchParams(baseParams);
   params.delete("video_url");
-  // O token vai no cabeçalho Bearer; mandá-lo também no corpo faz a Meta
-  // recusar a chamada com "parâmetro inválido".
-  params.delete("access_token");
   params.set("upload_type", "resumable");
 
   const isCarouselItem = params.get("is_carousel_item") === "true";
@@ -161,15 +170,36 @@ async function createVideoContainerResumable(
   return container.id;
 }
 
+async function createContainerFromUrl(
+  account: AccountContext,
+  params: URLSearchParams,
+  isVideo: boolean,
+  allowPendings: boolean,
+): Promise<string> {
+  const container = await jsonFetch(`${GRAPH}/${account.externalId}/media`, {
+    method: "POST",
+    body: new URLSearchParams(params),
+  });
+  try {
+    await waitContainer(account.accessToken, container.id, isVideo);
+  } catch (e) {
+    requireContainerNotPending(e, allowPendings);
+    throw e;
+  }
+  return container.id;
+}
+
 /**
  * Cria o container e espera o processamento.
- * Falha rápido em erros definitivos (ex.: token expirado, permissão, proporção).
+ * Falha rápido em erros definitivos (ex.: token expirado, permissão, proporção);
+ * em vídeos longos devolve ContainerPendingError para finalizar em 2º plano.
  */
 async function createContainerWithRetry(
   account: AccountContext,
   params: URLSearchParams,
   isVideo: boolean,
   tries = 2,
+  allowPendings = true,
 ): Promise<string> {
   const videoUrl = params.get("video_url") || "";
   let lastErr: unknown;
@@ -178,15 +208,16 @@ async function createContainerWithRetry(
   // evita baixar o vídeo no backend e reenviá-lo inteiro uma segunda vez.
   if (isVideo && videoUrl) {
     try {
-      return await createContainerFromUrl(account, params, true);
+      return await createContainerFromUrl(account, params, true, allowPendings);
     } catch (e) {
+      if (isContainerPending(e)) throw e; // vídeo longo aceito — finaliza em 2º plano
       lastErr = e;
       const msg = e instanceof Error ? e.message : String(e);
       if (isAuthError(msg)) {
         if (!(await tokenIsStillValid(account))) throw e;
         console.warn("Meta recusou temporariamente um token válido; tentando novamente");
         await sleep(1200);
-        return await createContainerFromUrl(account, params, true);
+        return await createContainerFromUrl(account, params, true, allowPendings);
       }
       if (/Proporção/i.test(msg) || !TRANSIENT_MEDIA.test(msg)) throw e;
       console.warn(`importação rápida falhou; usando upload alternativo: ${msg}`);
@@ -197,6 +228,8 @@ async function createContainerWithRetry(
       try {
         return await createVideoContainerResumable(account, params, videoUrl);
       } catch (e) {
+        requireContainerNotPending(e, allowPendings);
+        if (isContainerPending(e)) throw e; // container já aceito — finaliza em 2º plano
         lastErr = e;
         const msg = e instanceof Error ? e.message : String(e);
         console.warn(`upload alternativo falhou (tentativa ${attempt + 1}): ${msg}`);
@@ -211,18 +244,8 @@ async function createContainerWithRetry(
     throw lastErr;
   }
 
-  // Imagens não precisam passar pelo upload binário.
-  try {
-    return await createContainerFromUrl(account, params, false);
-  } catch (e) {
-    lastErr = e;
-    const msg = e instanceof Error ? e.message : String(e);
-    if (isAuthError(msg) && await tokenIsStillValid(account)) {
-      await sleep(1000);
-      return await createContainerFromUrl(account, params, false);
-    }
-    throw e;
-  }
+  // Imagens (e stories) não precisam passar pelo upload binário.
+  return await createContainerFromUrl(account, params, false, allowPendings);
 }
 
 async function publishContainer(account: AccountContext, containerId: string): Promise<string> {
@@ -270,6 +293,43 @@ async function getPermalink(account: AccountContext, postId: string): Promise<st
   } catch (_) {
     return "";
   }
+}
+
+/**
+ * Renova o page token usando o token de usuário (long-lived) guardado como
+ * refresh token. Também renova o token de usuário (60 dias) via
+ * fb_exchange_token enquanto ainda for válido. Assim um page token revogado
+ * ou expirado é trocado em silêncio, sem o cliente reconectar a conta.
+ */
+async function refreshAccountToken(
+  account: AccountContext,
+  userToken: string,
+): Promise<{ accessToken: string; refreshToken?: string; expiresAt?: string }> {
+  let renewedUser = userToken;
+  if (APP_SECRET && userToken) {
+    try {
+      const long = await jsonFetch(
+        `${GRAPH}/oauth/access_token?grant_type=fb_exchange_token&client_id=${APP_ID}` +
+          `&client_secret=${APP_SECRET}&fb_exchange_token=${encodeURIComponent(userToken)}`,
+      );
+      if (long.access_token) renewedUser = long.access_token;
+    } catch {
+      // token de usuário pode já ter expirado — seguimos tentando com o antigo
+    }
+  }
+  const pages = await jsonFetch(
+    `${GRAPH}/me/accounts?fields=name,access_token,instagram_business_account{id}&limit=200&access_token=${renewedUser}`,
+  );
+  for (const page of pages.data || []) {
+    const ig = page.instagram_business_account;
+    if (!ig || String(ig.id) !== String(account.externalId)) continue;
+    return {
+      accessToken: page.access_token || renewedUser,
+      refreshToken: renewedUser,
+      expiresAt: undefined, // page tokens long-lived não têm expiração conhecida
+    };
+  }
+  throw new Error("A Página/Instagram desta conta não foi encontrada para renovar o token.");
 }
 
 
@@ -322,6 +382,9 @@ export const instagramAdapter: PlatformAdapter = {
         displayName: ig.name || page.name || "",
         profilePicture: ig.profile_picture_url || "",
         accessToken: page.access_token || userToken,
+        // Guarda o token de USUÁRIO (long-lived) como refresh: com ele podemos
+        // renovar o page token depois sem pedir reconexão ao cliente.
+        refreshToken: userToken,
         expiresAt,
       });
     }
@@ -350,6 +413,42 @@ export const instagramAdapter: PlatformAdapter = {
     };
   },
 
+  async refreshedToken(account, refreshToken) {
+    const r = await refreshAccountToken(account, refreshToken);
+    return { accessToken: r.accessToken, expiresAt: r.expiresAt };
+  },
+
+  /** Finaliza um container já aceito (vídeo longo): espera o FINISHED num
+   *  orçamento curto e publica. Se ainda não terminou, devolve
+   *  ContainerPendingError para o cron continuar nos próximos ciclos. */
+  async finishedContainer(account, containerId, input): Promise<PublishResult> {
+    const deadline = Date.now() + 120_000;
+    for (;;) {
+      await sleep(15_000);
+      let st: any;
+      try {
+        st = await jsonFetch(
+          `${GRAPH}/${containerId}?fields=status_code,status&access_token=${account.accessToken}`,
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (/Token de acesso|OAuthException|Permissão/i.test(msg)) throw err;
+        continue;
+      }
+      if (st.status_code === "PUBLISHED") {
+        return { remotePostId: containerId, permalink: await getPermalink(account, containerId) };
+      }
+      if (st.status_code === "FINISHED") break;
+      if (st.status_code === "ERROR" || st.status_code === "EXPIRED") {
+        throw new Error(`Falha no processamento da mídia pela Meta: ${st.status || st.status_code}`);
+      }
+      if (Date.now() > deadline) throw new ContainerPendingError(containerId);
+    }
+    const publishedId = await publishContainer(account, containerId);
+    await addFirstComment(account, publishedId, input.firstComment);
+    return { remotePostId: publishedId, permalink: await getPermalink(account, publishedId) };
+  },
+
   async publish(account: AccountContext, input: PublishInput): Promise<PublishResult> {
     const isVideo = (input.mediaTypes?.[0] || input.mediaType) === "video";
     const urls = (input.mediaUrls && input.mediaUrls.length ? input.mediaUrls : [input.mediaUrl])
@@ -365,26 +464,19 @@ export const instagramAdapter: PlatformAdapter = {
 
     // ---- Carrossel (até 10 mídias) ----
     if (wantsCarousel && !isStory) {
-      const children: string[] = new Array(Math.min(urls.length, 10));
-      // Processa até três itens juntos: reduz bastante o tempo do carrossel sem
-      // sobrecarregar a Meta nem a memória do backend.
-      for (let start = 0; start < children.length; start += 3) {
-        const indexes = Array.from(
-          { length: Math.min(3, children.length - start) },
-          (_, offset) => start + offset,
-        );
-        await Promise.all(indexes.map(async (i) => {
-          const cp = new URLSearchParams();
-          cp.set("access_token", account.accessToken);
-          cp.set("is_carousel_item", "true");
-          if (types[i] === "video") {
-            cp.set("media_type", "VIDEO");
-            cp.set("video_url", urls[i]);
-          } else {
-            cp.set("image_url", urls[i]);
-          }
-          children[i] = await createContainerWithRetry(account, cp, types[i] === "video");
-        }));
+      const children: string[] = [];
+      for (let i = 0; i < Math.min(urls.length, 10); i++) {
+        const cp = new URLSearchParams();
+        cp.set("access_token", account.accessToken);
+        cp.set("is_carousel_item", "true");
+        if (types[i] === "video") {
+          cp.set("media_type", "VIDEO");
+          cp.set("video_url", urls[i]);
+        } else {
+          cp.set("image_url", urls[i]);
+        }
+        const childId = await createContainerWithRetry(account, cp, types[i] === "video", 2, false);
+        children.push(childId);
       }
 
       const parentParams = new URLSearchParams();

@@ -10,6 +10,27 @@ export interface AccountContext {
   refreshToken?: string;
 }
 
+/** Sinaliza que a plataforma aceitou o container mas ainda está processando
+ *  (ex.: codificando um vídeo longo). O container já existe no lado dela e deve
+ *  ser finalizado depois via `finishedContainer` — nunca deve ser recriado. */
+export class ContainerPendingError extends Error {
+  readonly containerId: string;
+  constructor(containerId: string, message = "A mídia ainda está em processamento na plataforma") {
+    super(message);
+    this.name = "ContainerPendingError";
+    this.containerId = containerId;
+  }
+}
+
+export function isContainerPending(e: unknown): e is ContainerPendingError {
+  return (
+    !!e &&
+    typeof e === "object" &&
+    ((e as { name?: string }).name === "ContainerPendingError" ||
+      (e as { containerId?: string }).containerId !== undefined)
+  );
+}
+
 export interface PublishInput {
   mediaUrl: string;
   /** Para carrossel: várias mídias na ordem */
@@ -56,6 +77,19 @@ export interface PlatformAdapter {
   publish(account: AccountContext, input: PublishInput): Promise<PublishResult>;
   /** Revalida perfil / status do token */
   fetchProfile(account: AccountContext): Promise<ProfileInfo>;
+  /**
+   * Renova o token de acesso da conta usando o token de usuário (long-lived)
+   * guardado como refreshToken — evita ter que reconectar a conta quando um
+   * page token é revogado/expirado. Devolve o novo token de acesso.
+   */
+  refreshedToken?(account: AccountContext, refreshToken: string): Promise<{ accessToken: string; expiresAt?: string }>;
+  /**
+   * Finaliza a publicação de um container que já foi aceito pela plataforma
+   * mas ainda está em processamento (vídeo longo). Lança ContainerPendingError
+   * se o processamento ainda não terminou nesta chamada — um agendador (cron)
+   * continuará tentando em ciclos seguintes.
+   */
+  finishedContainer?(account: AccountContext, containerId: string, input: PublishInput): Promise<PublishResult>;
 }
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

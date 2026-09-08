@@ -49,6 +49,8 @@ export interface PublishTarget {
   error_message: string;
   remote_post_id: string;
   permalink: string;
+  remote_container_id?: string;
+  attempts?: number;
   published_at: string | null;
   created_at: string;
 }

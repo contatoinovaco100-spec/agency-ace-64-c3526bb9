@@ -117,11 +117,44 @@ Deno.serve(async (req) => {
 
       try {
         const adapter = getAdapter(acc.platform);
+        let accessToken = secret?.access_token || "";
+
+        // Antes de marcar a conta como expirada, tenta renovar o token em
+        // silêncio usando o token de usuário guardado (refresh_token) — assim
+        // um page token revogado é trocado sem o cliente reconectar.
+        if (adapter.refreshedToken && secret?.refresh_token) {
+          try {
+            const base = {
+              id: acc.id,
+              externalId: acc.external_id || "",
+              username: acc.username,
+              accessToken,
+              refreshToken: secret.refresh_token || "",
+            };
+            // Testa se o token atual ainda serve
+            await adapter.fetchProfile(base).catch(async (profileErr: any) => {
+              const msg = String(profileErr?.message || profileErr);
+              if (/Token de acesso|OAuthException|Permissão/i.test(msg)) {
+                const fresh = await adapter.refreshedToken!(base, secret.refresh_token);
+                accessToken = fresh.accessToken;
+                await admin.from("social_account_secrets").update({
+                  access_token: fresh.accessToken,
+                  refresh_token: secret.refresh_token,
+                  expires_at: fresh.expiresAt ?? secret.expires_at ?? null,
+                  updated_at: new Date().toISOString(),
+                }).eq("account_id", accountId);
+              }
+            });
+          } catch (refreshErr) {
+            console.warn(`sync: refresh falhou para @${acc.username}`, String((refreshErr as Error)?.message || refreshErr));
+          }
+        }
+
         const profile = await adapter.fetchProfile({
           id: acc.id,
           externalId: acc.external_id || "",
           username: acc.username,
-          accessToken: secret?.access_token || "",
+          accessToken: accessToken,
           refreshToken: secret?.refresh_token || "",
         });
         await admin.from("social_accounts").update({
@@ -137,7 +170,11 @@ Deno.serve(async (req) => {
           status: "expired",
           last_synced_at: new Date().toISOString(),
         }).eq("id", accountId);
-        return json({ success: false, status: "expired", details: String((e as Error).message) });
+        return json({
+          success: false,
+          status: "expired",
+          details: "Token inválido e a renovação automática falhou. Refaca o login para reconectar.",
+        });
       }
     }
 

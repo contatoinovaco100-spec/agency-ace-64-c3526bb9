@@ -103,7 +103,10 @@ export default function PublishContentPage() {
 
   const pickFiles = (list: File[]) => {
     const valid = list.filter(f => {
-      if (f.size > 500 * 1024 * 1024) { toast.error(`${f.name}: maior que 500 MB`); return false; }
+      if (f.size > 4000 * 1024 * 1024) { toast.error(`${f.name}: maior que 4 GB`); return false; }
+      if (f.size > 300 * 1024 * 1024) {
+        toast.warning(`${f.name}: arquivo grande (${(f.size / 1024 / 1024).toFixed(0)} MB). O upload pode demorar e o processamento da Meta é assíncrono.`);
+      }
       return true;
     });
     if (!valid.length) return;
