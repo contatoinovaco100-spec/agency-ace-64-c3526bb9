@@ -68,6 +68,7 @@ Deno.serve(async (req) => {
       await admin
         .from("social_accounts")
         .update({
+          status: status === "ok" ? "connected" : status,
           token_status: status,
           token_error: error,
           token_checked_at: new Date().toISOString(),

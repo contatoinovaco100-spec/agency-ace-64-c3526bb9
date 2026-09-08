@@ -95,34 +95,45 @@ export default function SocialAccountsPage() {
   };
 
   const reconnect = async (a: SocialAccount) => {
-    if (a.status === 'expired' || a.token_status === 'expired') {
-      await startLogin(a.platform);
-      return;
-    }
-    setSyncingId(a.id);
-    try {
-      if (a.external_id) {
+    // Conta com ID externo: primeiro tenta revalidar/renovar em silêncio via
+    // sync (que agora limpa token_status ao renovar com sucesso). Só parte para
+    // o login completo (OAuth) se o sync confirmar que o token realmente expirou.
+    if (a.external_id && a.status !== 'disconnected') {
+      setSyncingId(a.id);
+      try {
         const res = await socialAccountsService.sync(a.id);
-        if (res.status === 'expired') {
-          toast.error('Token expirado — refaça o login', { description: res.details });
-        } else {
-          // Garante que token_status seja limpo ao sincronizar com sucesso
+        if (res.status !== 'expired') {
           await (supabase as any)
             .from('social_accounts')
             .update({ token_status: 'ok', token_error: null, token_checked_at: new Date().toISOString() })
             .eq('id', a.id);
           toast.success('Conta sincronizada');
+          reload();
+          return;
         }
-      } else {
+        toast.error('Token expirado — refaça o login', { description: res.details });
+      } catch (e: any) {
+        toast.error('Erro ao atualizar', { description: e?.message });
+      } finally {
+        setSyncingId(null);
+      }
+      return;
+    }
+    // Conta manual (sem ID externo): apenas atualiza a data, não envolvendo OAuth.
+    if (!a.external_id) {
+      setSyncingId(a.id);
+      try {
         await socialAccountsService.touch(a.id);
         toast.success('Conta atualizada');
+      } catch (e: any) {
+        toast.error('Erro ao atualizar', { description: e?.message });
+      } finally {
+        setSyncingId(null);
       }
       reload();
-    } catch (e: any) {
-      toast.error('Erro ao atualizar', { description: e?.message });
-    } finally {
-      setSyncingId(null);
+      return;
     }
+    await startLogin(a.platform);
   };
 
 

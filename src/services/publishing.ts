@@ -210,25 +210,34 @@ export const publishingService = {
       .slice(0, 10);
     if (!sources.length) throw new Error('Nenhuma mídia selecionada');
 
-    const paths: string[] = [];
-    for (let i = 0; i < sources.length; i++) {
-      const src = sources[i];
-      const isVid = src.type.startsWith('video');
-      const file = isVid ? src : await toInstagramJpeg(src);
-      const ext = isVid ? (file.name.split('.').pop() || 'mp4').toLowerCase() : 'jpg';
-      const path = `publish/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      await uploadWithRetry(
-        path,
-        file,
-        isVid ? (file.type || 'video/mp4') : 'image/jpeg',
-        3,
-        frac => input.onProgress?.(10 + Math.round(((i + frac) / sources.length) * 60)),
-      );
-
-
-      paths.push(path);
-      input.onProgress?.(10 + Math.round(((i + 1) / sources.length) * 60));
-    }
+    // Processa e envia as mídias em paralelo (2 de cada vez) — envios
+    // independentes no storage, então serializar só deixa tudo mais lento
+    // quando há várias fotos/vídeos (carrossel, modo em massa).
+    const prepared: Array<{ path: string; isVid: boolean }> = [];
+    const CONCURRENT_UPLOADS = 2;
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < sources.length) {
+        const idx = cursor++;
+        const src = sources[idx];
+        const isVid = src.type.startsWith('video');
+        const file = isVid ? src : await toInstagramJpeg(src);
+        const ext = isVid ? (file.name.split('.').pop() || 'mp4').toLowerCase() : 'jpg';
+        const path = `publish/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        await uploadWithRetry(
+          path,
+          file,
+          isVid ? (file.type || 'video/mp4') : 'image/jpeg',
+          3,
+          frac => input.onProgress?.(10 + Math.round(((idx + frac) / sources.length) * 60)),
+        );
+        prepared[idx] = { path, isVid };
+        input.onProgress?.(10 + Math.round(((idx + 1) / sources.length) * 60));
+      }
+    };
+    const workers = Array.from({ length: Math.min(CONCURRENT_UPLOADS, sources.length) }, worker);
+    await Promise.all(workers);
+    const paths = prepared.map(p => p.path);
 
     const isVideo = sources[0].type.startsWith('video');
     input.onProgress?.(70);

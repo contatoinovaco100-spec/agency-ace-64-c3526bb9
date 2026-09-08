@@ -174,6 +174,9 @@ Deno.serve(async (req) => {
       } catch (e) {
         await admin.from("social_accounts").update({
           status: "expired",
+          token_status: "expired",
+          token_error: String((e as Error)?.message || "Token inválido").slice(0, 300),
+          token_checked_at: new Date().toISOString(),
           last_synced_at: new Date().toISOString(),
         }).eq("id", accountId);
         return json({

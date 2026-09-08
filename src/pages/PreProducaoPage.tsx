@@ -11,8 +11,9 @@ import { Card } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Film, FolderOpen, Scissors, ExternalLink, Save } from 'lucide-react';
+import { Film, FolderOpen, Scissors, ExternalLink, Save, Archive, CheckCircle2 } from 'lucide-react';
 import { todaySP, groupTasksByDate, DateGroup } from '@/lib/kanbanDateGroups';
+import { cn } from '@/lib/utils';
 
 const ALL = '__all__';
 const NONE = '__none__';
@@ -25,6 +26,7 @@ export default function PreProducaoPage() {
   const [form, setForm] = useState<Partial<Task>>({});
   const [saving, setSaving] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [showFinished, setShowFinished] = useState(false);
 
   const [filterClient, setFilterClient] = useState(ALL);
   const [filterDecupador, setFilterDecupador] = useState(ALL);
@@ -34,14 +36,23 @@ export default function PreProducaoPage() {
   const stageNames = useMemo(() => stages.map(s => s.name), [stages]);
   const firstStage = stageNames[0] || 'Material Bruto Recebido';
 
+  // Etapas "do sistema" (Finalizado/Concluído) = arquivo/concluído: o vídeo
+  // sai do board de produção e vai para o histórico. As demais são as colunas.
+  const doneStages = useMemo(() => stages.filter(s => s.is_system), [stages]);
+  const doneStageNames = useMemo(() => doneStages.map(s => s.name), [doneStages]);
+  const activeStages = useMemo(() => stages.filter(s => !s.is_system), [stages]);
+  const activeStageNames = useMemo(() => activeStages.map(s => s.name), [activeStages]);
+
   const clientName = (id?: string) => clients.find(c => c.id === id)?.companyName || '—';
 
-  /** Cards do board: tarefas de vídeo que já têm material bruto ou já entraram na pré-produção. */
+  /** Cards do board: apenas vídeos que realmente estão no kanban de
+   *  pré-produção (têm preStage numa etapa ativa). Finalizados somem daqui. */
   const boardTasks = useMemo(() => {
     return tasks.filter(t => {
       if (t.deletedAt) return false;
       if (t.taskType === 'Arte') return false;
-      if (!t.preStage && !t.rawFootageUrl) return false;
+      if (doneStageNames.includes(t.preStage || '')) return false;
+      if (!t.preStage || !activeStageNames.includes(t.preStage)) return false;
       if (filterClient !== ALL && t.clientId !== filterClient) return false;
       if (filterDecupador !== ALL && (t.decupador || '') !== filterDecupador) return false;
       if (filterEditor !== ALL && (t.editor || '') !== filterEditor) return false;
@@ -52,7 +63,23 @@ export default function PreProducaoPage() {
       }
       return true;
     });
-  }, [tasks, filterClient, filterDecupador, filterEditor, search, clients]);
+  }, [tasks, filterClient, filterDecupador, filterEditor, search, clients, doneStageNames, activeStageNames]);
+
+  /** Cards concluídos (arquivo). Só aparecem quando o filtro "Mostrar finalizados" está ligado. */
+  const doneTasks = useMemo(() => {
+    return tasks.filter(t => {
+      if (t.deletedAt) return false;
+      if (t.taskType === 'Arte') return false;
+      if (!t.preStage || !doneStageNames.includes(t.preStage)) return false;
+      if (filterClient !== ALL && t.clientId !== filterClient) return false;
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const hay = `${t.title} ${t.videoName || ''} ${clientName(t.clientId)}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [tasks, filterClient, search, clients, doneStageNames]);
 
   const today = todaySP();
 
@@ -72,9 +99,9 @@ export default function PreProducaoPage() {
 
   const byStageGroups = useMemo(() => {
     const tasksByStage: Record<string, Task[]> = {};
-    stageNames.forEach(n => { tasksByStage[n] = []; });
+    activeStages.forEach(n => { tasksByStage[n] = []; });
     boardTasks.forEach(t => {
-      const stage = t.preStage && stageNames.includes(t.preStage) ? t.preStage : firstStage;
+      const stage = t.preStage && activeStages.some(s => s.name === t.preStage) ? t.preStage : firstStage;
       (tasksByStage[stage] ||= []).push(t);
     });
     const groupsByStage: Record<string, DateGroup<Task>[]> = {};
@@ -82,19 +109,22 @@ export default function PreProducaoPage() {
       groupsByStage[stage] = groupTasksByDate(tasksByStage[stage], taskDate, today, sortByTimeAndClient);
     });
     return groupsByStage;
-  }, [boardTasks, stageNames, firstStage, today]);
+  }, [boardTasks, activeStages, firstStage, today]);
 
   const summary = useMemo(
-    () => stageNames.map(n => ({ name: n, count: boardTasks.filter(t => {
-      const stage = t.preStage && stageNames.includes(t.preStage) ? t.preStage : firstStage;
+    () => activeStages.map(n => ({ name: n, count: boardTasks.filter(t => {
+      const stage = t.preStage && activeStages.some(s => s.name === t.preStage) ? t.preStage : firstStage;
       return stage === n;
     }).length })),
-    [stageNames, boardTasks, firstStage],
+    [activeStages, boardTasks, firstStage],
   );
 
-  /** Ao finalizar a decupagem, o card do kanban principal vai para "Em edição". */
+  const doneCount = useMemo(() => doneTasks.length, [doneTasks]);
+
+  /** Ao finalizar a decupagem (etapa de sistema), o card do kanban principal
+   *  segue para "Em edição" e some do board de pré-produção. */
   const withMainStatus = (task: Task, stage: string): Task => {
-    if (stage === 'Finalizado' && task.status !== 'Em edição') {
+    if (doneStageNames.includes(stage) && task.status !== 'Em edição') {
       return { ...task, preStage: stage, status: 'Em edição' };
     }
     return { ...task, preStage: stage };
@@ -105,7 +135,7 @@ export default function PreProducaoPage() {
     try {
       await updateTask(withMainStatus(task, stage));
       toast.success(
-        stage === 'Finalizado'
+        doneStageNames.includes(stage)
           ? 'Decupagem finalizada — card enviado para Em edição no kanban'
           : `Movido para ${stage}`,
       );
@@ -147,13 +177,23 @@ export default function PreProducaoPage() {
       </div>
 
       {/* Sumário */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         {summary.map(s => (
           <Card key={s.name} className="p-3">
             <p className="text-xs text-muted-foreground truncate">{s.name}</p>
             <p className="text-2xl font-bold">{s.count}</p>
           </Card>
         ))}
+        <Card
+          className={cn('p-3 cursor-pointer transition-colors', showFinished && 'border-success/40 bg-success/5')}
+          onClick={() => setShowFinished(v => !v)}
+          title="Clique para mostrar/ocultar os vídeos finalizados"
+        >
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <CheckCircle2 className="h-3 w-3" /> Concluídos
+          </p>
+          <p className="text-2xl font-bold">{doneCount}</p>
+        </Card>
       </div>
 
       {/* Filtros */}
@@ -185,11 +225,20 @@ export default function PreProducaoPage() {
             {team.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button
+          variant={showFinished ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setShowFinished(v => !v)}
+          className="gap-2"
+        >
+          <Archive className="h-4 w-4" />
+          {showFinished ? 'Ocultar finalizados' : 'Ver finalizados'}
+        </Button>
       </div>
 
       {/* Kanban */}
       <div className="flex gap-3 overflow-x-auto pb-4">
-        {stages.map(stage => {
+        {activeStages.map(stage => {
           const cls = colorClasses(stage.color);
           const groups = byStageGroups[stage.name] || [];
           const total = groups.reduce((sum, g) => sum + g.tasks.length, 0);
@@ -232,16 +281,22 @@ export default function PreProducaoPage() {
                           onClick={() => openCard(t)}
                           className={`cursor-pointer rounded-md border border-l-4 ${cls.border} bg-card px-2.5 py-2 hover:bg-accent/40 transition-colors`}
                         >
-                          <p className="text-sm font-medium leading-tight line-clamp-2">{t.title}</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">{clientName(t.clientId)}</p>
-                          <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
-                            {t.rawFootageUrl && <FolderOpen className="h-3 w-3 text-warning" />}
-                            {t.cutsUrl && <Scissors className="h-3 w-3 text-info" />}
-                            {t.videoUrl && <Film className="h-3 w-3 text-success" />}
-                            {t.decupador && <span className="truncate">{t.decupador}</span>}
+                          <p className="text-sm font-medium leading-tight line-clamp-1">{t.title}</p>
+                          <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground">
+                            <span className="truncate">{clientName(t.clientId)}</span>
                             {(t.postTime || t.dueDate) && (
-                              <span className="ml-auto">
+                              <span className="ml-auto shrink-0 tabular-nums">
                                 {t.postTime ? t.postTime.slice(0, 5) : t.dueDate ? t.dueDate.slice(5) : ''}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
+                            {t.rawFootageUrl && <FolderOpen className="h-3 w-3 text-warning" title="Material bruto" />}
+                            {t.cutsUrl && <Scissors className="h-3 w-3 text-info" title="Cortes prontos" />}
+                            {t.videoUrl && <Film className="h-3 w-3 text-success" title="Vídeo final" />}
+                            {t.decupador && (
+                              <span className="truncate rounded bg-muted/60 px-1.5 py-0.5 text-[10px]">
+                                {t.decupador}
                               </span>
                             )}
                           </div>
@@ -254,6 +309,72 @@ export default function PreProducaoPage() {
             </div>
           );
         })}
+
+        {/* Arquivo de finalizados — só aparece quando o filtro está ligado */}
+        {showFinished && (
+          <div
+            className="min-w-[280px] w-[280px] shrink-0"
+            onDragOver={e => e.preventDefault()}
+            onDrop={() => {
+              const t = doneTasks.find(x => x.id === dragId);
+              if (t) moveTo(t, doneStageNames[0] || 'Finalizado');
+              setDragId(null);
+            }}
+          >
+            <div className="rounded-t-lg border border-success/30 bg-success/10 px-3 py-2 flex items-center justify-between">
+              <span className="text-sm font-semibold flex items-center gap-2">
+                <Archive className="h-4 w-4 text-success" />
+                Finalizados
+              </span>
+              <Badge variant="secondary">{doneCount}</Badge>
+            </div>
+            <div className="border border-t-0 rounded-b-lg p-2 space-y-3 min-h-[220px] bg-card/40">
+              {doneTasks.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-6">Sem vídeos finalizados</p>
+              )}
+              {groupTasksByDate(doneTasks, taskDate, today, sortByTimeAndClient).map(group => (
+                <div key={group.key} className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground">
+                      {group.label}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">{group.subtitle}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {group.tasks.map(t => {
+                      const doneStage = stageNames.find(n => n === t.preStage) || 'Finalizado';
+                      const dd = colorClasses('success');
+                      return (
+                        <div
+                          key={t.id}
+                          draggable
+                          onDragStart={() => setDragId(t.id)}
+                          onClick={() => openCard(t)}
+                          className={`cursor-pointer rounded-md border border-l-4 ${dd.border} bg-card px-2.5 py-2 hover:bg-accent/40 transition-colors`}
+                        >
+                          <p className="text-sm font-medium leading-tight line-clamp-1">{t.title}</p>
+                          <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground">
+                            <span className="truncate">{clientName(t.clientId)}</span>
+                            <span className="ml-auto shrink-0 tabular-nums">
+                              {t.postTime ? t.postTime.slice(0, 5) : t.dueDate ? t.dueDate.slice(5) : ''}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
+                            {t.cutsUrl && <Scissors className="h-3 w-3 text-info" title="Cortes prontos" />}
+                            {t.videoUrl && <Film className="h-3 w-3 text-success" title="Vídeo final" />}
+                            <span className="truncate rounded bg-success/10 px-1.5 py-0.5 text-[10px] text-success">
+                              {doneStage}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Painel do card */}

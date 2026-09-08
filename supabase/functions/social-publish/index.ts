@@ -172,7 +172,12 @@ Deno.serve(async (req) => {
       } catch (refreshErr) {
         console.warn(`refresh token falhou para @${acc.username}:`, String((refreshErr as Error)?.message || refreshErr));
         // token de usuário inválido: sem caminho de renovação → UI precisa refletir
-        await admin.from("social_accounts").update({ status: "expired" }).eq("id", acc.id);
+        await admin.from("social_accounts").update({
+          status: "expired",
+          token_status: "expired",
+          token_error: String((refreshErr as Error)?.message || "Refresh token inválido").slice(0, 300),
+          token_checked_at: new Date().toISOString(),
+        }).eq("id", acc.id);
         return null;
       }
     };
@@ -273,8 +278,14 @@ Deno.serve(async (req) => {
               const retried = await execute(fresh);
               await savePublished(target, retried);
               // token renovado com sucesso → volta a aparecer como conectado
+              // e limpa token_status, senão a publicação fica bloqueada com
+              // "Reconecte as contas vencidas" mesmo com token funcionando.
               await admin.from("social_accounts").update({
-                status: "connected", last_synced_at: new Date().toISOString(),
+                status: "connected",
+                token_status: "ok",
+                token_error: null,
+                token_checked_at: new Date().toISOString(),
+                last_synced_at: new Date().toISOString(),
               }).eq("id", acc.id);
               return "published";
             } catch (retryErr: unknown) {
@@ -370,7 +381,11 @@ Deno.serve(async (req) => {
               const retried = await execute(fresh);
               await savePublished(target, retried);
               await admin.from("social_accounts").update({
-                status: "connected", last_synced_at: new Date().toISOString(),
+                status: "connected",
+                token_status: "ok",
+                token_error: null,
+                token_checked_at: new Date().toISOString(),
+                last_synced_at: new Date().toISOString(),
               }).eq("id", acc.id);
               return true;
             } catch (retryErr: unknown) {
@@ -445,7 +460,7 @@ Deno.serve(async (req) => {
         .select("id")
         .maybeSingle();
       if (claimedJob) {
-        const CONCURRENCY = 3;
+        const CONCURRENCY = 6;
         for (let i = 0; i < toRun.length; i += CONCURRENCY) {
           await Promise.allSettled(toRun.slice(i, i + CONCURRENCY).map(async (target) => {
             // Trava atômica por target: cron, clique manual e abas abertas

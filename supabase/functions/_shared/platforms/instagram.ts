@@ -29,7 +29,7 @@ async function waitContainer(
   isVideo: boolean,
   maxWaitMs = isVideo ? 170_000 : 30_000,
 ) {
-  const waitMs = isVideo ? 3000 : 1500;
+  const waitMs = isVideo ? 2000 : 1000;
   const deadline = Date.now() + maxWaitMs;
   let noStatus = 0;
   for (;;) {
