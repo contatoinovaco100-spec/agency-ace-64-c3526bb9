@@ -112,11 +112,11 @@ export default function PreProducaoPage() {
   }, [boardTasks, activeStages, firstStage, today]);
 
   const summary = useMemo(
-    () => activeStages.map(n => ({ name: n, count: boardTasks.filter(t => {
-      const stage = t.preStage && activeStages.some(s => s.name === t.preStage) ? t.preStage : firstStage;
+    () => activeStageNames.map(n => ({ name: n, count: boardTasks.filter(t => {
+      const stage = t.preStage && activeStageNames.includes(t.preStage) ? t.preStage : firstStage;
       return stage === n;
     }).length })),
-    [activeStages, boardTasks, firstStage],
+    [activeStageNames, boardTasks, firstStage],
   );
 
   const doneCount = useMemo(() => doneTasks.length, [doneTasks]);
