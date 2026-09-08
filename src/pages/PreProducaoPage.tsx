@@ -45,14 +45,18 @@ export default function PreProducaoPage() {
 
   const clientName = (id?: string) => clients.find(c => c.id === id)?.companyName || '—';
 
-  /** Cards do board: apenas vídeos que realmente estão no kanban de
-   *  pré-produção (têm preStage numa etapa ativa). Finalizados somem daqui. */
+  /** Cards do board: vídeos que entraram no fluxo de pré-produção — ou
+   *  estão numa etapa ativa do kanban (preStage) ou têm material bruto
+   *  (rawFootageUrl, ficam na coluna inicial "Material Bruto Recebido").
+   *  Finalizados somem daqui e vão para o arquivo. */
   const boardTasks = useMemo(() => {
     return tasks.filter(t => {
       if (t.deletedAt) return false;
       if (t.taskType === 'Arte') return false;
       if (doneStageNames.includes(t.preStage || '')) return false;
-      if (!t.preStage || !activeStageNames.includes(t.preStage)) return false;
+      const inActiveStage = !!t.preStage && activeStageNames.includes(t.preStage);
+      const hasMaterial = !!t.rawFootageUrl && String(t.rawFootageUrl).trim().length > 0;
+      if (!inActiveStage && !hasMaterial) return false;
       if (filterClient !== ALL && t.clientId !== filterClient) return false;
       if (filterDecupador !== ALL && (t.decupador || '') !== filterDecupador) return false;
       if (filterEditor !== ALL && (t.editor || '') !== filterEditor) return false;
