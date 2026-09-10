@@ -144,25 +144,30 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
 
   // Check role & access
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setRoleLoaded(false); setProfileLoaded(false); return; }
+    setRoleLoaded(false);
+    setProfileLoaded(false);
     supabase.from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin')
       .then(({ data }) => {
         const admin = !!data && data.length > 0;
         setIsAdmin(admin);
+        setRoleLoaded(true);
       });
     supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle()
-      .then(({ data }) => setUserFullName(data?.full_name || ''));
+      .then(({ data }) => { setUserFullName(data?.full_name || ''); setProfileLoaded(true); });
   }, [user]);
 
   // Non-admins only see the clients whose "Responsável pela conta" is themselves.
+  // Enquanto role/perfil não carregam, não filtramos nada (evita dashboard zerado no admin).
   const visibleClientIds = useMemo<string[] | null>(() => {
     if (!user || isAdmin) return null;
+    if (!roleLoaded || !profileLoaded) return null;
     const name = userFullName.trim().toLowerCase();
     if (!name) return [];
     return allClients
       .filter(c => (c.accountManager || []).some(m => m.trim().toLowerCase() === name))
       .map(c => c.id);
-  }, [user, isAdmin, userFullName, allClients]);
+  }, [user, isAdmin, roleLoaded, profileLoaded, userFullName, allClients]);
 
   useEffect(() => { setAllowedClientIds(visibleClientIds); }, [visibleClientIds]);
 
