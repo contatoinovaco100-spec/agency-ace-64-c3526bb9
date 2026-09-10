@@ -858,6 +858,7 @@ export type Database = {
           contact_name: string
           contract_start_date: string | null
           created_at: string
+          deleted_at: string | null
           email: string
           id: string
           monthly_value: number
@@ -880,6 +881,7 @@ export type Database = {
           contact_name?: string
           contract_start_date?: string | null
           created_at?: string
+          deleted_at?: string | null
           email?: string
           id?: string
           monthly_value?: number
@@ -902,6 +904,7 @@ export type Database = {
           contact_name?: string
           contract_start_date?: string | null
           created_at?: string
+          deleted_at?: string | null
           email?: string
           id?: string
           monthly_value?: number
