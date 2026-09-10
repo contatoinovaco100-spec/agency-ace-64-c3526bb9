@@ -103,7 +103,7 @@ export default function PreProducaoPage() {
 
   const byStageGroups = useMemo(() => {
     const tasksByStage: Record<string, Task[]> = {};
-    activeStages.forEach(n => { tasksByStage[n] = []; });
+    activeStages.forEach(n => { tasksByStage[typeof n === "string" ? n : n.name] = []; });
     boardTasks.forEach(t => {
       const stage = t.preStage && activeStages.some(s => s.name === t.preStage) ? t.preStage : firstStage;
       (tasksByStage[stage] ||= []).push(t);
@@ -295,9 +295,9 @@ export default function PreProducaoPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
-                            {t.rawFootageUrl && <FolderOpen className="h-3 w-3 text-warning" title="Material bruto" />}
-                            {t.cutsUrl && <Scissors className="h-3 w-3 text-info" title="Cortes prontos" />}
-                            {t.videoUrl && <Film className="h-3 w-3 text-success" title="Vídeo final" />}
+                            {t.rawFootageUrl && <span title="Material bruto"><FolderOpen className="h-3 w-3 text-warning" /></span>}
+                            {t.cutsUrl && <span title="Cortes prontos"><Scissors className="h-3 w-3 text-info" /></span>}
+                            {t.videoUrl && <span title="Vídeo final"><Film className="h-3 w-3 text-success" /></span>}
                             {t.decupador && (
                               <span className="truncate rounded bg-muted/60 px-1.5 py-0.5 text-[10px]">
                                 {t.decupador}
@@ -364,8 +364,8 @@ export default function PreProducaoPage() {
                             </span>
                           </div>
                           <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
-                            {t.cutsUrl && <Scissors className="h-3 w-3 text-info" title="Cortes prontos" />}
-                            {t.videoUrl && <Film className="h-3 w-3 text-success" title="Vídeo final" />}
+                            {t.cutsUrl && <span title="Cortes prontos"><Scissors className="h-3 w-3 text-info" /></span>}
+                            {t.videoUrl && <span title="Vídeo final"><Film className="h-3 w-3 text-success" /></span>}
                             <span className="truncate rounded bg-success/10 px-1.5 py-0.5 text-[10px] text-success">
                               {doneStage}
                             </span>

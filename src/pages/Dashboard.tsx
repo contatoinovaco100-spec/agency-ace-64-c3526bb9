@@ -8,7 +8,7 @@ import {
   Users, DollarSign, Target, CheckSquare, FolderOpen,
   TrendingUp, PieChart, BarChart3, ArrowUpRight, ArrowDownRight,
   Clock, AlertTriangle, CheckCircle2, Briefcase, FileText, BellRing,
-  EyeOff, Eye, ArrowUpDown, ArrowUp, ArrowDown, Trophy, CalendarClock, Rocket, Minus, Medal,
+  EyeOff, Eye, ArrowUpDown, ArrowUp, ArrowDown, Trophy, CalendarClock, Rocket, Minus, Medal, TrendingDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePushNotification } from '@/hooks/usePushNotification';
@@ -114,6 +114,18 @@ export default function Dashboard() {
   const mrr = activeClients.reduce((acc, c) => acc + c.monthlyValue, 0);
   const pendingTasks = tasks.filter(t => !['Concluído', 'Finalizado'].includes(t.status));
   const completedTasks = tasks.filter(t => ['Concluído', 'Finalizado'].includes(t.status));
+
+  // --- Churn ---
+  const totalBase = allClients.length;
+  const churnRate = totalBase > 0 ? (churnedClients.length / totalBase) * 100 : 0;
+  const churn30 = churnedClients.filter(c => {
+    if (!c.cancelledAt) return false;
+    const d = new Date(c.cancelledAt);
+    return !isNaN(d.getTime()) && (Date.now() - d.getTime()) <= 30 * 86400000;
+  });
+  const baseStart30 = activeClients.length + pausedClients.length + churn30.length;
+  const churnRate30 = baseStart30 > 0 ? (churn30.length / baseStart30) * 100 : 0;
+  const churnedMrr = churnedClients.reduce((s, c) => s + (c.monthlyValue || 0), 0);
 
   // If not admin, show simplified dashboard
   if (!isAdmin) {
@@ -427,12 +439,13 @@ export default function Dashboard() {
         {/* ==================== FINANCIAL TAB ==================== */}
         <TabsContent value="financeiro" className="space-y-6">
           {/* Top KPIs — Bento */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {[
-              { label: 'MRR', value: formatCurrency(mrr), icon: DollarSign, accent: 'text-primary', highlight: true },
-              { label: 'Receita Anual Projetada', value: formatCurrency(mrr * 12), icon: TrendingUp, accent: 'text-muted-foreground', highlight: false },
-              { label: 'Clientes Ativos', value: activeClients.length.toString(), icon: Users, accent: 'text-muted-foreground', highlight: false },
-              { label: 'Ticket Médio', value: formatCurrency(activeClients.length > 0 ? mrr / activeClients.length : 0), icon: BarChart3, accent: 'text-muted-foreground', highlight: false },
+              { label: 'MRR', value: formatCurrency(mrr), icon: DollarSign, accent: 'text-primary', highlight: true, hint: '' },
+              { label: 'Receita Anual Projetada', value: formatCurrency(mrr * 12), icon: TrendingUp, accent: 'text-muted-foreground', highlight: false, hint: '' },
+              { label: 'Clientes Ativos', value: activeClients.length.toString(), icon: Users, accent: 'text-muted-foreground', highlight: false, hint: `${pausedClients.length} pausado(s)` },
+              { label: 'Ticket Médio', value: formatCurrency(activeClients.length > 0 ? mrr / activeClients.length : 0), icon: BarChart3, accent: 'text-muted-foreground', highlight: false, hint: '' },
+              { label: 'Churn', value: `${churnRate.toFixed(1)}%`, icon: TrendingDown, accent: 'text-destructive', highlight: false, hint: `${churnedClients.length} cancelados · ${churnRate30.toFixed(1)}% em 30 dias · ${formatCurrency(churnedMrr)}/mês perdidos` },
             ].map((kpi, i) => (
               <motion.div key={kpi.label} {...anim(i)}>
                 <div className="group relative bg-card p-6 rounded-[2rem] border border-border/60 hover:border-primary/40 transition-all duration-300 hover:-translate-y-0.5">
@@ -446,6 +459,7 @@ export default function Dashboard() {
                   </div>
                   <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider mb-1.5">{kpi.label}</p>
                   <h3 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums text-foreground">{kpi.value}</h3>
+                  {kpi.hint && <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{kpi.hint}</p>}
                 </div>
               </motion.div>
             ))}
