@@ -38,6 +38,7 @@ export interface Client {
   status: ClientStatus;
   notes: string;
   cancelledAt?: string | null;
+  deletedAt?: string | null;
   scopeDetails: ScopeDetails;
 }
 
