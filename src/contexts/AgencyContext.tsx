@@ -137,6 +137,8 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [roleLoaded, setRoleLoaded] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [allowedClientIds, setAllowedClientIds] = useState<string[] | null>(null);
   const [userFullName, setUserFullName] = useState('');
 
