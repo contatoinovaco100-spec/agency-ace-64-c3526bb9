@@ -115,6 +115,18 @@ export default function Dashboard() {
   const pendingTasks = tasks.filter(t => !['Concluído', 'Finalizado'].includes(t.status));
   const completedTasks = tasks.filter(t => ['Concluído', 'Finalizado'].includes(t.status));
 
+  // --- Churn ---
+  const totalBase = allClients.length;
+  const churnRate = totalBase > 0 ? (churnedClients.length / totalBase) * 100 : 0;
+  const churn30 = churnedClients.filter(c => {
+    if (!c.cancelledAt) return false;
+    const d = new Date(c.cancelledAt);
+    return !isNaN(d.getTime()) && (Date.now() - d.getTime()) <= 30 * 86400000;
+  });
+  const baseStart30 = activeClients.length + pausedClients.length + churn30.length;
+  const churnRate30 = baseStart30 > 0 ? (churn30.length / baseStart30) * 100 : 0;
+  const churnedMrr = churnedClients.reduce((s, c) => s + (c.monthlyValue || 0), 0);
+
   // If not admin, show simplified dashboard
   if (!isAdmin) {
     return <SimpleDashboard clients={clients} tasks={tasks} leads={leads} mrr={mrr} activeClients={activeClients} pendingTasks={pendingTasks} />;
