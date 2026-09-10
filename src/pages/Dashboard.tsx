@@ -1,6 +1,7 @@
 import { useAgency } from '@/contexts/AgencyContext';
 import { useModuleAccess } from '@/hooks/useUserRole';
 import { ExpensesPanel } from '@/components/dashboard/ExpensesPanel';
+import type { Client } from '@/types/agency';
 
 import { motion } from 'framer-motion';
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -57,29 +58,48 @@ type SignedContract = {
 };
 
 export default function Dashboard() {
-  const { clients: allClients, tasks: allTasks, leads } = useAgency();
-  const cancelledIds = useMemo(
-    () => new Set(allClients.filter(c => c.status === 'Cancelado').map(c => c.id)),
-    [allClients],
-  );
-  // Cancelled clients are excluded from every dashboard stat, list and chart.
-  // They only appear on the dedicated "Churn" section below.
-  const clients = useMemo(
-    () => allClients.filter(c => c.status !== 'Cancelado'),
-    [allClients],
-  );
-  const churnedClients = useMemo(
-    () => allClients.filter(c => c.status === 'Cancelado'),
-    [allClients],
-  );
-  const tasks = useMemo(
-    () => allTasks.filter(t => !t.clientId || !cancelledIds.has(t.clientId)),
-    [allTasks, cancelledIds],
-  );
+  const { clients: contextClients, tasks: allTasks, leads } = useAgency();
   const { isAdmin } = useModuleAccess();
   const { triggerNotification, requestPermission } = usePushNotification();
 
   const [signedContracts, setSignedContracts] = useState<SignedContract[]>([]);
+
+  // ---- Normalização dos clientes ----
+  const normName = (s: string) => (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const STATUS_RANK: Record<string, number> = { Ativo: 2, Pausado: 1, Cancelado: 0 };
+
+  // Ignora a Lixeira e agrupa por nome: clientes duplicados (mesmo nome)
+  // contam uma única vez — evita MRR/contagens infladas.
+  const clientGroups = useMemo(() => {
+    const map = new Map<string, Client[]>();
+    contextClients.filter(c => !c.deletedAt).forEach(c => {
+      const key = normName(c.companyName);
+      const list = map.get(key);
+      if (list) list.push(c); else map.set(key, [c]);
+    });
+    return map;
+  }, [contextClients]);
+
+  // Representante de cada grupo → melhor status / maior valor / com data.
+  const uniqueClients = useMemo(() => {
+    return [...clientGroups.values()].map(group => group.reduce<Client>((best, c) => {
+      const score = (cc: Client) =>
+        (STATUS_RANK[cc.status] ?? -1) * 1e9 + (Number(cc.monthlyValue) || 0) * 1e3 + (cc.contractStartDate ? 1 : 0);
+      return score(c) > score(best) ? c : best;
+    }, group[0]));
+  }, [clientGroups]);
+
+  // Cancelados só aparecem na seção de Churn dedicada.
+  const churnedClients = useMemo(() => uniqueClients.filter(c => c.status === 'Cancelado'), [uniqueClients]);
+  const cancelledIds = useMemo(
+    () => new Set(contextClients.filter(c => c.status === 'Cancelado' && !c.deletedAt).map(c => c.id)),
+    [contextClients],
+  );
+  const clients = useMemo(() => uniqueClients.filter(c => c.status !== 'Cancelado'), [uniqueClients]);
+  const tasks = useMemo(
+    () => allTasks.filter(t => !t.clientId || !cancelledIds.has(t.clientId)),
+    [allTasks, cancelledIds],
+  );
 
   const fetchSignedContracts = useCallback(async () => {
     const { data } = await supabase
@@ -95,7 +115,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!isAdmin) return;
     fetchSignedContracts();
-  }, [isAdmin, fetchSignedContracts, allClients]);
+  }, [isAdmin, fetchSignedContracts, contextClients]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -109,15 +129,29 @@ export default function Dashboard() {
 
 
 
+  // Valor mensal confiável: usa o contrato assinado quando o cadastro
+  // do cliente está zerado/errado (fallback) e também evita duplicidade.
+  const contractValueByKey = useMemo(() => {
+    const map = new Map<string, number>();
+    signedContracts.forEach(ct => {
+      const v = Number(ct.monthly_value) || 0;
+      const key = normName(ct.client_name);
+      if (v > (map.get(key) || 0)) map.set(key, v);
+    });
+    return map;
+  }, [signedContracts]);
+  const effectiveMonthlyValue = (c: Client) =>
+    Math.max(Number(c.monthlyValue) || 0, contractValueByKey.get(normName(c.companyName)) || 0);
+
   const activeClients = clients.filter(c => c.status === 'Ativo');
   const pausedClients = clients.filter(c => c.status === 'Pausado');
-  const mrr = activeClients.reduce((acc, c) => acc + c.monthlyValue, 0);
+  const mrr = activeClients.reduce((acc, c) => acc + effectiveMonthlyValue(c), 0);
   const pendingTasks = tasks.filter(t => !['Concluído', 'Finalizado'].includes(t.status));
   const completedTasks = tasks.filter(t => ['Concluído', 'Finalizado'].includes(t.status));
 
-  // --- Churn ---
-  const totalBase = allClients.length;
-  const churnRate = totalBase > 0 ? (churnedClients.length / totalBase) * 100 : 0;
+// --- Churn (geral e últimos 30 dias) ---
+  const totalBase = contextClients.length;
+  const churnRateAllTime = totalBase > 0 ? (churnedClients.length / totalBase) * 100 : 0;
   const churn30 = churnedClients.filter(c => {
     if (!c.cancelledAt) return false;
     const d = new Date(c.cancelledAt);
@@ -125,7 +159,15 @@ export default function Dashboard() {
   });
   const baseStart30 = activeClients.length + pausedClients.length + churn30.length;
   const churnRate30 = baseStart30 > 0 ? (churn30.length / baseStart30) * 100 : 0;
-  const churnedMrr = churnedClients.reduce((s, c) => s + (c.monthlyValue || 0), 0);
+  const churnedMrr = churnedClients.reduce((s, c) => s + effectiveMonthlyValue(c), 0);
+
+  // Tarefas efetivamente em produção (não conta backlog/"Ideias").
+  const inProgressStatuses = new Set([
+    'Em Copy', 'Em Direção', 'Em Gravação', 'Em Edição', 'Revisão',
+    'Em andamento', 'Em progresso', 'Em produção', 'Em revisão',
+    'Aguardando Aprovação', 'Aguardando aprovação',
+  ]);
+  const inProgressTasks = tasks.filter(t => inProgressStatuses.has(t.status));
 
   // If not admin, show simplified dashboard
   if (!isAdmin) {
@@ -136,13 +178,13 @@ export default function Dashboard() {
 
   // Financial data
   const revenueByClient = activeClients
-    .sort((a, b) => b.monthlyValue - a.monthlyValue)
-    .map(c => ({ name: c.companyName.length > 15 ? c.companyName.slice(0, 15) + '…' : c.companyName, valor: c.monthlyValue }));
+    .sort((a, b) => effectiveMonthlyValue(b) - effectiveMonthlyValue(a))
+    .map(c => ({ name: c.companyName.length > 15 ? c.companyName.slice(0, 15) + '…' : c.companyName, valor: effectiveMonthlyValue(c) }));
 
   // Revenue by service
   const serviceRevenue: Record<string, number> = {};
   activeClients.forEach(c => {
-    const perService = c.monthlyValue / (c.serviceType.length || 1);
+    const perService = effectiveMonthlyValue(c) / (c.serviceType.length || 1);
     c.serviceType.forEach(s => { serviceRevenue[s] = (serviceRevenue[s] || 0) + perService; });
   });
   const serviceRevenueData = Object.entries(serviceRevenue)
@@ -165,6 +207,28 @@ export default function Dashboard() {
       cur.setMonth(cur.getMonth() + 1);
     }
     return months;
+  };
+
+  // Menor data de início por nome, a partir dos contratos assinados (fallback
+  // de data quando o cadastro do cliente está sem contract_start_date).
+  const startDateByKey = useMemo(() => {
+    const map = new Map<string, Date>();
+    signedContracts.forEach(ct => {
+      const raw = ct.contract_signatures?.[0]?.signed_at || ct.sent_at || ct.created_at;
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return;
+      const key = norm(ct.client_name);
+      const prev = map.get(key);
+      if (!prev || d < prev) map.set(key, d);
+    });
+    return map;
+  }, [signedContracts]);
+  const effectiveStartDate = (c: Client): Date | null => {
+    if (c.contractStartDate) {
+      const d = new Date(c.contractStartDate);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return startDateByKey.get(norm(c.companyName)) || null;
   };
 
   // Melhor data e valor de contrato por nome de cliente
@@ -193,12 +257,10 @@ export default function Dashboard() {
   }> = {};
 
   // 1) Clientes cadastrados (incluindo cancelados, com LTV congelado)
-  allClients.forEach(c => {
+  uniqueClients.forEach(c => {
     const info = contractInfo[norm(c.companyName)];
-    const startRaw = c.contractStartDate || (info ? info.date.toISOString() : null);
-    if (!startRaw) return;
-    const start = new Date(startRaw);
-    if (isNaN(start.getTime())) return;
+    const start = effectiveStartDate(c);
+    if (!start) return;
 
     let limit = todayDate;
     if (c.status === 'Cancelado' && c.cancelledAt) {
@@ -209,7 +271,7 @@ export default function Dashboard() {
     const monthsPaid = monthsBetween(start, limit);
     if (monthsPaid < 1) return;
 
-    const monthlyValue = c.monthlyValue || info?.monthlyValue || 0;
+    const monthlyValue = effectiveMonthlyValue(c) || info?.monthlyValue || 0;
     if (monthlyValue <= 0) return;
 
     ltvMap[c.id] = {
@@ -224,7 +286,7 @@ export default function Dashboard() {
   });
 
   // 2) Contratos assinados de quem ainda não tem cadastro de cliente
-  const registeredNames = new Set(allClients.map(c => norm(c.companyName)));
+  const registeredNames = new Set(uniqueClients.map(c => norm(c.companyName)));
   Object.entries(contractInfo).forEach(([key, info]) => {
     if (!key || registeredNames.has(key)) return;
     const monthsPaid = monthsBetween(info.date, todayDate);
@@ -270,9 +332,10 @@ export default function Dashboard() {
 
 
 
-  // Revenue history (last 12 months) — based on real contract_start_date.
-  // For each month, sum monthlyValue of clients whose contract started on/before
-  // the end of that month and that aren't cancelled.
+  // Revenue history (last 12 months) — baseada na data real de início
+  // (cadastro ou assinatura do contrato, o que vier antes). Clientes duplicados
+  // e cancelados não são contados; o valor usa o contrato assinado quando o
+  // cadastro está zerado.
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   const now = new Date();
   const revenueHistory = Array.from({ length: 12 }, (_, idx) => {
@@ -280,12 +343,10 @@ export default function Dashboard() {
     const ref = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const endOfMonth = new Date(ref.getFullYear(), ref.getMonth() + 1, 0, 23, 59, 59);
     const total = clients.reduce((sum, c) => {
-      if (!c.contractStartDate) return sum;
       if (c.status === 'Cancelado') return sum;
-      const start = new Date(c.contractStartDate);
-      if (isNaN(start.getTime())) return sum;
-      if (start <= endOfMonth) return sum + (c.monthlyValue || 0);
-      return sum;
+      const start = effectiveStartDate(c);
+      if (!start || start > endOfMonth) return sum;
+      return sum + effectiveMonthlyValue(c);
     }, 0);
     const label = ref.getMonth() === 0 || idx === 0
       ? `${monthNames[ref.getMonth()]}/${String(ref.getFullYear()).slice(2)}`
@@ -297,8 +358,8 @@ export default function Dashboard() {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const newClients = clients.filter(c => {
-    if (!c.contractStartDate) return false;
-    return new Date(c.contractStartDate) >= thirtyDaysAgo;
+    const start = effectiveStartDate(c);
+    return !!start && start >= thirtyDaysAgo;
   });
 
   // === MoM (mês atual vs anterior) ===
@@ -307,24 +368,87 @@ export default function Dashboard() {
   const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
   const lastMonthMrr = clients.reduce((sum, c) => {
-    if (!c.contractStartDate || c.status === 'Cancelado') return sum;
-    const start = new Date(c.contractStartDate);
-    if (isNaN(start.getTime())) return sum;
-    return start <= endOfLastMonth ? sum + (c.monthlyValue || 0) : sum;
+    if (c.status === 'Cancelado') return sum;
+    const start = effectiveStartDate(c);
+    return start && start <= endOfLastMonth ? sum + effectiveMonthlyValue(c) : sum;
   }, 0);
   const mrrDelta = mrr - lastMonthMrr;
   const mrrPct = lastMonthMrr > 0 ? (mrrDelta / lastMonthMrr) * 100 : (mrr > 0 ? 100 : 0);
 
   const newClientsThisMonth = clients.filter(c => {
-    if (!c.contractStartDate) return false;
-    const d = new Date(c.contractStartDate);
-    return d >= startOfThisMonth;
+    const d = effectiveStartDate(c);
+    return !!d && d >= startOfThisMonth;
   }).length;
   const newClientsLastMonth = clients.filter(c => {
-    if (!c.contractStartDate) return false;
-    const d = new Date(c.contractStartDate);
-    return d >= startOfLastMonth && d <= endOfLastMonth;
+    const d = effectiveStartDate(c);
+    return !!d && d >= startOfLastMonth && d <= endOfLastMonth;
   }).length;
+
+  // === Churn (clientes e MRR perdidos) ===
+  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  // Clientes cancelados NO mês atual (base para a taxa do mês)
+  const churnedThisMonth = churnedClients.filter(c => {
+    const cd = c.cancelledAt ? new Date(c.cancelledAt) : null;
+    return !!cd && !isNaN(cd.getTime()) && cd >= startOfThisMonth && cd < startOfNextMonth;
+  });
+  // Clientes cancelados no mês anterior (para comparar)
+  const churnedLastMonth = churnedClients.filter(c => {
+    const cd = c.cancelledAt ? new Date(c.cancelledAt) : null;
+    return !!cd && !isNaN(cd.getTime()) && cd >= startOfLastMonth && cd < startOfThisMonth;
+  });
+
+  // Base: quem era cliente no início do mês (exclui quem começou depois)
+  const startedBefore = (c: Client, limit: Date) => {
+    const start = effectiveStartDate(c);
+    return !!start && start < limit;
+  };
+  const baseAtStartOfMonth = uniqueClients.filter(c => {
+    if (!startedBefore(c, startOfThisMonth)) return false;
+    if (c.status === 'Cancelado') return churnedThisMonth.includes(c);
+    return true;
+  }).length;
+  const lastMonthBase = uniqueClients.filter(c => {
+    if (!startedBefore(c, startOfLastMonth)) return false;
+    if (c.status === 'Cancelado') return churnedLastMonth.includes(c);
+    return true;
+  }).length;
+
+  const churnRate = baseAtStartOfMonth > 0 ? (churnedThisMonth.length / baseAtStartOfMonth) * 100 : 0;
+  const churnRateLastMonth = lastMonthBase > 0 ? (churnedLastMonth.length / lastMonthBase) * 100 : 0;
+
+  const lostMrrThisMonth = churnedThisMonth.reduce((s, c) => s + effectiveMonthlyValue(c), 0);
+  const mrrAtStartOfMonth = clients.reduce((sum, c) => {
+    const start = effectiveStartDate(c);
+    return start && start < startOfThisMonth ? sum + effectiveMonthlyValue(c) : sum;
+  }, 0);
+  const mrrChurnRate = mrrAtStartOfMonth > 0 ? (lostMrrThisMonth / mrrAtStartOfMonth) * 100 : 0;
+
+  const receitaPerdidaTotal = churnedClients.reduce((s, c) => s + effectiveMonthlyValue(c), 0);
+
+  // Evolução mensal da taxa de churn (12 meses) para o gráfico
+  const churnHistory = Array.from({ length: 12 }, (_, idx) => {
+    const mStart = new Date(now.getFullYear(), now.getMonth() - (11 - idx), 1);
+    const mNext = new Date(now.getFullYear(), now.getMonth() - (10 - idx), 1);
+    const churned = churnedClients.filter(c => {
+      const cd = c.cancelledAt ? new Date(c.cancelledAt) : null;
+      return !!cd && !isNaN(cd.getTime()) && cd >= mStart && cd < mNext;
+    }).length;
+    const base = uniqueClients.filter(c => {
+      const start = effectiveStartDate(c);
+      if (!start || start >= mStart) return false;
+      if (c.status === 'Cancelado') {
+        const cd = c.cancelledAt ? new Date(c.cancelledAt) : null;
+        return !!cd && !isNaN(cd.getTime()) && cd >= mStart && cd < mNext;
+      }
+      return true;
+    }).length;
+    const pct = base > 0 ? (churned / base) * 100 : 0;
+    const label = idx === 0
+      ? `${monthNames[mStart.getMonth()]}/${String(mStart.getFullYear()).slice(2)}`
+      : monthNames[mStart.getMonth()];
+    return { month: label, churn: Math.round(pct * 10) / 10 };
+  });
 
   const contractsSignedThisMonth = signedContracts.filter(ct => {
     const ds = ct.contract_signatures?.[0]?.signed_at || ct.sent_at || ct.created_at;
@@ -515,6 +639,7 @@ export default function Dashboard() {
                     { label: 'MRR', current: mrr, previous: lastMonthMrr, delta: mrrDelta, pct: mrrPct, currency: true },
                     { label: 'Novos clientes', current: newClientsThisMonth, previous: newClientsLastMonth, delta: newClientsThisMonth - newClientsLastMonth, pct: newClientsLastMonth > 0 ? ((newClientsThisMonth - newClientsLastMonth) / newClientsLastMonth) * 100 : (newClientsThisMonth > 0 ? 100 : 0), currency: false },
                     { label: 'Contratos assinados', current: contractsSignedThisMonth, previous: contractsSignedLastMonth, delta: contractsSignedThisMonth - contractsSignedLastMonth, pct: contractsSignedLastMonth > 0 ? ((contractsSignedThisMonth - contractsSignedLastMonth) / contractsSignedLastMonth) * 100 : (contractsSignedThisMonth > 0 ? 100 : 0), currency: false },
+                    { label: 'Clientes perdidos', current: churnedThisMonth.length, previous: churnedLastMonth.length, delta: churnedThisMonth.length - churnedLastMonth.length, pct: churnedLastMonth.length > 0 ? ((churnedThisMonth.length - churnedLastMonth.length) / churnedLastMonth.length) * 100 : (churnedThisMonth.length > 0 ? 100 : 0), currency: false },
                   ].map(row => {
                     const up = row.delta > 0;
                     const flat = row.delta === 0;
@@ -840,7 +965,7 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold tabular-nums text-[hsl(var(--success))]">{formatCurrency(c.monthlyValue)}</p>
+                          <p className="font-semibold tabular-nums text-[hsl(var(--success))]">{formatCurrency(effectiveMonthlyValue(c))}</p>
                           <p className="text-xs text-muted-foreground">/mês</p>
                         </div>
                       </div>
@@ -890,7 +1015,7 @@ export default function Dashboard() {
                             </div>
                           </td>
                           <td className="px-5 py-3 text-right font-semibold tabular-nums text-foreground">
-                            {formatCurrency(c.monthlyValue)}
+                            {formatCurrency(effectiveMonthlyValue(c))}
                           </td>
                           <td className="px-5 py-3 text-center">
                             <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${statusColors[c.status] || 'bg-secondary text-foreground'}`}>
@@ -915,46 +1040,98 @@ export default function Dashboard() {
             </Card>
           </motion.div>
 
-          {/* Churn — clientes cancelados */}
-          {churnedClients.length > 0 && (
-            <motion.div {...anim(10)}>
-              <Card className="border-destructive/30 rounded-[2rem] bg-card">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <ArrowDownRight className="h-4 w-4 text-destructive" />
-                    Churn — Clientes Cancelados
-                    <Badge variant="destructive" className="ml-2">{churnedClients.length}</Badge>
-                    <span className="ml-auto text-xs font-normal text-muted-foreground tabular-nums">
-                      Receita perdida: {formatCurrency(churnedClients.reduce((s, c) => s + (c.monthlyValue || 0), 0))}/mês
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
-                    {churnedClients.map(c => (
-                      <div key={c.id} className="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/5 p-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-destructive/15 text-destructive font-bold">
-                            {c.companyName.charAt(0)}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-foreground truncate">{c.companyName}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {c.contactName || '—'}{c.accountManager?.length ? ` · ${c.accountManager.join(', ')}` : ''}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-sm font-semibold tabular-nums text-destructive">{formatCurrency(c.monthlyValue || 0)}</p>
-                          <p className="text-[10px] text-muted-foreground">valor cancelado</p>
-                        </div>
-                      </div>
-                    ))}
+          {/* Churn — taxa + receita perdida + histórico */}
+          <motion.div {...anim(10)}>
+            <Card className="border-destructive/30 rounded-[2rem] bg-card overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ArrowDownRight className="h-4 w-4 text-destructive" />
+                  Churn & Retenção
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {/* Taxas do mês */}
+                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                  <div className="rounded-2xl border border-destructive/25 bg-destructive/5 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Taxa de Churn (mês)</p>
+                    <p className="mt-1 text-3xl font-bold tabular-nums text-destructive">
+                      {churnRate.toFixed(churnRate % 1 === 0 ? 0 : 1)}%
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+                      {churnedThisMonth.length} {churnedThisMonth.length === 1 ? 'cliente saiu' : 'clientes saíram'} · mês passado {churnRateLastMonth.toFixed(1)}%
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+                  <div className="rounded-2xl border border-border/50 bg-card/60 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">MRR perdido (mês)</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{formatCurrency(lostMrrThisMonth)}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground tabular-nums">equivalente a {mrrChurnRate.toFixed(1)}% do MRR</p>
+                  </div>
+                  <div className="rounded-2xl border border-border/50 bg-card/60 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Receita perdida total</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-destructive">{formatCurrency(receitaPerdidaTotal)}/mês</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground tabular-nums">{churnedClients.length} {churnedClients.length === 1 ? 'cliente cancelado' : 'clientes cancelados'}</p>
+                  </div>
+                  <div className="rounded-2xl border border-border/50 bg-card/60 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Base no início do mês</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{baseAtStartOfMonth}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground tabular-nums">clientes para cálculo da taxa</p>
+                  </div>
+                </div>
+
+                {/* Histórico + lista */}
+                <div className="grid gap-5 lg:grid-cols-2">
+                  {/* Evolução da taxa */}
+                  <div className="rounded-2xl border border-border/50 bg-card/40 p-4">
+                    <p className="mb-2 text-xs font-semibold text-foreground">Evolução da taxa de churn (12 meses)</p>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={churnHistory}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(240, 3.7%, 15.9%)" vertical={false} />
+                        <XAxis dataKey="month" tick={{ fill: 'hsl(240, 5%, 64.9%)', fontSize: 10 }} axisLine={false} tickLine={false} interval={1} />
+                        <YAxis tick={{ fill: 'hsl(240, 5%, 64.9%)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} width={38} />
+                        <Tooltip
+                          contentStyle={{ background: 'hsl(240, 10%, 6%)', border: '1px solid hsl(240, 3.7%, 15.9%)', borderRadius: 8, fontSize: 12 }}
+                          formatter={(v: number) => [`${v}%`, 'Taxa de churn']}
+                        />
+                        <Bar dataKey="churn" fill="hsl(0, 84%, 60%)" radius={[4, 4, 0, 0]} barSize={18} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Lista de cancelados */}
+                  <div className="rounded-2xl border border-border/50 bg-card/40 p-4">
+                    <p className="mb-2 text-xs font-semibold text-foreground">
+                      Clientes cancelados {churnedClients.length > 0 && `(${churnedClients.length})`}
+                    </p>
+                    {churnedClients.length === 0 ? (
+                      <p className="py-8 text-center text-sm text-muted-foreground">Nenhum cancelamento.</p>
+                    ) : (
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                        {churnedClients.map(c => (
+                          <div key={c.id} className="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/15 text-destructive font-bold">
+                                {c.companyName.charAt(0)}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium text-foreground truncate">{c.companyName}</p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {c.cancelledAt ? `Cancelado em ${new Date(c.cancelledAt).toLocaleDateString('pt-BR')}` : 'Sem data de cancelamento'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-semibold tabular-nums text-destructive">{formatCurrency(effectiveMonthlyValue(c))}</p>
+                              <p className="text-[10px] text-muted-foreground">valor cancelado</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Expenses & Investments */}
           <ExpensesPanel mrr={mrr} clients={clients} />
@@ -967,7 +1144,7 @@ export default function Dashboard() {
             {[
               { label: 'Total de Tarefas', value: tasks.length, icon: CheckSquare, accent: 'text-primary', highlight: true },
               { label: 'Concluídas', value: completedTasks.length, icon: CheckCircle2, accent: 'text-[hsl(var(--success))]', highlight: false },
-              { label: 'Em Andamento', value: pendingTasks.length, icon: Clock, accent: 'text-muted-foreground', highlight: false },
+              { label: 'Em Andamento', value: inProgressTasks.length, icon: Clock, accent: 'text-muted-foreground', highlight: false },
               { label: 'Atrasadas', value: overdueTasks.length, icon: AlertTriangle, accent: 'text-[hsl(var(--warning))]', highlight: false },
             ].map((kpi, i) => (
               <motion.div key={kpi.label} {...anim(i)}>
