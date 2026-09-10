@@ -459,6 +459,7 @@ export default function Dashboard() {
                   </div>
                   <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider mb-1.5">{kpi.label}</p>
                   <h3 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums text-foreground">{kpi.value}</h3>
+                  {kpi.hint && <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{kpi.hint}</p>}
                 </div>
               </motion.div>
             ))}
