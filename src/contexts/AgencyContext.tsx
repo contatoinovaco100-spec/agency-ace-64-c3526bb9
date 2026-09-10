@@ -19,6 +19,9 @@ interface AgencyContextType {
   addClient: (client: Client) => Promise<void>;
   updateClient: (client: Client) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
+  restoreClient: (id: string) => Promise<void>;
+  purgeClient: (id: string) => Promise<void>;
+  deletedClients: Client[];
   addTask: (task: Task) => Promise<void>;
   updateTask: (task: Task) => Promise<void>;
   moveTaskToStage: (taskId: string, newStatus: string, extra?: Partial<Task>) => Promise<void>;
@@ -54,6 +57,7 @@ function rowToClient(row: Tables<'clients'>): Client {
     serviceType: row.service_type as ServiceType[], accountManager: row.account_manager || [],
     status: row.status as Client['status'], notes: row.notes,
     cancelledAt: (row as any).cancelled_at || null,
+    deletedAt: (row as any).deleted_at || null,
     scopeDetails: {
       monthlyDeliverables: row.scope_monthly_deliverables || [],
       includedServices: row.scope_included_services || [],
@@ -173,9 +177,13 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
 
   // Filtered clients
   const clients = useMemo(() => {
-    if (!allowedClientIds) return allClients;
-    return allClients.filter(c => allowedClientIds.includes(c.id));
+    const active = allClients.filter(c => !c.deletedAt);
+    if (!allowedClientIds) return active;
+    return active.filter(c => allowedClientIds.includes(c.id));
   }, [allowedClientIds, allClients]);
+
+  // Clientes na lixeira (exclusão reversível)
+  const deletedClients = useMemo(() => allClients.filter(c => !!c.deletedAt), [allClients]);
 
   // Filtered tasks (clientless tasks stay visible to everyone, deleted tasks are excluded)
   const visibleTasks = useMemo(() => {
@@ -308,8 +316,21 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     await supabase.from('clients').update(rest).eq('id', c.id);
     setAllClients(prev => prev.map(x => x.id === c.id ? c : x));
   };
+  // Exclusão reversível: o cliente vai para a lixeira em vez de sumir do banco.
   const deleteClient = async (id: string) => {
-    await supabase.from('clients').delete().eq('id', id);
+    const now = new Date().toISOString();
+    const { error } = await supabase.from('clients').update({ deleted_at: now } as any).eq('id', id);
+    if (error) throw error;
+    setAllClients(prev => prev.map(x => x.id === id ? { ...x, deletedAt: now } : x));
+  };
+  const restoreClient = async (id: string) => {
+    const { error } = await supabase.from('clients').update({ deleted_at: null } as any).eq('id', id);
+    if (error) throw error;
+    setAllClients(prev => prev.map(x => x.id === id ? { ...x, deletedAt: null } : x));
+  };
+  const purgeClient = async (id: string) => {
+    const { error } = await supabase.from('clients').delete().eq('id', id);
+    if (error) throw error;
     setAllClients(prev => prev.filter(x => x.id !== id));
   };
 
@@ -503,7 +524,7 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
   return (
     <AgencyContext.Provider value={{
       clients, tasks: visibleTasks, leads, team, events: visibleEvents, loading, allowedClientIds,
-      addClient, updateClient, deleteClient,
+      addClient, updateClient, deleteClient, restoreClient, purgeClient, deletedClients,
       addTask, updateTask, deleteTask, restoreTask, deletedTasks, moveTaskToStage, advanceVideoStage,
       addLead, updateLead, deleteLead, convertLeadToClient,
       
