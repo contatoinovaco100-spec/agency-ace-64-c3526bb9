@@ -439,12 +439,13 @@ export default function Dashboard() {
         {/* ==================== FINANCIAL TAB ==================== */}
         <TabsContent value="financeiro" className="space-y-6">
           {/* Top KPIs — Bento */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {[
-              { label: 'MRR', value: formatCurrency(mrr), icon: DollarSign, accent: 'text-primary', highlight: true },
-              { label: 'Receita Anual Projetada', value: formatCurrency(mrr * 12), icon: TrendingUp, accent: 'text-muted-foreground', highlight: false },
-              { label: 'Clientes Ativos', value: activeClients.length.toString(), icon: Users, accent: 'text-muted-foreground', highlight: false },
-              { label: 'Ticket Médio', value: formatCurrency(activeClients.length > 0 ? mrr / activeClients.length : 0), icon: BarChart3, accent: 'text-muted-foreground', highlight: false },
+              { label: 'MRR', value: formatCurrency(mrr), icon: DollarSign, accent: 'text-primary', highlight: true, hint: '' },
+              { label: 'Receita Anual Projetada', value: formatCurrency(mrr * 12), icon: TrendingUp, accent: 'text-muted-foreground', highlight: false, hint: '' },
+              { label: 'Clientes Ativos', value: activeClients.length.toString(), icon: Users, accent: 'text-muted-foreground', highlight: false, hint: `${pausedClients.length} pausado(s)` },
+              { label: 'Ticket Médio', value: formatCurrency(activeClients.length > 0 ? mrr / activeClients.length : 0), icon: BarChart3, accent: 'text-muted-foreground', highlight: false, hint: '' },
+              { label: 'Churn', value: `${churnRate.toFixed(1)}%`, icon: TrendingDown, accent: 'text-destructive', highlight: false, hint: `${churnedClients.length} cancelados · ${churnRate30.toFixed(1)}% em 30 dias · ${formatCurrency(churnedMrr)}/mês perdidos` },
             ].map((kpi, i) => (
               <motion.div key={kpi.label} {...anim(i)}>
                 <div className="group relative bg-card p-6 rounded-[2rem] border border-border/60 hover:border-primary/40 transition-all duration-300 hover:-translate-y-0.5">
