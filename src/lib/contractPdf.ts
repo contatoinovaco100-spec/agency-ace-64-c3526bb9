@@ -14,9 +14,13 @@ export type ContractPdfData = {
   client_address: string;
   services: string;
   scope_description: string;
+  contract_type?: string;
   monthly_value: number;
+  total_value?: number;
+  installments_count?: number;
   duration_months: number;
   payment_due_day: number;
+  payment_terms?: string;
   additional_clauses: string;
   plan_name: string;
   deliverables: { label: string; quantity: string }[];
@@ -214,19 +218,42 @@ export async function generateContractPdf(
     y += 6;
   }
 
+  const contractType = c.contract_type || 'mensal';
+  const totalVal = c.total_value && c.total_value > 0 ? c.total_value : (c.monthly_value * (c.duration_months || 1));
+  const installments = c.installments_count || c.duration_months || 1;
+
+  let paymentClauseBody = '';
+  let termClauseBody = '';
+  let cancellationClauseBody = '';
+
+  if (contractType === 'total') {
+    paymentClauseBody = `O CONTRATANTE pagará ao CONTRATADO o valor total de ${formatBRL(c.total_value || c.monthly_value)} (reais) referente à integralidade dos serviços contratados pelo período acordado de ${c.duration_months} ${c.duration_months === 1 ? 'mês' : 'meses'}.${c.payment_terms ? ` Condições de pagamento: ${c.payment_terms}.` : (c.payment_due_day ? ` Vencimento todo dia ${c.payment_due_day} ou conforme nota/faturamento.` : '')}`;
+    termClauseBody = `O presente contrato terá vigência de ${c.duration_months} ${c.duration_months === 1 ? 'mês' : 'meses'}, contados a partir da data de assinatura, para a execução e entrega do escopo contratado.`;
+    cancellationClauseBody = 'Caso o CONTRATANTE solicite o cancelamento antecipado antes da conclusão do período ou projeto contratado, será aplicada multa rescisória correspondente a 30% do saldo restante do contrato, além do faturamento proporcional aos serviços já executados.';
+  } else if (contractType === 'prolongado') {
+    paymentClauseBody = `O valor total do presente contrato para o período determinado de ${c.duration_months} meses é de ${formatBRL(totalVal)} (reais), a ser pago em ${installments} parcelas mensais de ${formatBRL(c.monthly_value)} (reais) cada, com vencimento todo dia ${c.payment_due_day} de cada mês${c.payment_terms ? ` (${c.payment_terms})` : ''}.`;
+    termClauseBody = `O presente contrato é firmado por período determinado de ${c.duration_months} meses, contados a partir da data de assinatura.\n\nApós o término deste período, o contrato poderá ser renovado por mútuo acordo ou rescindido mediante aviso prévio de 30 (trinta) dias.`;
+    cancellationClauseBody = 'Caso o CONTRATANTE solicite o cancelamento antes do encerramento do prazo contratual acordado, será aplicada multa rescisória correspondente a 30% do valor restante das parcelas do contrato, a título de compensação pelos serviços e planejamento da equipe.';
+  } else {
+    // Mensal recorrente
+    paymentClauseBody = `O CONTRATANTE pagará ao CONTRATADO o valor mensal de ${formatBRL(c.monthly_value)} (reais), com vencimento todo dia ${c.payment_due_day} de cada mês.`;
+    termClauseBody = `O presente contrato terá prazo mínimo de permanência de ${c.duration_months} meses, contados a partir da data de assinatura.\n\nApós este período, o contrato poderá ser rescindido por qualquer das partes mediante aviso prévio de 30 (trinta) dias.`;
+    cancellationClauseBody = 'Caso o CONTRATANTE solicite o cancelamento antes do prazo mínimo de permanência, será aplicada multa rescisória correspondente a 30% do valor restante do contrato, a título de compensação pelos serviços contratados e planejamento realizado.';
+  }
+
   section(
     `${next()} - DO VALOR E PAGAMENTO`,
-    `O CONTRATANTE pagará ao CONTRATADO o valor mensal de ${formatBRL(c.monthly_value)} (reais), com vencimento todo dia ${c.payment_due_day} de cada mês.`,
+    paymentClauseBody,
   );
 
   section(
-    `${next()} - DO PRAZO E CARÊNCIA`,
-    `O presente contrato terá prazo mínimo de permanência de ${c.duration_months} meses, contados a partir da data de assinatura.\n\nApós este período, o contrato poderá ser rescindido por qualquer das partes mediante aviso prévio de 30 (trinta) dias.`,
+    `${next()} - DO PRAZO E VIGÊNCIA`,
+    termClauseBody,
   );
 
   section(
     `${next()} - DA RESCISÃO ANTECIPADA`,
-    'Caso o CONTRATANTE solicite o cancelamento antes do prazo mínimo de permanência, será aplicada multa rescisória correspondente a 30% do valor restante do contrato, a título de compensação pelos serviços contratados e planejamento realizado.',
+    cancellationClauseBody,
   );
 
   section(

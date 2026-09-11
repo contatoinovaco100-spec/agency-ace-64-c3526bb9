@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, CheckCircle2, FileText, Shield, Hash, Copy } from 'lucide-react';
+import { Loader2, CheckCircle2, FileText, Shield, Hash, Copy, Repeat, CalendarRange, Gem } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePushNotification } from '@/hooks/usePushNotification';
 import logoInova from '@/assets/logo-inova.png';
@@ -21,6 +21,7 @@ interface Deliverable {
 interface Contract {
   id: string;
   title: string;
+  contract_type?: 'mensal' | 'prolongado' | 'total' | string;
   contractor_name: string;
   contractor_cpf_cnpj: string;
   contractor_address: string;
@@ -32,6 +33,9 @@ interface Contract {
   services: string;
   scope_description: string;
   monthly_value: number;
+  total_value?: number;
+  installments_count?: number;
+  payment_terms?: string;
   duration_months: number;
   payment_due_day: number;
   additional_clauses: string;
@@ -352,9 +356,26 @@ export default function ContractSignPage() {
         {/* Contract Body */}
         <Card className="border-gray-200 shadow-lg bg-white rounded-2xl sm:rounded-xl overflow-hidden">
           <CardContent className="p-4 sm:p-10">
-            <h1 className="text-center text-lg sm:text-xl font-bold text-gray-900 mb-6 sm:mb-8 uppercase tracking-wide">
-              {contract.title}
-            </h1>
+            <div className="flex flex-col items-center justify-center mb-6 sm:mb-8 text-center">
+              {contract.contract_type === 'prolongado' && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 mb-2.5">
+                  <CalendarRange className="h-3.5 w-3.5" /> Contrato Prolongado ({contract.installments_count || contract.duration_months}x de R$ {Number(contract.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
+                </span>
+              )}
+              {contract.contract_type === 'total' && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 mb-2.5">
+                  <Gem className="h-3.5 w-3.5" /> Contrato Fechado (Total R$ {Number(contract.total_value || contract.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
+                </span>
+              )}
+              {(!contract.contract_type || contract.contract_type === 'mensal') && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 mb-2.5">
+                  <Repeat className="h-3.5 w-3.5" /> Mensal Recorrente (R$ {Number(contract.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês)
+                </span>
+              )}
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-wide">
+                {contract.title}
+              </h1>
+            </div>
 
             <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed space-y-4">
               <p>Pelo presente instrumento particular de prestação de serviços, de um lado:</p>
@@ -405,25 +426,98 @@ export default function ContractSignPage() {
                 </>
               )}
 
-              <h3 className="font-bold text-gray-900">{deliverables.length > 0 ? 'CLÁUSULA 3ª' : 'CLÁUSULA 2ª'} - DO VALOR E PAGAMENTO</h3>
-              <p>
-                O CONTRATANTE pagará ao CONTRATADO o valor mensal de{' '}
-                <strong>R$ {Number(contract.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>{' '}
-                (reais), com vencimento todo dia <strong>{contract.payment_due_day}</strong> de cada mês.
-              </p>
+              {/* Cláusula Financeira & Prazos conforme Modalidade */}
+              {(() => {
+                const cType = contract.contract_type || 'mensal';
+                const totalVal = contract.total_value && contract.total_value > 0 ? contract.total_value : (contract.monthly_value * (contract.duration_months || 1));
+                const instCount = contract.installments_count || contract.duration_months || 1;
+                const baseClauseNum = deliverables.length > 0 ? 3 : 2;
 
-              <h3 className="font-bold text-gray-900">{deliverables.length > 0 ? 'CLÁUSULA 4ª' : 'CLÁUSULA 3ª'} - DO PRAZO E CARÊNCIA</h3>
-              <p>
-                O presente contrato terá prazo mínimo de permanência de <strong>{contract.duration_months} meses</strong>, contados a partir da data de assinatura.
-              </p>
-              <p>
-                Após este período, o contrato poderá ser rescindido por qualquer das partes mediante aviso prévio de 30 (trinta) dias.
-              </p>
+                if (cType === 'total') {
+                  return (
+                    <>
+                      <h3 className="font-bold text-gray-900">CLÁUSULA {baseClauseNum}ª - DO VALOR TOTAL E CONDIÇÕES DE PAGAMENTO</h3>
+                      <p>
+                        O CONTRATANTE pagará ao CONTRATADO o valor total fechado de{' '}
+                        <strong>R$ {Number(contract.total_value || contract.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>{' '}
+                        (reais), referente à integralidade dos serviços contratados pelo período de <strong>{contract.duration_months} {contract.duration_months === 1 ? 'mês' : 'meses'}</strong>.
+                      </p>
+                      {contract.payment_terms ? (
+                        <p>
+                          <strong>Condições de pagamento acordadas:</strong> {contract.payment_terms}.
+                        </p>
+                      ) : (
+                        <p>
+                          O vencimento dar-se-á todo dia <strong>{contract.payment_due_day}</strong> do mês ou conforme estipulado no faturamento.
+                        </p>
+                      )}
 
-              <h3 className="font-bold text-gray-900">{deliverables.length > 0 ? 'CLÁUSULA 5ª' : 'CLÁUSULA 4ª'} - DA RESCISÃO ANTECIPADA</h3>
-              <p>
-                Caso o CONTRATANTE solicite o cancelamento antes do prazo mínimo de permanência, será aplicada multa rescisória correspondente a 30% do valor restante do contrato, a título de compensação pelos serviços contratados e planejamento realizado.
-              </p>
+                      <h3 className="font-bold text-gray-900">CLÁUSULA {baseClauseNum + 1}ª - DO PRAZO E VIGÊNCIA DO PERÍODO</h3>
+                      <p>
+                        O presente contrato terá prazo de vigência de <strong>{contract.duration_months} {contract.duration_months === 1 ? 'mês' : 'meses'}</strong>, contados a partir da data de assinatura, para a plena execução e entrega do escopo contratado.
+                      </p>
+
+                      <h3 className="font-bold text-gray-900">CLÁUSULA {baseClauseNum + 2}ª - DA RESCISÃO ANTECIPADA</h3>
+                      <p>
+                        Caso o CONTRATANTE solicite o cancelamento imotivado antes da conclusão do período ou projeto contratado, será aplicada multa rescisória correspondente a 30% do saldo restante do contrato, além do pagamento proporcional aos serviços e etapas já executados.
+                      </p>
+                    </>
+                  );
+                }
+
+                if (cType === 'prolongado') {
+                  return (
+                    <>
+                      <h3 className="font-bold text-gray-900">CLÁUSULA {baseClauseNum}ª - DO VALOR GLOBAL E PARCELAMENTO</h3>
+                      <p>
+                        O valor total do presente contrato para o período determinado de <strong>{contract.duration_months} meses</strong> é de{' '}
+                        <strong>R$ {Number(totalVal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> (reais), a ser quitado em{' '}
+                        <strong>{instCount} parcelas mensais</strong> no valor de{' '}
+                        <strong>R$ {Number(contract.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> cada, com vencimento todo dia{' '}
+                        <strong>{contract.payment_due_day}</strong> de cada mês{contract.payment_terms ? ` (${contract.payment_terms})` : ''}.
+                      </p>
+
+                      <h3 className="font-bold text-gray-900">CLÁUSULA {baseClauseNum + 1}ª - DO PRAZO DETERMINADO</h3>
+                      <p>
+                        O presente contrato é firmado por período determinado de <strong>{contract.duration_months} meses</strong>, contados a partir da data de assinatura.
+                      </p>
+                      <p>
+                        Após o encerramento do prazo contratual, o serviço poderá ser renovado por mútuo acordo das partes ou rescindido mediante aviso prévio de 30 (trinta) dias.
+                      </p>
+
+                      <h3 className="font-bold text-gray-900">CLÁUSULA {baseClauseNum + 2}ª - DA RESCISÃO ANTECIPADA</h3>
+                      <p>
+                        Caso o CONTRATANTE solicite o cancelamento antes do encerramento do prazo contratual acordado de {contract.duration_months} meses, será aplicada multa rescisória correspondente a 30% do valor restante das parcelas do contrato, a título de compensação pelos serviços contratados e planejamento realizado.
+                      </p>
+                    </>
+                  );
+                }
+
+                // Default: Mensal Recorrente
+                return (
+                  <>
+                    <h3 className="font-bold text-gray-900">CLÁUSULA {baseClauseNum}ª - DO VALOR E PAGAMENTO</h3>
+                    <p>
+                      O CONTRATANTE pagará ao CONTRATADO o valor mensal de{' '}
+                      <strong>R$ {Number(contract.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>{' '}
+                      (reais), com vencimento todo dia <strong>{contract.payment_due_day}</strong> de cada mês.
+                    </p>
+
+                    <h3 className="font-bold text-gray-900">CLÁUSULA {baseClauseNum + 1}ª - DO PRAZO E CARÊNCIA</h3>
+                    <p>
+                      O presente contrato terá prazo mínimo de permanência de <strong>{contract.duration_months} meses</strong>, contados a partir da data de assinatura.
+                    </p>
+                    <p>
+                      Após este período, o contrato poderá ser rescindido por qualquer das partes mediante aviso prévio de 30 (trinta) dias.
+                    </p>
+
+                    <h3 className="font-bold text-gray-900">CLÁUSULA {baseClauseNum + 2}ª - DA RESCISÃO ANTECIPADA</h3>
+                    <p>
+                      Caso o CONTRATANTE solicite o cancelamento antes do prazo mínimo de permanência, será aplicada multa rescisória correspondente a 30% do valor restante do contrato, a título de compensação pelos serviços contratados e planejamento realizado.
+                    </p>
+                  </>
+                );
+              })()}
 
               <h3 className="font-bold text-gray-900">{deliverables.length > 0 ? 'CLÁUSULA 6ª' : 'CLÁUSULA 5ª'} - RESPONSABILIDADE DO CLIENTE</h3>
               <p>

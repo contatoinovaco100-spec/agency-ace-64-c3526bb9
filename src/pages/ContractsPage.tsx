@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   FileText, Plus, Send, CheckCircle2, Edit2, Copy, Loader2, ExternalLink,
   Trash2, Hash, MessageCircle, RotateCcw, Download, UserCheck, Search, Gift,
+  Repeat, CalendarRange, Gem, Sparkles, HelpCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateContractPdf } from '@/lib/contractPdf';
@@ -35,6 +36,7 @@ interface Contract {
   id: string;
   client_id: string | null;
   title: string;
+  contract_type?: 'mensal' | 'prolongado' | 'total' | string;
   contractor_name: string;
   contractor_cpf_cnpj: string;
   contractor_address: string;
@@ -46,6 +48,9 @@ interface Contract {
   services: string;
   scope_description: string;
   monthly_value: number;
+  total_value?: number;
+  installments_count?: number;
+  payment_terms?: string;
   duration_months: number;
   payment_due_day: number;
   additional_clauses: string;
@@ -88,6 +93,7 @@ const DEFAULT_DELIVERABLES: Deliverable[] = [
 
 const emptyContract = {
   title: '',
+  contract_type: 'mensal',
   contractor_name: 'INOVA Co.',
   contractor_cpf_cnpj: '',
   contractor_address: '',
@@ -99,6 +105,9 @@ const emptyContract = {
   services: '',
   scope_description: '',
   monthly_value: 0,
+  total_value: 0,
+  installments_count: 12,
+  payment_terms: '',
   duration_months: 12,
   payment_due_day: 10,
   additional_clauses: '',
@@ -226,8 +235,39 @@ export default function ContractsPage() {
     if (!form.title.trim()) { toast.error('Informe o título do contrato'); return; }
     setSaving(true);
     try {
+      const contractType = form.contract_type || 'mensal';
+      const duration = Number(form.duration_months) || 1;
+      let monthlyVal = Number(form.monthly_value) || 0;
+      let totalVal = Number(form.total_value) || 0;
+      let instCount = Number(form.installments_count) || duration || 1;
+
+      if (contractType === 'mensal') {
+        totalVal = monthlyVal * duration;
+        instCount = duration;
+      } else if (contractType === 'prolongado') {
+        if (totalVal > 0 && monthlyVal === 0) {
+          monthlyVal = Math.round((totalVal / instCount) * 100) / 100;
+        } else if (monthlyVal > 0 && totalVal === 0) {
+          totalVal = monthlyVal * instCount;
+        }
+      } else if (contractType === 'total') {
+        if (totalVal === 0 && monthlyVal > 0) {
+          totalVal = monthlyVal;
+        }
+        if (monthlyVal === 0 && totalVal > 0) {
+          monthlyVal = Math.round((totalVal / duration) * 100) / 100;
+        }
+        instCount = 1;
+      }
+
       const payload = {
         ...form,
+        contract_type: contractType,
+        monthly_value: monthlyVal,
+        total_value: totalVal,
+        duration_months: duration,
+        installments_count: instCount,
+        payment_due_day: Number(form.payment_due_day) || 10,
         deliverables: form.deliverables as any,
         client_id: null,
         created_by: user?.id,
@@ -324,8 +364,13 @@ export default function ContractsPage() {
   };
 
   const openEdit = (c: Contract) => {
+    const cType = c.contract_type || 'mensal';
+    const totalVal = c.total_value && c.total_value > 0 ? c.total_value : (c.monthly_value * (c.duration_months || 1));
+    const instCount = c.installments_count || c.duration_months || 1;
+
     setForm({
       title: c.title,
+      contract_type: cType,
       contractor_name: c.contractor_name,
       contractor_cpf_cnpj: c.contractor_cpf_cnpj,
       contractor_address: c.contractor_address,
@@ -336,10 +381,13 @@ export default function ContractsPage() {
       client_address: c.client_address,
       services: c.services,
       scope_description: c.scope_description,
-      monthly_value: c.monthly_value,
-      duration_months: c.duration_months,
-      payment_due_day: c.payment_due_day,
-      additional_clauses: c.additional_clauses,
+      monthly_value: c.monthly_value || 0,
+      total_value: totalVal,
+      installments_count: instCount,
+      payment_terms: c.payment_terms || '',
+      duration_months: c.duration_months || 12,
+      payment_due_day: c.payment_due_day || 10,
+      additional_clauses: c.additional_clauses || '',
       plan_name: c.plan_name || 'Plano Profissional',
       deliverables: c.deliverables?.length > 0 ? c.deliverables : DEFAULT_DELIVERABLES,
       affiliate_token: c.affiliate_token || '',
@@ -377,6 +425,9 @@ export default function ContractsPage() {
     const cfg = statusConfig[c.status] || statusConfig.rascunho;
     const Icon = cfg.icon;
     const isDeleted = c.status === 'excluido';
+    const cType = c.contract_type || 'mensal';
+    const totalVal = c.total_value && c.total_value > 0 ? c.total_value : (c.monthly_value * (c.duration_months || 1));
+    const instCount = c.installments_count || c.duration_months || 1;
 
     return (
       <Card key={c.id} className="border-border/60 hover:border-border transition-colors shadow-sm overflow-hidden">
@@ -390,6 +441,21 @@ export default function ContractsPage() {
                   <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${cfg.color}`}>
                     <Icon className="h-3 w-3" /> {cfg.label}
                   </span>
+                  {cType === 'prolongado' && (
+                    <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      <CalendarRange className="h-3 w-3" /> Prolongado ({instCount}x)
+                    </span>
+                  )}
+                  {cType === 'total' && (
+                    <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                      <Gem className="h-3 w-3" /> Total Fechado
+                    </span>
+                  )}
+                  {cType === 'mensal' && (
+                    <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                      <Repeat className="h-3 w-3" /> Mensal
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs sm:text-sm font-medium text-foreground">
                   {c.client_company || c.client_name || 'Cliente não especificado'}
@@ -402,20 +468,40 @@ export default function ContractsPage() {
 
             {/* Contract Info Chips */}
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
-              <div className="rounded-md bg-secondary/60 border border-border/50 px-2.5 py-1 text-foreground font-medium">
-                💰 R$ {Number(c.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês
-              </div>
+              {cType === 'total' ? (
+                <div className="rounded-md bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 text-foreground font-semibold">
+                  💎 R$ {Number(c.total_value || c.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (Total)
+                </div>
+              ) : cType === 'prolongado' ? (
+                <div className="rounded-md bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-foreground font-semibold">
+                  💰 R$ {Number(totalVal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} <span className="text-muted-foreground font-normal">({instCount}x de R$ {Number(c.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })})</span>
+                </div>
+              ) : (
+                <div className="rounded-md bg-secondary/60 border border-border/50 px-2.5 py-1 text-foreground font-medium">
+                  💰 R$ {Number(c.monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês
+                </div>
+              )}
+
               {c.plan_name && (
                 <div className="rounded-md bg-secondary/60 border border-border/50 px-2.5 py-1 text-muted-foreground">
                   📦 {c.plan_name}
                 </div>
               )}
+
               <div className="rounded-md bg-secondary/60 border border-border/50 px-2.5 py-1 text-muted-foreground">
-                ⏳ {c.duration_months} meses
+                ⏳ {c.duration_months} {c.duration_months === 1 ? 'mês' : 'meses'}
               </div>
+
+              {c.payment_terms && (
+                <div className="rounded-md bg-secondary/60 border border-border/50 px-2.5 py-1 text-muted-foreground truncate max-w-[200px]" title={c.payment_terms}>
+                  💳 {c.payment_terms}
+                </div>
+              )}
+
               <div className="rounded-md bg-secondary/60 border border-border/50 px-2.5 py-1 text-muted-foreground">
                 📅 {new Date(c.created_at).toLocaleDateString('pt-BR')}
               </div>
+
               {c.affiliate_token && (
                 <div className="flex items-center gap-1 rounded-md bg-primary/10 border border-primary/20 px-2.5 py-1 text-primary font-mono text-[11px]">
                   <Gift className="h-3 w-3" /> {c.affiliate_token}
@@ -623,6 +709,108 @@ export default function ContractsPage() {
                 )}
               </div>
 
+              {/* Modalidade do Contrato */}
+              <div className="space-y-2">
+                <Label className="text-xs sm:text-sm font-semibold flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-primary" /> Tipo / Modalidade do Contrato
+                </Label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const dur = form.duration_months || 12;
+                      const mVal = form.monthly_value || (form.total_value ? form.total_value / dur : 0);
+                      setForm(p => ({
+                        ...p,
+                        contract_type: 'mensal',
+                        monthly_value: mVal,
+                        total_value: mVal * dur,
+                        installments_count: dur,
+                      }));
+                    }}
+                    className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all relative ${
+                      form.contract_type === 'mensal'
+                        ? 'border-primary bg-primary/10 shadow-sm ring-1 ring-primary'
+                        : 'border-border bg-card/60 hover:bg-accent/40 text-muted-foreground'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className={`p-1.5 rounded-lg ${form.contract_type === 'mensal' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
+                        <Repeat className="h-4 w-4" />
+                      </div>
+                      <span className="text-xs font-bold text-foreground">Mensal Recorrente</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-tight">
+                      Cobrança contínua todo mês por período indeterminado ou fidelidade.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const dur = form.duration_months || 6;
+                      const inst = form.installments_count || dur;
+                      const mVal = form.monthly_value || 0;
+                      const tVal = form.total_value || (mVal * inst);
+                      setForm(p => ({
+                        ...p,
+                        contract_type: 'prolongado',
+                        duration_months: dur,
+                        installments_count: inst,
+                        monthly_value: mVal > 0 ? mVal : (tVal > 0 ? tVal / inst : 0),
+                        total_value: tVal > 0 ? tVal : (mVal * inst),
+                      }));
+                    }}
+                    className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all relative ${
+                      form.contract_type === 'prolongado'
+                        ? 'border-amber-500 bg-amber-500/10 shadow-sm ring-1 ring-amber-500'
+                        : 'border-border bg-card/60 hover:bg-accent/40 text-muted-foreground'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className={`p-1.5 rounded-lg ${form.contract_type === 'prolongado' ? 'bg-amber-500 text-white' : 'bg-muted text-foreground'}`}>
+                        <CalendarRange className="h-4 w-4" />
+                      </div>
+                      <span className="text-xs font-bold text-foreground">Prolongado / Parcelado</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-tight">
+                      Contrato por período fechado (ex: 6 meses), parcelado mensalmente.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const dur = form.duration_months || 3;
+                      const tVal = form.total_value || (form.monthly_value ? form.monthly_value * dur : 0);
+                      setForm(p => ({
+                        ...p,
+                        contract_type: 'total',
+                        total_value: tVal,
+                        duration_months: dur,
+                        monthly_value: tVal > 0 ? tVal / dur : form.monthly_value,
+                        payment_terms: form.payment_terms || 'À vista na assinatura',
+                      }));
+                    }}
+                    className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all relative ${
+                      form.contract_type === 'total'
+                        ? 'border-purple-500 bg-purple-500/10 shadow-sm ring-1 ring-purple-500'
+                        : 'border-border bg-card/60 hover:bg-accent/40 text-muted-foreground'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className={`p-1.5 rounded-lg ${form.contract_type === 'total' ? 'bg-purple-500 text-white' : 'bg-muted text-foreground'}`}>
+                        <Gem className="h-4 w-4" />
+                      </div>
+                      <span className="text-xs font-bold text-foreground">Total Fechado</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-tight">
+                      Valor total fechado para um projeto ou período (à vista ou personalizado).
+                    </p>
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <Label className="text-xs sm:text-sm font-semibold">Serviços contratados</Label>
                 <Input value={form.services} onChange={e => setForm(p => ({ ...p, services: e.target.value }))} placeholder="Ex: Gestão de Tráfego, Produção de Vídeos, Social Media" className="mt-1" />
@@ -632,19 +820,222 @@ export default function ContractsPage() {
                 <Textarea value={form.scope_description} onChange={e => setForm(p => ({ ...p, scope_description: e.target.value }))} rows={3} placeholder="Descreva os detalhes dos serviços acordados..." className="mt-1" />
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Valor mensal (R$)</Label>
-                  <Input type="number" value={form.monthly_value} onChange={e => setForm(p => ({ ...p, monthly_value: Number(e.target.value) }))} className="mt-1 h-9" />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Duração (meses)</Label>
-                  <Input type="number" value={form.duration_months} onChange={e => setForm(p => ({ ...p, duration_months: Number(e.target.value) }))} className="mt-1 h-9" />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Dia de vencimento</Label>
-                  <Input type="number" min={1} max={31} value={form.payment_due_day} onChange={e => setForm(p => ({ ...p, payment_due_day: Number(e.target.value) }))} className="mt-1 h-9" />
-                </div>
+              {/* Campos Financeiros e Prazos Dinâmicos */}
+              <div className="rounded-xl border border-border bg-card/60 p-3.5 space-y-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                  Condições Comerciais & Prazos ({form.contract_type === 'total' ? 'Total Fechado' : form.contract_type === 'prolongado' ? 'Prolongado / Parcelado' : 'Mensal Recorrente'})
+                </p>
+
+                {form.contract_type === 'mensal' && (
+                  <>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Valor mensal (R$)</Label>
+                        <Input
+                          type="number"
+                          value={form.monthly_value || ''}
+                          onChange={e => {
+                            const val = Number(e.target.value);
+                            setForm(p => ({
+                              ...p,
+                              monthly_value: val,
+                              total_value: val * (p.duration_months || 1),
+                            }));
+                          }}
+                          placeholder="Ex: 2500"
+                          className="mt-1 h-9"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Duração / Vigência (meses)</Label>
+                        <Input
+                          type="number"
+                          value={form.duration_months || ''}
+                          onChange={e => {
+                            const dur = Number(e.target.value);
+                            setForm(p => ({
+                              ...p,
+                              duration_months: dur,
+                              total_value: (p.monthly_value || 0) * dur,
+                            }));
+                          }}
+                          placeholder="Ex: 12"
+                          className="mt-1 h-9"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Dia de vencimento</Label>
+                        <Input type="number" min={1} max={31} value={form.payment_due_day || ''} onChange={e => setForm(p => ({ ...p, payment_due_day: Number(e.target.value) }))} placeholder="Ex: 10" className="mt-1 h-9" />
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg bg-secondary/50 border border-border/50 p-2.5 text-xs text-muted-foreground flex items-center justify-between">
+                      <span>💡 <strong>Previsão de faturamento total:</strong> R$ {Number((form.monthly_value || 0) * (form.duration_months || 1)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-[11px] font-medium text-foreground">{form.duration_months || 1} meses de contrato</span>
+                    </div>
+                  </>
+                )}
+
+                {form.contract_type === 'prolongado' && (
+                  <>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Período do contrato (meses)</Label>
+                        <Input
+                          type="number"
+                          value={form.duration_months || ''}
+                          onChange={e => {
+                            const dur = Number(e.target.value);
+                            setForm(p => ({
+                              ...p,
+                              duration_months: dur,
+                              installments_count: dur,
+                              total_value: (p.monthly_value || 0) * dur,
+                            }));
+                          }}
+                          placeholder="Ex: 6"
+                          className="mt-1 h-9"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Qtd. de parcelas</Label>
+                        <Input
+                          type="number"
+                          value={form.installments_count || ''}
+                          onChange={e => {
+                            const inst = Number(e.target.value) || 1;
+                            setForm(p => ({
+                              ...p,
+                              installments_count: inst,
+                              monthly_value: p.total_value ? p.total_value / inst : p.monthly_value,
+                            }));
+                          }}
+                          placeholder="Ex: 6"
+                          className="mt-1 h-9"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Valor total do período (R$)</Label>
+                        <Input
+                          type="number"
+                          value={form.total_value || ''}
+                          onChange={e => {
+                            const tot = Number(e.target.value);
+                            const inst = form.installments_count || form.duration_months || 1;
+                            setForm(p => ({
+                              ...p,
+                              total_value: tot,
+                              monthly_value: inst > 0 ? Math.round((tot / inst) * 100) / 100 : tot,
+                            }));
+                          }}
+                          placeholder="Ex: 15000"
+                          className="mt-1 h-9 font-semibold text-foreground"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Valor de cada parcela (R$)</Label>
+                        <Input
+                          type="number"
+                          value={form.monthly_value || ''}
+                          onChange={e => {
+                            const m = Number(e.target.value);
+                            const inst = form.installments_count || form.duration_months || 1;
+                            setForm(p => ({
+                              ...p,
+                              monthly_value: m,
+                              total_value: m * inst,
+                            }));
+                          }}
+                          placeholder="Ex: 2500"
+                          className="mt-1 h-9"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Dia de vencimento</Label>
+                        <Input type="number" min={1} max={31} value={form.payment_due_day || ''} onChange={e => setForm(p => ({ ...p, payment_due_day: Number(e.target.value) }))} placeholder="Ex: 10" className="mt-1 h-9" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Condições complementares de pagamento (opcional)</Label>
+                      <Input
+                        value={form.payment_terms || ''}
+                        onChange={e => setForm(p => ({ ...p, payment_terms: e.target.value }))}
+                        placeholder="Ex: Parcelado em até 6x no Cartão ou Boleto/PIX mensal"
+                        className="mt-1 h-9 text-xs"
+                      />
+                    </div>
+
+                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2.5 text-xs text-amber-700 dark:text-amber-400 flex items-center justify-between">
+                      <span>💎 <strong>Resumo:</strong> {form.installments_count || form.duration_months}x de R$ {Number(form.monthly_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} = <strong>Total R$ {Number(form.total_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span>
+                      <span className="text-[11px] font-medium">{form.duration_months} meses de contrato</span>
+                    </div>
+                  </>
+                )}
+
+                {form.contract_type === 'total' && (
+                  <>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Valor total do contrato (R$)</Label>
+                        <Input
+                          type="number"
+                          value={form.total_value || form.monthly_value || ''}
+                          onChange={e => {
+                            const val = Number(e.target.value);
+                            const dur = form.duration_months || 1;
+                            setForm(p => ({
+                              ...p,
+                              total_value: val,
+                              monthly_value: dur > 0 ? Math.round((val / dur) * 100) / 100 : val,
+                            }));
+                          }}
+                          placeholder="Ex: 8000"
+                          className="mt-1 h-9 font-semibold text-foreground"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Prazo / Vigência do período (meses)</Label>
+                        <Input
+                          type="number"
+                          value={form.duration_months || ''}
+                          onChange={e => {
+                            const dur = Number(e.target.value);
+                            setForm(p => ({
+                              ...p,
+                              duration_months: dur,
+                              monthly_value: dur > 0 ? Math.round(((p.total_value || p.monthly_value || 0) / dur) * 100) / 100 : p.monthly_value,
+                            }));
+                          }}
+                          placeholder="Ex: 3"
+                          className="mt-1 h-9"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Dia de vencimento (se aplicável)</Label>
+                        <Input type="number" min={1} max={31} value={form.payment_due_day || ''} onChange={e => setForm(p => ({ ...p, payment_due_day: Number(e.target.value) }))} placeholder="Ex: 10" className="mt-1 h-9" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Forma / Condição de Pagamento</Label>
+                      <Input
+                        value={form.payment_terms || ''}
+                        onChange={e => setForm(p => ({ ...p, payment_terms: e.target.value }))}
+                        placeholder="Ex: À vista na assinatura do contrato via PIX, ou 50% de entrada + 50% na aprovação final"
+                        className="mt-1 h-9 text-xs"
+                      />
+                    </div>
+
+                    <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2.5 text-xs text-purple-700 dark:text-purple-400 flex items-center justify-between">
+                      <span>🏆 <strong>Valor Global Fechado:</strong> R$ {Number(form.total_value || form.monthly_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-[11px] font-medium">{form.duration_months || 1} {form.duration_months === 1 ? 'mês' : 'meses'} de vigência</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Plan Deliverables */}
