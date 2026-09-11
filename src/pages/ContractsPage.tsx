@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateContractPdf } from '@/lib/contractPdf';
+import { extractContractMeta, attachContractMetaToDeliverables } from '@/lib/contractMeta';
 
 interface Deliverable {
   label: string;
@@ -177,10 +178,7 @@ export default function ContractsPage() {
     setLoading(true);
     const { data: c } = await supabase.from('contracts').select('*').order('created_at', { ascending: false });
     if (c) {
-      const parsed = c.map((contract: any) => ({
-        ...contract,
-        deliverables: Array.isArray(contract.deliverables) ? contract.deliverables : [],
-      })) as Contract[];
+      const parsed = c.map((contract: any) => extractContractMeta(contract)) as Contract[];
       const deduped = deduplicateContracts(parsed);
       setContracts(deduped);
 
@@ -260,26 +258,72 @@ export default function ContractsPage() {
         instCount = 1;
       }
 
-      const payload = {
-        ...form,
+      // Attach metadata into deliverables so it works seamlessly even if columns aren't in Supabase yet
+      const meta = {
         contract_type: contractType,
-        monthly_value: monthlyVal,
         total_value: totalVal,
-        duration_months: duration,
         installments_count: instCount,
+        payment_terms: form.payment_terms || '',
+      };
+      const deliverablesWithMeta = attachContractMetaToDeliverables(form.deliverables, meta);
+
+      // Base payload only includes columns guaranteed to exist on remote DB
+      const basePayload: any = {
+        title: form.title,
+        contractor_name: form.contractor_name,
+        contractor_cpf_cnpj: form.contractor_cpf_cnpj,
+        contractor_address: form.contractor_address,
+        client_company: form.client_company,
+        client_name: form.client_name,
+        client_cpf_cnpj: form.client_cpf_cnpj,
+        client_email: form.client_email,
+        client_address: form.client_address,
+        services: form.services,
+        scope_description: form.scope_description,
+        monthly_value: monthlyVal,
+        duration_months: duration,
         payment_due_day: Number(form.payment_due_day) || 10,
-        deliverables: form.deliverables as any,
+        additional_clauses: form.additional_clauses,
+        plan_name: form.plan_name,
+        deliverables: deliverablesWithMeta,
+        affiliate_token: form.affiliate_token || null,
         client_id: null,
         created_by: user?.id,
       };
 
+      // Full payload with extra root columns (if migration has been run)
+      const fullPayload: any = {
+        ...basePayload,
+        contract_type: contractType,
+        total_value: totalVal,
+        installments_count: instCount,
+        payment_terms: form.payment_terms || '',
+      };
+
+      const isSchemaCacheError = (err: any) =>
+        err && (
+          err.message?.includes('schema cache') ||
+          err.message?.includes('column') ||
+          err.code === 'PGRST204' ||
+          err.code === '42703'
+        );
+
       if (editingId) {
-        const { status, ...updatePayload } = payload as any;
-        const { error } = await supabase.from('contracts').update(updatePayload).eq('id', editingId);
+        let { error } = await supabase.from('contracts').update(fullPayload).eq('id', editingId);
+        if (error && isSchemaCacheError(error)) {
+          // Fallback to basePayload with embedded metadata
+          const retry = await supabase.from('contracts').update(basePayload).eq('id', editingId);
+          error = retry.error;
+        }
         if (error) throw error;
         toast.success('Contrato atualizado');
       } else {
-        const { error } = await supabase.from('contracts').insert({ ...payload, status: 'rascunho' } as any);
+        let { error } = await supabase.from('contracts').insert({ ...fullPayload, status: 'rascunho' });
+        if (error && isSchemaCacheError(error)) {
+          // Fallback to basePayload with embedded metadata
+          const retry = await supabase.from('contracts').insert({ ...basePayload, status: 'rascunho' });
+          error = retry.error;
+        }
         if (error) throw error;
         toast.success('Contrato criado');
       }

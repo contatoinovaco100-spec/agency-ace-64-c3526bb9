@@ -12,6 +12,7 @@ import { usePushNotification } from '@/hooks/usePushNotification';
 import logoInova from '@/assets/logo-inova.png';
 import { useSeo } from '@/lib/seo';
 import { PAGE_THUMBS } from '@/lib/pageThumbs';
+import { extractContractMeta } from '@/lib/contractMeta';
 
 interface Deliverable {
   label: string;
@@ -116,10 +117,8 @@ export default function ContractSignPage() {
       const contractRow = Array.isArray(c) ? c[0] : c;
       if (contractRow) {
         console.log('Contract loaded:', contractRow.title);
-        setContract({
-          ...contractRow,
-          deliverables: Array.isArray(contractRow.deliverables) ? contractRow.deliverables as unknown as Deliverable[] : [],
-        } as unknown as Contract);
+        const parsedContract = extractContractMeta(contractRow);
+        setContract(parsedContract as unknown as Contract);
         setSignerName(contractRow.client_name || '');
         setSignerEmail(contractRow.client_email || '');
       } else {

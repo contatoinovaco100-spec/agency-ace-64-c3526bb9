@@ -171,7 +171,8 @@ export async function generateContractPdf(
   intro.forEach((l: string) => { ensureSpace(5); doc.text(l, margin, y); y += 4.8; });
   y += 4;
 
-  const hasDeliv = (c.deliverables?.length || 0) > 0;
+  const validDeliverables = (c.deliverables || []).filter((d: any) => d && d.label !== '__META__' && d.label !== '__CONTRACT_META__');
+  const hasDeliv = validDeliverables.length > 0;
   let n = 1;
   const next = () => `CLÁUSULA ${n++}ª`;
 
@@ -202,7 +203,7 @@ export async function generateContractPdf(
     doc.text('Item', margin + 25, y + 5);
     y += 7;
     doc.setFont('helvetica', 'normal');
-    c.deliverables.forEach((d, i) => {
+    validDeliverables.forEach((d, i) => {
       const lblLines = doc.splitTextToSize(d.label || '', contentW - 30);
       const rowH = Math.max(6.5, lblLines.length * 4.5 + 2);
       ensureSpace(rowH);
