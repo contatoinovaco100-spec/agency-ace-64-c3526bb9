@@ -26,6 +26,28 @@ const isConnectionError = (error: unknown) => {
 
 const wait = (milliseconds: number) => new Promise(resolve => setTimeout(resolve, milliseconds));
 
+// Verifica se o serviço de contas responde a partir DESTE aparelho.
+// Serve para não culpar a rede do usuário quando o problema é outro.
+async function authServiceReachable(): Promise<boolean> {
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (!baseUrl) return false;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(`${baseUrl}/auth/v1/health`, {
+      headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? '' },
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+
 async function signInThroughAuthEndpoint(email: string, password: string): Promise<{ error: Error | null }> {
   const baseUrl = import.meta.env.VITE_SUPABASE_URL;
   const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -69,11 +91,26 @@ async function signInThroughAuthEndpoint(email: string, password: string): Promi
       return { error: new Error('Authentication response did not include a session') };
     }
 
-    const { error } = await supabase.auth.setSession({
-      access_token: payload.access_token,
-      refresh_token: payload.refresh_token,
-    });
-    return { error: error as Error | null };
+    try {
+      const { error } = await supabase.auth.setSession({
+        access_token: payload.access_token,
+        refresh_token: payload.refresh_token,
+      });
+      if (error) {
+        const storageError = new Error(error.message) as AuthErrorWithStatus;
+        storageError.code = 'session_storage_blocked';
+        return { error: storageError };
+      }
+      return { error: null };
+    } catch (storageFailure) {
+      // Credenciais corretas, mas o navegador bloqueou o armazenamento da sessão.
+      const storageError = new Error(
+        storageFailure instanceof Error ? storageFailure.message : 'Session storage blocked',
+      ) as AuthErrorWithStatus;
+      storageError.code = 'session_storage_blocked';
+      return { error: storageError };
+    }
+
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       return { error: new TypeError('Authentication request timed out') };
@@ -129,8 +166,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (attempt === 0) await wait(700);
     }
 
-    const fallback = await signInThroughAuthEndpoint(email, password);
-    return fallback.error ? { error: fallback.error ?? lastError } : { error: null };
+    let fallback = await signInThroughAuthEndpoint(email, password);
+    if (!fallback.error) return { error: null };
+    if (!isConnectionError(fallback.error)) return { error: fallback.error };
+
+    // Antes de dizer que o aparelho não conecta, confirmamos se o serviço responde daqui.
+    const reachable = await authServiceReachable();
+    if (reachable) {
+      await wait(900);
+      fallback = await signInThroughAuthEndpoint(email, password);
+      if (!fallback.error) return { error: null };
+      if (!isConnectionError(fallback.error)) return { error: fallback.error };
+      const unstable = new Error('Authentication service unstable') as AuthErrorWithStatus;
+      unstable.status = 503;
+      unstable.code = 'service_unstable';
+      return { error: unstable };
+    }
+
+    return { error: fallback.error ?? lastError };
+
   };
 
 
