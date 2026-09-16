@@ -46,7 +46,12 @@ export default function LoginPage() {
       setLoading(false);
       const message = error.message.toLowerCase();
       const status = (error as Error & { status?: number }).status;
-      if (message.includes('email not confirmed')) {
+      const code = (error as Error & { code?: string }).code;
+      if (code === 'session_storage_blocked') {
+        setError('Seu usuário e senha estão corretos, mas o navegador bloqueou o salvamento do acesso. Saia do modo anônimo, libere os cookies deste site e tente de novo.');
+      } else if (code === 'service_unstable' || (typeof status === 'number' && status >= 500)) {
+        setError('O acesso está temporariamente indisponível. Tente novamente em alguns instantes.');
+      } else if (message.includes('email not confirmed')) {
         setError('Confirme seu e-mail antes de entrar.');
       } else if (message.includes('rate limit') || message.includes('too many')) {
         setError('Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.');
@@ -58,12 +63,11 @@ export default function LoginPage() {
         message.includes('load failed') ||
         message.includes('timed out')
       ) {
-        setError('Não foi possível conectar este aparelho ao sistema. Troque de rede ou desative bloqueadores e tente novamente.');
-      } else if (typeof status === 'number' && status >= 500) {
-        setError('O acesso está temporariamente indisponível. Tente novamente em alguns instantes.');
+        setError('Não foi possível conectar este aparelho ao sistema. Troque de rede (tente o 4G do celular) ou desative bloqueadores/VPN e tente novamente.');
       } else {
         setError('Usuário ou senha incorretos.');
       }
+
     } else {
       // ProtectedRoute is the single source of truth for the user's landing page.
       // Avoid duplicate permission queries here, which previously raced session hydration.
