@@ -26,6 +26,28 @@ const isConnectionError = (error: unknown) => {
 
 const wait = (milliseconds: number) => new Promise(resolve => setTimeout(resolve, milliseconds));
 
+// Verifica se o serviço de contas responde a partir DESTE aparelho.
+// Serve para não culpar a rede do usuário quando o problema é outro.
+async function authServiceReachable(): Promise<boolean> {
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (!baseUrl) return false;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(`${baseUrl}/auth/v1/health`, {
+      headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? '' },
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+
 async function signInThroughAuthEndpoint(email: string, password: string): Promise<{ error: Error | null }> {
   const baseUrl = import.meta.env.VITE_SUPABASE_URL;
   const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
