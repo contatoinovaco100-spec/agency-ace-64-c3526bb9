@@ -45,13 +45,22 @@ export default function LoginPage() {
     if (error) {
       setLoading(false);
       const message = error.message.toLowerCase();
+      const status = (error as Error & { status?: number }).status;
       if (message.includes('email not confirmed')) {
         setError('Confirme seu e-mail antes de entrar.');
       } else if (message.includes('rate limit') || message.includes('too many')) {
         setError('Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.');
-      } else if (message.includes('network') || message.includes('fetch')) {
-        setError('O servidor de login está instável no momento. Aguarde alguns segundos e tente novamente.');
-
+      } else if (
+        error instanceof TypeError ||
+        message.includes('failed to fetch') ||
+        message.includes('network request failed') ||
+        message.includes('networkerror') ||
+        message.includes('load failed') ||
+        message.includes('timed out')
+      ) {
+        setError('Não foi possível conectar este aparelho ao sistema. Troque de rede ou desative bloqueadores e tente novamente.');
+      } else if (typeof status === 'number' && status >= 500) {
+        setError('O acesso está temporariamente indisponível. Tente novamente em alguns instantes.');
       } else {
         setError('Usuário ou senha incorretos.');
       }
