@@ -166,8 +166,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (attempt === 0) await wait(700);
     }
 
-    const fallback = await signInThroughAuthEndpoint(email, password);
-    return fallback.error ? { error: fallback.error ?? lastError } : { error: null };
+    let fallback = await signInThroughAuthEndpoint(email, password);
+    if (!fallback.error) return { error: null };
+    if (!isConnectionError(fallback.error)) return { error: fallback.error };
+
+    // Antes de dizer que o aparelho não conecta, confirmamos se o serviço responde daqui.
+    const reachable = await authServiceReachable();
+    if (reachable) {
+      await wait(900);
+      fallback = await signInThroughAuthEndpoint(email, password);
+      if (!fallback.error) return { error: null };
+      if (!isConnectionError(fallback.error)) return { error: fallback.error };
+      const unstable = new Error('Authentication service unstable') as AuthErrorWithStatus;
+      unstable.status = 503;
+      unstable.code = 'service_unstable';
+      return { error: unstable };
+    }
+
+    return { error: fallback.error ?? lastError };
+
   };
 
 
