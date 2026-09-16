@@ -91,11 +91,26 @@ async function signInThroughAuthEndpoint(email: string, password: string): Promi
       return { error: new Error('Authentication response did not include a session') };
     }
 
-    const { error } = await supabase.auth.setSession({
-      access_token: payload.access_token,
-      refresh_token: payload.refresh_token,
-    });
-    return { error: error as Error | null };
+    try {
+      const { error } = await supabase.auth.setSession({
+        access_token: payload.access_token,
+        refresh_token: payload.refresh_token,
+      });
+      if (error) {
+        const storageError = new Error(error.message) as AuthErrorWithStatus;
+        storageError.code = 'session_storage_blocked';
+        return { error: storageError };
+      }
+      return { error: null };
+    } catch (storageFailure) {
+      // Credenciais corretas, mas o navegador bloqueou o armazenamento da sessão.
+      const storageError = new Error(
+        storageFailure instanceof Error ? storageFailure.message : 'Session storage blocked',
+      ) as AuthErrorWithStatus;
+      storageError.code = 'session_storage_blocked';
+      return { error: storageError };
+    }
+
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       return { error: new TypeError('Authentication request timed out') };
