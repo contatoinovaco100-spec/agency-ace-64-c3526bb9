@@ -11,6 +11,79 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
+type AuthErrorWithStatus = Error & { status?: number; code?: string };
+
+const isConnectionError = (error: unknown) => {
+  if (error instanceof TypeError) return true;
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
+  return message.includes('failed to fetch') ||
+    message.includes('networkerror') ||
+    message.includes('network request failed') ||
+    message.includes('load failed') ||
+    message.includes('timeout') ||
+    message.includes('timed out');
+};
+
+const wait = (milliseconds: number) => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+async function signInThroughAuthEndpoint(email: string, password: string): Promise<{ error: Error | null }> {
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!baseUrl || !publishableKey) {
+    return { error: new TypeError('Authentication service configuration unavailable') };
+  }
+
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const response = await fetch(`${baseUrl}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: {
+        apikey: publishableKey,
+        Authorization: `Bearer ${publishableKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+      signal: controller.signal,
+    });
+    const payload = await response.json().catch(() => ({})) as {
+      access_token?: string;
+      refresh_token?: string;
+      message?: string;
+      error_description?: string;
+      error_code?: string;
+      code?: string;
+    };
+
+    if (!response.ok) {
+      const authError = new Error(
+        payload.message || payload.error_description || 'Authentication failed',
+      ) as AuthErrorWithStatus;
+      authError.status = response.status;
+      authError.code = payload.error_code || payload.code;
+      return { error: authError };
+    }
+
+    if (!payload.access_token || !payload.refresh_token) {
+      return { error: new Error('Authentication response did not include a session') };
+    }
+
+    const { error } = await supabase.auth.setSession({
+      access_token: payload.access_token,
+      refresh_token: payload.refresh_token,
+    });
+    return { error: error as Error | null };
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return { error: new TypeError('Authentication request timed out') };
+    }
+    return { error: error instanceof Error ? error : new Error('Authentication request failed') };
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -35,25 +108,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    // O serviço de contas pode reiniciar/oscilar por alguns segundos.
-    // Nesses casos o supabase-js lança "Failed to fetch": tentamos novamente antes de falhar.
+    // A chamada padrão pode falhar em alguns navegadores por bloqueios locais de
+    // armazenamento/rede. Nessa situação, repetimos uma vez e usamos o endpoint
+    // oficial diretamente antes de concluir que há um problema de conexão.
     let lastError: Error | null = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (!error) return { error: null };
-        const msg = error.message.toLowerCase();
-        const retryable =
-          msg.includes('fetch') || msg.includes('network') || msg.includes('timeout') ||
-          (typeof (error as { status?: number }).status === 'number' && (error as { status?: number }).status! >= 500);
+        const status = (error as AuthErrorWithStatus).status;
+        const retryable = isConnectionError(error) || (typeof status === 'number' && status >= 500);
         if (!retryable) return { error: error as Error };
         lastError = error as Error;
       } catch (e) {
-        lastError = e as Error;
+        if (!isConnectionError(e)) {
+          return { error: e instanceof Error ? e : new Error('Authentication failed') };
+        }
+        lastError = e instanceof Error ? e : new Error('Authentication request failed');
       }
-      await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+      if (attempt === 0) await wait(700);
     }
-    return { error: lastError };
+
+    const fallback = await signInThroughAuthEndpoint(email, password);
+    return fallback.error ? { error: fallback.error ?? lastError } : { error: null };
   };
 
 
