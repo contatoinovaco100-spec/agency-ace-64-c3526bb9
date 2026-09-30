@@ -1,4 +1,4 @@
-/* Fonte Inter agora é carregada via <link> no index.html (não-bloqueante) */
+/* Fontes locais: sem dependência de serviços externos. */
 
 @tailwind base;
 @tailwind components;
@@ -69,7 +69,13 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    font-family: "Manrope", system-ui, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Sora", "Manrope", system-ui, sans-serif;
+    letter-spacing: 0;
   }
 
   .tabular-nums {
@@ -84,6 +90,29 @@
 
   .transition-default {
     transition: all 200ms cubic-bezier(0.2, 0, 0, 1);
+  }
+}
+
+/* Dashboard executivo: superfícies precisas, densidade alta e hierarquia clara. */
+.admin-dashboard [class*="rounded-[2rem]"] {
+  border-radius: 0.5rem !important;
+}
+
+.admin-dashboard [data-radix-collection-item] {
+  letter-spacing: 0;
+}
+
+.admin-dashboard .recharts-cartesian-grid line {
+  stroke: hsl(var(--border));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-dashboard *,
+  .admin-dashboard *::before,
+  .admin-dashboard *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

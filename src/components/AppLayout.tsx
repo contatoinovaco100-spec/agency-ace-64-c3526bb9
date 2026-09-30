@@ -33,7 +33,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
 
   return (
-    <div className="flex h-screen w-full bg-background flex-col lg:flex-row overflow-hidden">
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-background lg:flex-row">
       {/* Mobile Header */}
       <header className="flex h-14 items-center justify-between border-b border-border bg-sidebar/95 backdrop-blur-md px-4 lg:hidden sticky top-0 z-50">
         <img src={logoInova} alt="INOVA Co." className="h-7" />
@@ -55,22 +55,22 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex h-full flex-col border-r border-border bg-sidebar transition-all duration-300 lg:static',
+          'fixed inset-y-0 left-0 z-40 flex h-full flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 lg:static',
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
-          collapsed ? 'lg:w-16' : 'lg:w-60',
-          'w-60 flex-shrink-0'
+          collapsed ? 'lg:w-16' : 'lg:w-64',
+          'w-64 flex-shrink-0'
         )}
       >
-        <div className="hidden h-14 items-center gap-2 border-b border-border px-4 lg:flex flex-shrink-0">
+        <div className="hidden h-16 flex-shrink-0 items-center gap-2 border-b border-sidebar-border px-4 lg:flex">
           <img src={logoInova} alt="INOVA Co." className={cn('transition-all duration-300', collapsed ? 'h-8 w-8 object-contain' : 'h-8')} />
           {!collapsed && <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">v1.2</span>}
         </div>
 
-        <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-4">
+        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
           {grouped.map(({ category, items }) => (
             <div key={category} className="space-y-1">
               {!collapsed && (
-                <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <div className="px-3 py-1 text-[9px] font-semibold uppercase text-muted-foreground/60">
                   {category}
                 </div>
               )}
@@ -85,7 +85,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       target="_blank"
                       rel="noopener noreferrer"
                       className={cn(
-                        'flex items-center gap-3 rounded-md px-3 py-2 text-body transition-all duration-200',
+                        'flex items-center gap-3 rounded-md px-3 py-2 text-xs font-medium transition-colors duration-200',
                         'text-muted-foreground hover:bg-secondary hover:text-foreground'
                       )}
                     >
@@ -104,11 +104,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     end={item.path === '/'}
                     onClick={() => setMobileMenuOpen(false)}
                     className={cn(
-                      'flex items-center gap-3 rounded-md px-3 py-2 text-body transition-all duration-200',
+                      'flex items-center gap-3 rounded-md px-3 py-2 text-xs font-medium transition-colors duration-200',
                       item.highlight
                         ? 'bg-primary text-primary-foreground font-semibold shadow-sm hover:bg-primary/90'
                         : isActive
-                          ? 'bg-primary/10 text-primary'
+                          ? 'bg-primary/10 text-primary ring-1 ring-primary/15'
                           : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                     )}
                     activeClassName=""
@@ -124,7 +124,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <div className="border-t border-border flex-shrink-0">
+        <div className="flex-shrink-0 border-t border-sidebar-border">
           {(!collapsed || mobileMenuOpen) && user && (
             <div className="px-4 py-2 text-xs text-muted-foreground truncate font-medium">
               {user.email}
@@ -157,8 +157,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background h-full">
-        <div className="mx-auto w-full max-w-screen-2xl px-2.5 py-3 sm:px-6 sm:py-6 lg:px-8">
+      <main className="h-full flex-1 overflow-x-hidden overflow-y-auto bg-background">
+        <div className="mx-auto w-full max-w-[1720px] px-3 py-4 sm:px-6 sm:py-6 lg:px-7">
           {children}
         </div>
       </main>

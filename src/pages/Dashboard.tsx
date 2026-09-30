@@ -500,40 +500,37 @@ export default function Dashboard() {
   const greeting = hour < 12 ? 'BOM DIA' : hour < 18 ? 'BOA TARDE' : 'BOA NOITE';
 
   return (
-    <div className="space-y-8 relative">
-      {/* Ambient glow */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-primary/[0.05] blur-[140px]" />
-        <div className="absolute top-1/3 -right-40 h-[400px] w-[400px] rounded-full bg-primary/[0.04] blur-[120px]" />
-      </div>
-
-
-      {/* Header — Bento moderno */}
+    <div className="admin-dashboard space-y-5">
+      {/* Executive header */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
-        className="flex flex-col md:flex-row md:items-end justify-between gap-6"
+        className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-center md:justify-between"
       >
-        <div className="space-y-1">
-          <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.2em]">Dashboard Principal</p>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 bg-primary" />
+            <p className="text-[10px] font-semibold uppercase text-muted-foreground">Resumo operacional</p>
+          </div>
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
             {greeting}, <span className="text-primary">INOVA CO.</span>
           </h1>
+          <p className="text-xs text-muted-foreground">Indicadores financeiros, carteira e desempenho da operação.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
             variant="outline"
             onClick={() => requestPermission()}
-            className="hidden sm:flex gap-2 rounded-xl border-border/60"
+            className="hidden gap-2 rounded-md border-border sm:flex"
           >
             <BellRing className="h-4 w-4" /> Habilitar Push
           </Button>
           <Button
             size="sm"
             onClick={() => triggerNotification("Nova Venda Realizada! 🎉", "O cliente fechou o contrato de R$ 5.000,00.", "success", "sale")}
-            className="gap-2 rounded-xl bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white"
+            className="gap-2 rounded-md bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))] hover:bg-[hsl(var(--success))]/90"
           >
             <BellRing className="h-4 w-4" /> Venda
           </Button>
@@ -541,29 +538,27 @@ export default function Dashboard() {
             size="sm"
             variant="destructive"
             onClick={() => triggerNotification("Tarefa Atrasada 🚨", "A entrega da Landing Page está atrasada.", "error", "overdue")}
-            className="gap-2 rounded-xl"
+            className="gap-2 rounded-md"
           >
             <AlertTriangle className="h-4 w-4" /> Atraso
           </Button>
         </div>
       </motion.div>
 
-      {/* Tabs — pill style */}
-      <Tabs defaultValue="financeiro" className="space-y-6">
-        <TabsList className="inline-flex h-auto bg-card/70 backdrop-blur-xl border border-border/60 rounded-2xl p-1.5 gap-1">
-          <TabsTrigger value="financeiro" className="gap-2 rounded-xl px-5 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_24px_-4px_hsl(73,93%,55%/0.5)]">
+      <Tabs defaultValue="financeiro" className="space-y-5">
+        <TabsList className="inline-flex h-9 gap-0 rounded-md border border-border bg-card p-0.5">
+          <TabsTrigger value="financeiro" className="h-8 gap-2 rounded px-4 text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <DollarSign className="h-4 w-4" /> Financeiro
           </TabsTrigger>
-          <TabsTrigger value="entregas" className="gap-2 rounded-xl px-5 py-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_24px_-4px_hsl(73,93%,55%/0.5)]">
+          <TabsTrigger value="entregas" className="h-8 gap-2 rounded px-4 text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <CheckSquare className="h-4 w-4" /> Entregas
           </TabsTrigger>
         </TabsList>
 
 
         {/* ==================== FINANCIAL TAB ==================== */}
-        <TabsContent value="financeiro" className="space-y-6">
-          {/* Top KPIs — Bento */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <TabsContent value="financeiro" className="space-y-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {[
               { label: 'MRR', value: formatCurrency(mrr), icon: DollarSign, accent: 'text-primary', highlight: true, hint: '' },
               { label: 'Receita Anual Projetada', value: formatCurrency(mrr * 12), icon: TrendingUp, accent: 'text-muted-foreground', highlight: false, hint: '' },
@@ -572,17 +567,17 @@ export default function Dashboard() {
               { label: 'Churn', value: `${churnRate.toFixed(1)}%`, icon: TrendingDown, accent: 'text-destructive', highlight: false, hint: `${churnedClients.length} cancelados · ${churnRate30.toFixed(1)}% em 30 dias · ${formatCurrency(churnedMrr)}/mês perdidos` },
             ].map((kpi, i) => (
               <motion.div key={kpi.label} {...anim(i)}>
-                <div className="group relative bg-card p-6 rounded-[2rem] border border-border/60 hover:border-primary/40 transition-all duration-300 hover:-translate-y-0.5">
-                  <div className="flex justify-between items-start mb-6">
-                    <div className={`p-2.5 rounded-xl bg-secondary/70 ${kpi.accent}`}>
-                      <kpi.icon className="h-5 w-5" />
+                <div className="group relative min-h-[138px] rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/40">
+                  <div className="mb-5 flex items-start justify-between">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-md bg-secondary ${kpi.accent}`}>
+                      <kpi.icon className="h-4 w-4" />
                     </div>
                     {kpi.highlight && (
-                      <span className="text-primary text-[10px] font-bold bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider">Live</span>
+                      <span className="rounded bg-primary/10 px-2 py-1 text-[9px] font-bold uppercase text-primary">Live</span>
                     )}
                   </div>
-                  <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider mb-1.5">{kpi.label}</p>
-                  <h3 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums text-foreground">{kpi.value}</h3>
+                  <p className="mb-1 text-[10px] font-semibold uppercase text-muted-foreground">{kpi.label}</p>
+                  <h3 className="text-xl font-bold tabular-nums text-foreground sm:text-2xl">{kpi.value}</h3>
                   {kpi.hint && <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{kpi.hint}</p>}
                 </div>
               </motion.div>
@@ -591,28 +586,27 @@ export default function Dashboard() {
 
           {/* === Meta de Faturamento === */}
           <motion.div {...anim(4)}>
-            <div className="relative overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-br from-card via-card to-primary/[0.04] p-6">
-              <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-primary/10 blur-3xl" />
-              <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div className="overflow-hidden rounded-lg border border-primary/25 bg-card p-5">
+              <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
                     <Rocket className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">Próxima Meta</p>
-                    <h3 className="text-xl font-bold text-foreground">Faturamento mensal · <span className="text-primary">{goalLabel}</span></h3>
+                    <p className="text-[10px] font-bold uppercase text-primary">Próxima meta</p>
+                    <h3 className="text-base font-bold text-foreground">Faturamento mensal · <span className="text-primary">{goalLabel}</span></h3>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold tabular-nums text-foreground">{formatCurrency(mrr)}</p>
+                  <p className="text-xl font-bold tabular-nums text-foreground">{formatCurrency(mrr)}</p>
                   <p className="text-xs text-muted-foreground tabular-nums">
                     Faltam {formatCurrency(Math.max(0, nextGoal - mrr))} para bater a meta
                   </p>
                 </div>
               </div>
-              <div className="relative h-3 w-full overflow-hidden rounded-full bg-secondary/60">
+              <div className="mt-4 h-2 w-full overflow-hidden rounded-sm bg-secondary">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-primary to-[hsl(var(--success))] shadow-[0_0_20px_hsl(73,93%,55%/0.5)] transition-all duration-700"
+                  className="h-full bg-primary transition-all duration-700"
                   style={{ width: `${goalProgress}%` }}
                 />
               </div>
