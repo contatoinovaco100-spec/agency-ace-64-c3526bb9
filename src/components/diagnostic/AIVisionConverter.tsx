@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, X, Sparkles, Image as ImageIcon, Loader2, AlertCircle, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -30,6 +31,7 @@ export const AIVisionConverter: React.FC<AIVisionConverterProps> = ({ onDataExtr
   const [isProcessing, setIsProcessing] = useState(false);
   const [notes, setNotes] = useState("");
   const [videoCount, setVideoCount] = useState(12);
+  const [analysisTone, setAnalysisTone] = useState<'balanced' | 'critical'>('balanced');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -87,6 +89,14 @@ REGRAS DE OURO:
 5. Use linguagem de agência premium, focada em conversão e crescimento.
 6. CONSIDERE ESTAS OBSERVAÇÕES DO USUÁRIO: ${notes || 'Nenhuma observação extra.'}
 7. SEJA CONCISO E DIRETO. Evite parágrafos longos. Foco em impacto imediato.
+
+TOM ESCOLHIDO: ${analysisTone === 'critical' ? `ANÁLISE NEGATIVA — MÁXIMO RIGOR PROFISSIONAL.
+- Priorize todos os problemas reais e oportunidades de melhoria observáveis no perfil: bio, posicionamento, identidade visual, conteúdo, autoridade, destaques e conversão.
+- Seja direto, exigente e específico. Não suavize problemas com elogios artificiais nem use uma nota mínima para tornar a análise positiva.
+- Para cada problema, explique a evidência visível, o impacto potencial e a correção prática; diferencie fatos observados de hipóteses e do que não pode ser confirmado pelo print.
+- Só marque um ponto do checklist como atendido quando houver evidência clara de que cumpre o critério por inteiro. Não invente defeitos, métricas, perda de vendas ou desempenho que o print não comprova.
+- Liste positivos apenas quando forem reais. A conclusão deve priorizar as melhorias mais urgentes, sem afirmar que o perfil está pronto para escalar.
+- Avalie o perfil e a estratégia, sem insultos à pessoa ou à marca. Preserve os 10 critérios existentes e o desconto de 10% por ponto perdido.` : 'ANÁLISE EQUILIBRADA: apresente qualidades reais e pontos de melhoria com evidências, sem inventar resultados.'}
 
 O SEU RESULTADO DEVE SER UM JSON NO SEGUINTE FORMATO:
 {
@@ -158,6 +168,7 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
       }
       // Add the public URL to the result
       result.imageUrl = publicUrl;
+      result.analysisTone = analysisTone;
       
       onDataExtracted(result);
       toast.success("Diagnóstico gerado com sucesso!", { id: toastId });
@@ -217,6 +228,25 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
         </div>
 
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 text-left">
+           <div className="sm:col-span-2">
+              <label className="mb-2 block text-sm font-semibold text-foreground">Tipo de análise</label>
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                value={analysisTone}
+                onValueChange={value => {
+                  if (value === 'balanced' || value === 'critical') setAnalysisTone(value);
+                }}
+                disabled={isProcessing}
+                aria-label="Tipo de análise do perfil"
+                className="justify-start flex-wrap"
+              >
+                <ToggleGroupItem value="balanced" aria-label="Análise equilibrada">Equilibrada</ToggleGroupItem>
+                <ToggleGroupItem value="critical" aria-label="Análise negativa — máximo rigor">
+                  <AlertCircle className="mr-2 h-4 w-4" /> Negativa · Máximo rigor
+                </ToggleGroupItem>
+              </ToggleGroup>
+           </div>
            <div>
               <label className="text-[10px] font-black uppercase text-primary tracking-widest mb-2 block ml-1">Observações Adicionais</label>
               <textarea 
