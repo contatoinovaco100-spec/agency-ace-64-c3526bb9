@@ -210,7 +210,7 @@ export default function DiagnosticEditorPage() {
         conversao: 65
       },
       final: {
-        destaque: "Pronto para Escala",
+        destaque: data.analysisTone === 'critical' ? "Prioridades de melhoria" : "Pronto para Escala",
         texto: data.diagnosticoFinal || "Diagnóstico gerado automaticamente via IA.",
         acao1: data.planoAcao?.[0] || 'Otimizar Bio e Link na Bio.',
         acao2: data.planoAcao?.[1] || 'Melhorar clareza da proposta de valor.',
