@@ -192,6 +192,35 @@ interface Diagnosis {
     potencial: string;
   };
   alertas: { tipo: Status; mensagem: string }[];
+  checklist?: { id: number; ok: boolean; motivo?: string }[];
+}
+
+/** 10 pontos que um perfil/campanha precisa ter para ser bom. Cada ponto perdido = -10%. */
+export const QUALITY_POINTS: { id: number; titulo: string; criterio: string }[] = [
+  { id: 1, titulo: 'CTR saudável', criterio: 'CTR (taxa de cliques) igual ou acima de 1%.' },
+  { id: 2, titulo: 'Custo por clique controlado', criterio: 'CPC dentro ou abaixo da média do mercado BR para o nicho.' },
+  { id: 3, titulo: 'CPM eficiente', criterio: 'Custo por mil impressões dentro da média do mercado.' },
+  { id: 4, titulo: 'Frequência equilibrada', criterio: 'Frequência abaixo de 3 (público não saturado).' },
+  { id: 5, titulo: 'Alcance relevante', criterio: 'Alcance/impressões compatíveis com o investimento.' },
+  { id: 6, titulo: 'Conversões ou leads gerados', criterio: 'Existem conversões, leads ou mensagens registradas.' },
+  { id: 7, titulo: 'Custo por resultado saudável', criterio: 'CPA / custo por lead dentro do aceitável para o nicho.' },
+  { id: 8, titulo: 'Retorno positivo', criterio: 'ROAS acima de 2x ou resultado claramente lucrativo.' },
+  { id: 9, titulo: 'Evolução vs período anterior', criterio: 'Principais métricas melhoraram em relação ao período anterior.' },
+  { id: 10, titulo: 'Objetivo e estrutura corretos', criterio: 'Objetivo da campanha coerente com a meta e estrutura organizada.' },
+];
+
+/** Nota = 100 - 10 por ponto não atendido. */
+export function scoreFromChecklist(checklist?: { id: number; ok: boolean }[]): number | null {
+  if (!Array.isArray(checklist) || checklist.length === 0) return null;
+  const failed = QUALITY_POINTS.filter((p) => {
+    const item = checklist.find((c) => Number(c.id) === p.id);
+    return !item || !item.ok;
+  }).length;
+  return Math.max(0, 100 - failed * 10);
+}
+
+function statusFromScore(score: number): Status {
+  return score >= 70 ? 'good' : score >= 40 ? 'warning' : 'bad';
 }
 
 const DEFAULT_WHATSAPP_NUMBER = '5588994463203';
