@@ -10,6 +10,20 @@ interface AIVisionConverterProps {
   onBack: () => void;
 }
 
+/** 10 pontos que um perfil precisa ter para ser bom. Cada ponto perdido = -10% na nota geral. */
+const PROFILE_POINTS: { id: number; cat: 'posicionamento' | 'presenca' | 'autoridade' | 'conversao'; titulo: string; criterio: string }[] = [
+  { id: 1, cat: 'posicionamento', titulo: 'Nicho claro', criterio: 'Fica claro em segundos o que a marca faz e para quem.' },
+  { id: 2, cat: 'posicionamento', titulo: 'Bio com proposta de valor', criterio: 'A bio diz qual resultado/benefício o cliente recebe.' },
+  { id: 3, cat: 'posicionamento', titulo: 'Nome e @ fáceis de achar', criterio: 'Nome do perfil com palavra-chave do nicho/cidade.' },
+  { id: 4, cat: 'presenca', titulo: 'Foto de perfil profissional', criterio: 'Logo ou foto nítida e reconhecível.' },
+  { id: 5, cat: 'presenca', titulo: 'Identidade visual consistente', criterio: 'Feed com cores, fontes e estilo padronizados.' },
+  { id: 6, cat: 'autoridade', titulo: 'Frequência de postagem', criterio: 'Posts recentes e constantes (3x por semana ou mais).' },
+  { id: 7, cat: 'autoridade', titulo: 'Prova social', criterio: 'Depoimentos, resultados ou clientes visíveis (feed ou destaques).' },
+  { id: 8, cat: 'autoridade', titulo: 'Destaques organizados', criterio: 'Destaques com capas e temas úteis (serviços, depoimentos, sobre).' },
+  { id: 9, cat: 'conversao', titulo: 'Link / contato na bio', criterio: 'Link de WhatsApp, site ou agendamento funcionando.' },
+  { id: 10, cat: 'conversao', titulo: 'Chamada para ação', criterio: 'Bio e posts pedem uma ação clara (chamar no direct, agendar, comprar).' },
+];
+
 export const AIVisionConverter: React.FC<AIVisionConverterProps> = ({ onDataExtracted, onBack }) => {
   const [image, setImage] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -101,6 +115,9 @@ O SEU RESULTADO DEVE SER UM JSON NO SEGUINTE FORMATO:
   }
 }
 
+CHECKLIST OBRIGATÓRIO DOS 10 PONTOS: avalie com rigor cada ponto abaixo e inclua no JSON a chave "checklist": [{"id": 1, "ok": true|false, "motivo": "frase curta com o que você viu"}] com os 10 itens. Marque false se não atende ou se não há evidência no print. NÃO invente notas em "scores" — o sistema calcula a partir do checklist.
+${PROFILE_POINTS.map(p => `${p.id}. ${p.titulo}: ${p.criterio}`).join('\n')}
+
 IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
 
       const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-copywriter', {
@@ -122,6 +139,23 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
         result = JSON.parse(cleanText);
       }
       if (!result) throw new Error('IA não retornou dados');
+      // Nota baseada nos 10 pontos: cada ponto perdido tira 10% da média geral
+      if (Array.isArray(result.checklist) && result.checklist.length > 0) {
+        const lost = PROFILE_POINTS.filter(p => !result.checklist.find((c: any) => Number(c.id) === p.id && c.ok));
+        const cats = ['posicionamento', 'presenca', 'autoridade', 'conversao'] as const;
+        result.scores = Object.fromEntries(cats.map(c => [c, Math.max(0, 100 - 40 * lost.filter(p => p.cat === c).length)]));
+        result.checklist = PROFILE_POINTS.map(p => {
+          const c = result.checklist.find((x: any) => Number(x.id) === p.id);
+          return { id: p.id, titulo: p.titulo, ok: !!c?.ok, motivo: c?.motivo || p.criterio };
+        });
+        const melhorias = lost.map(p => {
+          const c = result.checklist.find((x: any) => x.id === p.id);
+          return `Ponto de melhoria (-10%): ${p.titulo} — ${c?.motivo || p.criterio}`;
+        });
+        result.presencaDigital = result.presencaDigital || { positivos: [], negativos: [] };
+        result.presencaDigital.negativos = [...melhorias, ...(result.presencaDigital.negativos || [])];
+        result.notaGeral = 100 - lost.length * 10;
+      }
       // Add the public URL to the result
       result.imageUrl = publicUrl;
       
