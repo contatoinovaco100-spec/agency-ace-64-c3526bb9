@@ -419,7 +419,6 @@ REGRAS OBRIGATÓRIAS DO TOM POSITIVO:
 - Em "gargalo", use o pilar como OPORTUNIDADE (Criativo/Público/Oferta/Estrutura), sem conotação negativa.
 - Em "pontosFracos", escreva OPORTUNIDADES DE EVOLUÇÃO sempre com o ganho esperado. Ex: "Aumentar a frequência para 3-4 posts/semana pode acelerar o crescimento em até 2x".
 - "resumo.titulo" deve ser no mínimo "Boa" quando existir qualquer métrica saudável; prefira "Ótima base, pronta para escalar!" ou "Em crescimento, com potencial enorme!".
-- "resumo.scoreGeral" NUNCA abaixo de 60 quando houver resultados reais.
 - Em "alertas", escreva RECOMENDAÇÕES amigáveis começando com "Dica de ouro:" ou "Próximo passo sugerido:" — nunca alarmes.
 - Fale como um consultor parceiro que torce pelo cliente: "parabéns pelo alcance", "isso mostra que o conteúdo conecta", "com pequenos ajustes, o céu é o limite".`
         : `TOM DA MENSAGEM: CRÍTICO E DIRETO (NEGATIVO/ALERTA). Seja franco, urgente e mostre os riscos reais de manter a campanha como está. Use linguagem de alerta ("perda de dinheiro", "campanha sangrando verba", "urgente", "crítico"). Destaque o quanto está sendo desperdiçado e a necessidade de agir AGORA. Não suavize problemas.`;
@@ -441,7 +440,8 @@ REGRAS DE OURO:
    c) Se o print mostrar um gráfico com datas, use o valor aproximado do início do período como valueBefore e o valor atual como value.
    d) Somente se for realmente impossível saber o valor anterior, omita valueBefore.
 4. Seja DIRETO. Sem jargão. O cliente é leigo.
-5. Score geral de 0-100 baseado em performance global.
+5. CHECKLIST DOS 10 PONTOS (OBRIGATÓRIO): avalie com rigor e honestidade cada um dos 10 pontos abaixo e devolva "checklist" com os 10 itens ({"id", "ok": true|false, "motivo": frase curta com o dado real}). Marque "ok": false se o ponto não é atendido OU se não há evidência no print. Cada ponto não atendido tira 10% da nota (o sistema calcula). O tom (positivo/negativo) muda só o texto, NUNCA o julgamento dos pontos.
+${QUALITY_POINTS.map(p => `   ${p.id}. ${p.titulo}: ${p.criterio}`).join('\n')}
 6. Scores por dimensão (criativo, publico, oferta, estrutura): SEMPRE os quatro preenchidos com número de 0-100. Nunca null, nunca 0 sem motivo, nunca omitir o objeto "scores".
 7. Plano de ação: 5-7 ações com TÍTULO + DESCRIÇÃO + prioridade.
 8. KPIs destaque: 3-4 indicadores principais para colocar em cards grandes no topo.
@@ -497,6 +497,10 @@ Retorne APENAS JSON neste formato:
   },
   "alertas": [
     { "tipo": "warning", "mensagem": "Frequência alta (3.4) — possível saturação do público" }
+  ],
+  "checklist": [
+    { "id": 1, "ok": true, "motivo": "CTR de 1,8%, acima de 1%" },
+    { "id": 4, "ok": false, "motivo": "Frequência 3,4 — público começando a saturar" }
   ]
 }
 
@@ -520,6 +524,11 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
         result = JSON.parse(cleaned);
       }
       if (!result?.resumo) throw new Error('IA não retornou um relatório válido');
+      const computed = scoreFromChecklist(result.checklist);
+      if (computed !== null) {
+        result.resumo.scoreGeral = computed;
+        result.resumo.classificacao = statusFromScore(computed);
+      }
 
       // Save to DB with unique slug
       const newSlug = generateSlug(clientName);
@@ -968,6 +977,11 @@ IMPORTANTE: Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
                 periodo={diagnosis.campanha?.periodo}
               />
 
+              {/* 10 PONTOS DE MELHORIA */}
+              {diagnosis.checklist && diagnosis.checklist.length > 0 && (
+                <ChecklistSection checklist={diagnosis.checklist} />
+              )}
+
               {/* SCORES POR DIMENSÃO */}
               {diagnosis.scores && <ScoresSection scores={diagnosis.scores} />}
 
@@ -1097,6 +1111,39 @@ function HeroSection({ diagnosis }: { diagnosis: Diagnosis }) {
             </p>
           </div>
         </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function ChecklistSection({ checklist }: { checklist: NonNullable<Diagnosis['checklist']> }) {
+  const items = QUALITY_POINTS.map((p) => {
+    const c = checklist.find((x) => Number(x.id) === p.id);
+    return { ...p, ok: !!c?.ok, motivo: c?.motivo };
+  });
+  const lost = items.filter((i) => !i.ok);
+  const score = 100 - lost.length * 10;
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-black">Os 10 pontos de um perfil forte</h2>
+          <p className="text-sm text-muted-foreground">Cada ponto não atendido é um ponto de melhoria e reduz 10% da nota.</p>
+        </div>
+        <p className="text-3xl font-black tabular-nums text-primary">{score}%</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {items.map((i) => (
+          <div key={i.id} className={`rounded-xl border p-4 ${i.ok ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-amber-500/40 bg-amber-500/5'}`}>
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-semibold">{i.id}. {i.titulo}</p>
+              <span className={`shrink-0 text-xs font-bold ${i.ok ? 'text-emerald-500' : 'text-amber-500'}`}>
+                {i.ok ? 'Atendido' : 'Melhoria · -10%'}
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">{i.motivo || i.criterio}</p>
+          </div>
+        ))}
       </div>
     </section>
   );
