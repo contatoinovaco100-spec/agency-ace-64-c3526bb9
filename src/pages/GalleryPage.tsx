@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useAgency } from '@/contexts/AgencyContext';
 import { supabase } from '@/integrations/supabase/client';
 import { TaskAttachment } from '@/types/agency';
+import { isReferenceAttachment } from '@/lib/attachmentPurpose';
 
 interface MediaItem { 
   id: string; 
@@ -85,7 +86,7 @@ export default function GalleryPage() {
     const items: MediaItem[] = [];
     
     finalizedTasks.forEach(task => {
-      const taskAttachments = attachments.filter(a => a.taskId === task.id);
+      const taskAttachments = attachments.filter(a => a.taskId === task.id && !isReferenceAttachment(a.fileUrl));
       const clientName = clients.find(c => c.id === task.clientId)?.companyName || 'Sem cliente';
       const tag = (task.format || task.taskType || 'Geral').toLowerCase();
       const dateStr = new Date(task.dueDate || '').toLocaleDateString('pt-BR');

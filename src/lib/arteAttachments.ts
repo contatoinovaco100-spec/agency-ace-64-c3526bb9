@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { isReferenceAttachment } from './attachmentPurpose';
 
 export interface AttachmentRow {
   id: string;
@@ -61,6 +62,7 @@ export function prepareImageAttachments(rows: AttachmentRow[]): {
   const seen = new Set<string>();
 
   for (const r of rows) {
+    if (isReferenceAttachment(r.file_url || '')) continue;
     const fileUrl = r.file_url || '';
     const name = r.file_name;
     const isImage = isImageFile(name, r.file_type);

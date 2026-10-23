@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Paperclip, Send, Trash2, Link, Upload, MessageSquare, CheckSquare, FileText, X, Share2, Download, History, ArrowRight, FolderOpen, AlertTriangle } from 'lucide-react';
 import VideoUploader from './VideoUploader';
+import ReferenceFiles from './ReferenceFiles';
+import { isReferenceAttachment } from '@/lib/attachmentPurpose';
 import { getDraft, saveDraft, deleteDraft, newDraftId } from '@/lib/taskDrafts';
 
 import { cn } from '@/lib/utils';
@@ -47,6 +49,8 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
   const [checklist, setChecklist] = useState<TaskChecklistItem[]>([]);
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const referenceFiles = attachments.filter(a => isReferenceAttachment(a.fileUrl));
+  const finalFiles = attachments.filter(a => !isReferenceAttachment(a.fileUrl));
   const [stageHistory, setStageHistory] = useState<TaskStageHistory[]>([]);
   const [newComment, setNewComment] = useState('');
   const [commentAuthor, setCommentAuthor] = useState('');
@@ -735,7 +739,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
           <Tabs defaultValue={form.taskType === 'Arte' ? 'references' : 'checklist'} className="w-full">
             <TabsList className="w-full h-auto flex-wrap gap-0.5">
                   {form.taskType === 'Arte' && (
-                    <TabsTrigger value="references" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><Link className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Link ref</TabsTrigger>
+                    <TabsTrigger value="references" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><Link className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Referências</TabsTrigger>
                   )}
                   {form.taskType === 'Arte' && (
                     <TabsTrigger value="caption" className={cn('flex-1 gap-1 text-[10px] sm:text-xs py-1.5', isInvalidField(form.caption) && 'text-destructive border-destructive')}><FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Legenda</TabsTrigger>
@@ -744,7 +748,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                   <TabsTrigger value="alterations" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5 data-[state=active]:text-warning"><AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Alteração ({alterations.length})</TabsTrigger>
                   <TabsTrigger value="comments" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><MessageSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Notas ({plainComments.length})</TabsTrigger>
 
-                  <TabsTrigger value="attachments" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Arq ({attachments.length})</TabsTrigger>
+                  <TabsTrigger value="attachments" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> {form.taskType === 'Arte' ? 'Finalizados' : 'Arq'} ({finalFiles.length})</TabsTrigger>
                   <TabsTrigger value="history" className="flex-1 gap-1 text-[10px] sm:text-xs py-1.5"><History className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Hist ({stageHistory.length})</TabsTrigger>
                 </TabsList>
 
@@ -793,6 +797,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                     ) : (
                       <p className="text-sm text-muted-foreground">Nenhum link de referência adicionado.</p>
                     )}
+                    <ReferenceFiles taskId={task?.id} files={referenceFiles} onAdded={files => setAttachments(prev => [...prev, ...files])} onRemoved={id => setAttachments(prev => prev.filter(file => file.id !== id))} />
                   </TabsContent>
                 )}
 
@@ -953,7 +958,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                 {/* Attachments */}
                 <TabsContent value="attachments" className="space-y-3 mt-3">
                   <div className="space-y-2">
-                    {attachments.map(a => {
+                    {finalFiles.map(a => {
                       const m = (a.fileUrl || '').match(/\/task-attachments\/(.+?)(\?|$)/);
                       const storagePath = m ? decodeURIComponent(m[1]) : null;
                       const isLink = a.fileType === 'link' || !storagePath;
@@ -994,7 +999,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                         </div>
                       );
                     })}
-                    {attachments.length === 0 && <p className="text-sm text-muted-foreground">Nenhum anexo.</p>}
+                    {finalFiles.length === 0 && <p className="text-sm text-muted-foreground">Nenhum anexo.</p>}
                   </div>
                   {isNew ? (
                     <p className="text-sm text-muted-foreground">Salve o card para anexar arquivos ou links.</p>
