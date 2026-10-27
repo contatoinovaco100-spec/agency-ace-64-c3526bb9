@@ -58,6 +58,7 @@ const ClientContentPage    = lazy(() => import("./pages/ClientContentPage"));
 // LoginPage é importada de forma estática (eager) — é a rota mais acessada
 // e evitar o lazy elimina um round-trip de chunk antes do usuário ver o form.
 import LoginPage from "./pages/LoginPage";
+import OAuthConsent from "./pages/OAuthConsent";
 
 const ContractsPage        = lazy(() => import("./pages/ContractsPage"));
 const ContractSignPage     = lazy(() => import("./pages/ContractSignPage"));
@@ -214,6 +215,7 @@ function AppRoutes() {
       ) : (
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
           <Route
             path="/roleta"
             element={
