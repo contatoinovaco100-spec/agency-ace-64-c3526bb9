@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { oauthReturnPath } from '@/lib/oauth-return-path';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +14,9 @@ import logoInova from '@/assets/logo-inova.png';
 export default function LoginPage() {
   const { user, loading: authLoading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Destino pós-login validado (usado pelo fluxo de autorização de aplicativos).
+  const nextPath = oauthReturnPath(searchParams.get('next'));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [signUpSuccess, setSignUpSuccess] = useState(false);
@@ -30,9 +34,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      navigate('/', { replace: true });
+      navigate(nextPath, { replace: true });
     }
-  }, [authLoading, navigate, user]);
+  }, [authLoading, navigate, user, nextPath]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +75,7 @@ export default function LoginPage() {
     } else {
       // ProtectedRoute is the single source of truth for the user's landing page.
       // Avoid duplicate permission queries here, which previously raced session hydration.
-      navigate('/', { replace: true });
+      navigate(nextPath, { replace: true });
     }
   };
 
@@ -83,7 +87,8 @@ export default function LoginPage() {
       return;
     }
     setLoading(true);
-    const { error } = await signUp(signUpEmail, signUpPassword, signUpName);
+    const redirectTo = new URL(nextPath, window.location.origin).href;
+    const { error } = await signUp(signUpEmail, signUpPassword, signUpName, redirectTo);
     setLoading(false);
     if (error) {
       setError(error.message);
