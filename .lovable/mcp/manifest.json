@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "sdk_version": "3.3.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://cdzzewovtxotkghzeafr.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "plataforma-inova",
+      "version": "0.1.0",
+      "title": "Plataforma Inova"
+    },
+    "tools": [
+      {
+        "name": "list_clients",
+        "title": "Listar clientes",
+        "description": "Lista os clientes ativos da agência, com nome da empresa, contato, situação e valor mensal. Use para encontrar o id de um cliente.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "description": "Trecho do nome da empresa ou do contato para filtrar."
+            },
+            "status": {
+              "type": "string",
+              "description": "Filtrar por situação do cliente (ex.: ativo, cancelado)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Quantidade máxima de clientes retornados (padrão 50)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_tasks",
+        "title": "Listar tarefas",
+        "description": "Lista tarefas do kanban da agência, com título, etapa, prioridade e datas. Filtre por cliente ou etapa.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "client_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Id do cliente (veja list_clients) para ver só as tarefas dele."
+            },
+            "status": {
+              "type": "string",
+              "description": "Filtrar por etapa do kanban (ex.: a_fazer, em_andamento, concluido)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Quantidade máxima de tarefas retornadas (padrão 50)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_client",
+        "title": "Detalhes do cliente",
+        "description": "Mostra os detalhes de um cliente pelo id: contato, situação, valor mensal, escopo e quantidade de tarefas abertas.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Id do cliente (veja list_clients)."
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_task",
+        "title": "Criar tarefa",
+        "description": "Cria uma tarefa no kanban da agência, opcionalmente vinculada a um cliente. A tarefa entra na etapa inicial do fluxo.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Título da tarefa."
+            },
+            "client_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Id do cliente relacionado (veja list_clients)."
+            },
+            "description": {
+              "type": "string",
+              "description": "Descrição ou briefing da tarefa."
+            },
+            "task_type": {
+              "type": "string",
+              "description": "Tipo da tarefa (ex.: arte, video, reuniao)."
+            },
+            "priority": {
+              "type": "string",
+              "enum": [
+                "baixa",
+                "media",
+                "alta"
+              ],
+              "description": "Prioridade: baixa, media ou alta."
+            },
+            "due_date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Data de entrega no formato AAAA-MM-DD."
+            }
+          },
+          "required": [
+            "title"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
