@@ -21,7 +21,7 @@ const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.get
 const isImage = (a: Attachment) => /^image\//.test(a.file_type) || /\.(png|jpe?g|webp|gif)(\?|$)/i.test(a.file_url);
 
 export default function PlannerPage() {
-  const [view, setView] = useState<"week" | "month">("week");
+  const [view, setView] = useState<"week" | "month" | "client">("week");
   const [anchor, setAnchor] = useState(new Date());
   const [type, setType] = useState("all");
   const [clientFilter, setClientFilter] = useState("all");
@@ -51,11 +51,14 @@ export default function PlannerPage() {
     let active = true;
     (async () => {
       setLoading(true);
-      const { data } = await supabase.from("tasks")
+      let query = supabase.from("tasks")
         .select("id,title,task_type,status,client_id,post_date,post_time,due_date,video_url,platform")
         .is("deleted_at", null)
-        .or(`and(post_date.gte.${from},post_date.lte.${to}),and(post_date.is.null,due_date.gte.${from},due_date.lte.${to})`)
         .limit(2000);
+      if (view !== "client") {
+        query = query.or(`and(post_date.gte.${from},post_date.lte.${to}),and(post_date.is.null,due_date.gte.${from},due_date.lte.${to})`);
+      }
+      const { data } = await query;
       const list = (data ?? []) as Task[];
       const ids = list.map((t) => t.id);
       const map: Record<string, string> = {};
@@ -70,7 +73,7 @@ export default function PlannerPage() {
       setTasks(list); setThumbs(map); setLoading(false);
     })();
     return () => { active = false; };
-  }, [from, to]);
+  }, [from, to, view]);
 
   const filtered = tasks.filter((t) =>
     (type === "all" || (type === "arte" ? t.task_type === "Arte" : t.task_type !== "Arte")) &&
@@ -82,6 +85,20 @@ export default function PlannerPage() {
     Object.values(m).forEach((l) => l.sort((a, b) => (a.post_time ?? "99").localeCompare(b.post_time ?? "99")));
     return m;
   }, [filtered]);
+
+  const byClient = useMemo(() => {
+    const m: Record<string, Task[]> = {};
+    filtered.forEach((t) => { const k = t.client_id ?? "none"; (m[k] ||= []).push(t); });
+    return Object.entries(m)
+      .sort((a, b) => (clients[a[0]] ?? "").localeCompare(clients[b[0]] ?? ""))
+      .map(([cid, list]) => ({
+        client: cid === "none" ? "Sem cliente" : (clients[cid] ?? "Cliente removido"),
+        list: list.sort((a, b) => {
+          const da = a.post_date ?? a.due_date ?? "9999"; const db = b.post_date ?? b.due_date ?? "9999";
+          return da.localeCompare(db) || (a.post_time ?? "99").localeCompare(b.post_time ?? "99");
+        }),
+      }));
+  }, [filtered, clients]);
 
   const today = iso(new Date());
   const step = (n: number) => setAnchor(view === "week" ? addDays(anchor, 7 * n) : new Date(anchor.getFullYear(), anchor.getMonth() + n, 1));
@@ -97,10 +114,17 @@ export default function PlannerPage() {
     return (
       <button onClick={() => openTask(t)}
         className={`w-full text-left rounded-md border p-2 transition hover:border-primary ${done ? "bg-primary/10 border-primary/30" : "bg-card border-border"}`}>
-        <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-          <Clock className="h-3 w-3" />{t.post_time ? t.post_time.slice(0, 5) : "--:--"}
-          {isArte ? <ImageIcon className="h-3 w-3 ml-auto" /> : <Film className="h-3 w-3 ml-auto" />}
-        </div>
+        {(() => { const d = t.post_date ?? t.due_date; return d ? (
+          <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+            <Clock className="h-3 w-3" />{d.slice(8, 10)}/{d.slice(5, 7)}{t.post_time ? ` ${t.post_time.slice(0, 5)}` : ""}
+            {isArte ? <ImageIcon className="h-3 w-3 ml-auto" /> : <Film className="h-3 w-3 ml-auto" />}
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+            <Clock className="h-3 w-3" />sem data
+            {isArte ? <ImageIcon className="h-3 w-3 ml-auto" /> : <Film className="h-3 w-3 ml-auto" />}
+          </div>
+        ); })()}
         {!compact && (
           <div className="mt-1 aspect-[4/3] w-full overflow-hidden rounded bg-muted flex items-center justify-center">
             {thumbs[t.id] ? <img src={thumbs[t.id]} alt={t.title} loading="lazy" className="h-full w-full object-cover" />
@@ -123,14 +147,18 @@ export default function PlannerPage() {
       </div>
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
         <div className="flex rounded-md bg-muted p-1">
-          {(["week", "month"] as const).map((v) => (
-            <Button key={v} size="sm" variant={view === v ? "default" : "ghost"} onClick={() => setView(v)}>{v === "week" ? "Semana" : "Mês"}</Button>
+          {(["week", "month", "client"] as const).map((v) => (
+            <Button key={v} size="sm" variant={view === v ? "default" : "ghost"} onClick={() => setView(v)}>{v === "week" ? "Semana" : v === "month" ? "Mês" : "Por cliente"}</Button>
           ))}
         </div>
-        <Button size="icon" variant="ghost" onClick={() => step(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-        <Button size="sm" variant="ghost" onClick={() => setAnchor(new Date())}>Hoje</Button>
-        <Button size="icon" variant="ghost" onClick={() => step(1)}><ChevronRight className="h-4 w-4" /></Button>
-        <span className="font-semibold capitalize ml-2">{label}</span>
+        {view !== "client" && (
+          <>
+            <Button size="icon" variant="ghost" onClick={() => step(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => setAnchor(new Date())}>Hoje</Button>
+            <Button size="icon" variant="ghost" onClick={() => step(1)}><ChevronRight className="h-4 w-4" /></Button>
+            <span className="font-semibold capitalize ml-2">{label}</span>
+          </>
+        )}
         {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
         <div className="ml-auto flex flex-wrap gap-2">
           <Select value={type} onValueChange={setType}>
@@ -151,27 +179,46 @@ export default function PlannerPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <div className={`grid grid-cols-7 gap-2 ${view === "week" ? "min-w-[980px]" : "min-w-[760px]"}`}>
-          {DAYS.map((d, i) => view === "month" && <div key={d} className="text-center text-xs text-muted-foreground">{d}</div>)}
-          {days.map((d) => {
-            const key = iso(d); const list = byDay[key] ?? [];
-            const out = view === "month" && d.getMonth() !== anchor.getMonth();
-            return (
-              <div key={key} className={`rounded-lg border p-2 space-y-2 ${view === "month" ? "min-h-[120px]" : "min-h-[400px]"} ${out ? "opacity-40" : ""} ${key === today ? "border-primary" : "border-border"}`}>
-                <div className={`text-center text-sm rounded py-0.5 ${key === today ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground"}`}>
-                  {view === "week" ? `${DAYS[d.getDay()]} ${d.getDate()}` : d.getDate()}
-                  {list.length > 0 && <span className="ml-1 text-[10px]">({list.length})</span>}
-                </div>
-                {(view === "month" ? list.slice(0, 3) : list).map((t) => <Card key={t.id} t={t} compact={view === "month"} />)}
-                {view === "month" && list.length > 3 && (
-                  <button className="text-xs text-primary" onClick={() => { setAnchor(d); setView("week"); }}>+{list.length - 3} mais</button>
-                )}
+      {view === "client" ? (
+        <div className="space-y-4">
+          {byClient.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhuma tarefa encontrada com os filtros atuais.</p>
+          )}
+          {byClient.map(({ client, list }) => (
+            <div key={client} className="rounded-lg border bg-card p-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold">{client}</h2>
+                <span className="text-xs text-muted-foreground">({list.length})</span>
               </div>
-            );
-          })}
+              <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(180px,1fr))]">
+                {list.map((t) => <Card key={t.id} t={t} />)}
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <div className={`grid grid-cols-7 gap-2 ${view === "week" ? "min-w-[980px]" : "min-w-[760px]"}`}>
+            {DAYS.map((d) => view === "month" && <div key={d} className="text-center text-xs text-muted-foreground">{d}</div>)}
+            {days.map((d) => {
+              const key = iso(d); const list = byDay[key] ?? [];
+              const out = view === "month" && d.getMonth() !== anchor.getMonth();
+              return (
+                <div key={key} className={`rounded-lg border p-2 space-y-2 ${view === "month" ? "min-h-[120px]" : "min-h-[400px]"} ${out ? "opacity-40" : ""} ${key === today ? "border-primary" : "border-border"}`}>
+                  <div className={`text-center text-sm rounded py-0.5 ${key === today ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground"}`}>
+                    {view === "week" ? `${DAYS[d.getDay()]} ${d.getDate()}` : d.getDate()}
+                    {list.length > 0 && <span className="ml-1 text-[10px]">({list.length})</span>}
+                  </div>
+                  {(view === "month" ? list.slice(0, 3) : list).map((t) => <Card key={t.id} t={t} compact={view === "month"} />)}
+                  {view === "month" && list.length > 3 && (
+                    <button className="text-xs text-primary" onClick={() => { setAnchor(d); setView("week"); }}>+{list.length - 3} mais</button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
