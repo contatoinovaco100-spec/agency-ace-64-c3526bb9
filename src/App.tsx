@@ -124,6 +124,7 @@ const WhatsAppPage              = lazy(() => import("./pages/WhatsAppPage"));
 const WhatsAppConfigPage        = lazy(() => import("./pages/WhatsAppConfigPage"));
 const KanbanStagesPage          = lazy(() => import("./pages/KanbanStagesPage"));
 const PostCalendarPage          = lazy(() => import("./pages/PostCalendarPage"));
+const PlannerPage               = lazy(() => import("./pages/PlannerPage"));
 const CommercialTeamPage        = lazy(() => import("./pages/CommercialTeamPage"));
 const SquadsPage                = lazy(() => import("./pages/SquadsPage"));
 const ViralRankingPage          = lazy(() => import("./pages/ViralRankingPage"));
@@ -278,6 +279,7 @@ function AppRoutes() {
                     {/* New routes */}
                     <Route path="/calendario"          element={<CalendarPage />} />
                     <Route path="/calendario-postagens"  element={<PostCalendarPage />} />
+                    <Route path="/planner"             element={<PlannerPage />} />
                     <Route path="/chat"                element={<ChatPage />} />
                     <Route path="/escopos"             element={<ClientScopesPage />} />
                     <Route path="/nota-cliente"        element={<ClientScoresPage />} />
