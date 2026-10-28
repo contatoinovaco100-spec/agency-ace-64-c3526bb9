@@ -73,7 +73,7 @@ export default function PlannerPage() {
       setTasks(list); setThumbs(map); setLoading(false);
     })();
     return () => { active = false; };
-  }, [from, to]);
+  }, [from, to, view]);
 
   const filtered = tasks.filter((t) =>
     (type === "all" || (type === "arte" ? t.task_type === "Arte" : t.task_type !== "Arte")) &&
@@ -85,6 +85,20 @@ export default function PlannerPage() {
     Object.values(m).forEach((l) => l.sort((a, b) => (a.post_time ?? "99").localeCompare(b.post_time ?? "99")));
     return m;
   }, [filtered]);
+
+  const byClient = useMemo(() => {
+    const m: Record<string, Task[]> = {};
+    filtered.forEach((t) => { const k = t.client_id ?? "none"; (m[k] ||= []).push(t); });
+    return Object.entries(m)
+      .sort((a, b) => (clients[a[0]] ?? "").localeCompare(clients[b[0]] ?? ""))
+      .map(([cid, list]) => ({
+        client: cid === "none" ? "Sem cliente" : (clients[cid] ?? "Cliente removido"),
+        list: list.sort((a, b) => {
+          const da = a.post_date ?? a.due_date ?? "9999"; const db = b.post_date ?? b.due_date ?? "9999";
+          return da.localeCompare(db) || (a.post_time ?? "99").localeCompare(b.post_time ?? "99");
+        }),
+      }));
+  }, [filtered, clients]);
 
   const today = iso(new Date());
   const step = (n: number) => setAnchor(view === "week" ? addDays(anchor, 7 * n) : new Date(anchor.getFullYear(), anchor.getMonth() + n, 1));
