@@ -21,7 +21,7 @@ const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.get
 const isImage = (a: Attachment) => /^image\//.test(a.file_type) || /\.(png|jpe?g|webp|gif)(\?|$)/i.test(a.file_url);
 
 export default function PlannerPage() {
-  const [view, setView] = useState<"week" | "month">("week");
+  const [view, setView] = useState<"week" | "month" | "client">("week");
   const [anchor, setAnchor] = useState(new Date());
   const [type, setType] = useState("all");
   const [clientFilter, setClientFilter] = useState("all");
@@ -51,11 +51,14 @@ export default function PlannerPage() {
     let active = true;
     (async () => {
       setLoading(true);
-      const { data } = await supabase.from("tasks")
+      let query = supabase.from("tasks")
         .select("id,title,task_type,status,client_id,post_date,post_time,due_date,video_url,platform")
         .is("deleted_at", null)
-        .or(`and(post_date.gte.${from},post_date.lte.${to}),and(post_date.is.null,due_date.gte.${from},due_date.lte.${to})`)
         .limit(2000);
+      if (view !== "client") {
+        query = query.or(`and(post_date.gte.${from},post_date.lte.${to}),and(post_date.is.null,due_date.gte.${from},due_date.lte.${to})`);
+      }
+      const { data } = await query;
       const list = (data ?? []) as Task[];
       const ids = list.map((t) => t.id);
       const map: Record<string, string> = {};
