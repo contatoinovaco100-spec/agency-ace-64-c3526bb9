@@ -140,14 +140,18 @@ export default function PlannerPage() {
       </div>
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
         <div className="flex rounded-md bg-muted p-1">
-          {(["week", "month"] as const).map((v) => (
-            <Button key={v} size="sm" variant={view === v ? "default" : "ghost"} onClick={() => setView(v)}>{v === "week" ? "Semana" : "Mês"}</Button>
+          {(["week", "month", "client"] as const).map((v) => (
+            <Button key={v} size="sm" variant={view === v ? "default" : "ghost"} onClick={() => setView(v)}>{v === "week" ? "Semana" : v === "month" ? "Mês" : "Por cliente"}</Button>
           ))}
         </div>
-        <Button size="icon" variant="ghost" onClick={() => step(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-        <Button size="sm" variant="ghost" onClick={() => setAnchor(new Date())}>Hoje</Button>
-        <Button size="icon" variant="ghost" onClick={() => step(1)}><ChevronRight className="h-4 w-4" /></Button>
-        <span className="font-semibold capitalize ml-2">{label}</span>
+        {view !== "client" && (
+          <>
+            <Button size="icon" variant="ghost" onClick={() => step(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => setAnchor(new Date())}>Hoje</Button>
+            <Button size="icon" variant="ghost" onClick={() => step(1)}><ChevronRight className="h-4 w-4" /></Button>
+            <span className="font-semibold capitalize ml-2">{label}</span>
+          </>
+        )}
         {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
         <div className="ml-auto flex flex-wrap gap-2">
           <Select value={type} onValueChange={setType}>
