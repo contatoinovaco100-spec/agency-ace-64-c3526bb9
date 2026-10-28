@@ -116,6 +116,7 @@ export default function PlannerPage() {
         className={`w-full text-left rounded-md border p-2 transition hover:border-primary ${done ? "bg-primary/10 border-primary/30" : "bg-card border-border"}`}>
         <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
           <Clock className="h-3 w-3" />{t.post_time ? t.post_time.slice(0, 5) : "--:--"}
+          {t.post_date && <span className="truncate">{t.post_date.slice(8, 10)}/{t.post_date.slice(5, 7)}</span>}
           {isArte ? <ImageIcon className="h-3 w-3 ml-auto" /> : <Film className="h-3 w-3 ml-auto" />}
         </div>
         {!compact && (
