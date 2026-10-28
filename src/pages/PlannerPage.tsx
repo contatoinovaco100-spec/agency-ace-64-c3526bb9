@@ -114,11 +114,17 @@ export default function PlannerPage() {
     return (
       <button onClick={() => openTask(t)}
         className={`w-full text-left rounded-md border p-2 transition hover:border-primary ${done ? "bg-primary/10 border-primary/30" : "bg-card border-border"}`}>
-        <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-          <Clock className="h-3 w-3" />{t.post_time ? t.post_time.slice(0, 5) : "--:--"}
-          {t.post_date && <span className="truncate">{t.post_date.slice(8, 10)}/{t.post_date.slice(5, 7)}</span>}
-          {isArte ? <ImageIcon className="h-3 w-3 ml-auto" /> : <Film className="h-3 w-3 ml-auto" />}
-        </div>
+        {(() => { const d = t.post_date ?? t.due_date; return d ? (
+          <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+            <Clock className="h-3 w-3" />{d.slice(8, 10)}/{d.slice(5, 7)}{t.post_time ? ` ${t.post_time.slice(0, 5)}` : ""}
+            {isArte ? <ImageIcon className="h-3 w-3 ml-auto" /> : <Film className="h-3 w-3 ml-auto" />}
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+            <Clock className="h-3 w-3" />sem data
+            {isArte ? <ImageIcon className="h-3 w-3 ml-auto" /> : <Film className="h-3 w-3 ml-auto" />}
+          </div>
+        ); })()}
         {!compact && (
           <div className="mt-1 aspect-[4/3] w-full overflow-hidden rounded bg-muted flex items-center justify-center">
             {thumbs[t.id] ? <img src={thumbs[t.id]} alt={t.title} loading="lazy" className="h-full w-full object-cover" />
