@@ -66,6 +66,7 @@ export default function PlannerPage() {
         const { data: att } = await supabase.from("task_attachments")
           .select("task_id,file_url,file_type").in("task_id", ids.slice(i, i + 200));
         (att ?? []).forEach((a: Attachment) => {
+          // Bucket é público: usa a URL gravada direto; ignora referências
           if (!map[a.task_id] && isImage(a) && !isReferenceAttachment(a.file_url)) map[a.task_id] = a.file_url;
         });
       }
@@ -127,8 +128,8 @@ export default function PlannerPage() {
         ); })()}
         {!compact && (
           <div className="mt-1 aspect-[4/3] w-full overflow-hidden rounded bg-muted flex items-center justify-center">
-            {thumbs[t.id] ? <img src={thumbs[t.id]} alt={t.title} loading="lazy" className="h-full w-full object-cover" />
-              : t.video_url ? <video src={t.video_url} muted preload="metadata" className="h-full w-full object-cover" />
+            {thumbs[t.id] ? <img src={thumbs[t.id]} alt={t.title} loading="lazy" crossOrigin="anonymous" className="h-full w-full object-cover" />
+              : t.video_url ? <video src={t.video_url} muted preload="metadata" crossOrigin="anonymous" className="h-full w-full object-cover" />
               : isArte ? <ImageIcon className="h-6 w-6 text-muted-foreground" /> : <Film className="h-6 w-6 text-muted-foreground" />}
           </div>
         )}
