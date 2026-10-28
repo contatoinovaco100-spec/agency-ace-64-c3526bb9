@@ -172,27 +172,46 @@ export default function PlannerPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <div className={`grid grid-cols-7 gap-2 ${view === "week" ? "min-w-[980px]" : "min-w-[760px]"}`}>
-          {DAYS.map((d, i) => view === "month" && <div key={d} className="text-center text-xs text-muted-foreground">{d}</div>)}
-          {days.map((d) => {
-            const key = iso(d); const list = byDay[key] ?? [];
-            const out = view === "month" && d.getMonth() !== anchor.getMonth();
-            return (
-              <div key={key} className={`rounded-lg border p-2 space-y-2 ${view === "month" ? "min-h-[120px]" : "min-h-[400px]"} ${out ? "opacity-40" : ""} ${key === today ? "border-primary" : "border-border"}`}>
-                <div className={`text-center text-sm rounded py-0.5 ${key === today ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground"}`}>
-                  {view === "week" ? `${DAYS[d.getDay()]} ${d.getDate()}` : d.getDate()}
-                  {list.length > 0 && <span className="ml-1 text-[10px]">({list.length})</span>}
-                </div>
-                {(view === "month" ? list.slice(0, 3) : list).map((t) => <Card key={t.id} t={t} compact={view === "month"} />)}
-                {view === "month" && list.length > 3 && (
-                  <button className="text-xs text-primary" onClick={() => { setAnchor(d); setView("week"); }}>+{list.length - 3} mais</button>
-                )}
+      {view === "client" ? (
+        <div className="space-y-4">
+          {byClient.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhuma tarefa encontrada com os filtros atuais.</p>
+          )}
+          {byClient.map(({ client, list }) => (
+            <div key={client} className="rounded-lg border bg-card p-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold">{client}</h2>
+                <span className="text-xs text-muted-foreground">({list.length})</span>
               </div>
-            );
-          })}
+              <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(180px,1fr))]">
+                {list.map((t) => <Card key={t.id} t={t} />)}
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <div className={`grid grid-cols-7 gap-2 ${view === "week" ? "min-w-[980px]" : "min-w-[760px]"}`}>
+            {DAYS.map((d) => view === "month" && <div key={d} className="text-center text-xs text-muted-foreground">{d}</div>)}
+            {days.map((d) => {
+              const key = iso(d); const list = byDay[key] ?? [];
+              const out = view === "month" && d.getMonth() !== anchor.getMonth();
+              return (
+                <div key={key} className={`rounded-lg border p-2 space-y-2 ${view === "month" ? "min-h-[120px]" : "min-h-[400px]"} ${out ? "opacity-40" : ""} ${key === today ? "border-primary" : "border-border"}`}>
+                  <div className={`text-center text-sm rounded py-0.5 ${key === today ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground"}`}>
+                    {view === "week" ? `${DAYS[d.getDay()]} ${d.getDate()}` : d.getDate()}
+                    {list.length > 0 && <span className="ml-1 text-[10px]">({list.length})</span>}
+                  </div>
+                  {(view === "month" ? list.slice(0, 3) : list).map((t) => <Card key={t.id} t={t} compact={view === "month"} />)}
+                  {view === "month" && list.length > 3 && (
+                    <button className="text-xs text-primary" onClick={() => { setAnchor(d); setView("week"); }}>+{list.length - 3} mais</button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
