@@ -69,7 +69,7 @@ export default function PlannerPage() {
         const { data: att } = await supabase.from("task_attachments")
           .select("task_id,file_url,file_type").in("task_id", ids.slice(i, i + 200));
         (att ?? []).forEach((a: Attachment) => {
-          if (map[a.taskId] || map[a.task_id] || !isImage(a) || isReferenceAttachment(a.file_url)) return;
+          if (map[a.task_id] || !isImage(a) || isReferenceAttachment(a.file_url)) return;
           const path = extractStoragePath(a.file_url);
           if (!path) { map[a.task_id] = a.file_url; return; } // link externo: usa como está
           const cached = getCachedSignedUrl(path);
