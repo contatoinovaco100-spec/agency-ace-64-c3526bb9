@@ -63,32 +63,14 @@ export default function PlannerPage() {
       const list = (data ?? []) as Task[];
       const ids = list.map((t) => t.id);
       const map: Record<string, string> = {};
-      const toSign: string[] = [];
-      const pending: { taskId: string; path: string }[] = [];
       for (let i = 0; i < ids.length; i += 200) {
         const { data: att } = await supabase.from("task_attachments")
           .select("task_id,file_url,file_type").in("task_id", ids.slice(i, i + 200));
         (att ?? []).forEach((a: Attachment) => {
-          if (map[a.task_id] || !isImage(a) || isReferenceAttachment(a.file_url)) return;
-          const path = extractStoragePath(a.file_url);
-          if (!path) { map[a.task_id] = a.file_url; return; } // link externo: usa como está
-          const cached = getCachedSignedUrl(path);
-          if (cached) { map[a.task_id] = cached; return; }
-          pending.push({ taskId: a.task_id, path });
-          if (!toSign.includes(path)) toSign.push(path);
+          // Bucket é público: usa a URL gravada direto; ignora referências
+          if (!map[a.task_id] && isImage(a) && !isReferenceAttachment(a.file_url)) map[a.task_id] = a.file_url;
         });
       }
-      // Bucket é privado: URLs gravadas quebram — assina caminhos novos em lotes
-      for (let i = 0; i < toSign.length; i += 100) {
-        const { data: signed } = await supabase.storage
-          .from("task-attachments")
-          .createSignedUrls(toSign.slice(i, i + 100), 60 * 60);
-        (signed ?? []).forEach((s) => { if (s.signedUrl) setCachedSignedUrl(s.path, s.signedUrl); });
-      }
-      pending.forEach(({ taskId, path }) => {
-        const url = getCachedSignedUrl(path);
-        if (url && !map[taskId]) map[taskId] = url;
-      });
       if (!active) return;
       setTasks(list); setThumbs(map); setLoading(false);
     })();
