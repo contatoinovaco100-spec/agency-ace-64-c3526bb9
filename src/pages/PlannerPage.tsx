@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Clock, Film, Image as ImageIcon, Loader2 } from "lucide-react";
 import { isReferenceAttachment } from "@/lib/attachmentPurpose";
+import { extractStoragePath, getCachedSignedUrl, setCachedSignedUrl } from "@/lib/arteAttachments";
 
 type Task = {
   id: string; title: string; task_type: string; status: string; client_id: string | null;
