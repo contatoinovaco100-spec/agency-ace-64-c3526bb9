@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
-  CalendarClock, Check, ChevronDown, ClipboardList, Copy, FolderUp, Instagram, Loader2, MessageCircle, Plus, Search, ShieldCheck,
+  CalendarClock, Check, ChevronDown, ClipboardList, Copy, FolderUp, Instagram, KeyRound, Loader2, MessageCircle, Phone, Plus, Search,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/PageHeader';
@@ -10,10 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-type StepKey = 'briefing' | 'instagram' | 'meta_partner' | 'materials' | 'kickoff';
+type StepKey = 'briefing' | 'instagram' | 'access' | 'materials' | 'kickoff';
 type Onboarding = {
   id: string; client_id: string; token: string; status: 'pendente' | 'em_andamento' | 'concluido';
-  steps: Partial<Record<StepKey, string>>; materials_url: string; kickoff_preference: string;
+  steps: Partial<Record<StepKey | 'access_call_at', string>>; materials_url: string; kickoff_preference: string;
   sent_at: string | null; last_reminder_at: string | null; created_at: string; updated_at: string;
 };
 type Client = { id: string; company_name: string; contact_name: string; phone: string };
@@ -26,10 +26,13 @@ const STALLED_DAYS = 3;
 const STEPS: { key: StepKey; label: string; icon: typeof Check }[] = [
   { key: 'briefing', label: 'Briefing', icon: ClipboardList },
   { key: 'instagram', label: 'Instagram', icon: Instagram },
-  { key: 'meta_partner', label: 'Acesso Meta', icon: ShieldCheck },
+  { key: 'access', label: 'Acesso Instagram', icon: KeyRound },
   { key: 'materials', label: 'Materiais', icon: FolderUp },
   { key: 'kickoff', label: 'Kickoff', icon: CalendarClock },
 ];
+
+const formatCall = (iso: string) =>
+  new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
 const daysSince = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
 const linkFor = (o: Onboarding) => `${window.location.origin}/bem-vindo/${o.token}`;
@@ -70,6 +73,11 @@ export default function ClientOnboardingsPage() {
     concluidos: rows.filter((o) => o.status === 'concluido').length,
   };
 
+  // Ligações do código de verificação marcadas pelos clientes (inclui a que começou há menos de 1h)
+  const upcomingCalls = rows
+    .filter((o) => o.steps?.access_call_at && new Date(o.steps.access_call_at).getTime() > Date.now() - 3_600_000)
+    .sort((a, b) => a.steps.access_call_at!.localeCompare(b.steps.access_call_at!));
+
   const create = async (client: Client) => {
     setPickerOpen(false); setSearch('');
     const { data: user } = await supabase.auth.getUser();
@@ -100,7 +108,7 @@ export default function ClientOnboardingsPage() {
     const name = (c?.contact_name || c?.company_name || '').split(/\s+/)[0];
     const message = o.sent_at
       ? `Oi, ${name}! Passando para lembrar do seu onboarding na INOVA. Faltam só alguns passos para a gente começar: ${linkFor(o)}`
-      : `Oi, ${name}! Seja muito bem-vindo(a) à INOVA 🎉\n\nPara começarmos, complete seu onboarding (são 5 passos rápidos, dá para fazer pelo celular): briefing, conectar o Instagram, acesso no Meta, materiais e horário do kickoff.\n\n${linkFor(o)}`;
+      : `Oi, ${name}! Seja muito bem-vindo(a) à INOVA 🎉\n\nPara começarmos, complete seu onboarding (são 5 passos rápidos, dá para fazer pelo celular): briefing, conectar o Instagram, dados de acesso com horário da ligação do código, materiais e horário do kickoff.\n\n${linkFor(o)}`;
     const phone = onlyDigits(c?.phone ?? '');
     const to = phone ? (phone.length <= 11 ? `55${phone}` : phone) : '';
     window.open(`https://wa.me/${to}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
@@ -137,6 +145,23 @@ export default function ClientOnboardingsPage() {
           </Popover>
         }
       />
+
+      {upcomingCalls.length > 0 && (
+        <section className="rounded-xl border bg-card">
+          <h2 className="flex items-center gap-2 border-b px-4 py-3 text-sm font-semibold">
+            <Phone className="h-4 w-4 text-primary" /> Ligações do código de verificação
+            <span className="text-xs font-normal text-muted-foreground">· senha e contato estão na planilha de acessos</span>
+          </h2>
+          <ul className="divide-y">
+            {upcomingCalls.map((o) => (
+              <li key={o.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                <span className="w-32 shrink-0 font-medium capitalize tabular-nums">{formatCall(o.steps.access_call_at!)}</span>
+                <span className="min-w-0 flex-1 truncate">{clientById[o.client_id]?.company_name ?? 'Cliente removido'}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg bg-muted p-1">
         {([['abertos', 'Em aberto'], ['travados', `Travados há ${STALLED_DAYS}+ dias`], ['concluidos', 'Concluídos']] as const).map(([k, l]) => (
@@ -207,6 +232,9 @@ export default function ClientOnboardingsPage() {
                           </p>
                           {s.key === 'materials' && o.materials_url && (
                             <a href={o.materials_url} target="_blank" rel="noopener noreferrer" className="block truncate text-xs font-medium text-primary underline-offset-2 hover:underline">{o.materials_url}</a>
+                          )}
+                          {s.key === 'access' && o.steps?.access_call_at && (
+                            <p className="text-xs capitalize">Ligação: {formatCall(o.steps.access_call_at)}</p>
                           )}
                           {s.key === 'kickoff' && o.kickoff_preference && <p className="text-xs">“{o.kickoff_preference}”</p>}
                           {s.key === 'briefing' && o.steps?.briefing && (

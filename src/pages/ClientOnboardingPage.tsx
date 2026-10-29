@@ -1,8 +1,8 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  CalendarClock, Check, ClipboardList, Copy, ExternalLink, FolderUp, Instagram, Loader2, ShieldCheck,
+  CalendarClock, Check, ClipboardList, Eye, EyeOff, ExternalLink, FolderUp, Instagram, KeyRound, Loader2, Phone,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ const BriefingFormPage = lazy(() => import('./BriefingFormPage'));
 /** Endereço de retorno do login do Meta (já cadastrado no app da INOVA) */
 const META_REDIRECT_URI = 'https://inovamarketing.online/redes-sociais';
 
-type StepKey = 'briefing' | 'instagram' | 'meta_partner' | 'materials' | 'kickoff';
+type StepKey = 'briefing' | 'instagram' | 'access' | 'materials' | 'kickoff';
 type OnboardingInfo = {
   client_name: string;
   contact_name?: string;
@@ -24,7 +24,8 @@ type OnboardingInfo = {
   steps: Partial<Record<StepKey, string>>;
   materials_url: string;
   kickoff_preference: string;
-  meta_business_id: string;
+  access_call_at: string | null;
+  call_slots: string[];
   accounts: { username: string; platform: string; profile_picture: string }[];
 };
 
@@ -34,7 +35,11 @@ async function callOnboarding<T = Record<string, unknown>>(body: Record<string, 
   return data as T;
 }
 
-const STEP_ORDER: StepKey[] = ['briefing', 'instagram', 'meta_partner', 'materials', 'kickoff'];
+const STEP_ORDER: StepKey[] = ['briefing', 'instagram', 'access', 'materials', 'kickoff'];
+
+const TZ = 'America/Sao_Paulo';
+const formatCall = (iso: string) =>
+  new Date(iso).toLocaleString('pt-BR', { timeZone: TZ, weekday: 'long', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
 export default function ClientOnboardingPage() {
   const { token = '' } = useParams();
@@ -93,10 +98,6 @@ export default function ClientOnboardingPage() {
     } finally {
       setBusy(null);
     }
-  };
-
-  const copy = async (text: string) => {
-    try { await navigator.clipboard.writeText(text); toast.success('Copiado'); } catch { toast.error('Não foi possível copiar'); }
   };
 
   if (view === 'briefing') {
@@ -171,28 +172,17 @@ export default function ClientOnboardingPage() {
           )}
         </StepCard>
 
-        <StepCard n={3} icon={ShieldCheck} title="Acesso de parceiro no Meta" done={done('meta_partner')} active={nextStep === 'meta_partner'}
-          description="A forma oficial de dar à agência acesso à página e aos anúncios, sem compartilhar senha. Você pode remover quando quiser.">
-          {!done('meta_partner') && (
-            <>
-              <ol className="list-decimal space-y-1.5 pl-5 text-sm text-foreground/80">
-                <li>Abra as <a href="https://business.facebook.com/settings/partners" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline underline-offset-2">configurações de parceiros do seu Gerenciador de Negócios</a>.</li>
-                <li>Toque em <strong>Adicionar</strong> → <strong>Conceder a um parceiro acesso aos seus ativos</strong>.</li>
-                <li>
-                  Cole o ID da INOVA:{' '}
-                  {info.meta_business_id ? (
-                    <button onClick={() => copy(info.meta_business_id)} className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 font-mono text-xs tabular-nums">
-                      {info.meta_business_id} <Copy className="h-3 w-3" />
-                    </button>
-                  ) : <span className="text-muted-foreground">a equipe da INOVA vai te enviar o ID</span>}
-                </li>
-                <li>Marque a <strong>Página</strong>, a <strong>conta do Instagram</strong> e a <strong>conta de anúncios</strong> com acesso total.</li>
-              </ol>
-              <Button variant="outline" className="w-full sm:w-auto" onClick={() => completeStep('meta_partner')} disabled={busy === 'meta_partner'}>
-                {busy === 'meta_partner' && <Loader2 className="h-4 w-4 animate-spin" />} Já dei o acesso
-              </Button>
-            </>
-          )}
+        <StepCard n={3} icon={KeyRound} title="Acesso ao Instagram" done={done('access')} active={nextStep === 'access'}
+          description="Para entrarmos na sua conta pela primeira vez, o Instagram manda um código de verificação para o seu celular. Passe os dados de acesso e escolha um horário: a gente liga e você só lê o código.">
+          <AccessStep
+            token={token}
+            done={done('access')}
+            callAt={info.access_call_at}
+            slots={info.call_slots}
+            defaultInstagram={info.accounts[0]?.username ?? ''}
+            onSaved={(steps, callAt) => setInfo((i) => (i ? { ...i, steps, access_call_at: callAt } : i))}
+            onConflict={load}
+          />
         </StepCard>
 
         <StepCard n={4} icon={FolderUp} title="Logo e materiais" done={done('materials')} active={nextStep === 'materials'}
@@ -220,6 +210,154 @@ export default function ClientOnboardingPage() {
 
       <p className="pb-6 text-center text-xs text-muted-foreground">Dúvidas? Responda a mensagem da INOVA no WhatsApp.</p>
     </Shell>
+  );
+}
+
+/** Etapa 3: dados de acesso do Instagram (vão para a planilha da INOVA) + horário da ligação do código */
+function AccessStep({ token, done, callAt, slots, defaultInstagram, onSaved, onConflict }: {
+  token: string; done: boolean; callAt: string | null; slots: string[]; defaultInstagram: string;
+  onSaved: (steps: OnboardingInfo['steps'], callAt: string) => void; onConflict: () => void;
+}) {
+  const [form, setForm] = useState({ instagram: defaultInstagram, password: '', code_contact: '', responsible: '', whatsapp: '', notes: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [rescheduling, setRescheduling] = useState(false);
+  const [slot, setSlot] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Agrupa os horários por dia (no fuso de Brasília)
+  const days = useMemo(() => {
+    const map = new Map<string, string[]>();
+    slots.forEach((s) => {
+      const key = new Date(s).toLocaleDateString('en-CA', { timeZone: TZ });
+      map.set(key, [...(map.get(key) ?? []), s]);
+    });
+    return [...map.entries()];
+  }, [slots]);
+  const [day, setDay] = useState<string | null>(null);
+  const activeDay = day ?? days[0]?.[0] ?? null;
+  const daySlots = days.find(([d]) => d === activeDay)?.[1] ?? [];
+
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+  const formOk = !!(form.instagram.trim() && form.password && form.code_contact.trim() && form.responsible.trim()
+    && form.whatsapp.replace(/\D/g, '').length >= 10);
+
+  const submit = async () => {
+    if (!slot) return;
+    setSaving(true);
+    try {
+      const res = await callOnboarding<{ steps: OnboardingInfo['steps']; access_call_at: string }>({
+        action: 'access', token, slot, ...(done ? {} : { form }),
+      });
+      onSaved(res.steps, res.access_call_at);
+      setRescheduling(false); setSlot(null);
+      setForm((f) => ({ ...f, password: '' }));
+      toast.success(`Ligação marcada para ${formatCall(res.access_call_at)}`);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Não foi possível salvar';
+      toast.error(message);
+      if (/ocupado/.test(message)) { setSlot(null); onConflict(); }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (done && !rescheduling) {
+    return (
+      <div className="flex flex-col gap-3 rounded-xl bg-muted/60 p-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="flex items-center gap-2 text-sm">
+          <Phone className="h-4 w-4 shrink-0 text-primary" />
+          <span>Ligação marcada: <strong>{callAt ? formatCall(callAt) : '—'}</strong></span>
+        </p>
+        <Button size="sm" variant="outline" onClick={() => setRescheduling(true)}>Remarcar</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {!done && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Usuário do Instagram">
+            <Input value={form.instagram} onChange={set('instagram')} placeholder="@suaempresa" autoCapitalize="none" autoCorrect="off" />
+          </Field>
+          <Field label="Senha do Instagram">
+            <div className="relative">
+              <Input type={showPassword ? 'text' : 'password'} value={form.password} onChange={set('password')} autoComplete="off" className="pr-10" />
+              <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? 'Esconder senha' : 'Mostrar senha'}
+                className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground">
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </Field>
+          <Field label="E-mail ou celular que recebe o código" className="sm:col-span-2">
+            <Input value={form.code_contact} onChange={set('code_contact')} placeholder="(24) 99999-9999 ou email@empresa.com" />
+          </Field>
+          <Field label="Quem vai estar com o celular">
+            <Input value={form.responsible} onChange={set('responsible')} placeholder="Nome" />
+          </Field>
+          <Field label="WhatsApp dessa pessoa">
+            <Input value={form.whatsapp} onChange={set('whatsapp')} placeholder="(24) 99999-9999" inputMode="tel" />
+          </Field>
+          <Field label="Observações (opcional)" className="sm:col-span-2">
+            <Textarea value={form.notes} onChange={set('notes')} placeholder="Ex.: a conta também tem um Facebook ligado" className="min-h-[60px]" />
+          </Field>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <p className="text-sm font-medium">Horário da ligação <span className="font-normal text-muted-foreground">· seg a sex, 10h às 12h</span></p>
+        {days.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum horário livre nos próximos dias. Fale com a equipe da INOVA pelo WhatsApp.</p>
+        ) : (
+          <>
+            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+              {days.map(([d, list]) => {
+                const date = new Date(list[0]);
+                return (
+                  <button key={d} type="button" onClick={() => { setDay(d); setSlot(null); }}
+                    className={cn('flex w-14 shrink-0 flex-col items-center rounded-lg border py-1.5 text-xs transition-colors',
+                      d === activeDay ? 'border-primary bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-muted')}>
+                    <span className="capitalize">{date.toLocaleDateString('pt-BR', { timeZone: TZ, weekday: 'short' }).replace('.', '')}</span>
+                    <span className="text-base font-semibold tabular-nums text-foreground">{date.toLocaleDateString('pt-BR', { timeZone: TZ, day: '2-digit' })}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {daySlots.map((s) => (
+                <button key={s} type="button" onClick={() => setSlot(s)}
+                  className={cn('h-10 rounded-lg border text-sm font-medium tabular-nums transition-colors',
+                    slot === s ? 'border-brand bg-brand text-brand-foreground' : 'hover:bg-muted')}>
+                  {new Date(s).toLocaleTimeString('pt-BR', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Button className="w-full sm:w-auto" disabled={!slot || (!done && !formOk) || saving} onClick={submit}>
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />} {done ? 'Confirmar novo horário' : 'Enviar e marcar ligação'}
+        </Button>
+        {rescheduling && <Button variant="ghost" onClick={() => { setRescheduling(false); setSlot(null); }}>Cancelar</Button>}
+      </div>
+      {!done && (
+        <p className="text-xs text-muted-foreground [text-wrap:pretty]">
+          Seus dados vão direto para a equipe da INOVA e não ficam salvos nesta página. Depois que a gente entrar, você pode trocar a senha quando quiser.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
+  return (
+    <label className={cn('block space-y-1.5', className)}>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      {children}
+    </label>
   );
 }
 

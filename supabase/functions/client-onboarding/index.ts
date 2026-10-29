@@ -17,7 +17,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const STEPS = ["briefing", "instagram", "meta_partner", "materials", "kickoff"] as const;
+const STEPS = ["briefing", "instagram", "access", "materials", "kickoff"] as const;
 type Step = typeof STEPS[number];
 
 // Campos do briefing aceitos (os mesmos da tabela client_briefings)
@@ -27,6 +27,33 @@ const BRIEFING_FIELDS = [
   "purchase_triggers", "purchase_blockers", "current_perception", "desired_perception",
   "differentials", "competitors", "communication_style", "things_to_avoid", "monthly_revenue",
 ];
+
+// Ligação para o cliente passar o código de verificação do Instagram:
+// seg a sex, das 10h às 12h (horário de Brasília), de amanhã até 14 dias à frente
+const CALL_TIMES = ["10:00", "10:30", "11:00", "11:30"];
+const CALL_DAYS_AHEAD = 14;
+
+function upcomingCallSlots(): string[] {
+  // Brasília não tem mais horário de verão: UTC-3 o ano todo
+  const today = new Date(Date.now() - 3 * 3600_000);
+  const slots: string[] = [];
+  for (let i = 1; i <= CALL_DAYS_AHEAD; i++) {
+    const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + i));
+    if (d.getUTCDay() === 0 || d.getUTCDay() === 6) continue;
+    const day = d.toISOString().slice(0, 10);
+    CALL_TIMES.forEach((t) => slots.push(new Date(`${day}T${t}:00-03:00`).toISOString()));
+  }
+  return slots;
+}
+
+const formatCall = (iso: string) =>
+  new Date(iso).toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo", weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+  });
+
+// Planilha do Google (Apps Script publicado como app da Web) que recebe os acessos do Instagram.
+// A senha vai só para a planilha: não é gravada no banco da plataforma.
+const ACCESS_SHEET_URL = Deno.env.get("INOVA_ACCESS_SHEET_URL") || "";
 
 // O Meta só aceita voltar do login para endereços cadastrados no app: usamos o mesmo da equipe
 const ALLOWED_REDIRECTS = ["https://inovamarketing.online/redes-sociais"];
@@ -52,12 +79,13 @@ Deno.serve(async (req) => {
     if (!onboarding) return json({ error: "Link de onboarding não encontrado ou expirado" }, 404);
 
     const clientId = onboarding.client_id as string;
-    const steps = (onboarding.steps ?? {}) as Partial<Record<Step, string>>;
+    // Além da data de cada etapa, guarda o horário marcado da ligação em `access_call_at`
+    const steps = (onboarding.steps ?? {}) as Partial<Record<Step | "access_call_at", string>>;
 
     // Marca etapas como concluídas e recalcula o status geral
-    const markSteps = async (done: Step[], extra: Record<string, unknown> = {}) => {
+    const markSteps = async (done: Step[], extra: Record<string, unknown> = {}, extraSteps: typeof steps = {}) => {
       const now = new Date().toISOString();
-      const next = { ...steps };
+      const next = { ...steps, ...extraSteps };
       done.forEach((s) => { next[s] = next[s] ?? now; });
       const complete = STEPS.every((s) => next[s]);
       await admin.from("client_onboardings").update({
@@ -67,6 +95,18 @@ Deno.serve(async (req) => {
         updated_at: now,
       }).eq("id", onboarding.id);
       return next;
+    };
+
+    // Horários livres: tira os que outro cliente já marcou
+    const freeCallSlots = async () => {
+      const slots = upcomingCallSlots();
+      const { data: booked } = await admin
+        .from("client_onboardings")
+        .select("id, steps")
+        .gte("steps->>access_call_at", slots[0] ?? new Date().toISOString())
+        .neq("id", onboarding.id);
+      const taken = new Set((booked ?? []).map((b) => (b.steps as Record<string, string>)?.access_call_at));
+      return slots.filter((s) => !taken.has(s));
     };
 
     if (action === "get") {
@@ -82,7 +122,8 @@ Deno.serve(async (req) => {
         materials_url: onboarding.materials_url,
         kickoff_preference: onboarding.kickoff_preference,
         // ID do Business Manager da INOVA (o segredo, se existir, tem prioridade)
-        meta_business_id: Deno.env.get("INOVA_META_BUSINESS_ID") || "4390314634558882",
+        access_call_at: steps.access_call_at ?? null,
+        call_slots: await freeCallSlots(),
         accounts: accounts ?? [],
       });
     }
@@ -126,9 +167,52 @@ Deno.serve(async (req) => {
       return json({ success: true, steps: next });
     }
 
+    if (action === "access") {
+      const slot = String(body.slot || "");
+      if (!(await freeCallSlots()).includes(slot)) {
+        return json({ error: "Esse horário acabou de ser ocupado. Escolha outro, por favor." }, 409);
+      }
+      const form = body.form as Record<string, unknown> | undefined;
+      const field = (k: string, max = 200) => String(form?.[k] ?? "").trim().slice(0, max);
+
+      if (form) {
+        const row = {
+          cliente: onboarding.clients?.company_name ?? "",
+          instagram: field("instagram").replace(/^@/, ""),
+          senha: field("password"),
+          contato_codigo: field("code_contact"),
+          responsavel: field("responsible"),
+          whatsapp: field("whatsapp", 40),
+          ligacao: formatCall(slot),
+          observacoes: field("notes", 1000),
+        };
+        if (!row.instagram || !row.senha || !row.contato_codigo || !row.responsavel || !row.whatsapp) {
+          return json({ error: "Preencha todos os campos obrigatórios." }, 400);
+        }
+        if (!ACCESS_SHEET_URL) {
+          console.error("client-onboarding: INOVA_ACCESS_SHEET_URL não configurado");
+          return json({ error: "Não conseguimos registrar agora. Fale com a equipe da INOVA pelo WhatsApp." }, 500);
+        }
+        const res = await fetch(ACCESS_SHEET_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(row),
+        }).catch((e) => { console.error("client-onboarding sheet error", e); return null; });
+        if (!res?.ok) {
+          console.error("client-onboarding sheet status", res?.status);
+          return json({ error: "Não conseguimos registrar agora. Tente de novo em instantes." }, 502);
+        }
+      } else if (!steps.access) {
+        return json({ error: "Preencha os dados do Instagram." }, 400);
+      }
+
+      const next = await markSteps(["access"], {}, { access_call_at: slot });
+      return json({ success: true, steps: next, access_call_at: slot });
+    }
+
     if (action === "step") {
       const step = String(body.step || "") as Step;
-      if (!["meta_partner", "materials", "kickoff"].includes(step)) return json({ error: "Etapa inválida" }, 400);
+      if (!["materials", "kickoff"].includes(step)) return json({ error: "Etapa inválida" }, 400);
       const extra: Record<string, unknown> = {};
       if (step === "materials") extra.materials_url = String(body.materials_url || "").slice(0, 1000);
       if (step === "kickoff") extra.kickoff_preference = String(body.kickoff_preference || "").slice(0, 500);
