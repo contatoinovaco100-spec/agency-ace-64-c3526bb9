@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 import {
   Check, ChevronDown, Copy, Download, ExternalLink, Instagram, Loader2, Play, RefreshCw, X, Youtube,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import ArteAttachmentsPreview from '@/components/tasks/ArteAttachmentsPreview';
 import UniversalVideoPlayer from '@/components/UniversalVideoPlayer';
 import { resolveVideoUrl } from '@/lib/videoUrl';
@@ -44,6 +46,21 @@ interface TaskData {
   task_type?: string | null;
   caption?: string | null;
   recording_notes?: string | null;
+}
+
+type Review = { approved: boolean; at: string | null; changeRequested?: boolean };
+
+/** Aprova ou pede ajuste. Sem a função do banco ainda aplicada, registra só o comentário na tarefa. */
+async function sendReview(taskId: string, approve: boolean, comment: string) {
+  const { error } = await (supabase as any).rpc('client_review_task', { _id: taskId, _approve: approve, _comment: comment });
+  if (!error) return;
+  if (error.code !== 'PGRST202') throw new Error(error.message);
+  const content = approve
+    ? '✅ Aprovado pelo cliente' + (comment ? `\n${comment}` : '')
+    : `✏️ Ajuste pedido pelo cliente:\n${comment}`;
+  const { error: fallbackError } = await supabase.from('task_comments')
+    .insert({ task_id: taskId, author: 'Cliente (link de aprovação)', content });
+  if (fallbackError) throw new Error(fallbackError.message);
 }
 
 // ─── Fases que o cliente enxerga ─────────────────────────────────────────────
@@ -389,8 +406,29 @@ function TaskDetails({ task, openScript }: { task: TaskData; openScript?: boolea
 
 // ─── Cartões por fase ────────────────────────────────────────────────────────
 
-/** Conteúdo pronto para o cliente ver: a mídia vem primeiro e domina o cartão */
-function ReviewCard({ task, highlight }: { task: TaskData; highlight?: boolean }) {
+/** Conteúdo pronto para o cliente ver: a mídia vem primeiro e domina o cartão; no rodapé, aprovar ou pedir ajuste */
+function ReviewCard({ task, highlight, review, onReviewed }: {
+  task: TaskData; highlight?: boolean; review?: Review; onReviewed: (r: Review) => void;
+}) {
+  const [asking, setAsking] = useState(false);
+  const [comment, setComment] = useState('');
+  const [busy, setBusy] = useState<'approve' | 'change' | null>(null);
+  const approved = !!review?.approved;
+
+  const submit = async (approve: boolean) => {
+    setBusy(approve ? 'approve' : 'change');
+    try {
+      await sendReview(task.id, approve, approve ? '' : comment.trim());
+      onReviewed(approve ? { approved: true, at: new Date().toISOString() } : { approved: false, at: null, changeRequested: true });
+      setAsking(false); setComment('');
+      toast.success(approve ? 'Conteúdo aprovado. Obrigado!' : 'Pedido de ajuste enviado para a equipe');
+    } catch (e) {
+      toast.error(`Não foi possível enviar: ${e instanceof Error ? e.message : 'tente de novo'}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <article id={`c-${task.id}`} className={cn('scroll-mt-20 overflow-hidden rounded-xl border bg-card', highlight && 'ring-2 ring-primary/50')}>
       <div className="flex items-start justify-between gap-3 p-4 pb-3 sm:p-5 sm:pb-3">
@@ -398,13 +436,57 @@ function ReviewCard({ task, highlight }: { task: TaskData; highlight?: boolean }
           <h3 className="font-display text-base font-semibold leading-snug [text-wrap:balance]">{titleOf(task)}</h3>
           <MetaLine task={task} showDate />
         </div>
-        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand px-2.5 py-1 text-[11px] font-semibold text-brand-foreground">
-          Para aprovar
-        </span>
+        {approved ? (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-success">
+            <Check className="h-3 w-3" /> Aprovado
+          </span>
+        ) : review?.changeRequested ? (
+          <span className="shrink-0 rounded-full bg-warning/15 px-2.5 py-1 text-[11px] font-semibold text-warning">Em ajuste</span>
+        ) : (
+          <span className="shrink-0 rounded-full bg-brand px-2.5 py-1 text-[11px] font-semibold text-brand-foreground">Para aprovar</span>
+        )}
       </div>
       <div className="space-y-4 px-4 pb-4 sm:px-5 sm:pb-5">
         <TaskMedia task={task} />
         <TaskDetails task={task} />
+      </div>
+
+      <div className="border-t bg-foreground/[0.02] p-4 sm:px-5">
+        {asking ? (
+          <div className="space-y-3">
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">O que você quer mudar?</span>
+              <Textarea autoFocus value={comment} onChange={(e) => setComment(e.target.value)} maxLength={2000}
+                placeholder="Ex.: trocar a música, tirar o trecho dos 0:12, ajustar a legenda…" className="min-h-[96px]" />
+            </label>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="ghost" onClick={() => { setAsking(false); setComment(''); }} disabled={!!busy}>Cancelar</Button>
+              <Button onClick={() => submit(false)} disabled={comment.trim().length < 3 || !!busy}>
+                {busy === 'change' && <Loader2 className="h-4 w-4 animate-spin" />} Enviar pedido de ajuste
+              </Button>
+            </div>
+          </div>
+        ) : approved ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="flex items-center gap-2 text-sm text-success">
+              <Check className="h-4 w-4" />
+              Você aprovou{review?.at ? ` em ${new Date(review.at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}
+            </p>
+            <Button size="sm" variant="ghost" onClick={() => setAsking(true)}>Pedir ajuste</Button>
+          </div>
+        ) : review?.changeRequested ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-muted-foreground">Pedido enviado. A equipe vai ajustar e te avisar.</p>
+            <Button size="sm" variant="ghost" onClick={() => setAsking(true)}>Pedir outro ajuste</Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+            <Button variant="outline" onClick={() => setAsking(true)} disabled={!!busy}>Pedir ajuste</Button>
+            <Button onClick={() => submit(true)} disabled={!!busy} className="gap-1.5">
+              {busy === 'approve' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Aprovar
+            </Button>
+          </div>
+        )}
       </div>
     </article>
   );
@@ -482,6 +564,7 @@ export default function ClientContentPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [reviews, setReviews] = useState<Record<string, Review>>({});
 
   const loadContent = useCallback(async (id: string, forceRefresh = false) => {
     if (!forceRefresh) {
@@ -506,6 +589,10 @@ export default function ClientContentPage() {
       }
       setTasks(list);
       if (name) setClientName(name);
+      // Aprovações já feitas (a função pode ainda não existir no banco: aí fica sem estado salvo)
+      (supabase as any).rpc('get_public_task_reviews', { _ids: list.map((t) => t.id) }).then(({ data }: { data: { id: string; approved_by_client: boolean; approved_at: string | null }[] | null }) => {
+        if (data) setReviews((prev) => ({ ...prev, ...Object.fromEntries(data.map((r) => [r.id, { ...prev[r.id], approved: r.approved_by_client, at: r.approved_at }])) }));
+      });
       setLoading(false);
       pageCache.set(id, { data: list, clientName: name, timestamp: Date.now() });
       try { sessionStorage.setItem(`client-content:${id}`, JSON.stringify({ tasks: list, clientName: name })); } catch { /* sem storage */ }
@@ -605,8 +692,10 @@ export default function ClientContentPage() {
   // Só mostra a claquete de data quando algum item da lista tem data pela frente
   const hasUpcoming = (list: TaskData[]) => list.some((t) => { const d = postDateOf(t); return !!d && d >= startOfToday(); });
 
+  const awaiting = toReview.filter((t) => !reviews[t.id]?.approved && !reviews[t.id]?.changeRequested);
+
   const summary = [
-    toReview.length && `${toReview.length} para você ver`,
+    awaiting.length && `${awaiting.length} para você aprovar`,
     inProduction.length && `${inProduction.length} em produção`,
     scheduled.length && `${scheduled.length} ${scheduled.length === 1 ? 'agendado' : 'agendados'}`,
   ].filter(Boolean) as string[];
@@ -621,16 +710,19 @@ export default function ClientContentPage() {
         <p className="text-sm text-muted-foreground [text-wrap:pretty]">
           {summary.length
             ? <>Hoje: {summary.map((s, i) => (
-                <span key={s}>{i > 0 && ' · '}<span className={cn(i === 0 && toReview.length ? 'font-semibold text-foreground' : '')}>{s}</span></span>
+                <span key={s}>{i > 0 && ' · '}<span className={cn(i === 0 && awaiting.length ? 'font-semibold text-foreground' : '')}>{s}</span></span>
               ))}.</>
             : 'Nada pendente agora. Assim que tiver conteúdo novo, ele aparece aqui.'}
         </p>
       </header>
 
       {toReview.length > 0 && (
-        <Section title="Para você ver" count={toReview.length} hint="Aprovações e ajustes: responda a equipe no WhatsApp" accent>
+        <Section title="Para você aprovar" count={toReview.length} accent>
           <div className="space-y-4">
-            {toReview.map((t) => <ReviewCard key={t.id} task={t} highlight={t.id === taskId && toReview.length > 1} />)}
+            {toReview.map((t) => (
+              <ReviewCard key={t.id} task={t} highlight={t.id === taskId && toReview.length > 1}
+                review={reviews[t.id]} onReviewed={(r) => setReviews((prev) => ({ ...prev, [t.id]: r }))} />
+            ))}
           </div>
         </Section>
       )}
