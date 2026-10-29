@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.client-onboarding]
 verify_jwt = false
+
+[functions.social-daily-sync]
+verify_jwt = false

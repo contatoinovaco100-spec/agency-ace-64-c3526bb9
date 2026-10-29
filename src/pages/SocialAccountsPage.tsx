@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { SocialSyncLine } from '@/components/SocialSyncStatus';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -187,6 +188,8 @@ export default function SocialAccountsPage() {
           </Button>
         </div>
       </div>
+
+      <SocialSyncLine onDone={reload} />
 
 
 

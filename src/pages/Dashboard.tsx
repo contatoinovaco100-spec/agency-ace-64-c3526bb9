@@ -1,4 +1,5 @@
 import { useAgency } from '@/contexts/AgencyContext';
+import { SocialSyncAlert } from '@/components/SocialSyncStatus';
 import { useModuleAccess } from '@/hooks/useUserRole';
 import { ExpensesPanel } from '@/components/dashboard/ExpensesPanel';
 import type { Client } from '@/types/agency';
@@ -502,6 +503,7 @@ export default function Dashboard() {
 
   return (
     <div className="admin-dashboard space-y-5">
+      <SocialSyncAlert />
       {/* Executive header */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
