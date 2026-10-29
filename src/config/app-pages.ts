@@ -3,7 +3,7 @@ import {
   Shield, FileText, BarChart3,   Film, Clapperboard, Palette, Play,
   LayoutList, Bot, Sparkles, Settings, Bell, Calendar, CalendarDays,
   MessageSquare, TrendingUp, Images, BookOpen, CalculatorIcon,
-  Gift, Link2, Video, NotebookPen, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy, Scissors, AtSign, Gauge,
+  Gift, Link2, Video, Rocket, NotebookPen, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy, Scissors, AtSign, Gauge,
 } from 'lucide-react';
 
 export type PageCategory =
@@ -76,6 +76,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/tarefas',             label: 'Tarefas (Kanban)',    icon: CheckSquare,     category: 'Operacional' },
   { path: '/calendario-postagens', label: 'Calendário Posts',   icon: CalendarDays,    category: 'Operacional' },
   { path: '/planner',             label: 'Planner',             icon: CalendarDays,    category: 'Operacional' },
+  { path: '/onboarding-clientes', label: 'Onboarding Clientes', icon: Rocket,          category: 'Operacional' },
   { path: '/artes',               label: 'Artes Estáticas',     icon: Palette,         category: 'Operacional' },
   { path: '/videos-finalizados',  label: 'Vídeos Finalizados',  icon: Play,            category: 'Operacional' },
   { path: '/agenda-videos',       label: 'Agenda de Vídeos',    icon: CalendarDays,    category: 'Operacional' },

@@ -6,6 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 import { getAdapter } from "../_shared/platforms/registry.ts";
+import { saveConnectedAccounts } from "../_shared/save-social-accounts.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -61,50 +62,10 @@ Deno.serve(async (req) => {
       }
 
 
-      const saved: string[] = [];
-      for (const acc of accounts) {
-        const { data: existing } = await admin
-          .from("social_accounts")
-          .select("id")
-          .eq("platform", platform)
-          .eq("external_id", acc.externalId)
-          .maybeSingle();
-
-        const payload = {
-          platform,
-          external_id: acc.externalId,
-          username: acc.username,
-          display_name: acc.displayName,
-          profile_picture: acc.profilePicture,
-          status: "connected",
-          token_status: "ok",
-          token_error: null,
-          token_checked_at: new Date().toISOString(),
-          expires_at: acc.expiresAt ?? null,
-          last_synced_at: new Date().toISOString(),
-          created_by: userId,
-          client_id: body.client_id ?? null,
-        };
-
-        let accountId = existing?.id as string | undefined;
-        if (accountId) {
-          await admin.from("social_accounts").update(payload).eq("id", accountId);
-        } else {
-          const { data: inserted, error } = await admin
-            .from("social_accounts").insert(payload).select("id").single();
-          if (error) throw new Error(error.message);
-          accountId = inserted.id;
-        }
-
-        await admin.from("social_account_secrets").upsert({
-          account_id: accountId,
-          access_token: acc.accessToken,
-          refresh_token: acc.refreshToken ?? "",
-          expires_at: acc.expiresAt ?? null,
-          updated_at: new Date().toISOString(),
-        });
-        saved.push(acc.username);
-      }
+      const saved = await saveConnectedAccounts(admin, platform, accounts, {
+        createdBy: userId,
+        clientId: body.client_id ?? null,
+      });
 
       return json({ success: true, accounts: saved });
     }

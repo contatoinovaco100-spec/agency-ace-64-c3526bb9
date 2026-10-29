@@ -68,6 +68,26 @@ Deno.serve(async (req) => {
     // aqui — fazíamos isso antigamente e gerava clientes duplicados por correr em
     // paralelo com o trigger (race condition).
 
+    // Onboarding: gera o link do cliente (o cliente acabou de ser criado pelo trigger da assinatura).
+    // O contrato não tem telefone do cliente, então o link vai na notificação da INOVA para a equipe repassar.
+    let onboardingLink = '';
+    try {
+      const { data: fresh } = await supabase.from('contracts').select('client_id').eq('id', contract_id).single();
+      const clientId = fresh?.client_id;
+      if (clientId) {
+        const { data: existing } = await supabase
+          .from('client_onboardings').select('token').eq('client_id', clientId).limit(1).maybeSingle();
+        const onboarding = existing ?? (await supabase
+          .from('client_onboardings').insert({ client_id: clientId }).select('token').single()).data;
+        if (onboarding?.token) {
+          const appUrl = Deno.env.get('APP_URL') || 'https://inovamarketing.online';
+          onboardingLink = `${appUrl}/bem-vindo/${onboarding.token}`;
+        }
+      }
+    } catch (e) {
+      console.warn('Não foi possível gerar o link de onboarding', e);
+    }
+
     const INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
     const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
 
@@ -90,7 +110,8 @@ Deno.serve(async (req) => {
       `👤 Cliente: ${contract.client_name}\n` +
       `✍️ Assinado por: ${trustedSignerName}\n` +
       `💰 Valor: ${value}/mês\n` +
-      `📅 ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+      `📅 ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` +
+      (onboardingLink ? `\n\n🚀 *Onboarding do cliente*\nEnvie este link para o cliente começar: ${onboardingLink}` : '');
 
     const CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
     const response = await fetch(`${ZAPI_BASE}/send-text`, {

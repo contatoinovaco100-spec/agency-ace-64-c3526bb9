@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.social-token-health]
 verify_jwt = false
+
+[functions.client-onboarding]
+verify_jwt = false

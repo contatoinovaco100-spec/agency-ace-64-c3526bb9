@@ -300,7 +300,14 @@ function UserBubble({ text }: { text: string }) {
 }
 
 /* ── Main Component ─────────────────────────────────── */
-export default function BriefingFormPage() {
+interface BriefingFormProps {
+  /** Quando vem do link de onboarding, o briefing é salvo na ficha do cliente */
+  onboardingToken?: string;
+  /** Mostra "Continuar" na tela final para voltar às etapas do onboarding */
+  onDone?: () => void;
+}
+
+export default function BriefingFormPage({ onboardingToken, onDone }: BriefingFormProps = {}) {
   const [currentStep, setCurrentStep] = useState(0);
   const [data, setData] = useState<BriefingData>(INITIAL);
   const [inputValue, setInputValue] = useState('');
@@ -407,6 +414,13 @@ export default function BriefingFormPage() {
         }
       }
 
+      if (onboardingToken) {
+        const { data: res, error } = await supabase.functions.invoke('client-onboarding', {
+          body: { action: 'briefing', token: onboardingToken, data: finalData },
+        });
+        if (error || res?.error) throw new Error(res?.error || error?.message || 'Falha ao salvar');
+      }
+
       setSubmitted(true);
     } catch (err: any) {
       console.error('SUBMISSION_ERROR:', err);
@@ -446,6 +460,12 @@ export default function BriefingFormPage() {
               Suas informações foram salvas com sucesso em nossa base estratégica.
             </p>
           </div>
+          {onDone && (
+            <button onClick={onDone}
+              className="mx-auto flex h-12 items-center gap-2 rounded-xl bg-[#bff720] px-6 font-bold text-black transition-transform active:scale-[0.97]">
+              Continuar o onboarding →
+            </button>
+          )}
         </motion.div>
       </div>
     );

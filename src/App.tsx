@@ -90,6 +90,8 @@ const ClientPortalPage     = lazy(() => import("./pages/ClientPortalPage"));
 const NotFound             = lazy(() => import("./pages/NotFound"));
 const BriefingFormPage     = lazy(() => import("./pages/BriefingFormPage"));
 const BriefingsPage        = lazy(() => import("./pages/BriefingsPage"));
+const ClientOnboardingPage = lazy(() => import("./pages/ClientOnboardingPage"));
+const OnboardingConnectCallback = lazy(() => import("./pages/ClientOnboardingPage").then(m => ({ default: m.OnboardingConnectCallback })));
 const NotificationsPage    = lazy(() => import("./pages/NotificationsPage"));
 const KanbanHistoryPage    = lazy(() => import("./pages/KanbanHistoryPage"));
 const ChangePasswordPage   = lazy(() => import("./pages/ChangePasswordPage"));
@@ -127,6 +129,7 @@ const WhatsAppConfigPage        = lazy(() => import("./pages/WhatsAppConfigPage"
 const KanbanStagesPage          = lazy(() => import("./pages/KanbanStagesPage"));
 const PostCalendarPage          = lazy(() => import("./pages/PostCalendarPage"));
 const PlannerPage               = lazy(() => import("./pages/PlannerPage"));
+const ClientOnboardingsPage     = lazy(() => import("./pages/ClientOnboardingsPage"));
 const CommercialTeamPage        = lazy(() => import("./pages/CommercialTeamPage"));
 const SquadsPage                = lazy(() => import("./pages/SquadsPage"));
 const ViralRankingPage          = lazy(() => import("./pages/ViralRankingPage"));
@@ -166,7 +169,10 @@ function AppRoutes() {
     location.pathname.startsWith('/contrato/') ||
     location.pathname.startsWith('/vitrine') ||
     location.pathname.startsWith('/links') ||
-    location.pathname.startsWith('/briefing') ||
+    location.pathname === '/briefing' ||
+    location.pathname.startsWith('/bem-vindo/') ||
+    // Retorno do login do Facebook feito pelo cliente no onboarding (o endereço cadastrado no Meta é /redes-sociais)
+    (location.pathname === '/redes-sociais' && (new URLSearchParams(location.search).get('state') ?? '').startsWith('onb.')) ||
     location.pathname.startsWith('/fatura/') ||
     location.pathname.startsWith('/proposta') ||
     location.pathname.startsWith('/indicacoes/') ||
@@ -194,6 +200,8 @@ function AppRoutes() {
           <Route path="/links"               element={<PublicLinktreePage />} />
           <Route path="/links/:slug"         element={<PublicLinktreePage />} />
           <Route path="/briefing"            element={<BriefingFormPage />} />
+          <Route path="/bem-vindo/:token"    element={<ClientOnboardingPage />} />
+          <Route path="/redes-sociais"       element={<OnboardingConnectCallback />} />
           <Route path="/fatura/:id"          element={<PublicInvoicePage />} />
           <Route path="/proposta"            element={<SalesLP />} />
           <Route path="/proposta/:slug"      element={<SalesLP />} />
@@ -282,6 +290,7 @@ function AppRoutes() {
                     <Route path="/calendario"          element={<CalendarPage />} />
                     <Route path="/calendario-postagens"  element={<PostCalendarPage />} />
                     <Route path="/planner"             element={<PlannerPage />} />
+                    <Route path="/onboarding-clientes" element={<ClientOnboardingsPage />} />
                     <Route path="/chat"                element={<ChatPage />} />
                     <Route path="/escopos"             element={<ClientScopesPage />} />
                     <Route path="/nota-cliente"        element={<ClientScoresPage />} />
@@ -338,7 +347,7 @@ function QuizOnlyRoutes() {
 
 // Páginas vistas por clientes e visitantes: mantêm a identidade escura, seja qual for o tema da equipe
 const PUBLIC_DARK_PATHS = [
-  '/conteudo', '/portal', '/contrato', '/vitrine', '/links', '/briefing', '/fatura', '/proposta',
+  '/conteudo', '/portal', '/bem-vindo', '/contrato', '/vitrine', '/links', '/briefing', '/fatura', '/proposta',
   '/diagnostico', '/diagnostico-anuncios', '/diagnostico-social', '/negocios', '/rede', '/indicacoes',
   '/indicar', '/afiliados/cadastro', '/in', '/quiz', '/painel-artes', '/lp', '/roleta', '/teleprompter',
 ];
