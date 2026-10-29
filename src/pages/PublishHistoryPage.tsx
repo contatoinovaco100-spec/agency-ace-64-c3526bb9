@@ -14,7 +14,7 @@ const jobBadge: Record<JobStatus, { label: string; cls: string }> = {
   published: { label: 'Publicado', cls: 'bg-emerald-500/15 text-emerald-500' },
   partial: { label: 'Parcial', cls: 'bg-amber-500/15 text-amber-500' },
   failed: { label: 'Falhou', cls: 'bg-destructive/15 text-destructive' },
-  scheduled: { label: 'Agendado', cls: 'bg-sky-500/15 text-sky-400' },
+  scheduled: { label: 'Agendado', cls: 'bg-sky-500/15 text-sky-700 dark:text-sky-400' },
 };
 
 export default function PublishHistoryPage() {

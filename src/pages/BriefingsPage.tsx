@@ -225,10 +225,10 @@ export default function BriefingsPage() {
                   <tbody>
                     {filteredBriefings.map(b => {
                       const statusColor = b.status === 'novo'
-                        ? 'bg-blue-500/10 text-blue-400'
+                        ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400'
                         : b.status === 'em análise'
-                        ? 'bg-amber-500/10 text-amber-400'
-                        : 'bg-green-500/10 text-green-400';
+                        ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                        : 'bg-green-500/10 text-green-700 dark:text-green-400';
                       return (
                         <tr
                           key={b.id}

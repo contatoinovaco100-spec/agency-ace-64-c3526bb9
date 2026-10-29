@@ -16,9 +16,9 @@ interface CollabContract {
 }
 
 const STATUS_CONFIG: Record<Status, { label: string; icon: any; color: string }> = {
-  ativo:     { label:'Ativo',     icon: CheckCircle, color:'text-green-400 bg-green-400/10 border-green-400/20' },
-  pendente:  { label:'Pendente',  icon: Clock,       color:'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' },
-  expirado:  { label:'Expirado',  icon: AlertCircle, color:'text-red-400 bg-red-400/10 border-red-400/20' },
+  ativo:     { label:'Ativo',     icon: CheckCircle, color:'text-green-700 dark:text-green-400 bg-green-400/10 border-green-400/20' },
+  pendente:  { label:'Pendente',  icon: Clock,       color:'text-yellow-700 dark:text-yellow-400 bg-yellow-400/10 border-yellow-400/20' },
+  expirado:  { label:'Expirado',  icon: AlertCircle, color:'text-red-700 dark:text-red-400 bg-red-400/10 border-red-400/20' },
   cancelado: { label:'Cancelado', icon: AlertCircle, color:'text-muted-foreground bg-muted border-border' },
 };
 

@@ -23,13 +23,13 @@ interface MediaItem {
 }
 
 const TAG_COLORS: Record<string, string> = {
-  institucional: 'bg-blue-500/20 text-blue-400',
-  reels: 'bg-pink-500/20 text-pink-400',
-  story: 'bg-purple-500/20 text-purple-400',
-  stories: 'bg-purple-500/20 text-purple-400',
-  shorts: 'bg-red-500/20 text-red-400',
-  feed: 'bg-blue-500/20 text-blue-400',
-  longo: 'bg-orange-500/20 text-orange-400',
+  institucional: 'bg-blue-500/20 text-blue-700 dark:text-blue-400',
+  reels: 'bg-pink-500/20 text-pink-700 dark:text-pink-400',
+  story: 'bg-purple-500/20 text-purple-700 dark:text-purple-400',
+  stories: 'bg-purple-500/20 text-purple-700 dark:text-purple-400',
+  shorts: 'bg-red-500/20 text-red-700 dark:text-red-400',
+  feed: 'bg-blue-500/20 text-blue-700 dark:text-blue-400',
+  longo: 'bg-orange-500/20 text-orange-700 dark:text-orange-400',
 };
 
 const GRAD_COLORS = [
@@ -209,9 +209,9 @@ export default function GalleryPage() {
                 GRAD_COLORS[idx % GRAD_COLORS.length]
               )}>
                 {item.type === 'video' ? (
-                  <Film className="h-12 w-12 text-white/30" />
+                  <Film className="h-12 w-12 text-foreground/30" />
                 ) : (
-                  <ImageIcon className="h-12 w-12 text-white/30" />
+                  <ImageIcon className="h-12 w-12 text-foreground/30" />
                 )}
                 
                 {item.type === 'video' && (

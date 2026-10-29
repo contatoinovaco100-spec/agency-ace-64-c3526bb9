@@ -10,6 +10,7 @@ import { AgencyProvider } from "@/contexts/AgencyContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/AppLayout";
+import { StudioScope } from "@/components/StudioScope";
 import { RealtimeNotifications } from "@/components/RealtimeNotifications";
 import { TaskMoveNotifications } from "@/components/TaskMoveNotifications";
 import { Loader2 } from "lucide-react";
@@ -248,7 +249,7 @@ function AppRoutes() {
                     <Route path="/videos-finalizados"  element={<VideosFinalizadosPage />} />
                     <Route path="/agenda-videos"       element={<VideoSchedulePage />} />
                     <Route path="/pre-producao"        element={<PreProducaoPage />} />
-                    <Route path="/editor-video"        element={<VideoEditorPage />} />
+                    <Route path="/editor-video"        element={<StudioScope><VideoEditorPage /></StudioScope>} />
                     <Route path="/publicar-threads"     element={<ThreadsPublishPage />} />
                     <Route path="/equipe"              element={<TeamPage />} />
                     <Route path="/planejamento"        element={<ContentPlanningPage />} />
@@ -267,12 +268,12 @@ function AppRoutes() {
                     <Route path="/publicar"            element={<PublishContentPage />} />
                     <Route path="/publicacoes"         element={<PublishHistoryPage />} />
                     <Route path="/gravacoes"           element={<ShootingSchedulePage />} />
-                    <Route path="/whiteboard"          element={<WhiteboardPage />} />
+                    <Route path="/whiteboard"          element={<StudioScope><WhiteboardPage /></StudioScope>} />
                     <Route path="/prospeccao"          element={<ProspectionPage />} />
                     <Route path="/consulta-cnpj"       element={<CnpjLookupPage />} />
                     <Route path="/proposta/editar"     element={<SalesEditorPage />} />
-                    <Route path="/diagnostico/editar"  element={<DiagnosticEditorPage />} />
-                    <Route path="/diagnostico/editar/:editSlug"  element={<DiagnosticEditorPage />} />
+                    <Route path="/diagnostico/editar"  element={<StudioScope><DiagnosticEditorPage /></StudioScope>} />
+                    <Route path="/diagnostico/editar/:editSlug"  element={<StudioScope><DiagnosticEditorPage /></StudioScope>} />
                     <Route path="/notificacoes"        element={<NotificationsPage />} />
                     <Route path="/historico-kanban"    element={<KanbanHistoryPage />} />
 
@@ -302,7 +303,7 @@ function AppRoutes() {
                     <Route path="/time-comercial"      element={<CommercialTeamPage />} />
                     <Route path="/squads"              element={<SquadsPage />} />
                     <Route path="/ranking-viral"       element={<ViralRankingPage />} />
-                    <Route path="/figma-to-lp"         element={<FigmaToLpPage />} />
+                    <Route path="/figma-to-lp"         element={<StudioScope><FigmaToLpPage /></StudioScope>} />
                     <Route path="/financeiro"          element={<FinancePage />} />
                     <Route path="/financeiro-base"     element={<FinancialPage />} />
                     <Route path="/rede/admin"          element={<RedeAdminPage />} />
@@ -312,7 +313,7 @@ function AppRoutes() {
                     <Route path="/afiliado/:tab"       element={<AffiliateDashboardPage />} />
                     <Route path="/quiz-builder"        element={<QuizBuilderClientsPage />} />
                     <Route path="/quiz-builder/c/:clientId" element={<QuizBuilderQuizzesPage />} />
-                    <Route path="/quiz-builder/editor/:quizId" element={<QuizEditorPage />} />
+                    <Route path="/quiz-builder/editor/:quizId" element={<StudioScope><QuizEditorPage /></StudioScope>} />
                     <Route path="/quiz-builder/respostas/:quizId" element={<QuizResponsesPage />} />
                     <Route path="*"                    element={<NotFound />} />
                   </Routes>
@@ -335,15 +336,40 @@ function QuizOnlyRoutes() {
   );
 }
 
+// Páginas vistas por clientes e visitantes: mantêm a identidade escura, seja qual for o tema da equipe
+const PUBLIC_DARK_PATHS = [
+  '/conteudo', '/portal', '/contrato', '/vitrine', '/links', '/briefing', '/fatura', '/proposta',
+  '/diagnostico', '/diagnostico-anuncios', '/diagnostico-social', '/negocios', '/rede', '/indicacoes',
+  '/indicar', '/afiliados/cadastro', '/in', '/quiz', '/painel-artes', '/lp', '/roleta', '/teleprompter',
+];
+// Mantenha em sincronia com o script de tema do index.html
+const isPublicDarkPath = (pathname: string) =>
+  !pathname.startsWith('/diagnostico/editar') &&
+  PUBLIC_DARK_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`));
+
 const App = () => {
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="inova-theme" disableTransitionOnChange>
-      <BrowserRouter>
-        <QuizRouter />
-      </BrowserRouter>
-    </ThemeProvider>
+    <BrowserRouter>
+      <ThemedApp />
+    </BrowserRouter>
   );
 };
+
+function ThemedApp() {
+  const { pathname } = useLocation();
+  return (
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem={false}
+      storageKey="inova-theme"
+      forcedTheme={isPublicDarkPath(pathname) ? 'dark' : undefined}
+      disableTransitionOnChange
+    >
+      <QuizRouter />
+    </ThemeProvider>
+  );
+}
 
 // Top-level router that splits quiz pages from the rest of the app
 function QuizRouter() {

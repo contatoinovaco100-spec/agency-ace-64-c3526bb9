@@ -324,10 +324,10 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
   };
 
   const statusColors: Record<string, string> = {
-    novo: 'bg-zinc-600/20 text-zinc-400 border-zinc-600/30',
-    contatado: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    interessado: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-    fechado: 'bg-green-500/20 text-green-400 border-green-500/30',
+    novo: 'bg-zinc-600/20 text-muted-foreground border-border',
+    contatado: 'bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-500/30',
+    interessado: 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30',
+    fechado: 'bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30',
   };
 
   return (
@@ -338,7 +338,7 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
     >
       {/* Header */}
       <div className="px-2">
-        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent flex items-center gap-3">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
           <Bot className="w-8 h-8 text-primary" />
           Prospecção com IA
         </h1>
@@ -353,17 +353,17 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
           <CardTitle className="text-lg text-primary flex items-center gap-2">
             <Zap className="w-4 h-4" /> Identidade do Prospector
           </CardTitle>
-          <CardDescription className="text-zinc-400 text-sm">Configure sua agência e a mensagem que será enviada para cada lead.</CardDescription>
+          <CardDescription className="text-muted-foreground text-sm">Configure sua agência e a mensagem que será enviada para cada lead.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label className="text-xs">Nome da Agência</Label>
-              <Input value={agencyName} onChange={e => setAgencyName(e.target.value)} className="bg-black/60 border-white/10" placeholder="Sua agência" />
+              <Input value={agencyName} onChange={e => setAgencyName(e.target.value)} className="bg-muted/60 border-foreground/10" placeholder="Sua agência" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Serviço que você oferece</Label>
-              <Input value={agencyService} onChange={e => setAgencyService(e.target.value)} className="bg-black/60 border-white/10" placeholder="Ex: gestão de redes sociais" />
+              <Input value={agencyService} onChange={e => setAgencyService(e.target.value)} className="bg-muted/60 border-foreground/10" placeholder="Ex: gestão de redes sociais" />
             </div>
           </div>
           <div className="space-y-2">
@@ -373,16 +373,16 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
             <Textarea 
               value={messageTemplate} 
               onChange={e => setMessageTemplate(e.target.value)} 
-              className="bg-black/60 border-white/10 min-h-[100px] text-sm leading-relaxed" 
+              className="bg-muted/60 border-foreground/10 min-h-[100px] text-sm leading-relaxed" 
               placeholder="Escreva sua mensagem aqui..."
             />
-            <p className="text-xs text-zinc-500">Use <code className="text-primary bg-primary/10 px-1 rounded">{'{empresa}'}</code> para o nome do negócio e <code className="text-primary bg-primary/10 px-1 rounded">{'{agencia}'}</code> para o nome da sua agência. Eles serão substituídos automaticamente.</p>
+            <p className="text-xs text-muted-foreground">Use <code className="text-primary bg-primary/10 px-1 rounded">{'{empresa}'}</code> para o nome do negócio e <code className="text-primary bg-primary/10 px-1 rounded">{'{agencia}'}</code> para o nome da sua agência. Eles serão substituídos automaticamente.</p>
           </div>
         </CardContent>
       </Card>
 
       {/* Barra de Pesquisa */}
-      <Card className="border-white/10 bg-black/40">
+      <Card className="border-foreground/10 bg-muted/60">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 space-y-1">
@@ -391,7 +391,7 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
                 value={searchNiche} 
                 onChange={e => setSearchNiche(e.target.value)} 
                 placeholder="Ex: clínicas odontológicas, restaurantes, academias..." 
-                className="bg-black/60 border-white/10 h-12"
+                className="bg-muted/60 border-foreground/10 h-12"
                 onKeyDown={e => e.key === 'Enter' && searchGooglePlaces()}
               />
             </div>
@@ -401,7 +401,7 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
                 value={searchCity} 
                 onChange={e => setSearchCity(e.target.value)} 
                 placeholder="Ex: Goiânia" 
-                className="bg-black/60 border-white/10 h-12"
+                className="bg-muted/60 border-foreground/10 h-12"
                 onKeyDown={e => e.key === 'Enter' && searchGooglePlaces()}
               />
             </div>
@@ -409,7 +409,7 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
               <Button 
                 onClick={searchGooglePlaces} 
                 disabled={searching}
-                className="h-12 px-6 bg-primary text-black font-bold shadow-lg shadow-primary/20"
+                className="h-12 px-6 bg-primary text-brand-foreground font-bold shadow-lg shadow-primary/20"
               >
                 {searching ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Search className="w-4 h-4 mr-2" />}
                 Buscar Leads
@@ -422,23 +422,23 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
                     Importador Mágico
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px] bg-[#121212] border-white/10 text-white">
+                <DialogContent className="sm:max-w-[600px]">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-primary">
                       <Wand2 className="w-5 h-5" /> Importador Mágico ✨
                     </DialogTitle>
-                    <DialogDescription className="text-zinc-400">
+                    <DialogDescription className="text-muted-foreground">
                       Vá no Google Maps, faça sua pesquisa, selecione e copie (Ctrl+A / Ctrl+C) todos os resultados da barra lateral e cole abaixo. A IA vai extrair nomes e telefones automaticamente.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="py-4 space-y-4">
                     <Textarea 
                       placeholder="Cole aqui o texto copiado do Google Maps..." 
-                      className="min-h-[250px] bg-black/40 border-white/10 text-xs font-mono leading-relaxed"
+                      className="min-h-[250px] bg-muted/60 border-foreground/10 text-xs font-mono leading-relaxed"
                       value={magicText}
                       onChange={(e) => setMagicText(e.target.value)}
                     />
-                    <div className="flex items-center justify-between text-[10px] text-zinc-500">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                       <span>Total de caracteres: {magicText.length}</span>
                       <span>Dica: Não se preocupe com a bagunça do texto, a IA entende tudo.</span>
                     </div>
@@ -454,7 +454,7 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
                     <Button 
                       onClick={handleMagicImport} 
                       disabled={isExtracting || !magicText.trim()}
-                      className="bg-primary text-black font-bold"
+                      className="bg-primary text-brand-foreground font-bold"
                     >
                       {isExtracting ? (
                         <>
@@ -475,7 +475,7 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
               <Button 
                 variant="outline" 
                 onClick={() => setShowManualAdd(!showManualAdd)}
-                className="h-12 border-white/10"
+                className="h-12 border-foreground/10"
               >
                 <Plus className="w-4 h-4" />
               </Button>
@@ -484,29 +484,29 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
 
           {/* Manual Add Form */}
           {showManualAdd && (
-            <div className="mt-4 p-4 bg-black/40 border border-white/10 rounded-xl flex flex-col gap-3 animate-in fade-in">
+            <div className="mt-4 p-4 bg-muted/60 border border-foreground/10 rounded-xl flex flex-col gap-3 animate-in fade-in">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-1">
                   <Label className="text-xs">Empresa</Label>
-                  <Input value={manualName} onChange={e => setManualName(e.target.value)} placeholder="Ex: Academia X" className="bg-black/60 border-white/10" />
+                  <Input value={manualName} onChange={e => setManualName(e.target.value)} placeholder="Ex: Academia X" className="bg-muted/60 border-foreground/10" />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">WhatsApp</Label>
-                  <Input value={manualPhone} onChange={e => setManualPhone(e.target.value)} placeholder="Ex: 62999..." className="bg-black/60 border-white/10" />
+                  <Input value={manualPhone} onChange={e => setManualPhone(e.target.value)} placeholder="Ex: 62999..." className="bg-muted/60 border-foreground/10" />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Website</Label>
-                  <Input value={manualWebsite} onChange={e => setManualWebsite(e.target.value)} placeholder="https://..." className="bg-black/60 border-white/10" />
+                  <Input value={manualWebsite} onChange={e => setManualWebsite(e.target.value)} placeholder="https://..." className="bg-muted/60 border-foreground/10" />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Instagram</Label>
-                  <Input value={manualInstagram} onChange={e => setManualInstagram(e.target.value)} placeholder="@perfil" className="bg-black/60 border-white/10" />
+                  <Input value={manualInstagram} onChange={e => setManualInstagram(e.target.value)} placeholder="@perfil" className="bg-muted/60 border-foreground/10" />
                 </div>
               </div>
               <div className="flex items-end gap-3">
                 <div className="flex-1 space-y-1">
                   <Label className="text-xs">Segmento</Label>
-                  <Input value={manualCategory} onChange={e => setManualCategory(e.target.value)} placeholder="Odontologia" className="bg-black/60 border-white/10" />
+                  <Input value={manualCategory} onChange={e => setManualCategory(e.target.value)} placeholder="Odontologia" className="bg-muted/60 border-foreground/10" />
                 </div>
                 <Button onClick={addManualLead} variant="secondary" className="h-10">
                   <Plus className="w-4 h-4 mr-1" /> Adicionar
@@ -521,7 +521,7 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
       {leads.length > 0 && (
         <div className="flex items-center justify-between px-2">
           <p className="text-sm text-muted-foreground">
-            <span className="text-white font-bold">{leads.length}</span> leads na lista
+            <span className="text-foreground font-bold">{leads.length}</span> leads na lista
           </p>
           <Button onClick={generateAllMessages} variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
             <Sparkles className="w-4 h-4 mr-2" /> Gerar Mensagens para Todos
@@ -531,15 +531,15 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
 
       {/* Leads List */}
       {leads.length === 0 ? (
-        <div className="text-center py-20 border border-white/5 border-dashed rounded-2xl bg-black/20">
-          <Bot className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-          <p className="text-zinc-500 mb-2">Nenhum lead prospectado ainda.</p>
-          <p className="text-zinc-600 text-sm">Pesquise um nicho + cidade acima ou adicione leads manualmente.</p>
+        <div className="text-center py-20 border border-foreground/5 border-dashed rounded-2xl bg-muted/60">
+          <Bot className="w-12 h-12 text-muted-foreground/70 mx-auto mb-4" />
+          <p className="text-muted-foreground mb-2">Nenhum lead prospectado ainda.</p>
+          <p className="text-muted-foreground/70 text-sm">Pesquise um nicho + cidade acima ou adicione leads manualmente.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {leads.map(lead => (
-            <div key={lead.id} className="border border-white/5 bg-[#0c0c0c] rounded-2xl overflow-hidden shadow-md hover:border-white/10 transition-colors">
+            <div key={lead.id} className="border border-foreground/5 bg-card rounded-2xl overflow-hidden shadow-md hover:border-foreground/10 transition-colors">
               
               {/* Lead Header */}
               <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -548,8 +548,8 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
                     <Building2 className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-bold text-white truncate">{lead.name}</h3>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-zinc-400">
+                    <h3 className="text-lg font-bold text-foreground truncate">{lead.name}</h3>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {lead.phone || 'N/A'}</span>
                       {lead.website && (
                         <a href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
@@ -562,9 +562,9 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
                         </a>
                       )}
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {lead.address || 'Goiânia, GO'}</span>
-                      {lead.rating > 0 && <span className="flex items-center gap-1 text-amber-400"><Star className="w-3 h-3 fill-amber-400" /> {lead.rating}</span>}
+                      {lead.rating > 0 && <span className="flex items-center gap-1 text-amber-700 dark:text-amber-400"><Star className="w-3 h-3 fill-amber-400" /> {lead.rating}</span>}
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => removeLead(lead.id)} className="text-zinc-600 hover:text-red-500 mt-2 h-auto px-0">
+                    <Button variant="ghost" size="sm" onClick={() => removeLead(lead.id)} className="text-muted-foreground/70 hover:text-red-500 mt-2 h-auto px-0">
                       <Trash2 className="w-4 h-4 mr-1" /> Excluir
                     </Button>
                   </div>
@@ -577,7 +577,7 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
                   <select 
                     value={lead.status}
                     onChange={e => setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: e.target.value as Lead['status'] } : l))}
-                    className="bg-black/60 border border-white/10 text-xs text-zinc-400 rounded px-2 py-1"
+                    className="bg-muted/60 border border-foreground/10 text-xs text-muted-foreground rounded px-2 py-1"
                   >
                     <option value="novo">Novo</option>
                     <option value="contatado">Contatado</option>
@@ -588,20 +588,20 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
               </div>
 
               {/* AI Message Section */}
-              <div className="border-t border-white/5 p-5 bg-black/30">
+              <div className="border-t border-foreground/5 p-5 bg-muted/60">
                 {lead.aiMessage ? (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-xs text-primary font-bold uppercase tracking-wider">
                       <MessageCircle className="w-3 h-3" /> Mensagem de Prospecção
                     </div>
-                    <p className="text-zinc-300 leading-relaxed bg-black/40 border border-white/5 p-4 rounded-xl whitespace-pre-wrap text-sm">
+                    <p className="text-foreground/80 leading-relaxed bg-muted/60 border border-foreground/5 p-4 rounded-xl whitespace-pre-wrap text-sm">
                       {lead.aiMessage}
                     </p>
                     <div className="flex gap-2">
                       <Button onClick={() => openWhatsApp(lead)} className="bg-green-600 hover:bg-green-700 text-white font-bold shadow-lg">
                         <Send className="w-4 h-4 mr-2" /> Abrir WhatsApp
                       </Button>
-                      <Button variant="outline" className="border-white/10" onClick={() => copyMessage(lead.aiMessage)}>
+                      <Button variant="outline" className="border-foreground/10" onClick={() => copyMessage(lead.aiMessage)}>
                         <Copy className="w-4 h-4 mr-2" /> Copiar
                       </Button>
                       <Button variant="ghost" className="text-primary" onClick={() => generateMessage(lead.id)}>

@@ -167,7 +167,7 @@ export function PublishedPlannerTab() {
           </CardContent>
         </Card>
       ) : view === 'month' ? (
-        <Card className="border-white/5 bg-black/20 backdrop-blur-sm">
+        <Card className="border-foreground/5 bg-card">
           <CardContent className="p-0 sm:p-4 pt-0">
             <div className="flex items-center justify-center py-4">
               <span className="text-lg font-bold capitalize">
@@ -183,7 +183,7 @@ export function PublishedPlannerTab() {
               ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-px sm:gap-1 bg-white/5 rounded-lg overflow-hidden border border-white/5">
+            <div className="grid grid-cols-7 gap-px sm:gap-1 bg-foreground/5 rounded-lg overflow-hidden border border-foreground/5">
               {days.map(day => {
                 const dateKey = format(day, 'yyyy-MM-dd');
                 const dayPosts = postsByDay[dateKey] ?? [];
@@ -192,7 +192,7 @@ export function PublishedPlannerTab() {
                 return (
                   <div
                     key={day.toString()}
-                    className={`min-h-[110px] sm:min-h-[130px] p-1 sm:p-2 bg-zinc-950 transition-colors ${!isCurrentMonth ? 'opacity-40' : ''}`}
+                    className={`min-h-[110px] sm:min-h-[130px] p-1 sm:p-2 bg-background transition-colors ${!isCurrentMonth ? 'opacity-40' : ''}`}
                   >
                     <div className={`text-right text-xs mb-1 font-medium ${isToday(day) ? 'text-primary' : 'text-muted-foreground'}`}>
                       {format(day, 'd')}
@@ -201,12 +201,12 @@ export function PublishedPlannerTab() {
                       {dayPosts.map(p => (
                         <div
                           key={p.job.id}
-                          className="group flex items-center gap-1.5 rounded-md border border-white/10 bg-black/40 p-1 text-[10px] sm:text-xs"
+                          className="group flex items-center gap-1.5 rounded-md border border-foreground/10 bg-muted/60 p-1 text-[10px] sm:text-xs"
                           title={p.job.caption?.trim() || 'Sem legenda'}
                         >
                           <JobThumb job={p.job} />
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-white font-medium">
+                            <p className="truncate text-foreground font-medium">
                               {p.job.caption?.trim() || (p.job.media_type === 'video' ? 'Vídeo' : 'Imagem')}
                             </p>
                             <p className="truncate text-[10px] text-muted-foreground">
@@ -238,7 +238,7 @@ export function PublishedPlannerTab() {
           {[...posts]
             .sort((a, b) => b.dateKey.localeCompare(a.dateKey))
             .map(p => (
-              <Card key={p.job.id} className="border-white/5 bg-black/20 backdrop-blur-sm">
+              <Card key={p.job.id} className="border-foreground/5 bg-card">
                 <CardContent className="flex items-center gap-3 p-3">
                   <JobThumb job={p.job} />
                   <div className="min-w-0 flex-1">

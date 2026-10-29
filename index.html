@@ -36,6 +36,10 @@
       (function () {
         var theme = 'dark';
         try { theme = localStorage.getItem('inova-theme') || 'dark'; } catch (e) {}
+        // Páginas públicas são sempre escuras (mesma lista de PUBLIC_DARK_PATHS no App.tsx)
+        var path = location.pathname;
+        var publicPaths = ['/conteudo', '/portal', '/contrato', '/vitrine', '/links', '/briefing', '/fatura', '/proposta', '/diagnostico', '/diagnostico-anuncios', '/diagnostico-social', '/negocios', '/rede', '/indicacoes', '/indicar', '/afiliados/cadastro', '/in', '/quiz', '/painel-artes', '/lp', '/roleta', '/teleprompter'];
+        if (path.indexOf('/diagnostico/editar') !== 0 && publicPaths.some(function (p) { return path === p || path.indexOf(p + '/') === 0; })) theme = 'dark';
         document.documentElement.classList.add(theme === 'light' ? 'light' : 'dark');
       })();
     </script>

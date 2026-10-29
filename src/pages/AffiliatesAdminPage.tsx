@@ -370,7 +370,7 @@ export default function AffiliatesAdminPage() {
             <CardContent className="relative p-6">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{kpi.label}</span>
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${kpi.bg} ring-1 ring-white/5`}>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${kpi.bg} ring-1 ring-foreground/5`}>
                   <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
                 </div>
               </div>
@@ -395,7 +395,7 @@ export default function AffiliatesAdminPage() {
           <TabsTrigger value="commissions" className="rounded-lg py-2.5 font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_hsl(73,93%,55%/0.2)] transition-all gap-2">
             Comissões
             {commissions.filter(c => c.status === 'pendente').length > 0 && (
-              <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-amber-500/20 text-amber-400 text-[11px] font-bold leading-none">
+              <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[11px] font-bold leading-none">
                 {commissions.filter(c => c.status === 'pendente').length}
               </span>
             )}
@@ -640,7 +640,7 @@ export default function AffiliatesAdminPage() {
           {/* Mini-summary comissões */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { label: 'A Receber', value: pendingCommissions, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Clock },
+              { label: 'A Receber', value: pendingCommissions, color: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Clock },
               { label: 'Já Pago', value: paidCommissions, color: 'text-[hsl(var(--success))]', bg: 'bg-[hsl(var(--success))]/10', border: 'border-[hsl(var(--success))/20', icon: DollarSign },
               { label: 'Previsão Recorrência', value: contracts.filter(c => c.status === 'ativo').length * pageSettings.recurringCommission, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20', icon: TrendingUp },
             ].map(kpi => (
@@ -673,7 +673,7 @@ export default function AffiliatesAdminPage() {
                 return (<>
                   {pendentes.length > 0 && (
                     <div className="px-6 pt-5 pb-2 bg-amber-500/5 border-b border-amber-500/10">
-                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                      <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-2">
                         <Clock className="w-3.5 h-3.5" /> Pendentes — {pendentes.length} comissão(ns)
                       </span>
                     </div>
@@ -682,7 +682,7 @@ export default function AffiliatesAdminPage() {
                     <div key={c.id} className="p-5 flex flex-wrap items-center justify-between gap-4 group hover:bg-amber-500/5 transition-all">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1">
-                          <span className="font-extrabold text-xl text-amber-400 tabular-nums tracking-tight">
+                          <span className="font-extrabold text-xl text-amber-700 dark:text-amber-400 tabular-nums tracking-tight">
                             R$ {Number(c.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>
                           <Badge variant="outline" className="bg-secondary/60 border-border text-foreground text-[10px] uppercase font-semibold">

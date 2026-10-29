@@ -24,7 +24,7 @@ export default function ContentPlanningPage() {
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-2">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Planejamento de Conteúdo
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -35,7 +35,7 @@ export default function ContentPlanningPage() {
         <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
           <div className="w-full sm:w-[300px]">
             <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-              <SelectTrigger className="w-full bg-black/40 border-white/10">
+              <SelectTrigger className="w-full bg-muted/60 border-foreground/10">
                 <SelectValue placeholder="Selecione um cliente..." />
               </SelectTrigger>
               <SelectContent>
@@ -65,7 +65,7 @@ export default function ContentPlanningPage() {
       </div>
 
       {!selectedClientId ? (
-        <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-4 rounded-xl border border-white/5 bg-black/20 backdrop-blur-sm p-8">
+        <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-4 rounded-xl border border-foreground/5 bg-card p-8">
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
             <LayoutList className="w-8 h-8 text-primary" />
           </div>

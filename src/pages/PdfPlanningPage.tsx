@@ -63,10 +63,10 @@ export default function PdfPlanningPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between px-1">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
               Planejamento Mensal de Conteúdo
             </h1>
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 hidden sm:inline-flex">
+            <Badge variant="outline" className="border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hidden sm:inline-flex">
               Excel & PDF
             </Badge>
           </div>
@@ -79,7 +79,7 @@ export default function PdfPlanningPage() {
           {/* Seletor de Cliente */}
           <div className="w-full sm:w-[260px]">
             <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-              <SelectTrigger className="w-full bg-black/40 border-white/10 font-medium">
+              <SelectTrigger className="w-full bg-muted/60 border-foreground/10 font-medium">
                 <SelectValue placeholder="Selecione o cliente..." />
               </SelectTrigger>
               <SelectContent>
@@ -95,7 +95,7 @@ export default function PdfPlanningPage() {
           {/* Seletor de Mês */}
           <div className="w-[140px]">
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-full bg-black/40 border-white/10">
+              <SelectTrigger className="w-full bg-muted/60 border-foreground/10">
                 <Calendar className="w-3.5 h-3.5 mr-1 text-primary" />
                 <SelectValue />
               </SelectTrigger>
@@ -110,7 +110,7 @@ export default function PdfPlanningPage() {
           {/* Seletor de Ano */}
           <div className="w-[95px]">
             <Select value={String(selectedYear)} onValueChange={v => setSelectedYear(Number(v))}>
-              <SelectTrigger className="w-full bg-black/40 border-white/10">
+              <SelectTrigger className="w-full bg-muted/60 border-foreground/10">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -124,12 +124,12 @@ export default function PdfPlanningPage() {
       </div>
 
       {!selectedClientId ? (
-        <div className="flex flex-col items-center justify-center min-h-[45vh] text-center space-y-4 rounded-2xl border border-white/5 bg-black/20 backdrop-blur-sm p-8">
+        <div className="flex flex-col items-center justify-center min-h-[45vh] text-center space-y-4 rounded-2xl border border-foreground/5 bg-card p-8">
           <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-            <FileSpreadsheet className="w-8 h-8 text-emerald-400" />
+            <FileSpreadsheet className="w-8 h-8 text-emerald-700 dark:text-emerald-400" />
           </div>
           <div className="space-y-2 max-w-md">
-            <h3 className="text-xl font-semibold text-white">Selecione um Cliente para Começar</h3>
+            <h3 className="text-xl font-semibold text-foreground">Selecione um Cliente para Começar</h3>
             <p className="text-muted-foreground text-sm">
               Escolha o cliente acima para baixar a planilha mensal personalizada e importar o cronograma de vídeos e artes.
             </p>
@@ -138,17 +138,17 @@ export default function PdfPlanningPage() {
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <TabsList className="bg-black/40 border border-white/10 p-1">
-              <TabsTrigger value="upload" className="data-[state=active]:bg-primary data-[state=active]:text-black font-semibold">
+            <TabsList className="bg-muted/60 border border-foreground/10 p-1">
+              <TabsTrigger value="upload" className="data-[state=active]:bg-primary data-[state=active]:text-brand-foreground font-semibold">
                 <Upload className="w-4 h-4 mr-2" />
                 Importar Arquivo
               </TabsTrigger>
-              <TabsTrigger value="cards" className="data-[state=active]:bg-primary data-[state=active]:text-black font-semibold">
+              <TabsTrigger value="cards" className="data-[state=active]:bg-primary data-[state=active]:text-brand-foreground font-semibold">
                 <LayoutList className="w-4 h-4 mr-2" />
                 Cards Extraídos {items.length > 0 && `(${items.length})`}
               </TabsTrigger>
-              <TabsTrigger value="template" className="data-[state=active]:bg-primary data-[state=active]:text-black font-semibold">
-                <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-400 data-[state=active]:text-black" />
+              <TabsTrigger value="template" className="data-[state=active]:bg-primary data-[state=active]:text-brand-foreground font-semibold">
+                <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-700 dark:text-emerald-400 data-[state=active]:text-black" />
                 Planilha & Modelos
               </TabsTrigger>
             </TabsList>
@@ -158,7 +158,7 @@ export default function PdfPlanningPage() {
                 variant="outline"
                 size="sm"
                 onClick={handleDownloadExcel}
-                className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 font-semibold"
+                className="border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 font-semibold"
               >
                 <FileSpreadsheet className="w-4 h-4 mr-1.5" />
                 Baixar Excel ({selectedMonth})
@@ -168,7 +168,7 @@ export default function PdfPlanningPage() {
                 <Button
                   onClick={() => setActiveTab('cards')}
                   size="sm"
-                  className="bg-primary text-black font-bold shadow-lg shadow-primary/20"
+                  className="bg-primary text-brand-foreground font-bold shadow-lg shadow-primary/20"
                 >
                   <Sparkles className="w-4 h-4 mr-1.5" />
                   Ver {items.length} Card{items.length !== 1 ? 's' : ''}
@@ -179,12 +179,12 @@ export default function PdfPlanningPage() {
 
           {/* ABA 1: UPLOAD / IMPORTAÇÃO */}
           <TabsContent value="upload" className="mt-0 space-y-6">
-            <div className="border border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent rounded-2xl p-6">
+            <div className="border border-foreground/5 bg-gradient-to-b from-white/[0.03] to-transparent rounded-2xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Cliente selecionado: <strong className="text-white font-bold">{selectedClient?.companyName}</strong> ({monthNameFormatted})
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Cliente selecionado: <strong className="text-foreground font-bold">{selectedClient?.companyName}</strong> ({monthNameFormatted})
                   </span>
                 </div>
               </div>
@@ -192,32 +192,32 @@ export default function PdfPlanningPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-black/30 rounded-xl border border-white/5 p-5 space-y-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-bold text-sm">
+              <div className="bg-muted/60 rounded-xl border border-foreground/5 p-5 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-700 dark:text-emerald-400 font-bold text-sm">
                   1
                 </div>
-                <h4 className="font-semibold text-white text-sm">1. Baixe o Excel ou PDF</h4>
-                <p className="text-zinc-500 text-xs leading-relaxed">
+                <h4 className="font-semibold text-foreground text-sm">1. Baixe o Excel ou PDF</h4>
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   Acesse a aba <strong>Planilha & Modelos</strong> e baixe a planilha formatada com as colunas certas para o cliente.
                 </p>
               </div>
 
-              <div className="bg-black/30 rounded-xl border border-white/5 p-5 space-y-2">
+              <div className="bg-muted/60 rounded-xl border border-foreground/5 p-5 space-y-2">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
                   2
                 </div>
-                <h4 className="font-semibold text-white text-sm">2. Preencha no Excel</h4>
-                <p className="text-zinc-500 text-xs leading-relaxed">
+                <h4 className="font-semibold text-foreground text-sm">2. Preencha no Excel</h4>
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   Insira as datas, títulos dos vídeos/artes e roteiros/legendas nas abas 🎬 Vídeos e 🎨 Artes.
                 </p>
               </div>
 
-              <div className="bg-black/30 rounded-xl border border-white/5 p-5 space-y-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-sm">
+              <div className="bg-muted/60 rounded-xl border border-foreground/5 p-5 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-700 dark:text-blue-400 font-bold text-sm">
                   3
                 </div>
-                <h4 className="font-semibold text-white text-sm">3. Arraste e Crie no Kanban</h4>
-                <p className="text-zinc-500 text-xs leading-relaxed">
+                <h4 className="font-semibold text-foreground text-sm">3. Arraste e Crie no Kanban</h4>
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   Solte o arquivo aqui para extrair tudo. Revise e envie todos os cards direto para o Kanban do cliente!
                 </p>
               </div>
@@ -227,10 +227,10 @@ export default function PdfPlanningPage() {
           {/* ABA 2: CARDS EXTRAÍDOS */}
           <TabsContent value="cards" className="mt-0">
             {items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center min-h-[35vh] text-center space-y-4 rounded-2xl border border-white/5 bg-black/20 backdrop-blur-sm p-8">
-                <LayoutList className="w-12 h-12 text-zinc-600" />
+              <div className="flex flex-col items-center justify-center min-h-[35vh] text-center space-y-4 rounded-2xl border border-foreground/5 bg-card p-8">
+                <LayoutList className="w-12 h-12 text-muted-foreground/70" />
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-white">Nenhum card importado ainda</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Nenhum card importado ainda</h3>
                   <p className="text-muted-foreground text-sm max-w-sm">
                     Faça upload da planilha preenchida ou do PDF para gerar os cards deste mês.
                   </p>
@@ -255,15 +255,15 @@ export default function PdfPlanningPage() {
 
           {/* ABA 3: TEMPLATES & MODELOS (EXCEL E PDF) */}
           <TabsContent value="template" className="mt-0 space-y-6">
-            <div className="border border-white/5 bg-black/20 rounded-2xl p-6 sm:p-8 space-y-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-white/10">
+            <div className="border border-foreground/5 bg-muted/60 rounded-2xl p-6 sm:p-8 space-y-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-foreground/10">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
-                    <FileSpreadsheet className="w-7 h-7 text-purple-400" />
+                    <FileSpreadsheet className="w-7 h-7 text-purple-700 dark:text-purple-400" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white">Cronograma Mensal de Postagens (Excel & PDF)</h3>
-                    <p className="text-zinc-400 text-xs mt-1">
+                    <h3 className="text-xl font-bold text-foreground">Cronograma Mensal de Postagens (Excel & PDF)</h3>
+                    <p className="text-muted-foreground text-xs mt-1">
                       Modelo profissional com estrutura em blocos: <strong>Data</strong>, <strong>Turno</strong>, <strong>Status</strong>, <strong>Canal</strong>, <strong>Formato</strong>, <strong>Objetivo</strong> e <strong>Direcionamento</strong>.
                     </p>
                   </div>
@@ -282,7 +282,7 @@ export default function PdfPlanningPage() {
                   <Button
                     onClick={handleDownloadPdf}
                     variant="outline"
-                    className="border-white/10 hover:bg-white/5 font-semibold text-zinc-300"
+                    className="border-foreground/10 hover:bg-foreground/5 font-semibold text-foreground/80"
                     size="sm"
                   >
                     <FileText className="w-4 h-4 mr-2 text-primary" />
@@ -294,17 +294,17 @@ export default function PdfPlanningPage() {
               {/* Preview Visual no Estilo da Imagem de Referência */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-400 flex items-center gap-1.5">
                     <Table className="w-4 h-4" />
                     Pré-visualização do Modelo de Planilha
                   </span>
-                  <span className="text-xs text-zinc-500">Formato idêntico ao arquivo .xlsx gerado</span>
+                  <span className="text-xs text-muted-foreground">Formato idêntico ao arquivo .xlsx gerado</span>
                 </div>
 
-                <div className="rounded-xl overflow-hidden border border-purple-500/30 shadow-2xl bg-[#1e1338]">
+                <div className="dark rounded-xl overflow-hidden border border-purple-500/30 shadow-2xl bg-[#1e1338] text-foreground">
                   {/* Banner Roxo Superior */}
                   <div className="bg-[#492285] py-3.5 px-4 text-center border-b border-purple-400/20">
-                    <h4 className="text-lg md:text-xl font-black text-white tracking-wide">
+                    <h4 className="text-lg md:text-xl font-black text-foreground tracking-wide">
                       Cronograma de postagens
                     </h4>
                   </div>
@@ -327,7 +327,7 @@ export default function PdfPlanningPage() {
                           <th className="p-2.5 w-32">Obs.</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-purple-500/15 text-zinc-200">
+                      <tbody className="divide-y divide-purple-500/15 text-foreground">
                         <tr className="hover:bg-purple-500/10 transition-colors">
                           <td className="p-2.5 text-center font-bold text-purple-200 bg-purple-950/40 border-r border-purple-400/20">QUA (08/10)</td>
                           <td className="p-2 text-center border-r border-purple-400/20">
@@ -336,15 +336,15 @@ export default function PdfPlanningPage() {
                             </span>
                           </td>
                           <td className="p-2 text-center border-r border-purple-400/20">
-                            <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                            <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/30">
                               Em revisão ▾
                             </span>
                           </td>
-                          <td className="p-2.5 text-center text-zinc-300 border-r border-purple-400/20">Instagram ▾</td>
-                          <td className="p-2.5 text-center font-bold text-purple-300 border-r border-purple-400/20">STORIES ▾</td>
-                          <td className="p-2.5 text-center text-zinc-300 border-r border-purple-400/20">Institucional</td>
+                          <td className="p-2.5 text-center text-foreground/80 border-r border-purple-400/20">Instagram ▾</td>
+                          <td className="p-2.5 text-center font-bold text-purple-700 dark:text-purple-300 border-r border-purple-400/20">STORIES ▾</td>
+                          <td className="p-2.5 text-center text-foreground/80 border-r border-purple-400/20">Institucional</td>
                           <td className="p-2.5 pl-4 border-r border-purple-400/20 font-medium">Missão da marca e bastidores do dia a dia</td>
-                          <td className="p-2.5 text-zinc-400 text-[11px]">Gravação interna</td>
+                          <td className="p-2.5 text-muted-foreground text-[11px]">Gravação interna</td>
                         </tr>
 
                         <tr className="hover:bg-purple-500/10 transition-colors">
@@ -355,15 +355,15 @@ export default function PdfPlanningPage() {
                             </span>
                           </td>
                           <td className="p-2 text-center border-r border-purple-400/20">
-                            <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                            <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-400/30">
                               Programado ▾
                             </span>
                           </td>
-                          <td className="p-2.5 text-center text-zinc-300 border-r border-purple-400/20">Linkedin ▾</td>
-                          <td className="p-2.5 text-center font-bold text-purple-300 border-r border-purple-400/20">CARD ▾</td>
-                          <td className="p-2.5 text-center text-zinc-300 border-r border-purple-400/20">Serviço</td>
+                          <td className="p-2.5 text-center text-foreground/80 border-r border-purple-400/20">Linkedin ▾</td>
+                          <td className="p-2.5 text-center font-bold text-purple-700 dark:text-purple-300 border-r border-purple-400/20">CARD ▾</td>
+                          <td className="p-2.5 text-center text-foreground/80 border-r border-purple-400/20">Serviço</td>
                           <td className="p-2.5 pl-4 border-r border-purple-400/20 font-medium">Apresentação do serviço principal com foco em B2B</td>
-                          <td className="p-2.5 text-zinc-400 text-[11px]">Carrossel 4 slides</td>
+                          <td className="p-2.5 text-muted-foreground text-[11px]">Carrossel 4 slides</td>
                         </tr>
 
                         <tr className="hover:bg-purple-500/10 transition-colors">
@@ -374,15 +374,15 @@ export default function PdfPlanningPage() {
                             </span>
                           </td>
                           <td className="p-2 text-center border-r border-purple-400/20">
-                            <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-orange-500/20 text-orange-300 border border-orange-400/30">
+                            <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-400/30">
                               Em criação ▾
                             </span>
                           </td>
-                          <td className="p-2.5 text-center text-zinc-300 border-r border-purple-400/20">YouTube ▾</td>
-                          <td className="p-2.5 text-center font-bold text-purple-300 border-r border-purple-400/20">VÍDEO ▾</td>
-                          <td className="p-2.5 text-center text-zinc-300 border-r border-purple-400/20">Produto</td>
+                          <td className="p-2.5 text-center text-foreground/80 border-r border-purple-400/20">YouTube ▾</td>
+                          <td className="p-2.5 text-center font-bold text-purple-700 dark:text-purple-300 border-r border-purple-400/20">VÍDEO ▾</td>
+                          <td className="p-2.5 text-center text-foreground/80 border-r border-purple-400/20">Produto</td>
                           <td className="p-2.5 pl-4 border-r border-purple-400/20 font-medium">Demonstração prática do produto com gancho forte</td>
-                          <td className="p-2.5 text-zinc-400 text-[11px]">Reels dinâmico</td>
+                          <td className="p-2.5 text-muted-foreground text-[11px]">Reels dinâmico</td>
                         </tr>
 
                         <tr className="hover:bg-purple-500/10 transition-colors">
@@ -393,15 +393,15 @@ export default function PdfPlanningPage() {
                             </span>
                           </td>
                           <td className="p-2 text-center border-r border-purple-400/20">
-                            <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                            <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-400/30">
                               Programado ▾
                             </span>
                           </td>
-                          <td className="p-2.5 text-center text-zinc-300 border-r border-purple-400/20">Instagram ▾</td>
-                          <td className="p-2.5 text-center font-bold text-purple-300 border-r border-purple-400/20">REELS ▾</td>
-                          <td className="p-2.5 text-center text-zinc-300 border-r border-purple-400/20">Topo de Funil</td>
+                          <td className="p-2.5 text-center text-foreground/80 border-r border-purple-400/20">Instagram ▾</td>
+                          <td className="p-2.5 text-center font-bold text-purple-700 dark:text-purple-300 border-r border-purple-400/20">REELS ▾</td>
+                          <td className="p-2.5 text-center text-foreground/80 border-r border-purple-400/20">Topo de Funil</td>
                           <td className="p-2.5 pl-4 border-r border-purple-400/20 font-medium">3 Dicas rápidas para resolver a dor do cliente</td>
-                          <td className="p-2.5 text-zinc-400 text-[11px]">Áudio em alta</td>
+                          <td className="p-2.5 text-muted-foreground text-[11px]">Áudio em alta</td>
                         </tr>
                       </tbody>
                     </table>

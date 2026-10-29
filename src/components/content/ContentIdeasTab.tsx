@@ -183,7 +183,7 @@ export function ContentIdeasTab({ clientId }: { clientId: string }) {
       </div>
 
       {ideas.length === 0 ? (
-        <div className="text-center py-12 border border-white/5 bg-black/20 rounded-xl backdrop-blur-sm">
+        <div className="text-center py-12 border border-dashed border-foreground/10 bg-card/60 rounded-xl">
           <Lightbulb className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
           <h3 className="text-lg font-medium">Nenhuma ideia de conteúdo</h3>
           <p className="text-muted-foreground text-sm mt-1 mb-4">
@@ -197,14 +197,14 @@ export function ContentIdeasTab({ clientId }: { clientId: string }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {ideas.map((idea) => (
-            <Card key={idea.id} className="border-white/5 bg-black/20 backdrop-blur-sm hover:border-white/10 transition-colors flex flex-col h-full">
+            <Card key={idea.id} className="border-foreground/5 bg-card hover:border-foreground/10 transition-colors flex flex-col h-full">
               <CardHeader className="p-4 pb-2">
                 <div className="flex justify-between items-start">
                   <Badge variant="outline" className={getStatusColor(idea.status)}>
                     {idea.status || 'Ideia'}
                   </Badge>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-white" onClick={() => handleEditClick(idea)}>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleEditClick(idea)}>
                       <Edit className="w-3 h-3" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-red-500" onClick={() => handleDelete(idea.id)}>
@@ -245,7 +245,7 @@ export function ContentIdeasTab({ clientId }: { clientId: string }) {
 
       {/* Dialog para Nova/Editar Ideia */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-zinc-950 border-white/10 sm:max-w-[425px]">
+        <DialogContent className="bg-background border-foreground/10 sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{editingIdea?.id ? 'Editar Ideia' : 'Nova Ideia'}</DialogTitle>
           </DialogHeader>
@@ -257,7 +257,7 @@ export function ContentIdeasTab({ clientId }: { clientId: string }) {
                 placeholder="Ex: 3 erros ao investir em imóveis" 
                 value={editingIdea?.title || ''}
                 onChange={(e) => setEditingIdea({ ...editingIdea, title: e.target.value })}
-                className="bg-black/40 border-white/10"
+                className="bg-muted/60 border-foreground/10"
               />
             </div>
 
@@ -268,7 +268,7 @@ export function ContentIdeasTab({ clientId }: { clientId: string }) {
                   value={editingIdea?.content_type || ''} 
                   onValueChange={(val) => setEditingIdea({ ...editingIdea, content_type: val })}
                 >
-                  <SelectTrigger className="bg-black/40 border-white/10">
+                  <SelectTrigger className="bg-muted/60 border-foreground/10">
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -285,7 +285,7 @@ export function ContentIdeasTab({ clientId }: { clientId: string }) {
                   value={editingIdea?.status || ''} 
                   onValueChange={(val) => setEditingIdea({ ...editingIdea, status: val })}
                 >
-                  <SelectTrigger className="bg-black/40 border-white/10">
+                  <SelectTrigger className="bg-muted/60 border-foreground/10">
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -303,7 +303,7 @@ export function ContentIdeasTab({ clientId }: { clientId: string }) {
                 value={editingIdea?.pillar || ''} 
                 onValueChange={(val) => setEditingIdea({ ...editingIdea, pillar: val })}
               >
-                <SelectTrigger className="bg-black/40 border-white/10">
+                <SelectTrigger className="bg-muted/60 border-foreground/10">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -324,13 +324,13 @@ export function ContentIdeasTab({ clientId }: { clientId: string }) {
                 placeholder="Ex: Atrair seguidores / Vender consultoria" 
                 value={editingIdea?.objective || ''}
                 onChange={(e) => setEditingIdea({ ...editingIdea, objective: e.target.value })}
-                className="bg-black/40 border-white/10"
+                className="bg-muted/60 border-foreground/10"
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-white/10">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-foreground/10">
               Cancelar
             </Button>
             <Button onClick={handleSaveIdea} disabled={saving}>

@@ -137,8 +137,8 @@ export function ContentCalendarTab({ clientId }: { clientId: string }) {
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       
       {/* Sidebar: Backlog */}
-      <Card className="lg:col-span-1 border-white/5 bg-black/20 backdrop-blur-sm h-[600px] flex flex-col">
-        <CardHeader className="pb-3 border-b border-white/5">
+      <Card className="lg:col-span-1 border-foreground/5 bg-card h-[600px] flex flex-col">
+        <CardHeader className="pb-3 border-b border-foreground/5">
           <CardTitle className="text-lg">Não Agendados</CardTitle>
           <p className="text-xs text-muted-foreground">Arraste para o calendário</p>
         </CardHeader>
@@ -156,7 +156,7 @@ export function ContentCalendarTab({ clientId }: { clientId: string }) {
                 draggable
                 onDragStart={(e) => handleDragStart(e, idea.id)}
                 onDragEnd={handleDragEnd}
-                className="p-3 rounded-md bg-black/40 border border-white/10 cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors"
+                className="p-3 rounded-md bg-muted/60 border border-foreground/10 cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors"
               >
                 <div className="flex items-start gap-2">
                   <GripVertical className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
@@ -175,7 +175,7 @@ export function ContentCalendarTab({ clientId }: { clientId: string }) {
       </Card>
 
       {/* Main Calendar */}
-      <Card className="lg:col-span-3 border-white/5 bg-black/20 backdrop-blur-sm">
+      <Card className="lg:col-span-3 border-foreground/5 bg-card">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <CardTitle className="text-lg capitalize">
             {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
@@ -202,7 +202,7 @@ export function ContentCalendarTab({ clientId }: { clientId: string }) {
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-px sm:gap-1 bg-white/5 rounded-lg overflow-hidden border border-white/5">
+          <div className="grid grid-cols-7 gap-px sm:gap-1 bg-foreground/5 rounded-lg overflow-hidden border border-foreground/5">
             {days.map((day, dayIdx) => {
               const dateKey = format(day, 'yyyy-MM-dd');
               const dayIdeas = scheduledIdeas.filter(idea => idea.scheduled_date && format(new Date(idea.scheduled_date), 'yyyy-MM-dd') === dateKey);
@@ -213,7 +213,7 @@ export function ContentCalendarTab({ clientId }: { clientId: string }) {
                   key={day.toString()}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, day)}
-                  className={`min-h-[100px] sm:min-h-[120px] p-1 sm:p-2 bg-zinc-950 transition-colors hover:bg-zinc-900 ${!isCurrentMonth ? 'opacity-40' : ''}`}
+                  className={`min-h-[100px] sm:min-h-[120px] p-1 sm:p-2 bg-background transition-colors hover:bg-card ${!isCurrentMonth ? 'opacity-40' : ''}`}
                 >
                   <div className={`text-right text-xs mb-1 font-medium ${isToday(day) ? 'text-primary' : 'text-muted-foreground'}`}>
                     {format(day, dateFormat)}
@@ -226,7 +226,7 @@ export function ContentCalendarTab({ clientId }: { clientId: string }) {
                         onDragStart={(e) => handleDragStart(e, idea.id)}
                         onDragEnd={handleDragEnd}
                         title={idea.title}
-                        className={`text-[10px] sm:text-xs p-1 rounded rounded-md truncate cursor-grab active:cursor-grabbing text-white border border-white/10 ${getStatusColor(idea.status)}`}
+                        className={`text-[10px] sm:text-xs p-1 rounded rounded-md truncate cursor-grab active:cursor-grabbing text-foreground border border-foreground/10 ${getStatusColor(idea.status)}`}
                       >
                         {idea.title}
                       </div>

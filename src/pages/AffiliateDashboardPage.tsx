@@ -113,7 +113,7 @@ export default function AffiliateDashboardPage() {
         <Card><CardContent className="pt-8 text-center space-y-3">
           <AlertCircle className="w-12 h-12 mx-auto text-amber-500" />
           <h2 className="text-xl font-bold">Nenhum cadastro de afiliado encontrado</h2>
-          <p className="text-muted-foreground">Cadastre-se em <a href="/afiliados/cadastro" className="text-[#BFF720] underline">/afiliados/cadastro</a></p>
+          <p className="text-muted-foreground">Cadastre-se em <a href="/afiliados/cadastro" className="text-primary underline">/afiliados/cadastro</a></p>
         </CardContent></Card>
       </div>
     );
@@ -168,19 +168,19 @@ export default function AffiliateDashboardPage() {
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
       {/* Barra de faturamento no topo */}
-      <div className="w-full rounded-2xl border border-zinc-800 bg-gradient-to-br from-zinc-950 to-black p-4 md:p-5 flex items-center gap-4 shadow-lg">
+      <div className="w-full rounded-2xl border border-border bg-gradient-to-br from-zinc-950 to-black p-4 md:p-5 flex items-center gap-4 shadow-lg">
         <img src={logoInova} alt="Inova" className="h-10 md:h-12 w-auto shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-3 mb-2">
             <div>
-              <div className="text-xs text-zinc-400 uppercase tracking-wider">Faturamento</div>
-              <div className="text-lg md:text-xl font-bold text-white">
-                {fmtBRL(totalRevenue)} <span className="text-zinc-500 font-normal">/ {fmtBRL(REVENUE_GOAL)}</span>
+              <div className="text-xs text-muted-foreground uppercase tracking-wider">Faturamento</div>
+              <div className="text-lg md:text-xl font-bold text-foreground">
+                {fmtBRL(totalRevenue)} <span className="text-muted-foreground font-normal">/ {fmtBRL(REVENUE_GOAL)}</span>
               </div>
             </div>
-            <div className="text-sm md:text-base font-bold text-[#BFF720]">{revenuePct}%</div>
+            <div className="text-sm md:text-base font-bold text-primary">{revenuePct}%</div>
           </div>
-          <div className="h-2.5 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+          <div className="h-2.5 w-full bg-card rounded-full overflow-hidden border border-border">
             <div
               className="h-full bg-gradient-to-r from-[#BFF720] to-[#a8de15] transition-all duration-700 rounded-full shadow-[0_0_12px_rgba(191,247,32,0.5)]"
               style={{ width: `${revenuePct}%` }}
@@ -189,7 +189,7 @@ export default function AffiliateDashboardPage() {
         </div>
       </div>
 
-      <div className="w-full relative rounded-2xl overflow-hidden shadow-2xl group border border-zinc-800">
+      <div className="w-full relative rounded-2xl overflow-hidden shadow-2xl group border border-border">
         {/* Imagem estática 1920x1080 placeholder */}
         <div 
           className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
@@ -200,18 +200,18 @@ export default function AffiliateDashboardPage() {
         
         {/* Conteúdo do banner */}
         <div className="relative z-10 p-8 md:p-12 flex flex-col items-start justify-center min-h-[320px] max-w-3xl">
-          <Badge className="bg-[#BFF720] text-black hover:bg-[#a8de15] mb-4 text-xs font-bold uppercase tracking-wider">
+          <Badge className="bg-brand text-brand-foreground hover:bg-brand/90 mb-4 text-xs font-bold uppercase tracking-wider">
             Comunidade Exclusiva
           </Badge>
-          <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight tracking-tight">
-            Entre no grupo do whatsapp de afiliados <span className="text-[#BFF720]">INOVA</span>
+          <h2 className="text-3xl md:text-5xl font-extrabold text-foreground mb-4 leading-tight tracking-tight">
+            Entre no grupo do whatsapp de afiliados <span className="text-primary">INOVA</span>
           </h2>
-          <p className="text-zinc-300 mb-8 text-lg max-w-xl leading-relaxed">
+          <p className="text-foreground/80 mb-8 text-lg max-w-xl leading-relaxed">
             Receba dicas avançadas de vendas, novos materiais de divulgação, suporte prioritário e faça networking direto com a equipe da Inova.
           </p>
           <Button 
             onClick={() => window.open('https://chat.whatsapp.com/CVRk9eWDsNQ5yFYTWdiagT?mode=gi_t', '_blank')}
-            className="bg-[#BFF720] text-black hover:bg-[#a8de15] font-bold text-md h-12 px-6 rounded-xl flex items-center gap-2 transition-all hover:scale-105 shadow-[0_0_20px_rgba(191,247,32,0.2)]"
+            className="bg-brand text-brand-foreground hover:bg-brand/90 font-bold text-md h-12 px-6 rounded-xl flex items-center gap-2 transition-all hover:scale-105 shadow-[0_0_20px_rgba(191,247,32,0.2)]"
           >
             <MessageCircle className="w-5 h-5" />
             Entrar no Grupo do WhatsApp
@@ -224,13 +224,13 @@ export default function AffiliateDashboardPage() {
         <p className="text-muted-foreground">{affiliate.full_name} {affiliate.codigo_interno && <span className="font-mono text-primary">({affiliate.codigo_interno})</span>}</p>
       </div>
 
-      <Card className="border-[#BFF720]/30">
+      <Card className="border-primary/30">
         <CardHeader><CardTitle>Seu link único</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <div className="bg-muted p-3 rounded font-mono text-sm break-all">{link}</div>
           <div className="flex gap-2">
             <Button onClick={copy} variant="outline"><Copy className="w-4 h-4 mr-2" /> Copiar</Button>
-            <Button onClick={share} className="bg-[#BFF720] text-black hover:bg-[#a8de15]"><MessageCircle className="w-4 h-4 mr-2" /> Compartilhar</Button>
+            <Button onClick={share} className="bg-brand text-brand-foreground hover:bg-brand/90"><MessageCircle className="w-4 h-4 mr-2" /> Compartilhar</Button>
           </div>
         </CardContent>
       </Card>
@@ -239,7 +239,7 @@ export default function AffiliateDashboardPage() {
         <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Total de Leads</div><div className="text-2xl font-bold">{leads.length}</div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Contratos (Total)</div><div className="text-2xl font-bold">{contracts.length} <span className="text-sm font-normal text-muted-foreground">({contracts.filter(c => c.status === 'ativo').length} ativos)</span></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Comissões pendentes</div><div className="text-2xl font-bold text-amber-500">R$ {pendingTotal.toFixed(2)}</div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Comissões pagas</div><div className="text-2xl font-bold text-[#BFF720]">R$ {paidTotal.toFixed(2)}</div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Comissões pagas</div><div className="text-2xl font-bold text-primary">R$ {paidTotal.toFixed(2)}</div></CardContent></Card>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => navigate(`/afiliado/${v}`)} orientation="vertical" className="flex flex-col md:flex-row gap-6 items-start">
@@ -290,8 +290,8 @@ export default function AffiliateDashboardPage() {
                 {contracts.map(c => (
                   <div key={c.id} className="p-4 flex justify-between items-center">
                     <div>
-                      <div className="font-semibold text-white">{c.client_name}</div>
-                      <div className="text-sm text-zinc-400 mt-1">Cliente Inova</div>
+                      <div className="font-semibold text-foreground">{c.client_name}</div>
+                      <div className="text-sm text-muted-foreground mt-1">Cliente Inova</div>
                     </div>
                     <Badge>{STATUS_LABEL[c.status]}</Badge>
                   </div>
@@ -304,47 +304,47 @@ export default function AffiliateDashboardPage() {
         <TabsContent value="comissoes" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Resumo */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <Card className="border-zinc-800 bg-zinc-900/40">
+            <Card className="border-border bg-card/40">
               <CardContent className="p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">A Receber</p>
-                  <p className="text-2xl font-extrabold text-amber-400 mt-1 tabular-nums">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">A Receber</p>
+                  <p className="text-2xl font-extrabold text-amber-700 dark:text-amber-400 mt-1 tabular-nums">
                     R$ {pendingTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20">
-                  <Clock className="h-5 w-5 text-amber-400" />
+                  <Clock className="h-5 w-5 text-amber-700 dark:text-amber-400" />
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-zinc-800 bg-zinc-900/40">
+            <Card className="border-border bg-card/40">
               <CardContent className="p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Já Recebido</p>
-                  <p className="text-2xl font-extrabold text-[#BFF720] mt-1 tabular-nums">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Já Recebido</p>
+                  <p className="text-2xl font-extrabold text-primary mt-1 tabular-nums">
                     R$ {paidTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#BFF720]/10 border border-[#BFF720]/20">
-                  <DollarSign className="h-5 w-5 text-[#BFF720]" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+                  <DollarSign className="h-5 w-5 text-primary" />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          <Card className="border-zinc-800 bg-zinc-900/40">
-            <CardHeader className="border-b border-zinc-800 pb-4 mb-0 flex flex-row items-center justify-between">
-              <CardTitle className="text-xl text-zinc-100">Minhas Comissões</CardTitle>
-              <Badge variant="secondary" className="text-sm bg-zinc-800 text-zinc-300">{commissions.length} registro(s)</Badge>
+          <Card className="border-border bg-card/40">
+            <CardHeader className="border-b border-border pb-4 mb-0 flex flex-row items-center justify-between">
+              <CardTitle className="text-xl text-foreground">Minhas Comissões</CardTitle>
+              <Badge variant="secondary" className="text-sm bg-muted text-foreground/80">{commissions.length} registro(s)</Badge>
             </CardHeader>
-            <CardContent className="p-0 divide-y divide-zinc-800">
+            <CardContent className="p-0 divide-y divide-border">
               {(() => {
                 const pendentes = commissions.filter(c => c.status === 'pendente');
                 const pagas = commissions.filter(c => c.status === 'pago');
                 return (<>
                   {pendentes.length > 0 && (
                     <div className="px-5 pt-4 pb-2 bg-amber-500/5 border-b border-amber-500/10">
-                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                      <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-2">
                         <Clock className="w-3.5 h-3.5" /> Pendentes — {pendentes.length}
                       </span>
                     </div>
@@ -355,21 +355,21 @@ export default function AffiliateDashboardPage() {
                       <div key={c.id} className="p-4 flex items-center justify-between gap-3 hover:bg-amber-500/5 transition-all">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-amber-400 tabular-nums">R$ {Number(c.amount).toFixed(2)}</span>
-                            <span className="text-[11px] uppercase font-semibold text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded">{c.type === 'fechamento' ? 'Fechamento' : 'Recorrência'}</span>
+                            <span className="font-bold text-amber-700 dark:text-amber-400 tabular-nums">R$ {Number(c.amount).toFixed(2)}</span>
+                            <span className="text-[11px] uppercase font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{c.type === 'fechamento' ? 'Fechamento' : 'Recorrência'}</span>
                           </div>
-                          <div className="text-xs text-zinc-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                          <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
                             {contract && <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {contract.client_name}</span>}
                             <span>Ref: {new Date(c.reference_month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
                           </div>
                         </div>
-                        <Badge variant="secondary" className="shrink-0 bg-amber-500/20 text-amber-400 border-amber-500/30">Pendente</Badge>
+                        <Badge variant="secondary" className="shrink-0 bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30">Pendente</Badge>
                       </div>
                     );
                   })}
                   {pagas.length > 0 && (
-                    <div className="px-5 pt-4 pb-2 bg-[#BFF720]/5 border-b border-[#BFF720]/10">
-                      <span className="text-xs font-bold text-[#BFF720] uppercase tracking-wider flex items-center gap-2">
+                    <div className="px-5 pt-4 pb-2 bg-primary/5 border-b border-primary/10">
+                      <span className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
                         <CheckCircle2 className="w-3.5 h-3.5" /> Pagas — {pagas.length}
                       </span>
                     </div>
@@ -377,24 +377,24 @@ export default function AffiliateDashboardPage() {
                   {pagas.map(c => {
                     const contract = contracts.find(cc => cc.id === c.contract_id);
                     return (
-                      <div key={c.id} className="p-4 flex items-center justify-between gap-3 hover:bg-zinc-800/30 transition-all opacity-70">
+                      <div key={c.id} className="p-4 flex items-center justify-between gap-3 hover:bg-muted/30 transition-all opacity-70">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-zinc-400 tabular-nums line-through decoration-1">R$ {Number(c.amount).toFixed(2)}</span>
-                            <span className="text-[11px] uppercase font-semibold text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded">{c.type === 'fechamento' ? 'Fechamento' : 'Recorrência'}</span>
+                            <span className="font-bold text-muted-foreground tabular-nums line-through decoration-1">R$ {Number(c.amount).toFixed(2)}</span>
+                            <span className="text-[11px] uppercase font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{c.type === 'fechamento' ? 'Fechamento' : 'Recorrência'}</span>
                           </div>
-                          <div className="text-xs text-zinc-500 mt-0.5 flex items-center gap-2 flex-wrap">
+                          <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
                             {contract && <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {contract.client_name}</span>}
                             <span>Ref: {new Date(c.reference_month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
-                            {c.paid_at && <span className="text-[#BFF720]">Pago em {new Date(c.paid_at).toLocaleDateString('pt-BR')}</span>}
+                            {c.paid_at && <span className="text-primary">Pago em {new Date(c.paid_at).toLocaleDateString('pt-BR')}</span>}
                           </div>
                         </div>
-                        <Badge variant="default" className="shrink-0 bg-[#BFF720]/20 text-[#BFF720] border-[#BFF720]/30">Pago</Badge>
+                        <Badge variant="default" className="shrink-0 bg-primary/20 text-primary border-primary/30">Pago</Badge>
                       </div>
                     );
                   })}
                   {commissions.length === 0 && (
-                    <div className="p-6 text-center text-zinc-500">Nenhuma comissão ainda.</div>
+                    <div className="p-6 text-center text-muted-foreground">Nenhuma comissão ainda.</div>
                   )}
                 </>);
               })()}
@@ -408,29 +408,29 @@ export default function AffiliateDashboardPage() {
               <CardTitle>Regras do Programa de Afiliados</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="bg-zinc-900/40 p-5 rounded-xl border border-zinc-800/50">
-                <h3 className="font-bold text-lg text-[#BFF720] flex items-center gap-2"><span className="bg-[#BFF720]/20 text-[#BFF720] w-6 h-6 flex items-center justify-center rounded-full text-sm">1</span> Como funciona a indicação?</h3>
-                <p className="text-zinc-300 text-sm mt-3 leading-relaxed">Você possui um link exclusivo e intransferível. Sempre que um potencial cliente se cadastrar através dele, o nome aparecerá imediatamente na sua aba de "Leads". A partir desse momento, a equipe comercial da Inova assume toda a parte de apresentação, negociação e fechamento. Você só precisa indicar e acompanhar os resultados em tempo real.</p>
+              <div className="bg-card/40 p-5 rounded-xl border border-border">
+                <h3 className="font-bold text-lg text-primary flex items-center gap-2"><span className="bg-primary/20 text-primary w-6 h-6 flex items-center justify-center rounded-full text-sm">1</span> Como funciona a indicação?</h3>
+                <p className="text-foreground/80 text-sm mt-3 leading-relaxed">Você possui um link exclusivo e intransferível. Sempre que um potencial cliente se cadastrar através dele, o nome aparecerá imediatamente na sua aba de "Leads". A partir desse momento, a equipe comercial da Inova assume toda a parte de apresentação, negociação e fechamento. Você só precisa indicar e acompanhar os resultados em tempo real.</p>
               </div>
 
-              <div className="bg-zinc-900/40 p-5 rounded-xl border border-zinc-800/50">
-                <h3 className="font-bold text-lg text-[#BFF720] flex items-center gap-2"><span className="bg-[#BFF720]/20 text-[#BFF720] w-6 h-6 flex items-center justify-center rounded-full text-sm">2</span> Estrutura de Comissionamento</h3>
-                <p className="text-zinc-300 text-sm mt-3 mb-3">Nosso modelo foi desenhado para criar uma verdadeira parceria de longo prazo. Ao fecharmos um contrato com o seu lead, você ganha de duas formas:</p>
-                <ul className="list-disc list-inside text-sm text-zinc-300 space-y-2 ml-2">
-                  <li><strong>Comissão de Fechamento:</strong> <span className="text-white font-bold bg-zinc-800 px-2 py-0.5 rounded">R$ 300,00</span> pagos de forma única assim que o cliente assina e inicia o projeto.</li>
-                  <li><strong>Comissão Recorrente:</strong> <span className="text-white font-bold bg-zinc-800 px-2 py-0.5 rounded">R$ 100,00</span> pagos todos os meses, de forma contínua, enquanto o seu indicado mantiver o contrato ativo com a Inova.</li>
+              <div className="bg-card/40 p-5 rounded-xl border border-border">
+                <h3 className="font-bold text-lg text-primary flex items-center gap-2"><span className="bg-primary/20 text-primary w-6 h-6 flex items-center justify-center rounded-full text-sm">2</span> Estrutura de Comissionamento</h3>
+                <p className="text-foreground/80 text-sm mt-3 mb-3">Nosso modelo foi desenhado para criar uma verdadeira parceria de longo prazo. Ao fecharmos um contrato com o seu lead, você ganha de duas formas:</p>
+                <ul className="list-disc list-inside text-sm text-foreground/80 space-y-2 ml-2">
+                  <li><strong>Comissão de Fechamento:</strong> <span className="text-foreground font-bold bg-muted px-2 py-0.5 rounded">R$ 300,00</span> pagos de forma única assim que o cliente assina e inicia o projeto.</li>
+                  <li><strong>Comissão Recorrente:</strong> <span className="text-foreground font-bold bg-muted px-2 py-0.5 rounded">R$ 100,00</span> pagos todos os meses, de forma contínua, enquanto o seu indicado mantiver o contrato ativo com a Inova.</li>
                 </ul>
               </div>
 
               <div className="bg-red-500/5 p-5 rounded-xl border border-red-500/20 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-full blur-[30px] -mr-10 -mt-10" />
-                <h3 className="font-bold text-lg text-red-400 flex items-center gap-2 relative z-10"><AlertCircle className="w-5 h-5" /> Regra de Inatividade (Importante)</h3>
-                <p className="text-zinc-300 text-sm mt-3 leading-relaxed relative z-10">Para manter a saúde e o engajamento do programa de afiliados, exigimos uma constância mínima. Se o afiliado passar <strong>3 meses consecutivos sem registrar nenhuma nova indicação</strong> (sem entrada de novos leads), ele <strong>perderá definitivamente o direito de receber as comissões recorrentes</strong> dos contratos antigos. Mantenha seu link sempre ativo na sua rede de contatos para continuar faturando mensalmente!</p>
+                <h3 className="font-bold text-lg text-red-700 dark:text-red-400 flex items-center gap-2 relative z-10"><AlertCircle className="w-5 h-5" /> Regra de Inatividade (Importante)</h3>
+                <p className="text-foreground/80 text-sm mt-3 leading-relaxed relative z-10">Para manter a saúde e o engajamento do programa de afiliados, exigimos uma constância mínima. Se o afiliado passar <strong>3 meses consecutivos sem registrar nenhuma nova indicação</strong> (sem entrada de novos leads), ele <strong>perderá definitivamente o direito de receber as comissões recorrentes</strong> dos contratos antigos. Mantenha seu link sempre ativo na sua rede de contatos para continuar faturando mensalmente!</p>
               </div>
 
-              <div className="bg-zinc-900/40 p-5 rounded-xl border border-zinc-800/50">
-                <h3 className="font-bold text-lg text-[#BFF720] flex items-center gap-2"><span className="bg-[#BFF720]/20 text-[#BFF720] w-6 h-6 flex items-center justify-center rounded-full text-sm">4</span> Prazos e Pagamentos (PIX)</h3>
-                <p className="text-zinc-300 text-sm mt-3 leading-relaxed">Não trabalhamos com burocracias de saque de plataforma. Os pagamentos das suas comissões são realizados de forma direta e rápida via <strong>PIX</strong>, utilizando a chave cadastrada no seu perfil. Acompanhe a sua aba "Comissões": o que estiver verde (Pago) já está na sua conta bancária!</p>
+              <div className="bg-card/40 p-5 rounded-xl border border-border">
+                <h3 className="font-bold text-lg text-primary flex items-center gap-2"><span className="bg-primary/20 text-primary w-6 h-6 flex items-center justify-center rounded-full text-sm">4</span> Prazos e Pagamentos (PIX)</h3>
+                <p className="text-foreground/80 text-sm mt-3 leading-relaxed">Não trabalhamos com burocracias de saque de plataforma. Os pagamentos das suas comissões são realizados de forma direta e rápida via <strong>PIX</strong>, utilizando a chave cadastrada no seu perfil. Acompanhe a sua aba "Comissões": o que estiver verde (Pago) já está na sua conta bancária!</p>
               </div>
 
             </CardContent>
@@ -438,42 +438,42 @@ export default function AffiliateDashboardPage() {
         </TabsContent>
 
         <TabsContent value="vitrine" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Card className="border-zinc-800/50 bg-zinc-900/30">
-            <CardHeader className="border-b border-zinc-800/50 mb-6 pb-6">
+          <Card className="border-border bg-card/30">
+            <CardHeader className="border-b border-border mb-6 pb-6">
               <CardTitle className="text-2xl font-bold">A Inova e o nosso Portfólio</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="mb-12 space-y-8">
-                <div className="p-6 md:p-8 rounded-2xl bg-gradient-to-br from-zinc-900/80 to-black border border-zinc-800/50 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-[#BFF720]/5 rounded-full blur-[60px] -mr-32 -mt-32 pointer-events-none" />
+                <div className="p-6 md:p-8 rounded-2xl bg-gradient-to-br from-zinc-900/80 to-black border border-border relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[60px] -mr-32 -mt-32 pointer-events-none" />
                   
-                  <h3 className="text-xl md:text-2xl font-extrabold text-[#BFF720] mb-4">O que nós somos?</h3>
-                  <p className="text-zinc-300 leading-relaxed mb-8 text-base md:text-lg max-w-4xl">
+                  <h3 className="text-xl md:text-2xl font-extrabold text-primary mb-4">O que nós somos?</h3>
+                  <p className="text-foreground/80 leading-relaxed mb-8 text-base md:text-lg max-w-4xl">
                     Somos muito mais do que uma produtora, somos uma <strong>aceleradora de marcas</strong>. A Inova une a mais alta estética cinematográfica com inteligência de mercado para posicionar empresas como líderes absolutas. Não entregamos apenas "vídeos e posts"; nós criamos narrativas visuais magnéticas, orquestrando do planejamento estratégico inicial até a execução final de altíssimo padrão. Nosso único objetivo é <strong>fazer o seu cliente vender mais</strong>, encantando a audiência dele.
                   </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div className="p-5 bg-white/5 rounded-xl border border-white/5 hover:border-[#BFF720]/30 transition-colors group">
-                      <Film className="w-8 h-8 text-[#BFF720] mb-3 group-hover:scale-110 transition-transform" />
-                      <h4 className="font-bold text-white text-lg">Produção Audiovisual</h4>
-                      <p className="text-sm text-zinc-400 mt-2 leading-relaxed">Vídeos institucionais, comerciais e documentários com qualidade de cinema.</p>
+                    <div className="p-5 bg-foreground/5 rounded-xl border border-foreground/5 hover:border-primary/30 transition-colors group">
+                      <Film className="w-8 h-8 text-primary mb-3 group-hover:scale-110 transition-transform" />
+                      <h4 className="font-bold text-foreground text-lg">Produção Audiovisual</h4>
+                      <p className="text-sm text-muted-foreground mt-2 leading-relaxed">Vídeos institucionais, comerciais e documentários com qualidade de cinema.</p>
                     </div>
-                    <div className="p-5 bg-white/5 rounded-xl border border-white/5 hover:border-[#BFF720]/30 transition-colors group">
-                      <Megaphone className="w-8 h-8 text-[#BFF720] mb-3 group-hover:scale-110 transition-transform" />
-                      <h4 className="font-bold text-white text-lg">Social Media Estratégico</h4>
-                      <p className="text-sm text-zinc-400 mt-2 leading-relaxed">Conteúdo para redes sociais que não apenas engaja, mas converte público em cliente.</p>
+                    <div className="p-5 bg-foreground/5 rounded-xl border border-foreground/5 hover:border-primary/30 transition-colors group">
+                      <Megaphone className="w-8 h-8 text-primary mb-3 group-hover:scale-110 transition-transform" />
+                      <h4 className="font-bold text-foreground text-lg">Social Media Estratégico</h4>
+                      <p className="text-sm text-muted-foreground mt-2 leading-relaxed">Conteúdo para redes sociais que não apenas engaja, mas converte público em cliente.</p>
                     </div>
-                    <div className="p-5 bg-white/5 rounded-xl border border-white/5 hover:border-[#BFF720]/30 transition-colors group">
-                      <TrendingUp className="w-8 h-8 text-[#BFF720] mb-3 group-hover:scale-110 transition-transform" />
-                      <h4 className="font-bold text-white text-lg">Foco em Resultados</h4>
-                      <p className="text-sm text-zinc-400 mt-2 leading-relaxed">Não vendemos visualizações vazias. Tudo é pensado para impulsionar o faturamento das empresas.</p>
+                    <div className="p-5 bg-foreground/5 rounded-xl border border-foreground/5 hover:border-primary/30 transition-colors group">
+                      <TrendingUp className="w-8 h-8 text-primary mb-3 group-hover:scale-110 transition-transform" />
+                      <h4 className="font-bold text-foreground text-lg">Foco em Resultados</h4>
+                      <p className="text-sm text-muted-foreground mt-2 leading-relaxed">Não vendemos visualizações vazias. Tudo é pensado para impulsionar o faturamento das empresas.</p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Trabalhos Selecionados</h3>
-                  <p className="text-zinc-400 text-lg">Utilize estes projetos como prova social para mostrar a qualidade da Inova aos seus leads.</p>
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Trabalhos Selecionados</h3>
+                  <p className="text-muted-foreground text-lg">Utilize estes projetos como prova social para mostrar a qualidade da Inova aos seus leads.</p>
                 </div>
               </div>
               
@@ -481,27 +481,27 @@ export default function AffiliateDashboardPage() {
                 {portfolio.map(p => {
                   const thumb = p.thumbnail_url || getVideoThumb(p.video_url);
                   return (
-                    <div key={p.id} className="group relative cursor-pointer overflow-hidden rounded-xl aspect-[4/5] bg-black border border-zinc-800" onClick={() => p.video_url && window.open(p.video_url, '_blank')}>
+                    <div key={p.id} className="group relative cursor-pointer overflow-hidden rounded-xl aspect-[4/5] bg-black border border-border" onClick={() => p.video_url && window.open(p.video_url, '_blank')}>
                       {thumb ? (
                         <img src={thumb} alt={p.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100" />
                       ) : (
-                        <div className="h-full w-full flex items-center justify-center bg-zinc-900"><Film className="h-12 w-12 text-zinc-700" /></div>
+                        <div className="h-full w-full flex items-center justify-center bg-card"><Film className="h-12 w-12 text-muted-foreground/70" /></div>
                       )}
                       
                       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
                       
                       {p.video_url && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#BFF720]/90 text-black opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand/90 text-brand-foreground opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
                             <Play className="h-6 w-6 ml-1" fill="currentColor" />
                           </div>
                         </div>
                       )}
                       
                       <div className="absolute bottom-0 left-0 right-0 p-5">
-                        {p.category && <span className="inline-block px-2 py-1 rounded-md text-[10px] font-bold uppercase bg-[#BFF720]/20 text-[#BFF720] mb-2">{p.category}</span>}
-                        <h3 className="text-lg font-bold text-white leading-tight">{p.title}</h3>
-                        {p.description && <p className="text-xs text-white/60 mt-1 line-clamp-2">{p.description}</p>}
+                        {p.category && <span className="inline-block px-2 py-1 rounded-md text-[10px] font-bold uppercase bg-primary/20 text-primary mb-2">{p.category}</span>}
+                        <h3 className="text-lg font-bold text-foreground leading-tight">{p.title}</h3>
+                        {p.description && <p className="text-xs text-foreground/60 mt-1 line-clamp-2">{p.description}</p>}
                       </div>
                     </div>
                   );
@@ -514,19 +514,19 @@ export default function AffiliateDashboardPage() {
         </TabsContent>
 
         <TabsContent value="video-aulas" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Card className="border-zinc-800/50 bg-zinc-900/30">
-            <CardHeader className="border-b border-zinc-800/50 mb-6 pb-6">
+          <Card className="border-border bg-card/30">
+            <CardHeader className="border-b border-border mb-6 pb-6">
               <CardTitle className="text-2xl font-bold">Vídeo Aulas</CardTitle>
-              <p className="text-zinc-400 text-sm mt-1">Aprenda a usar a plataforma e maximize seus resultados como afiliado.</p>
+              <p className="text-muted-foreground text-sm mt-1">Aprenda a usar a plataforma e maximize seus resultados como afiliado.</p>
             </CardHeader>
             <CardContent>
               {videoLessons.length === 0 ? (
-                <p className="text-center text-zinc-400 py-12">Nenhuma vídeo aula disponível ainda.</p>
+                <p className="text-center text-muted-foreground py-12">Nenhuma vídeo aula disponível ainda.</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {videoLessons.map(v => (
                     <div key={v.id} className="space-y-3">
-                      <div className="rounded-xl overflow-hidden border border-zinc-800/60 bg-black relative" style={{ aspectRatio: '16 / 9' }}>
+                      <div className="rounded-xl overflow-hidden border border-border bg-black relative" style={{ aspectRatio: '16 / 9' }}>
                         <iframe
                           src={v.video_url}
                           className="w-full h-full"
@@ -535,8 +535,8 @@ export default function AffiliateDashboardPage() {
                         />
                       </div>
                       <div>
-                        <h4 className="font-bold text-white text-lg">{v.title}</h4>
-                        {v.description && <p className="text-sm text-zinc-400">{v.description}</p>}
+                        <h4 className="font-bold text-foreground text-lg">{v.title}</h4>
+                        {v.description && <p className="text-sm text-muted-foreground">{v.description}</p>}
                       </div>
                     </div>
                   ))}

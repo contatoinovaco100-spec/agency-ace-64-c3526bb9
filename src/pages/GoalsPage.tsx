@@ -34,7 +34,7 @@ const COLORS: Record<string, string> = {
   Produção: 'text-purple-500 bg-purple-500/10 border-purple-500/20',
   Equipe: 'text-pink-500 bg-pink-500/10 border-pink-500/20',
   Marketing: 'text-rose-500 bg-rose-500/10 border-rose-500/20',
-  default: 'text-slate-500 bg-slate-500/10 border-slate-500/20'
+  default: 'text-muted-foreground bg-slate-500/10 border-slate-500/20'
 };
 
 const CHART_DATA = [
@@ -201,7 +201,7 @@ export default function GoalsPage() {
               <CardDescription className="font-medium text-primary">Performance Geral</CardDescription>
               <CardTitle className="text-4xl text-primary flex items-center gap-2">
                 {overallPerformance}% 
-                {overallPerformance > 80 && <Sparkles className="h-6 w-6 text-yellow-400 animate-pulse" />}
+                {overallPerformance > 80 && <Sparkles className="h-6 w-6 text-yellow-700 dark:text-yellow-400 animate-pulse" />}
               </CardTitle>
             </CardHeader>
             <CardContent className="h-20 -mx-4 -mb-4 mt-2">

@@ -305,7 +305,7 @@ export function ScriptsTab({ clientId }: { clientId: string }) {
       ) : null}
 
       {scripts.length === 0 ? (
-        <div className="text-center py-12 border border-white/5 bg-black/20 rounded-xl backdrop-blur-sm">
+        <div className="text-center py-12 border border-dashed border-foreground/10 bg-card/60 rounded-xl">
           <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
           <h3 className="text-lg font-medium">Nenhum roteiro escrito</h3>
           <p className="text-muted-foreground text-sm mt-1 mb-4">
@@ -319,7 +319,7 @@ export function ScriptsTab({ clientId }: { clientId: string }) {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {scripts.map((script) => (
-            <Card key={script.id} className="border-white/5 bg-black/20 backdrop-blur-sm flex flex-col h-full">
+            <Card key={script.id} className="border-foreground/5 bg-card flex flex-col h-full">
               <CardHeader className="p-4 pb-2">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center text-xs text-primary bg-primary/10 px-2 py-1 rounded-md mb-2">
@@ -327,7 +327,7 @@ export function ScriptsTab({ clientId }: { clientId: string }) {
                     <span className="truncate max-w-[200px]" title={script.idea_title}>{script.idea_title}</span>
                   </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-white" onClick={() => handleEditClick(script)}>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleEditClick(script)}>
                       <Edit className="w-3 h-3" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-red-500" onClick={() => handleDelete(script.id)}>
@@ -363,7 +363,7 @@ export function ScriptsTab({ clientId }: { clientId: string }) {
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-zinc-950 border-white/10 sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-background border-foreground/10 sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingScript?.id ? 'Editar Roteiro' : 'Novo Roteiro'}</DialogTitle>
             <DialogDescription>
@@ -393,7 +393,7 @@ export function ScriptsTab({ clientId }: { clientId: string }) {
                     placeholder="sk-proj-..." 
                     value={tempApiKey}
                     onChange={e => setTempApiKey(e.target.value)}
-                    className="bg-black/40 border-primary/20 focus-visible:ring-primary/30"
+                    className="bg-muted/60 border-primary/20 focus-visible:ring-primary/30"
                   />
                   <div className="flex gap-2 justify-end">
                     <Button variant="ghost" size="sm" onClick={() => setIsAiOpen(false)}>Cancelar</Button>
@@ -417,7 +417,7 @@ export function ScriptsTab({ clientId }: { clientId: string }) {
                     placeholder="Ex: Dá 3 dicas de como evitar quebra de cabelo no banho..." 
                     value={aiPrompt}
                     onChange={e => setAiPrompt(e.target.value)}
-                    className="bg-black/40 border-primary/20 focus-visible:ring-primary/30 min-h-[80px]"
+                    className="bg-muted/60 border-primary/20 focus-visible:ring-primary/30 min-h-[80px]"
                   />
                   <div className="flex gap-2 justify-between items-center mt-2">
                     <button onClick={() => {
@@ -450,7 +450,7 @@ export function ScriptsTab({ clientId }: { clientId: string }) {
                 value={editingScript?.idea_id || ''} 
                 onValueChange={(val) => setEditingScript({ ...editingScript, idea_id: val })}
               >
-                <SelectTrigger className="bg-black/40 border-white/10">
+                <SelectTrigger className="bg-muted/60 border-foreground/10">
                   <SelectValue placeholder="Selecione uma ideia para basear este roteiro..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -467,7 +467,7 @@ export function ScriptsTab({ clientId }: { clientId: string }) {
                 placeholder="Ex: Roteiro Reel Investimentos" 
                 value={editingScript?.title || ''}
                 onChange={(e) => setEditingScript({ ...editingScript, title: e.target.value })}
-                className="bg-black/40 border-white/10"
+                className="bg-muted/60 border-foreground/10"
               />
             </div>
 
@@ -477,7 +477,7 @@ export function ScriptsTab({ clientId }: { clientId: string }) {
                 placeholder="Como você vai prender a atenção do espectador logo de cara?" 
                 value={editingScript?.hook || ''}
                 onChange={(e) => setEditingScript({ ...editingScript, hook: e.target.value })}
-                className="bg-black/40 border-white/10 min-h-[80px]"
+                className="bg-muted/60 border-foreground/10 min-h-[80px]"
               />
             </div>
 
@@ -487,7 +487,7 @@ export function ScriptsTab({ clientId }: { clientId: string }) {
                 placeholder="O conteúdo em si. Tópicos, explicações e argumentos." 
                 value={editingScript?.development || ''}
                 onChange={(e) => setEditingScript({ ...editingScript, development: e.target.value })}
-                className="bg-black/40 border-white/10 min-h-[150px]"
+                className="bg-muted/60 border-foreground/10 min-h-[150px]"
               />
             </div>
 
@@ -497,7 +497,7 @@ export function ScriptsTab({ clientId }: { clientId: string }) {
                 placeholder="Ex: 'Comente EU QUERO para receber o link no direct'" 
                 value={editingScript?.cta || ''}
                 onChange={(e) => setEditingScript({ ...editingScript, cta: e.target.value })}
-                className="bg-black/40 border-white/10"
+                className="bg-muted/60 border-foreground/10"
               />
             </div>
 
@@ -507,14 +507,14 @@ export function ScriptsTab({ clientId }: { clientId: string }) {
                 placeholder="Ex: Gravar em ambiente claro, usar microfone de lapela, focar no rosto." 
                 value={editingScript?.observations || ''}
                 onChange={(e) => setEditingScript({ ...editingScript, observations: e.target.value })}
-                className="bg-black/40 border-white/10 min-h-[80px]"
+                className="bg-muted/60 border-foreground/10 min-h-[80px]"
               />
             </div>
 
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-white/10">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-foreground/10">
               Cancelar
             </Button>
             <Button onClick={handleSaveScript} disabled={saving}>

@@ -1766,7 +1766,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                       "h-11 w-11 shrink-0 overflow-hidden rounded-md border-2 transition-all",
                       i === artPreview.index
                         ? "border-primary ring-2 ring-primary/40"
-                        : "border-white/15 opacity-60 hover:opacity-100"
+                        : "border-foreground/15 opacity-60 hover:opacity-100"
                     )}
                     aria-label={`Arte ${i + 1}`}
                   >

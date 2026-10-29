@@ -362,8 +362,8 @@ export default function VideoSchedulePage() {
                   <div className="min-w-0 flex-1">
                     <p className={cn(
                       'font-medium truncate uppercase',
-                      board === 'video' && resolvedClientId && clientVideoState.get(resolvedClientId) === 'sem-edicao' && 'text-red-400',
-                      board === 'video' && resolvedClientId && clientVideoState.get(resolvedClientId) === 'alteracao' && 'text-yellow-400',
+                      board === 'video' && resolvedClientId && clientVideoState.get(resolvedClientId) === 'sem-edicao' && 'text-red-700 dark:text-red-400',
+                      board === 'video' && resolvedClientId && clientVideoState.get(resolvedClientId) === 'alteracao' && 'text-yellow-700 dark:text-yellow-400',
                     )}>
                       {entry.client_id ? getClientName(entry.client_id) : entry.custom_label}
                     </p>
@@ -433,15 +433,15 @@ export default function VideoSchedulePage() {
         </Card>
         <Card className="p-3">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Artes na semana</p>
-          <p className="text-2xl font-bold text-purple-400">{summary.artes}</p>
+          <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">{summary.artes}</p>
         </Card>
         <Card className="p-3 border-yellow-500/40">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Com alteração</p>
-          <p className="text-2xl font-bold text-yellow-400">{summary.alteracao}</p>
+          <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">{summary.alteracao}</p>
         </Card>
         <Card className="p-3 border-red-500/40">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sem vídeo em edição</p>
-          <p className="text-2xl font-bold text-red-400">{summary.semEdicao}</p>
+          <p className="text-2xl font-bold text-red-700 dark:text-red-400">{summary.semEdicao}</p>
         </Card>
       </div>
 
@@ -460,7 +460,7 @@ export default function VideoSchedulePage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2 text-purple-400">
+            <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2 text-purple-700 dark:text-purple-400">
               <Palette className="h-4 w-4" /> Artes
             </h2>
             {renderBoard('arte')}

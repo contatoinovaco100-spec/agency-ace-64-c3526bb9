@@ -104,7 +104,7 @@ export default function WeeklyResultsPage() {
                 <div key={i} className="rounded-xl border border-border bg-card p-4">
                   <p className="text-xs text-muted-foreground">{m.label}</p>
                   <p className="text-2xl font-bold text-foreground mt-1">{m.value}</p>
-                  <Badge variant="outline" className={cn('text-xs mt-1', m.trend==='up'?'text-green-400':m.trend==='down'?'text-red-400':'text-muted-foreground')}>
+                  <Badge variant="outline" className={cn('text-xs mt-1', m.trend==='up'?'text-green-700 dark:text-green-400':m.trend==='down'?'text-red-700 dark:text-red-400':'text-muted-foreground')}>
                     {m.trend==='up'?'↑ Crescimento':m.trend==='down'?'↓ Queda':'→ Estável'}
                   </Badge>
                 </div>
@@ -112,9 +112,9 @@ export default function WeeklyResultsPage() {
             </div>
           )}
           <div className="grid md:grid-cols-2 gap-4">
-            <Section icon={CheckCircle2} title="Vitórias" items={current.victories} color="text-green-400" />
-            <Section icon={AlertCircle} title="Desafios" items={current.challenges} color="text-orange-400" />
-            <Section icon={Lightbulb} title="Aprendizados" items={current.learnings} color="text-blue-400" />
+            <Section icon={CheckCircle2} title="Vitórias" items={current.victories} color="text-green-700 dark:text-green-400" />
+            <Section icon={AlertCircle} title="Desafios" items={current.challenges} color="text-orange-700 dark:text-orange-400" />
+            <Section icon={Lightbulb} title="Aprendizados" items={current.learnings} color="text-blue-700 dark:text-blue-400" />
             <Section icon={Star} title="Próximas Ações" items={current.nextActions} color="text-primary" />
           </div>
         </div>

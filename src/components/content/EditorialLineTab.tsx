@@ -63,7 +63,7 @@ export function EditorialLineTab({ clientId }: { clientId: string }) {
     return (
       <div className="space-y-6">
         <div className="flex justify-end gap-2 print:hidden">
-          <Button variant="outline" onClick={() => setPreviewMode(false)} className="border-white/10">
+          <Button variant="outline" onClick={() => setPreviewMode(false)} className="border-foreground/10">
             <Edit3 className="w-4 h-4 mr-2" />
             Voltar para Edição
           </Button>
@@ -150,7 +150,7 @@ export function EditorialLineTab({ clientId }: { clientId: string }) {
         </div>
       </div>
 
-      <Card className="border-white/5 bg-black/20 backdrop-blur-sm">
+      <Card className="border-foreground/5 bg-card">
         <CardHeader>
           <CardTitle>Identidade Estratégica</CardTitle>
           <CardDescription>
@@ -166,7 +166,7 @@ export function EditorialLineTab({ clientId }: { clientId: string }) {
                 placeholder="Ex: Saúde, Estética, Tecnologia, Direito..." 
                 value={editorialLine.niche}
                 onChange={(e) => setEditorialLine({ ...editorialLine, niche: e.target.value })}
-                className="bg-black/40 border-white/10"
+                className="bg-muted/60 border-foreground/10"
               />
             </div>
             
@@ -177,7 +177,7 @@ export function EditorialLineTab({ clientId }: { clientId: string }) {
                 placeholder="Ex: Vendas, Autoridade, Engajamento, Branding..." 
                 value={editorialLine.objective}
                 onChange={(e) => setEditorialLine({ ...editorialLine, objective: e.target.value })}
-                className="bg-black/40 border-white/10"
+                className="bg-muted/60 border-foreground/10"
               />
             </div>
 
@@ -188,7 +188,7 @@ export function EditorialLineTab({ clientId }: { clientId: string }) {
                 placeholder="Descreva quem é o cliente ideal. Ex: Homens e mulheres de 25 a 45 anos que buscam investir em imóveis de alto padrão."
                 value={editorialLine.audience}
                 onChange={(e) => setEditorialLine({ ...editorialLine, audience: e.target.value })}
-                className="min-h-[80px] bg-black/40 border-white/10 resize-none"
+                className="min-h-[80px] bg-muted/60 border-foreground/10 resize-none"
               />
             </div>
 
@@ -199,14 +199,14 @@ export function EditorialLineTab({ clientId }: { clientId: string }) {
                 placeholder="Ex: Educativo, descontraído, autoridade técnica, inspiracional..."
                 value={editorialLine.tone}
                 onChange={(e) => setEditorialLine({ ...editorialLine, tone: e.target.value })}
-                className="bg-black/40 border-white/10 resize-none"
+                className="bg-muted/60 border-foreground/10 resize-none"
               />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-white/5 bg-black/20 backdrop-blur-sm">
+      <Card className="border-foreground/5 bg-card">
         <CardHeader>
           <CardTitle>Pilares de Conteúdo</CardTitle>
           <CardDescription>
@@ -221,7 +221,7 @@ export function EditorialLineTab({ clientId }: { clientId: string }) {
                 value={newPillar}
                 onChange={(e) => setNewPillar(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="max-w-md bg-black/40 border-white/10"
+                className="max-w-md bg-muted/60 border-foreground/10"
               />
               <Button type="button" variant="secondary" onClick={addPillar}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -244,7 +244,7 @@ export function EditorialLineTab({ clientId }: { clientId: string }) {
                     {pillar}
                     <button 
                       onClick={() => removePillar(pillar)}
-                      className="ml-1 rounded-full p-0.5 hover:bg-black/20 transition-colors focus:outline-none"
+                      className="ml-1 rounded-full p-0.5 hover:bg-muted/60 transition-colors focus:outline-none"
                     >
                       <X className="w-3 h-3" />
                       <span className="sr-only">Remover {pillar}</span>

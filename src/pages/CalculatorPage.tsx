@@ -116,7 +116,7 @@ export default function CalculatorPage() {
         <h2 className="font-semibold text-foreground flex items-center gap-2"><DollarSign className="h-5 w-5 text-primary" /> Resumo</h2>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
-          {discount > 0 && <div className="flex justify-between text-green-400"><span>Desconto ({discount}%)</span><span>- {fmt(discountAmt)}</span></div>}
+          {discount > 0 && <div className="flex justify-between text-green-700 dark:text-green-400"><span>Desconto ({discount}%)</span><span>- {fmt(discountAmt)}</span></div>}
           <Separator />
           <div className="flex justify-between text-foreground font-bold text-lg"><span>Total</span><span className="text-primary">{fmt(total)}</span></div>
         </div>

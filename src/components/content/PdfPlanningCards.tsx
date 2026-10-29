@@ -139,17 +139,17 @@ export function PdfPlanningCards({ items, onChange, clientId }: PdfPlanningCards
         <div className="p-4 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <GripVertical className="w-4 h-4 text-zinc-600 shrink-0" />
+              <GripVertical className="w-4 h-4 text-muted-foreground/70 shrink-0" />
               {isEditing ? (
                 <Input
                   value={item.title}
                   onChange={e => updateItem(item.id, { title: e.target.value })}
                   placeholder="Título do conteúdo"
-                  className="bg-black/60 border-white/10 font-semibold"
+                  className="bg-muted/60 border-foreground/10 font-semibold"
                   autoFocus
                 />
               ) : (
-                <h4 className="font-semibold text-white truncate">
+                <h4 className="font-semibold text-foreground truncate">
                   {item.title || 'Sem título'}
                 </h4>
               )}
@@ -160,8 +160,8 @@ export function PdfPlanningCards({ items, onChange, clientId }: PdfPlanningCards
                 variant="outline"
                 className={`text-xs ${
                   isVideo
-                    ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
-                    : 'border-purple-500/30 text-purple-400 bg-purple-500/10'
+                    ? 'border-blue-500/30 text-blue-700 dark:text-blue-400 bg-blue-500/10'
+                    : 'border-purple-500/30 text-purple-700 dark:text-purple-400 bg-purple-500/10'
                 }`}
               >
                 {isVideo ? <Film className="w-3 h-3 mr-1" /> : <Palette className="w-3 h-3 mr-1" />}
@@ -176,15 +176,15 @@ export function PdfPlanningCards({ items, onChange, clientId }: PdfPlanningCards
                 type="date"
                 value={item.date}
                 onChange={e => updateItem(item.id, { date: e.target.value })}
-                className="bg-black/60 border-white/10 w-auto"
+                className="bg-muted/60 border-foreground/10 w-auto"
               />
             ) : item.date ? (
-              <span className="text-sm text-zinc-400 flex items-center gap-1">
+              <span className="text-sm text-muted-foreground flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
                 {new Date(item.date + 'T00:00:00').toLocaleDateString('pt-BR')}
               </span>
             ) : (
-              <span className="text-sm text-zinc-600">Sem data</span>
+              <span className="text-sm text-muted-foreground/70">Sem data</span>
             )}
           </div>
 
@@ -193,10 +193,10 @@ export function PdfPlanningCards({ items, onChange, clientId }: PdfPlanningCards
               value={item.description}
               onChange={e => updateItem(item.id, { description: e.target.value })}
               placeholder="Descrição ou observações..."
-              className="bg-black/60 border-white/10 min-h-[60px] text-sm"
+              className="bg-muted/60 border-foreground/10 min-h-[60px] text-sm"
             />
           ) : item.description ? (
-            <p className="text-sm text-zinc-400 line-clamp-2">{item.description}</p>
+            <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
           ) : null}
 
           <div className="flex items-center gap-2 pt-1">
@@ -206,7 +206,7 @@ export function PdfPlanningCards({ items, onChange, clientId }: PdfPlanningCards
                   size="sm"
                   variant="ghost"
                   onClick={() => setEditingId(null)}
-                  className="text-zinc-400 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <Save className="w-3 h-3 mr-1" />
                   Salvar
@@ -215,7 +215,7 @@ export function PdfPlanningCards({ items, onChange, clientId }: PdfPlanningCards
                   size="sm"
                   variant="ghost"
                   onClick={() => setEditingId(null)}
-                  className="text-zinc-500 hover:text-zinc-300"
+                  className="text-muted-foreground hover:text-foreground/80"
                 >
                   <X className="w-3 h-3 mr-1" />
                   Cancelar
@@ -227,7 +227,7 @@ export function PdfPlanningCards({ items, onChange, clientId }: PdfPlanningCards
                   size="sm"
                   variant="ghost"
                   onClick={() => setEditingId(item.id)}
-                  className="text-zinc-500 hover:text-zinc-300"
+                  className="text-muted-foreground hover:text-foreground/80"
                 >
                   <Pencil className="w-3 h-3" />
                 </Button>
@@ -235,7 +235,7 @@ export function PdfPlanningCards({ items, onChange, clientId }: PdfPlanningCards
                   size="sm"
                   variant="ghost"
                   onClick={() => removeItem(item.id)}
-                  className="text-zinc-500 hover:text-red-400"
+                  className="text-muted-foreground hover:text-red-400"
                 >
                   <Trash2 className="w-3 h-3" />
                 </Button>
@@ -272,8 +272,8 @@ export function PdfPlanningCards({ items, onChange, clientId }: PdfPlanningCards
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {icon}
-          <h3 className="text-lg font-bold text-white">{title}</h3>
-          <Badge variant="outline" className="text-xs border-white/10 text-zinc-400">
+          <h3 className="text-lg font-bold text-foreground">{title}</h3>
+          <Badge variant="outline" className="text-xs border-foreground/10 text-muted-foreground">
             {sectionItems.length}
           </Badge>
         </div>
@@ -282,7 +282,7 @@ export function PdfPlanningCards({ items, onChange, clientId }: PdfPlanningCards
             size="sm"
             variant="outline"
             onClick={() => addNewItem(type)}
-            className="border-white/10 text-zinc-400 hover:text-white"
+            className="border-foreground/10 text-muted-foreground hover:text-foreground"
           >
             <Plus className="w-3 h-3 mr-1" />
             Adicionar
@@ -305,9 +305,9 @@ export function PdfPlanningCards({ items, onChange, clientId }: PdfPlanningCards
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-8 border border-dashed border-white/10 rounded-xl"
+            className="text-center py-8 border border-dashed border-foreground/10 rounded-xl"
           >
-            <p className="text-zinc-500 text-sm">Nenhum {type === 'video' ? 'vídeo' : 'arte'} encontrado no PDF.</p>
+            <p className="text-muted-foreground text-sm">Nenhum {type === 'video' ? 'vídeo' : 'arte'} encontrado no PDF.</p>
             <Button
               size="sm"
               variant="ghost"
@@ -331,17 +331,17 @@ export function PdfPlanningCards({ items, onChange, clientId }: PdfPlanningCards
     <div className="space-y-8">
       {renderSection(
         'Vídeos',
-        <Film className="w-5 h-5 text-blue-400" />,
+        <Film className="w-5 h-5 text-blue-700 dark:text-blue-400" />,
         videos,
         'video',
         'bg-blue-500 hover:bg-blue-600 text-white'
       )}
 
-      <div className="border-t border-white/5" />
+      <div className="border-t border-foreground/5" />
 
       {renderSection(
         'Artes',
-        <Palette className="w-5 h-5 text-purple-400" />,
+        <Palette className="w-5 h-5 text-purple-700 dark:text-purple-400" />,
         arts,
         'arte',
         'bg-purple-500 hover:bg-purple-600 text-white'

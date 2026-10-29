@@ -57,9 +57,9 @@ function Section({ icon: Icon, label, value }: { icon: React.ElementType; label:
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    novo: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    'em análise': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    concluído: 'bg-green-500/10 text-green-400 border-green-500/20',
+    novo: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20',
+    'em análise': 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
+    concluído: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20',
   };
   return (
     <Badge variant="outline" className={map[status] || 'bg-secondary text-muted-foreground'}>
