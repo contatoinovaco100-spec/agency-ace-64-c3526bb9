@@ -14,6 +14,7 @@ import { resolveVideoUrl } from '@/lib/videoUrl';
 import { toast } from 'sonner';
 import { useSeo } from '@/lib/seo';
 import { PAGE_THUMBS } from '@/lib/pageThumbs';
+import { CLIENT_REVIEW_AUTHOR, fetchClientReviews } from '@/lib/clientApprovals';
 
 // Cache de dados da página
 const pageCache = new Map<string, { data: TaskData[]; clientName: string; timestamp: number }>();
@@ -59,7 +60,7 @@ async function sendReview(taskId: string, approve: boolean, comment: string) {
     ? '✅ Aprovado pelo cliente' + (comment ? `\n${comment}` : '')
     : `✏️ Ajuste pedido pelo cliente:\n${comment}`;
   const { error: fallbackError } = await supabase.from('task_comments')
-    .insert({ task_id: taskId, author: 'Cliente (link de aprovação)', content });
+    .insert({ task_id: taskId, author: CLIENT_REVIEW_AUTHOR, content });
   if (fallbackError) throw new Error(fallbackError.message);
 }
 
@@ -624,10 +625,8 @@ export default function ClientContentPage() {
       }
       setTasks(list);
       if (name) setClientName(name);
-      // Aprovações já feitas (a função pode ainda não existir no banco: aí fica sem estado salvo)
-      (supabase as any).rpc('get_public_task_reviews', { _ids: list.map((t) => t.id) }).then(({ data }: { data: { id: string; approved_by_client: boolean; approved_at: string | null }[] | null }) => {
-        if (data) setReviews((prev) => ({ ...prev, ...Object.fromEntries(data.map((r) => [r.id, { ...prev[r.id], approved: r.approved_by_client, at: r.approved_at }])) }));
-      });
+      // Aprovações já feitas, pelo histórico de comentários das tarefas
+      fetchClientReviews(list.map((t) => t.id)).then((r) => setReviews((prev) => ({ ...prev, ...r })));
       setLoading(false);
       pageCache.set(id, { data: list, clientName: name, timestamp: Date.now() });
       try { sessionStorage.setItem(`client-content:${id}`, JSON.stringify({ tasks: list, clientName: name })); } catch { /* sem storage */ }

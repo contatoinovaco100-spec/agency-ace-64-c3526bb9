@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { useClientReviews } from '@/lib/clientApprovals';
 import { useSearchParams } from 'react-router-dom';
 
 import { useAgency } from '@/contexts/AgencyContext';
@@ -91,6 +92,10 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
 }) {
   const displayName = task.videoName || task.title || 'Sem título';
   const isArte = task.taskType === 'Arte';
+  // Aprovação do cliente: coluna do banco ou, sem ela, o histórico de comentários da tarefa
+  const review = useClientReviews()[task.id];
+  const approvedByClient = task.approvedByClient || !!review?.approved;
+  const approvedAt = task.approvedAt || review?.at || '';
   const date = task.dueDate || task.postDate;
   const dateLabel = task.dueDate ? 'Entrega' : 'Post';
   const dateValue = date
@@ -123,12 +128,12 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
         {clientName && (
           <p className={cn("mt-0.5 text-[10px] font-medium truncate", isRevisionStage(stageName) ? "text-warning/70" : "text-primary/70")}>{clientName}</p>
         )}
-        {task.approvedByClient && (
+        {approvedByClient && (
           <p className="mt-1.5 flex items-center gap-1.5 rounded-md bg-success/15 px-2 py-1 text-[11px] font-semibold text-success"
             title="Aprovado pelo cliente no link de conteúdo">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
             Aprovado pelo cliente
-            {task.approvedAt && <span className="font-normal opacity-80">· {new Date(task.approvedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>}
+            {approvedAt && <span className="font-normal opacity-80">· {new Date(approvedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>}
           </p>
         )}
         {task.videoUrl && (
@@ -239,6 +244,13 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
           {task.priority}
         </span>
       </div>
+      {approvedByClient && (
+        <p className="mt-1 flex items-center gap-1 rounded bg-success/15 px-1.5 py-0.5 text-[10px] font-semibold text-success"
+          title="Aprovado pelo cliente no link de conteúdo">
+          <CheckCircle2 className="h-3 w-3 shrink-0" /> Aprovado pelo cliente
+          {approvedAt && <span className="font-normal opacity-80">· {new Date(approvedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>}
+        </p>
+      )}
       {isArte && <ArteAttachmentsPreview taskId={task.id} compact onPreviewClick={onArtPreview} />}
     </div>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { recordScheduled } from '@/lib/clientApprovals';
 import { toast } from 'sonner';
 import {
   AlertTriangle, CalendarDays, Check, ChevronLeft, ChevronRight, Copy, Download, ExternalLink,
@@ -138,9 +139,10 @@ export function PostDetailSheet({ taskId, order, clientName, onNavigate, onClose
   const afterScheduled = async (jobId: string) => {
     const programado = stages.find((st) => /^programad/i.test(st.name))?.name;
     await save({ status: programado, silent: true });
-    // Liga a publicação ao post (tira da fila de aprovados); sem a coluna no banco, só não fica registrado
+    // Liga a publicação ao post e registra no histórico (tira o post da fila de aprovados)
     if (task) {
       await supabase.from('tasks').update({ publish_job_id: jobId } as never).eq('id', task.id);
+      await recordScheduled(task.id, `${draft.post_date.split('-').reverse().join('/')} às ${draft.post_time}`);
       onChanged({ id: task.id, publish_job_id: jobId });
     }
   };

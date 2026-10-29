@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { isReferenceAttachment } from "@/lib/attachmentPurpose";
 import { PageHeader } from "@/components/PageHeader";
 import { PostDetailSheet, type PostPatch } from "@/components/planner/PostDetailSheet";
+import { fetchClientReviews } from "@/lib/clientApprovals";
 
 type Task = {
   id: string; title: string; task_type: string; status: string; client_id: string | null;
@@ -148,18 +149,18 @@ export default function PlannerPage() {
     if (!clientId) return;
     let active = true;
     (async () => {
-      const query = (withJob: boolean) => {
-        let q = supabase.from("tasks").select(`${TASK_FIELDS},approved_at`)
-          .is("deleted_at", null).eq("approved_by_client" as never, true as never);
-        if (withJob) q = q.is("publish_job_id" as never, null);
-        if (clientId !== ALL) q = q.eq("client_id", clientId);
-        return q.order("post_date", { ascending: true, nullsFirst: false }).limit(200);
-      };
-      let { data, error } = await query(true);
-      // Banco sem a coluna publish_job_id (migração ainda não aplicada): usa só o status
-      if (error) ({ data, error } = await query(false));
+      // Aprovações vêm do histórico de comentários: aprovado e ainda não agendado pelo Planner
+      const reviews = await fetchClientReviews();
+      const ids = Object.entries(reviews).filter(([, r]) => r.approved && !r.scheduled).map(([id]) => id);
+      if (!ids.length) { if (active) setApproved([]); return; }
+      let q = supabase.from("tasks").select(TASK_FIELDS).is("deleted_at", null).in("id", ids.slice(0, 300));
+      if (clientId !== ALL) q = q.eq("client_id", clientId);
+      const { data } = await q.order("post_date", { ascending: true, nullsFirst: false });
       if (!active) return;
-      setApproved(error ? [] : ((data ?? []) as unknown as ApprovedTask[]).filter((t) => stage(t.status) === "progress"));
+      setApproved(((data ?? []) as Task[])
+        // "Finalizado" é justamente o vídeo pronto que o cliente aprovou: só sai quando já foi programado ou publicado
+        .filter((t) => !["Postado", "Concluído", "Publicado", ...SCHEDULED].includes(t.status))
+        .map((t) => ({ ...t, approved_at: reviews[t.id]?.at ?? null })));
     })();
     return () => { active = false; };
   }, [clientId]);
