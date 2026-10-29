@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useKanbanStages } from '@/hooks/useKanbanStages';
 import { isReferenceAttachment } from '@/lib/attachmentPurpose';
 import { cn } from '@/lib/utils';
+import { SchedulePostSection } from '@/components/planner/SchedulePostSection';
 
 /** Limite de caracteres da legenda no Instagram */
 const CAPTION_LIMIT = 2200;
@@ -113,21 +114,28 @@ export function PostDetailSheet({ taskId, order, clientName, onNavigate, onClose
     return () => window.removeEventListener('keydown', onKey);
   }, [taskId, prevId, nextId, onNavigate]);
 
-  const save = async () => {
+  const save = async (opts: { status?: string; silent?: boolean } = {}) => {
     if (!task) return;
     setSaving(true);
     const patch = {
       post_date: draft.post_date || null,
       post_time: draft.post_time || null,
-      status: draft.status,
+      status: opts.status ?? draft.status,
       caption: draft.caption,
     };
     const { error } = await supabase.from('tasks').update(patch).eq('id', task.id);
     setSaving(false);
-    if (error) { toast.error('Não foi possível salvar. Tente de novo.'); return; }
+    if (error) { toast.error('Não foi possível salvar o post. Tente de novo.'); return; }
     setTask({ ...task, ...patch });
+    setDraft((d) => ({ ...d, status: patch.status }));
     onChanged({ id: task.id, ...patch });
-    toast.success('Post atualizado');
+    if (!opts.silent) toast.success('Post atualizado');
+  };
+
+  // Depois de agendar: grava legenda/data/horário usados e marca como Programado, se a etapa existir
+  const afterScheduled = () => {
+    const programado = stages.find((st) => /^programad/i.test(st.name))?.name;
+    return save({ status: programado, silent: true });
   };
 
   const copy = async (text: string, message: string) => {
@@ -255,6 +263,19 @@ export function PostDetailSheet({ taskId, order, clientName, onNavigate, onClose
               </Button>
             </section>
 
+            {/* Agendar no Instagram/Threads com a mídia e a legenda deste post */}
+            <SchedulePostSection
+              clientId={task.client_id}
+              clientName={clientName(task.client_id)}
+              media={media}
+              caption={draft.caption}
+              date={draft.post_date}
+              time={draft.post_time}
+              captionLimit={CAPTION_LIMIT}
+              alreadyScheduled={/^programad/i.test(task.status)}
+              onScheduled={afterScheduled}
+            />
+
             {/* Briefing */}
             {brief.length > 0 && (
               <section className="space-y-2">
@@ -304,7 +325,7 @@ export function PostDetailSheet({ taskId, order, clientName, onNavigate, onClose
               <Link2 className="h-3.5 w-3.5" /> Link do cliente
             </Button>
           )}
-          <Button className="ml-auto gap-1.5" disabled={!dirty || saving} onClick={save}>
+          <Button className="ml-auto gap-1.5" disabled={!dirty || saving} onClick={() => save()}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             Salvar
           </Button>
