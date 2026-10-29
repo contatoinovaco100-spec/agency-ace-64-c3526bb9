@@ -297,7 +297,8 @@ function ResolvedVideo({ url, fileName }: { url: string; fileName: string }) {
 
   return (
     <div className="space-y-2">
-      <div className="overflow-hidden rounded-lg bg-black">
+      {/* Moldura sempre escura: os controles do player seguem o tema escuro */}
+      <div className="dark overflow-hidden rounded-lg bg-black">
         <UniversalVideoPlayer src={resolved} reloadKey={reload} />
       </div>
       <div className="flex flex-wrap gap-1">
@@ -700,7 +701,7 @@ export default function ClientContentPage() {
 
   if (notFound || tasks.length === 0) return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-5 bg-background px-6 text-center">
-      <img src={logoInova} alt="INOVA Co." className="h-10 opacity-80" />
+      <img src={logoInova} alt="INOVA Co." className="h-10 opacity-80 brightness-0 dark:brightness-100" />
       <div>
         <p className="font-display text-xl font-semibold">Conteúdo não encontrado</p>
         <p className="mt-1 text-sm text-muted-foreground">Confira o link ou fale com a equipe da INOVA.</p>
@@ -811,7 +812,7 @@ function Shell({ clientName, onRefresh, refreshing, children }: {
       <div className="sticky top-0 z-10 border-b bg-background/95">
         <div className="mx-auto flex h-14 max-w-2xl items-center justify-between gap-3 px-4">
           <div className="flex min-w-0 items-center gap-3">
-            <img src={logoInova} alt="INOVA Co." className="h-8 shrink-0" />
+            <img src={logoInova} alt="INOVA Co." className="h-8 shrink-0 brightness-0 dark:brightness-100" />
             {clientName && <span className="h-5 w-px shrink-0 bg-border" />}
             {clientName && <span className="truncate text-sm font-medium text-muted-foreground">{clientName}</span>}
           </div>

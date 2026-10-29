@@ -64,6 +64,7 @@ Branco fixo (`text-white`) só sobre fundo sólido colorido (`bg-success`, `bg-p
 
 - Editores que produzem conteúdo para clientes ficam sempre escuros: envolva a rota em `<StudioScope>` (App.tsx).
 - Páginas públicas ficam sempre escuras: adicione o caminho em `PUBLIC_DARK_PATHS` (App.tsx) **e** na lista do script de tema do `index.html`.
+- Exceção: a aprovação de conteúdo do cliente (`/conteudo`) é sempre clara — `PUBLIC_LIGHT_PATHS` (App.tsx) e a linha correspondente no `index.html`. Logo em fundo claro: `brightness-0 dark:brightness-100`. Molduras de vídeo ficam com a classe `dark`.
 - Bloco que precisa ser escuro dentro de uma página clara (ex.: prévia de PDF escuro): classe `dark` no contêiner.
 
 ## Movimento

@@ -345,13 +345,17 @@ function QuizOnlyRoutes() {
   );
 }
 
-// Páginas vistas por clientes e visitantes: mantêm a identidade escura, seja qual for o tema da equipe
+// Páginas vistas por clientes e visitantes: mantêm a identidade escura, seja qual for o tema da equipe (exceto as claras abaixo)
 const PUBLIC_DARK_PATHS = [
-  '/conteudo', '/portal', '/bem-vindo', '/contrato', '/vitrine', '/links', '/briefing', '/fatura', '/proposta',
+  '/portal', '/bem-vindo', '/contrato', '/vitrine', '/links', '/briefing', '/fatura', '/proposta',
   '/diagnostico', '/diagnostico-anuncios', '/diagnostico-social', '/negocios', '/rede', '/indicacoes',
   '/indicar', '/afiliados/cadastro', '/in', '/quiz', '/painel-artes', '/lp', '/roleta', '/teleprompter',
 ];
+// Páginas públicas no tema claro (aprovação de conteúdo do cliente)
+const PUBLIC_LIGHT_PATHS = ['/conteudo'];
 // Mantenha em sincronia com o script de tema do index.html
+const isPublicLightPath = (pathname: string) =>
+  PUBLIC_LIGHT_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`));
 const isPublicDarkPath = (pathname: string) =>
   !pathname.startsWith('/diagnostico/editar') &&
   PUBLIC_DARK_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`));
@@ -372,7 +376,7 @@ function ThemedApp() {
       defaultTheme="dark"
       enableSystem={false}
       storageKey="inova-theme"
-      forcedTheme={isPublicDarkPath(pathname) ? 'dark' : undefined}
+      forcedTheme={isPublicLightPath(pathname) ? 'light' : isPublicDarkPath(pathname) ? 'dark' : undefined}
       disableTransitionOnChange
     >
       <QuizRouter />
