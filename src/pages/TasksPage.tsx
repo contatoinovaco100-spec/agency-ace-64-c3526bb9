@@ -123,6 +123,14 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
         {clientName && (
           <p className={cn("mt-0.5 text-[10px] font-medium truncate", isRevisionStage(stageName) ? "text-warning/70" : "text-primary/70")}>{clientName}</p>
         )}
+        {task.approvedByClient && (
+          <p className="mt-1.5 flex items-center gap-1.5 rounded-md bg-success/15 px-2 py-1 text-[11px] font-semibold text-success"
+            title="Aprovado pelo cliente no link de conteúdo">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            Aprovado pelo cliente
+            {task.approvedAt && <span className="font-normal opacity-80">· {new Date(task.approvedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>}
+          </p>
+        )}
         {task.videoUrl && (
           <a
             href={task.videoUrl}
@@ -160,14 +168,6 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
               )}>
                 {task.format === 'Stories' ? '📱 ' : task.format === 'Feed' ? '🖼️ ' : task.format === 'Carrossel' ? '🎠 ' : ''}
                 {task.format}
-              </span>
-            )}
-            {task.approvedByClient && (
-              <span className="inline-flex items-center gap-0.5 rounded bg-green-500/15 px-1.5 py-[1px] text-[9px] font-bold text-green-600 dark:text-green-400 border border-green-500/30" title={`Aprovado pelo cliente em ${task.approvedAt ? new Date(task.approvedAt).toLocaleDateString('pt-BR') : ''}`}>
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6 9 17l-5-5"/>
-                </svg>
-                Aprovado
               </span>
             )}
           </div>
