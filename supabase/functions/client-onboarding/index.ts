@@ -1,6 +1,7 @@
 // Onboarding do cliente pelo link público /bem-vindo/:token.
 // O cliente não tem login na plataforma: cada ação é autorizada pelo token do onboarding,
 // e esta função (service role) só toca nos dados do cliente dono daquele token.
+// Etapa 3: dados de acesso vão para a planilha (INOVA_ACCESS_SHEET_URL) e o cliente marca a ligação do código.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getAdapter } from "../_shared/platforms/registry.ts";
 import { saveConnectedAccounts } from "../_shared/save-social-accounts.ts";
