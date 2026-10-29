@@ -54,7 +54,8 @@ export default function ClientOnboardingPage() {
   const load = useCallback(async () => {
     try {
       const data = await callOnboarding<OnboardingInfo>({ action: 'get', token });
-      setInfo(data);
+      // Tolera uma versão da função que ainda não manda os horários/contas
+      setInfo({ ...data, steps: data.steps ?? {}, accounts: data.accounts ?? [], call_slots: data.call_slots ?? [], access_call_at: data.access_call_at ?? null });
       setMaterials(data.materials_url);
       setKickoff(data.kickoff_preference);
     } catch (e) {
