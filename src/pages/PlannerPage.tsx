@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarClock, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Film, Image as ImageIcon, Loader2, MessageSquareWarning, Search, Timer } from "lucide-react";
+import { BadgeCheck, CalendarClock, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Film, Image as ImageIcon, Loader2, MessageSquareWarning, Search, Send, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { isReferenceAttachment } from "@/lib/attachmentPurpose";
 import { PageHeader } from "@/components/PageHeader";
@@ -16,6 +16,7 @@ type Task = {
   post_date: string | null; post_time: string | null; due_date: string | null;
   video_url: string | null; platform: string | null; caption: string | null;
 };
+type ApprovedTask = Task & { approved_at: string | null };
 type Attachment = { task_id: string; file_url: string; file_type: string };
 type Client = { id: string; company_name: string };
 
@@ -65,12 +66,14 @@ export default function PlannerPage() {
   const [undated, setUndated] = useState<Task[]>([]);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [panelTab, setPanelTab] = useState<"summary" | "undated">("summary");
+  const [panelTab, setPanelTab] = useState<"summary" | "approved" | "undated">("summary");
+  const [approved, setApproved] = useState<ApprovedTask[]>([]);
   const [issue, setIssue] = useState<"caption" | "time" | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   const clientId = params.get("cliente");
   const openId = params.get("post");
+  const autoSchedule = params.get("agendar") === "1";
   const isAll = clientId === ALL;
   const client = clients.find((c) => c.id === clientId);
   const clientName = isAll ? "Todos os clientes" : client?.company_name;
@@ -140,6 +143,28 @@ export default function PlannerPage() {
     return () => { active = false; };
   }, [from, to, clientId]);
 
+  // Fila "Aprovados para agendar": aprovados pelo cliente no link de conteúdo e ainda sem publicação agendada
+  useEffect(() => {
+    if (!clientId) return;
+    let active = true;
+    (async () => {
+      const query = (withJob: boolean) => {
+        let q = supabase.from("tasks").select(`${TASK_FIELDS},approved_at`)
+          .is("deleted_at", null).eq("approved_by_client" as never, true as never);
+        if (withJob) q = q.is("publish_job_id" as never, null);
+        if (clientId !== ALL) q = q.eq("client_id", clientId);
+        return q.order("post_date", { ascending: true, nullsFirst: false }).limit(200);
+      };
+      let { data, error } = await query(true);
+      // Banco sem a coluna publish_job_id (migração ainda não aplicada): usa só o status
+      if (error) ({ data, error } = await query(false));
+      if (!active) return;
+      setApproved(error ? [] : ((data ?? []) as unknown as ApprovedTask[]).filter((t) => stage(t.status) === "progress"));
+    })();
+    return () => { active = false; };
+  }, [clientId]);
+  const approvedIds = useMemo(() => new Set(approved.map((t) => t.id)), [approved]);
+
   const matches = (t: Task) =>
     (type === "all" || (type === "arte" ? t.task_type === "Arte" : t.task_type !== "Arte")) &&
     (statusFilter === "all" || stage(t.status) === statusFilter) &&
@@ -175,8 +200,12 @@ export default function PlannerPage() {
     : a.getMonth() === b.getMonth() ? `${MONTHS[a.getMonth()]} ${a.getFullYear()}` : `${MONTHS[a.getMonth()]} - ${MONTHS[b.getMonth()]} ${b.getFullYear()}`;
 
   // O post aberto fica na URL (?post=) para dar para compartilhar o link
-  const openPost = useCallback((id: string | null) => {
-    setParams((p) => { if (id) p.set("post", id); else p.delete("post"); return p; }, { replace: true });
+  const openPost = useCallback((id: string | null, schedule = false) => {
+    setParams((p) => {
+      if (id) p.set("post", id); else p.delete("post");
+      if (schedule) p.set("agendar", "1"); else p.delete("agendar");
+      return p;
+    }, { replace: true });
   }, [setParams]);
   const openTask = (t: Task) => openPost(t.id);
 
@@ -189,6 +218,8 @@ export default function PlannerPage() {
 
   // Aplica uma alteração local, movendo o post entre "no calendário" e "sem data" quando preciso
   const applyPatch = (patch: PostPatch) => {
+    if (patch.publish_job_id) setApproved((list) => list.filter((t) => t.id !== patch.id));
+    else setApproved((list) => list.map((t) => (t.id === patch.id ? { ...t, ...patch } : t)));
     const target = [...tasks, ...undated].find((t) => t.id === patch.id);
     if (!target) return;
     const next = { ...target, ...patch } as Task;
@@ -271,7 +302,8 @@ export default function PlannerPage() {
         className={`w-full cursor-grab text-left rounded-md border p-2 transition hover:shadow-md hover:border-primary active:cursor-grabbing ${s.card} ${openId === t.id ? "ring-2 ring-primary" : ""}`}>
         <div className={`flex items-center gap-1 text-xs font-semibold ${s.text}`}>
           <s.Icon className="h-3.5 w-3.5" />{time ?? (t.post_date ? "sem horário" : "prazo")}
-          {missingCaption(t) && <MessageSquareWarning className="ml-auto h-3.5 w-3.5 text-warning" aria-label="Sem legenda" />}
+          {approvedIds.has(t.id) && <BadgeCheck className="ml-auto h-3.5 w-3.5 text-success" aria-label="Aprovado pelo cliente" />}
+          {missingCaption(t) && <MessageSquareWarning className={`${approvedIds.has(t.id) ? "" : "ml-auto "}h-3.5 w-3.5 text-warning`} aria-label="Sem legenda" />}
         </div>
         <Thumb t={t} className="mt-1.5 aspect-[16/10] w-full" />
         <p className="mt-1.5 text-xs font-medium truncate text-foreground">{t.title}</p>
@@ -295,6 +327,43 @@ export default function PlannerPage() {
       </button>
     );
   };
+
+  // Fila de aprovados: confere e agenda com um clique (abre o post já no agendamento)
+  const ApprovedQueue = () => (
+    <div className="space-y-2 pt-4">
+      {approved.length === 0 ? (
+        <p className="text-sm text-muted-foreground [text-wrap:pretty]">Nenhum post aprovado esperando agendamento. Quando o cliente aprovar no link de conteúdo, ele aparece aqui.</p>
+      ) : (
+        <p className="text-xs text-muted-foreground">Aprovados pelo cliente e ainda não agendados. Confira e agende.</p>
+      )}
+      {approved.map((t) => {
+        const problems = [
+          !t.post_date ? "sem data" : t.post_date < today ? "data passou" : null,
+          t.post_date && !t.post_time ? "sem horário" : null,
+          missingCaption(t) ? "sem legenda" : null,
+        ].filter(Boolean) as string[];
+        return (
+          <div key={t.id} className="rounded-lg border p-2">
+            <div className="flex items-center gap-3">
+              <Thumb t={t} className="h-12 w-12" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{t.title}</p>
+                {isAll && <p className="truncate text-xs text-muted-foreground">{ownerName(t)}</p>}
+                <p className="truncate text-xs text-muted-foreground">
+                  {t.post_date ? `${shortDate(t.post_date)}${t.post_time ? ` · ${t.post_time.slice(0, 5)}` : ""}` : "Sem data"}
+                  {t.approved_at && ` · aprovado ${shortDate(t.approved_at.slice(0, 10))}`}
+                </p>
+              </div>
+            </div>
+            {problems.length > 0 && <p className="mt-1.5 text-xs font-medium text-warning">Falta resolver: {problems.join(", ")}</p>}
+            <Button size="sm" className="mt-2 w-full gap-1.5" onClick={() => openPost(t.id, true)}>
+              <Send className="h-3.5 w-3.5" /> {problems.length ? "Abrir e ajustar" : "Agendar"}
+            </Button>
+          </div>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -438,13 +507,26 @@ export default function PlannerPage() {
 
           <aside className="border-t p-4 xl:w-[300px] xl:shrink-0 xl:border-l xl:border-t-0">
             <div className="flex gap-1 border-b pb-3">
-              {([["summary", "Resumo"], ["undated", `Sem data (${undated.length})`]] as const).map(([k, l]) => (
+              {([["summary", "Resumo"], ["approved", `Aprovados (${approved.length})`], ["undated", `Sem data (${undated.length})`]] as const).map(([k, l]) => (
                 <Button key={k} size="sm" variant="ghost" onClick={() => setPanelTab(k)}
                   className={panelTab === k ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}>{l}</Button>
               ))}
             </div>
-            {panelTab === "summary" ? (
+            {panelTab === "approved" ? (
+              <ApprovedQueue />
+            ) : panelTab === "summary" ? (
               <div className="space-y-3 pt-4">
+                {approved.length > 0 && (
+                  <button onClick={() => setPanelTab("approved")}
+                    className="flex w-full items-center gap-3 rounded-lg bg-success/15 p-3 text-left text-sm transition hover:bg-success/20">
+                    <BadgeCheck className="h-5 w-5 shrink-0 text-success" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold text-success">{approved.length} {approved.length === 1 ? "aprovado" : "aprovados"} para agendar</span>
+                      <span className="block text-xs text-muted-foreground">O cliente aprovou no link de conteúdo</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-success" />
+                  </button>
+                )}
                 <div className="flex items-center gap-3">
                   <ClientAvatar name={isAll ? "Todos" : client?.company_name ?? "?"} className="h-10 w-10 text-sm" />
                   <div className="min-w-0">
@@ -508,6 +590,7 @@ export default function PlannerPage() {
         onNavigate={openPost}
         onClose={() => openPost(null)}
         onChanged={applyPatch}
+        autoSchedule={autoSchedule}
       />
     </div>
   );

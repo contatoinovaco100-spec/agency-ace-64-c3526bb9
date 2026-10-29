@@ -4,7 +4,12 @@
 
 ALTER TABLE public.tasks
   ADD COLUMN IF NOT EXISTS approved_by_client BOOLEAN DEFAULT FALSE,
-  ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ DEFAULT NULL;
+  ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ DEFAULT NULL,
+  -- Publicação agendada pelo Planner a partir deste post (tira o post da fila "Aprovados para agendar")
+  ADD COLUMN IF NOT EXISTS publish_job_id UUID DEFAULT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_tasks_approved_to_schedule
+  ON public.tasks (client_id) WHERE approved_by_client = TRUE AND publish_job_id IS NULL;
 
 CREATE OR REPLACE FUNCTION public.client_review_task(_id uuid, _approve boolean, _comment text DEFAULT '')
 RETURNS void

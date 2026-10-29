@@ -28,7 +28,7 @@ type FullTask = {
 };
 type Attachment = { id: string; file_url: string; file_type: string; file_name: string };
 
-export type PostPatch = { id: string } & Partial<Pick<FullTask, 'post_date' | 'post_time' | 'status' | 'caption'>>;
+export type PostPatch = { id: string; publish_job_id?: string } & Partial<Pick<FullTask, 'post_date' | 'post_time' | 'status' | 'caption'>>;
 
 interface Props {
   taskId: string | null;
@@ -38,12 +38,14 @@ interface Props {
   onNavigate: (id: string) => void;
   onClose: () => void;
   onChanged: (patch: PostPatch) => void;
+  /** Veio da fila de aprovados: abre direto no agendamento */
+  autoSchedule?: boolean;
 }
 
 const isImage = (a: Attachment) => /^image\//.test(a.file_type) || /\.(png|jpe?g|webp|gif)(\?|$)/i.test(a.file_url);
 const isVideo = (a: Attachment) => /^video\//.test(a.file_type) || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(a.file_url);
 
-export function PostDetailSheet({ taskId, order, clientName, onNavigate, onClose, onChanged }: Props) {
+export function PostDetailSheet({ taskId, order, clientName, onNavigate, onClose, onChanged, autoSchedule }: Props) {
   const [task, setTask] = useState<FullTask | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -133,9 +135,14 @@ export function PostDetailSheet({ taskId, order, clientName, onNavigate, onClose
   };
 
   // Depois de agendar: grava legenda/data/horário usados e marca como Programado, se a etapa existir
-  const afterScheduled = () => {
+  const afterScheduled = async (jobId: string) => {
     const programado = stages.find((st) => /^programad/i.test(st.name))?.name;
-    return save({ status: programado, silent: true });
+    await save({ status: programado, silent: true });
+    // Liga a publicação ao post (tira da fila de aprovados); sem a coluna no banco, só não fica registrado
+    if (task) {
+      await supabase.from('tasks').update({ publish_job_id: jobId } as never).eq('id', task.id);
+      onChanged({ id: task.id, publish_job_id: jobId });
+    }
   };
 
   const copy = async (text: string, message: string) => {
@@ -274,6 +281,8 @@ export function PostDetailSheet({ taskId, order, clientName, onNavigate, onClose
               captionLimit={CAPTION_LIMIT}
               alreadyScheduled={/^programad/i.test(task.status)}
               onScheduled={afterScheduled}
+              defaultOpen={autoSchedule}
+              key={`${task.id}-${autoSchedule ? 'auto' : ''}-${media.length}`}
             />
 
             {/* Briefing */}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AlertTriangle, CalendarCheck, Check, Film, Loader2, Search, Send } from 'lucide-react';
@@ -25,8 +25,10 @@ interface Props {
   captionLimit: number;
   /** O post já está na etapa Programado: provavelmente já foi agendado antes */
   alreadyScheduled?: boolean;
-  /** Chamado depois de agendar: o painel salva legenda/data/horário no post */
-  onScheduled: () => Promise<void> | void;
+  /** Chamado depois de agendar (com o id da publicação): o painel salva legenda/data/horário no post */
+  onScheduled: (jobId: string) => Promise<void> | void;
+  /** Abre já com o formulário de agendamento aberto (vindo da fila de aprovados) */
+  defaultOpen?: boolean;
 }
 
 const MIN_LEAD_MINUTES = 10;
@@ -66,8 +68,14 @@ function matchScore(a: SocialAccount, clientName: string) {
   return strong ? hits.reduce((n, w) => n + w.length, 0) : 0;
 }
 
-export function SchedulePostSection({ clientId, clientName, media, caption, date, time, captionLimit, alreadyScheduled, onScheduled }: Props) {
-  const [open, setOpen] = useState(false);
+export function SchedulePostSection({ clientId, clientName, media, caption, date, time, captionLimit, alreadyScheduled, onScheduled, defaultOpen }: Props) {
+  const [open, setOpen] = useState(!!defaultOpen && media.length > 0);
+  const sectionRef = useRef<HTMLElement>(null);
+  // Vindo da fila de aprovados: rola o painel até o agendamento
+  useEffect(() => {
+    if (defaultOpen && media.length) setTimeout(() => sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [accounts, setAccounts] = useState<SocialAccount[] | null>(null);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
@@ -138,7 +146,7 @@ export function SchedulePostSection({ clientId, clientName, media, caption, date
         files.push(await urlToFile(m.url, m.kind === 'video' ? `video-${i + 1}.mp4` : `arte-${i + 1}.jpg`));
         setProgress(2 + Math.round(((i + 1) / chosenMedia.length) * 8));
       }
-      await publishingService.createJob({
+      const job = await publishingService.createJob({
         files,
         caption,
         scheduledAt: `${date}T${time}`,
@@ -151,7 +159,7 @@ export function SchedulePostSection({ clientId, clientName, media, caption, date
       if (clientId && toLink.length) {
         await supabase.from('social_accounts' as never).update({ client_id: clientId } as never).in('id', toLink);
       }
-      await onScheduled();
+      await onScheduled(job.id);
       setDone(whenLabel ?? '');
       toast.success('Publicação agendada', { description: `${chosenAccounts.map((a) => `@${a.username}`).join(', ')} · ${whenLabel}` });
     } catch (e) {
@@ -176,7 +184,7 @@ export function SchedulePostSection({ clientId, clientName, media, caption, date
   }
 
   return (
-    <section className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+    <section ref={sectionRef} className="scroll-mt-4 space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
       <div className="flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">
           <Send className="h-3.5 w-3.5" /> Agendar publicação
