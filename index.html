@@ -31,14 +31,26 @@
     <meta name="twitter:description" content="Referência em marketing digital em Volta Redonda: produtora audiovisual com estúdio próprio, vídeos institucionais, social media, tráfego pago e edição.">
 
 
+    <script>
+      /* Aplica o tema salvo antes de pintar, para não piscar (padrão: escuro) */
+      (function () {
+        var theme = 'dark';
+        try { theme = localStorage.getItem('inova-theme') || 'dark'; } catch (e) {}
+        document.documentElement.classList.add(theme === 'light' ? 'light' : 'dark');
+      })();
+    </script>
+
     <style>
       /* Splash imediato: aparece antes do React baixar/montar */
-      html, body { background: #000; margin: 0; }
+      html, body { background: #0B0D0C; margin: 0; }
+      html.light, html.light body { background: #F6F6F2; }
       #initial-loader {
         position: fixed; inset: 0;
         display: flex; align-items: center; justify-content: center;
-        background: #000; z-index: 9999;
+        background: #0B0D0C; z-index: 9999;
       }
+      html.light #initial-loader { background: #F6F6F2; }
+      html.light #initial-loader .spinner { border-color: rgba(98, 130, 8, 0.2); border-top-color: #628208; }
       #initial-loader .spinner {
         width: 38px; height: 38px;
         border: 3px solid rgba(191, 247, 32, 0.25);
