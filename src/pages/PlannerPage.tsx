@@ -1,18 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarClock, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Film, Image as ImageIcon, Loader2, Search, Timer } from "lucide-react";
+import { CalendarClock, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Film, Image as ImageIcon, Loader2, MessageSquareWarning, Search, Timer } from "lucide-react";
+import { toast } from "sonner";
 import { isReferenceAttachment } from "@/lib/attachmentPurpose";
 import { PageHeader } from "@/components/PageHeader";
+import { PostDetailSheet, type PostPatch } from "@/components/planner/PostDetailSheet";
 
 type Task = {
   id: string; title: string; task_type: string; status: string; client_id: string | null;
   post_date: string | null; post_time: string | null; due_date: string | null;
-  video_url: string | null; platform: string | null;
+  video_url: string | null; platform: string | null; caption: string | null;
 };
 type Attachment = { task_id: string; file_url: string; file_type: string };
 type Client = { id: string; company_name: string };
@@ -26,13 +28,19 @@ const MONTH_VISIBLE = 2;
 const DONE = ["Postado", "Concluído", "Finalizado", "Publicado"];
 const SCHEDULED = ["Programado"];
 const STORAGE_KEY = "planner:client";
-const TASK_FIELDS = "id,title,task_type,status,client_id,post_date,post_time,due_date,video_url,platform";
+const TASK_FIELDS = "id,title,task_type,status,client_id,post_date,post_time,due_date,video_url,platform,caption";
+const DRAG_TYPE = "application/x-inova-post";
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const isImage = (a: Attachment) => /^image\//.test(a.file_type) || /\.(png|jpe?g|webp|gif)(\?|$)/i.test(a.file_url);
 const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
 const stage = (s: string) => DONE.includes(s) ? "done" : SCHEDULED.includes(s) ? "scheduled" : "progress";
+/** Pendências que o social media precisa resolver antes de postar */
+// Legendas como "-" ou "." são marcadores vazios usados no Kanban: contam como sem legenda
+const missingCaption = (t: Task) => stage(t.status) !== "done" && !/[\p{L}\p{N}]{2,}/u.test(t.caption ?? "");
+const missingTime = (t: Task) => stage(t.status) !== "done" && !!t.post_date && !t.post_time;
+const shortDate = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
 const STAGE_STYLE = {
   done: { card: "bg-emerald-500/10 border-emerald-500/30", text: "text-emerald-600 dark:text-emerald-400", Icon: CheckCircle2 },
@@ -58,8 +66,11 @@ export default function PlannerPage() {
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [panelTab, setPanelTab] = useState<"summary" | "undated">("summary");
+  const [issue, setIssue] = useState<"caption" | "time" | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   const clientId = params.get("cliente");
+  const openId = params.get("post");
   const isAll = clientId === ALL;
   const client = clients.find((c) => c.id === clientId);
   const clientName = isAll ? "Todos os clientes" : client?.company_name;
@@ -131,7 +142,9 @@ export default function PlannerPage() {
 
   const matches = (t: Task) =>
     (type === "all" || (type === "arte" ? t.task_type === "Arte" : t.task_type !== "Arte")) &&
-    (statusFilter === "all" || stage(t.status) === statusFilter);
+    (statusFilter === "all" || stage(t.status) === statusFilter) &&
+    (issue !== "caption" || missingCaption(t)) &&
+    (issue !== "time" || missingTime(t));
 
   const byDay = useMemo(() => {
     const m: Record<string, Task[]> = {};
@@ -139,7 +152,7 @@ export default function PlannerPage() {
     Object.values(m).forEach((l) => l.sort((a, b) => (a.post_time ?? "99").localeCompare(b.post_time ?? "99")));
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tasks, type, statusFilter]);
+  }, [tasks, type, statusFilter, issue]);
 
   const summary = useMemo(() => {
     const inRange = view === "month"
@@ -150,6 +163,8 @@ export default function PlannerPage() {
       done: inRange.filter((t) => stage(t.status) === "done").length,
       scheduled: inRange.filter((t) => stage(t.status) === "scheduled").length,
       progress: inRange.filter((t) => stage(t.status) === "progress").length,
+      noCaption: inRange.filter(missingCaption).length,
+      noTime: inRange.filter(missingTime).length,
     };
   }, [tasks, view, anchor]);
 
@@ -159,7 +174,65 @@ export default function PlannerPage() {
   const label = view === "month" ? `${MONTHS_FULL[anchor.getMonth()]} ${anchor.getFullYear()}`
     : a.getMonth() === b.getMonth() ? `${MONTHS[a.getMonth()]} ${a.getFullYear()}` : `${MONTHS[a.getMonth()]} - ${MONTHS[b.getMonth()]} ${b.getFullYear()}`;
 
-  const openTask = (t: Task) => { window.location.href = t.task_type === "Arte" ? `/artes?task=${t.id}` : `/tarefas?task=${t.id}`; };
+  // O post aberto fica na URL (?post=) para dar para compartilhar o link
+  const openPost = useCallback((id: string | null) => {
+    setParams((p) => { if (id) p.set("post", id); else p.delete("post"); return p; }, { replace: true });
+  }, [setParams]);
+  const openTask = (t: Task) => openPost(t.id);
+
+  // Ordem do painel de detalhes: a mesma do calendário (dia, depois horário), seguida dos sem data
+  const order = useMemo(() => [
+    ...Object.keys(byDay).sort().flatMap((d) => byDay[d].map((t) => t.id)),
+    ...undated.filter(matches).map((t) => t.id),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [byDay, undated, type, statusFilter, issue]);
+
+  // Aplica uma alteração local, movendo o post entre "no calendário" e "sem data" quando preciso
+  const applyPatch = (patch: PostPatch) => {
+    const target = [...tasks, ...undated].find((t) => t.id === patch.id);
+    if (!target) return;
+    const next = { ...target, ...patch } as Task;
+    const dated = !!(next.post_date ?? next.due_date);
+    const merge = (t: Task) => (t.id === patch.id ? next : t);
+    setTasks((ts) => dated ? (ts.some((t) => t.id === patch.id) ? ts.map(merge) : [...ts, next]) : ts.filter((t) => t.id !== patch.id));
+    setUndated((us) => dated ? us.filter((t) => t.id !== patch.id) : (us.some((t) => t.id === patch.id) ? us.map(merge) : [next, ...us]));
+  };
+
+  // Arrastar um post para outro dia: atualiza na hora e permite desfazer
+  const reschedule = async (id: string, date: string | null) => {
+    const target = [...tasks, ...undated].find((t) => t.id === id);
+    if (!target || target.post_date === date) return;
+    const previous = target.post_date;
+    applyPatch({ id, post_date: date });
+    const { error } = await supabase.from("tasks").update({ post_date: date }).eq("id", id);
+    if (error) {
+      applyPatch({ id, post_date: previous });
+      toast.error("Não foi possível mover o post. Tente de novo.");
+      return;
+    }
+    toast.success(date ? `Post movido para ${shortDate(date)}` : "Post movido para sem data", {
+      action: { label: "Desfazer", onClick: () => reschedule(id, previous) },
+    });
+  };
+
+  const dragProps = (t: Task) => ({
+    draggable: true,
+    onDragStart: (e: React.DragEvent) => { e.dataTransfer.setData(DRAG_TYPE, t.id); e.dataTransfer.effectAllowed = "move"; },
+    onDragEnd: () => setDropTarget(null),
+  });
+  const dropProps = (key: string) => ({
+    onDragOver: (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
+      e.preventDefault(); e.dataTransfer.dropEffect = "move";
+      if (dropTarget !== key) setDropTarget(key);
+    },
+    onDragLeave: (e: React.DragEvent) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTarget(null); },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault(); setDropTarget(null);
+      const id = e.dataTransfer.getData(DRAG_TYPE);
+      if (id) reschedule(id, key);
+    },
+  });
   const filteredClients = clients.filter((c) => c.company_name.toLowerCase().includes(search.trim().toLowerCase()));
 
   const ClientOption = ({ id, name, hint }: { id: string; name: string; hint?: string }) => (
@@ -194,10 +267,11 @@ export default function PlannerPage() {
     const s = STAGE_STYLE[stage(t.status)];
     const time = t.post_time?.slice(0, 5);
     return (
-      <button onClick={() => openTask(t)} title={t.title}
-        className={`w-full text-left rounded-md border p-2 transition hover:shadow-md hover:border-primary ${s.card}`}>
+      <button onClick={() => openTask(t)} title={t.title} {...dragProps(t)}
+        className={`w-full cursor-grab text-left rounded-md border p-2 transition hover:shadow-md hover:border-primary active:cursor-grabbing ${s.card} ${openId === t.id ? "ring-2 ring-primary" : ""}`}>
         <div className={`flex items-center gap-1 text-xs font-semibold ${s.text}`}>
           <s.Icon className="h-3.5 w-3.5" />{time ?? (t.post_date ? "sem horário" : "prazo")}
+          {missingCaption(t) && <MessageSquareWarning className="ml-auto h-3.5 w-3.5 text-warning" aria-label="Sem legenda" />}
         </div>
         <Thumb t={t} className="mt-1.5 aspect-[16/10] w-full" />
         <p className="mt-1.5 text-xs font-medium truncate text-foreground">{t.title}</p>
@@ -212,8 +286,8 @@ export default function PlannerPage() {
     const s = STAGE_STYLE[stage(t.status)];
     const time = t.post_time?.slice(0, 5) ?? (t.post_date ? "--:--" : "prazo");
     return (
-      <button onClick={() => openTask(t)} title={`${isAll ? `${ownerName(t)} · ` : ""}${t.title} · ${t.status}`}
-        className={`flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-xs font-semibold transition hover:ring-1 hover:ring-primary ${s.card} border-0 ${s.text}`}>
+      <button onClick={() => openTask(t)} title={`${isAll ? `${ownerName(t)} · ` : ""}${t.title} · ${t.status}${missingCaption(t) ? " · sem legenda" : ""}`} {...dragProps(t)}
+        className={`flex w-full cursor-grab items-center gap-1.5 rounded px-2 py-1.5 text-left text-xs font-semibold transition hover:ring-1 hover:ring-primary active:cursor-grabbing ${s.card} border-0 ${s.text}`}>
         <s.Icon className="h-3.5 w-3.5 shrink-0" />
         <span className="shrink-0">{time}</span>
         {isAll && <span className="truncate font-normal text-foreground/80">{ownerName(t)}</span>}
@@ -340,7 +414,7 @@ export default function PlannerPage() {
                   if (view === "month") {
                     const weekend = d.getDay() === 0 || d.getDay() === 6;
                     return (
-                      <div key={key} className={`h-[150px] space-y-1.5 border-b p-1.5 ${i % 7 ? "border-l" : ""} ${isToday ? "bg-primary/10" : weekend ? "bg-muted/40" : ""}`}>
+                      <div key={key} {...dropProps(key)} className={`h-[150px] space-y-1.5 border-b p-1.5 transition-colors ${i % 7 ? "border-l" : ""} ${dropTarget === key ? "bg-primary/15 ring-2 ring-inset ring-primary" : isToday ? "bg-primary/10" : weekend ? "bg-muted/40" : ""}`}>
                         <div className={`px-1 pb-1 pt-0.5 text-sm ${isToday ? "font-bold text-primary" : out ? "text-muted-foreground" : "text-foreground"}`}>{d.getDate()}</div>
                         {list.slice(0, MONTH_VISIBLE).map((t) => <Chip key={t.id} t={t} />)}
                         {list.length > MONTH_VISIBLE && (
@@ -352,8 +426,9 @@ export default function PlannerPage() {
                     );
                   }
                   return (
-                    <div key={key} className={`min-h-[560px] space-y-2 p-2 ${i % 7 ? "border-l" : ""} ${isToday ? "bg-primary/5 ring-1 ring-inset ring-primary/60" : ""}`}>
+                    <div key={key} {...dropProps(key)} className={`min-h-[560px] space-y-2 p-2 transition-colors ${i % 7 ? "border-l" : ""} ${dropTarget === key ? "bg-primary/10 ring-2 ring-inset ring-primary" : isToday ? "bg-primary/5 ring-1 ring-inset ring-primary/60" : ""}`}>
                       {list.map((t) => <Card key={t.id} t={t} />)}
+                      {list.length === 0 && dropTarget === key && <p className="pt-6 text-center text-xs font-medium text-primary">Soltar aqui</p>}
                     </div>
                   );
                 })}
@@ -388,16 +463,30 @@ export default function PlannerPage() {
                       className={`flex w-full items-center gap-2 rounded-lg border p-3 text-left text-sm transition hover:border-primary ${statusFilter === k ? s.card : ""}`}>
                       <s.Icon className={`h-4 w-4 ${s.text}`} />
                       <span className="flex-1">{k === "progress" ? "Em produção" : k === "scheduled" ? "Programados" : "Publicados / concluídos"}</span>
-                      <span className="font-semibold">{summary[k]}</span>
+                      <span className="font-semibold tabular-nums">{summary[k]}</span>
                     </button>
                   );
                 })}
+                <p className="pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Pendências antes de postar</p>
+                {([
+                  ["caption", "Sem legenda", summary.noCaption, MessageSquareWarning],
+                  ["time", "Sem horário definido", summary.noTime, Clock],
+                ] as const).map(([k, label, count, Icon]) => (
+                  <button key={k} onClick={() => setIssue(issue === k ? null : k)}
+                    className={`flex w-full items-center gap-2 rounded-lg border p-3 text-left text-sm transition hover:border-primary ${issue === k ? "border-warning/50 bg-warning/10" : ""}`}>
+                    <Icon className={`h-4 w-4 ${count ? "text-warning" : "text-muted-foreground"}`} />
+                    <span className="flex-1">{label}</span>
+                    <span className="font-semibold tabular-nums">{count}</span>
+                  </button>
+                ))}
+                <p className="pt-1 text-xs text-muted-foreground [text-wrap:pretty]">Dica: arraste um post para outro dia para reagendar. Clique para ver mídia, legenda e briefing.</p>
               </div>
             ) : (
               <div className="space-y-2 pt-4">
                 {undated.length === 0 && <p className="text-sm text-muted-foreground">Todos os conteúdos deste cliente têm data.</p>}
-                {undated.map((t) => (
-                  <button key={t.id} onClick={() => openTask(t)} className="flex w-full items-center gap-3 rounded-lg border p-2 text-left transition hover:border-primary">
+                {undated.length > 0 && <p className="text-xs text-muted-foreground">Arraste para um dia do calendário para agendar.</p>}
+                {undated.filter(matches).map((t) => (
+                  <button key={t.id} onClick={() => openTask(t)} {...dragProps(t)} className="flex w-full cursor-grab items-center gap-3 rounded-lg border p-2 text-left transition hover:border-primary active:cursor-grabbing">
                     <Thumb t={t} className="h-12 w-12" />
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{t.title}</p>
@@ -411,6 +500,15 @@ export default function PlannerPage() {
           </aside>
         </div>
       </div>
+
+      <PostDetailSheet
+        taskId={openId}
+        order={order}
+        clientName={(id) => (id && clientNames[id]) || "Sem cliente"}
+        onNavigate={openPost}
+        onClose={() => openPost(null)}
+        onChanged={applyPatch}
+      />
     </div>
   );
 }
