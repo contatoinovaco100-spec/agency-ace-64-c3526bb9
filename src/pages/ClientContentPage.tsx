@@ -73,14 +73,27 @@ const norm = (s: string) =>
 
 function phaseOf(status: string): Phase {
   const s = norm(status);
-  if (/^ideia|backlog/.test(s)) return 'oculto';
+  // Etapas internas que o cliente não precisa ver
+  if (/^ideia|backlog|copy finalizada/.test(s)) return 'oculto';
   if (/postado|publicado|concluido/.test(s)) return 'publicado';
   if (/programado|agendado|aprovado/.test(s)) return 'agendado';
   if (/revisao|aprovacao|finalizado|pronta/.test(s)) return 'revisao';
+  // "Próxima captação": ainda vai ser gravado
   if (/captacao|gravacao|gravar/.test(s)) return 'gravacao';
-  if (/edicao|decupagem|gravado|design/.test(s)) return 'edicao';
+  // "Pré-produção" na INOVA é o material já gravado, indo para a edição
+  if (/pre ?-? ?producao|edicao|decupagem|gravado|design/.test(s)) return 'edicao';
   return 'preparo';
 }
+
+/** Cor e explicação de cada fase (tokens do tema: rec = gravação, warning = edição, brand = sua vez) */
+const PHASE_STYLE: Record<Exclude<Phase, 'oculto'>, { title: string; hint: string; dot: string; text: string; bar: string; edge: string }> = {
+  revisao:   { title: 'Para você aprovar', hint: 'Pronto para você assistir e aprovar.', dot: 'bg-brand', text: 'text-primary', bar: 'bg-brand', edge: 'border-l-brand' },
+  gravacao:  { title: 'Próxima captação', hint: 'Ainda vai ser gravado. Veja o roteiro para chegar preparado.', dot: 'bg-rec', text: 'text-rec', bar: 'bg-rec', edge: 'border-l-rec' },
+  edicao:    { title: 'Já gravado, em edição', hint: 'Já gravamos. Agora está na edição.', dot: 'bg-warning', text: 'text-warning', bar: 'bg-warning', edge: 'border-l-warning' },
+  preparo:   { title: 'Em preparação', hint: 'Roteiro e texto sendo preparados pela equipe.', dot: 'bg-muted-foreground', text: 'text-muted-foreground', bar: 'bg-muted-foreground', edge: 'border-l-muted-foreground/40' },
+  agendado:  { title: 'Agendados', hint: 'Aprovado e com data para ir ao ar.', dot: 'bg-success', text: 'text-success', bar: 'bg-success', edge: 'border-l-success' },
+  publicado: { title: 'Entregues recentemente', hint: '', dot: 'bg-success', text: 'text-success', bar: 'bg-success', edge: 'border-l-success' },
+};
 
 const isArteTask = (t: TaskData) => t.task_type === 'Arte';
 
@@ -177,13 +190,15 @@ function DateSlate({ date, muted }: { date: Date | null; muted?: boolean }) {
 function PipelineTrack({ task }: { task: TaskData }) {
   const steps = pipelineFor(task);
   const current = pipelineIndex(task);
-  const scheduled = phaseOf(task.status) === 'agendado';
+  const phase = phaseOf(task.status);
+  const scheduled = phase === 'agendado';
+  const color = phase === 'oculto' ? 'bg-tally' : PHASE_STYLE[phase].bar;
   return (
     <div className="space-y-1.5">
       <div className="flex gap-1" aria-hidden>
         {steps.map((s, i) => (
           <span key={s.phase} className={cn('h-1 flex-1 rounded-full',
-            i < current ? 'bg-primary/50' : i === current ? 'bg-tally' : 'bg-foreground/10')} />
+            i < current ? 'bg-foreground/30' : i === current ? color : 'bg-foreground/10')} />
         ))}
       </div>
       <p className="text-xs text-muted-foreground">
@@ -523,8 +538,8 @@ function PipelineRow({ task, highlight, expandable, slate = true }: { task: Task
       {expandable && open && (
         <div className={cn('space-y-4 px-3 pb-4 sm:pr-4', slate && 'sm:pl-[76px]')}>
           {phaseOf(task.status) === 'gravacao' && (
-            <p className="rounded-lg bg-primary/10 px-3 py-2 text-sm text-foreground/90">
-              Este vídeo está na fila de gravação. Dê uma olhada no roteiro para chegar preparado.
+            <p className="rounded-lg bg-rec/10 px-3 py-2 text-sm text-foreground/90">
+              Este vídeo ainda vai ser gravado. Dê uma olhada no roteiro para chegar preparado.
             </p>
           )}
           {phaseOf(task.status) === 'agendado' && <TaskMedia task={task} />}
@@ -535,17 +550,36 @@ function PipelineRow({ task, highlight, expandable, slate = true }: { task: Task
   );
 }
 
-function Section({ title, count, hint, accent, children }: { title: string; count: number; hint?: string; accent?: boolean; children: React.ReactNode }) {
+function Section({ phase, count, children }: { phase: Exclude<Phase, 'oculto'>; count: number; children: React.ReactNode }) {
+  const st = PHASE_STYLE[phase];
   return (
     <section className="space-y-3">
-      <div className="flex items-baseline gap-2">
-        {accent && <span className="h-3 w-[3px] self-center rounded-full bg-tally" />}
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</h2>
-        <span className="text-[11px] font-semibold tabular-nums text-muted-foreground/70">{count}</span>
-        {hint && <span className="ml-auto hidden text-xs text-muted-foreground sm:inline">{hint}</span>}
+      <div className="space-y-0.5">
+        <div className="flex items-center gap-2">
+          <span className={cn('h-2.5 w-2.5 rounded-full', st.dot)} />
+          <h2 className={cn('text-[11px] font-semibold uppercase tracking-[0.08em]', st.text)}>{st.title}</h2>
+          <span className="text-[11px] font-semibold tabular-nums text-muted-foreground">{count}</span>
+        </div>
+        {st.hint && <p className="pl-[18px] text-xs text-muted-foreground">{st.hint}</p>}
       </div>
       {children}
     </section>
+  );
+}
+
+/** Lista de uma fase: cartão com a borda esquerda na cor da fase */
+function PhaseList({ phase, tasks, taskId, slate, expandable }: {
+  phase: Exclude<Phase, 'oculto'>; tasks: TaskData[]; taskId?: string; slate: boolean; expandable: (t: TaskData) => boolean;
+}) {
+  if (!tasks.length) return null;
+  return (
+    <Section phase={phase} count={tasks.length}>
+      <ul className={cn('divide-y divide-border overflow-hidden rounded-xl border border-l-[3px] bg-card', PHASE_STYLE[phase].edge)}>
+        {tasks.map((t) => (
+          <PipelineRow key={t.id} task={t} highlight={t.id === taskId} slate={slate} expandable={expandable(t)} />
+        ))}
+      </ul>
+    </Section>
   );
 }
 
@@ -684,7 +718,10 @@ export default function ClientContentPage() {
 
   const byDate = (a: TaskData, b: TaskData) => (postDateOf(a)?.getTime() ?? Infinity) - (postDateOf(b)?.getTime() ?? Infinity);
   const toReview = visible.filter((t) => phaseOf(t.status) === 'revisao').sort(byDate);
-  const inProduction = visible.filter((t) => ['preparo', 'gravacao', 'edicao'].includes(phaseOf(t.status))).sort(byDate);
+  const toRecord = visible.filter((t) => phaseOf(t.status) === 'gravacao').sort(byDate);
+  const editing = visible.filter((t) => phaseOf(t.status) === 'edicao').sort(byDate);
+  const preparing = visible.filter((t) => phaseOf(t.status) === 'preparo').sort(byDate);
+  const inProduction = [...toRecord, ...editing, ...preparing];
   const scheduled = visible.filter((t) => phaseOf(t.status) === 'agendado').sort(byDate);
   const published = visible.filter((t) => phaseOf(t.status) === 'publicado')
     .sort((a, b) => byDate(b, a)).slice(0, 12);
@@ -696,7 +733,9 @@ export default function ClientContentPage() {
 
   const summary = [
     awaiting.length && `${awaiting.length} para você aprovar`,
-    inProduction.length && `${inProduction.length} em produção`,
+    toRecord.length && `${toRecord.length} para gravar`,
+    editing.length && `${editing.length} em edição`,
+    preparing.length && `${preparing.length} em preparação`,
     scheduled.length && `${scheduled.length} ${scheduled.length === 1 ? 'agendado' : 'agendados'}`,
   ].filter(Boolean) as string[];
 
@@ -717,7 +756,7 @@ export default function ClientContentPage() {
       </header>
 
       {toReview.length > 0 && (
-        <Section title="Para você aprovar" count={toReview.length} accent>
+        <Section phase="revisao" count={toReview.length}>
           <div className="space-y-4">
             {toReview.map((t) => (
               <ReviewCard key={t.id} task={t} highlight={t.id === taskId && toReview.length > 1}
@@ -727,29 +766,16 @@ export default function ClientContentPage() {
         </Section>
       )}
 
-      {inProduction.length > 0 && (
-        <Section title="Em produção" count={inProduction.length}>
-          <ul className="divide-y divide-border overflow-hidden rounded-xl border bg-card">
-            {inProduction.map((t) => (
-              <PipelineRow key={t.id} task={t} highlight={t.id === taskId} slate={hasUpcoming(inProduction)}
-                expandable={phaseOf(t.status) === 'gravacao' && (hasText(t.full_script) || hasText(t.recording_notes))} />
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      {scheduled.length > 0 && (
-        <Section title="Agendados" count={scheduled.length}>
-          <ul className="divide-y divide-border overflow-hidden rounded-xl border bg-card">
-            {scheduled.map((t) => <PipelineRow key={t.id} task={t} highlight={t.id === taskId} slate={hasUpcoming(scheduled)} expandable />)}
-          </ul>
-        </Section>
-      )}
+      <PhaseList phase="gravacao" tasks={toRecord} taskId={taskId} slate={hasUpcoming(toRecord)}
+        expandable={(t) => hasText(t.full_script) || hasText(t.recording_notes)} />
+      <PhaseList phase="edicao" tasks={editing} taskId={taskId} slate={hasUpcoming(editing)} expandable={() => false} />
+      <PhaseList phase="preparo" tasks={preparing} taskId={taskId} slate={hasUpcoming(preparing)} expandable={() => false} />
+      <PhaseList phase="agendado" tasks={scheduled} taskId={taskId} slate={hasUpcoming(scheduled)} expandable={() => true} />
 
       {published.length > 0 && (
         <details className="group">
           <summary className="flex h-11 cursor-pointer list-none items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground [&::-webkit-details-marker]:hidden">
-            Entregues recentemente <span className="tabular-nums text-muted-foreground/70">{published.length}</span>
+            <span className="h-2.5 w-2.5 rounded-full bg-success" /> Entregues recentemente <span className="tabular-nums text-muted-foreground/70">{published.length}</span>
             <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
           </summary>
           <ul className="mt-1 divide-y divide-border overflow-hidden rounded-xl border bg-card">
