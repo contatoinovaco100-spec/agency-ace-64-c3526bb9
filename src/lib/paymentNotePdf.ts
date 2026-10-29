@@ -9,10 +9,21 @@ export type PaymentNoteItem = {
   unitPrice: number;
 };
 
+/** cobranca = pedido de pagamento; comprovante = recibo de valor já recebido */
+export type PaymentNoteKind = 'cobranca' | 'comprovante';
+
+export const PAYMENT_NOTE_TITLES: Record<PaymentNoteKind, string> = {
+  cobranca: 'Nota de cobrança',
+  comprovante: 'Comprovante de pagamento',
+};
+
 export type PaymentNoteData = {
+  kind: PaymentNoteKind;
   number: string;
   issueDate: string; // yyyy-mm-dd
   dueDate?: string;
+  /** data em que o pagamento foi recebido (comprovante) */
+  paidDate?: string;
   clientName: string;
   clientDocument?: string;
   clientContact?: string;
@@ -39,6 +50,8 @@ export async function generatePaymentNotePdf(note: PaymentNoteData) {
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 18;
   const contentW = pageW - margin * 2;
+  const isReceipt = note.kind === 'comprovante';
+  const total = paymentNoteTotal(note.items);
 
   // Header bar
   doc.setFillColor(0, 0, 0);
@@ -51,8 +64,8 @@ export async function generatePaymentNotePdf(note: PaymentNoteData) {
   }
   doc.setTextColor(191, 247, 32); // #BFF720
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
-  doc.text('NOTA DE PAGAMENTO', pageW - margin, 19, { align: 'right' });
+  doc.setFontSize(isReceipt ? 16 : 18);
+  doc.text(PAYMENT_NOTE_TITLES[note.kind].toUpperCase(), pageW - margin, 19, { align: 'right' });
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
@@ -63,7 +76,7 @@ export async function generatePaymentNotePdf(note: PaymentNoteData) {
   doc.setTextColor(20, 20, 20);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text('COBRADO DE', margin, y);
+  doc.text(isReceipt ? 'RECEBEMOS DE' : 'COBRADO DE', margin, y);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(12);
   doc.text(note.clientName || '-', margin, y + 6);
@@ -78,15 +91,41 @@ export async function generatePaymentNotePdf(note: PaymentNoteData) {
   doc.text('EMISSÃO', pageW - margin, y, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   doc.text(formatDate(note.issueDate), pageW - margin, y + 6, { align: 'right' });
-  if (note.dueDate) {
+  const sideDate = isReceipt ? note.paidDate : note.dueDate;
+  if (sideDate) {
     doc.setFont('helvetica', 'bold');
-    doc.text('VENCIMENTO', pageW - margin, y + 13, { align: 'right' });
+    doc.text(isReceipt ? 'PAGO EM' : 'VENCIMENTO', pageW - margin, y + 13, { align: 'right' });
     doc.setFont('helvetica', 'normal');
-    doc.text(formatDate(note.dueDate), pageW - margin, y + 19, { align: 'right' });
+    doc.text(formatDate(sideDate), pageW - margin, y + 19, { align: 'right' });
+  }
+  // Status
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  const status = isReceipt ? 'PAGO' : 'EM ABERTO';
+  const statusW = doc.getTextWidth(status) + 8;
+  const statusY = y + (sideDate ? 24 : 11);
+  if (isReceipt) doc.setFillColor(34, 139, 34); else doc.setFillColor(217, 119, 6);
+  doc.roundedRect(pageW - margin - statusW, statusY, statusW, 7, 1.5, 1.5, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.text(status, pageW - margin - statusW / 2, statusY + 4.9, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+
+  // Declaração do recibo
+  if (isReceipt) {
+    y = Math.max(clientY, statusY + 7) + 6;
+    const ref = note.items.map(i => i.description || 'Serviço').join('; ');
+    const declaration =
+      `Declaramos que recebemos de ${note.clientName || '-'} a importância de ${formatBRL(total)}` +
+      `${note.paidDate ? ` em ${formatDate(note.paidDate)}` : ''}, via ${note.paymentMethod}, referente a: ${ref}.`;
+    const declLines = doc.splitTextToSize(declaration, contentW);
+    doc.setTextColor(20, 20, 20);
+    doc.text(declLines, margin, y + 4);
+    clientY = y + 4 + declLines.length * 5;
   }
 
   // Items table
-  y = Math.max(clientY, y + 24) + 4;
+  y = Math.max(clientY, isReceipt ? 0 : y + 32) + 4;
   const colQty = pageW - margin - 70;
   const colUnit = pageW - margin - 36;
   const colTotal = pageW - margin - 2;
@@ -123,18 +162,18 @@ export async function generatePaymentNotePdf(note: PaymentNoteData) {
   doc.roundedRect(margin, y, contentW, 22, 2, 2, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(10);
-  doc.text('VALOR TOTAL', margin + 6, y + 9);
+  doc.text(isReceipt ? 'VALOR RECEBIDO' : 'VALOR A PAGAR', margin + 6, y + 9);
   doc.setFontSize(8);
   doc.setTextColor(180, 180, 180);
-  doc.text(`Forma de pagamento: ${note.paymentMethod}`, margin + 6, y + 15);
+  doc.text(`${isReceipt ? 'Pago via' : 'Forma de pagamento'}: ${note.paymentMethod}`, margin + 6, y + 15);
   doc.setTextColor(191, 247, 32);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
-  doc.text(formatBRL(paymentNoteTotal(note.items)), pageW - margin - 6, y + 14, { align: 'right' });
+  doc.text(formatBRL(total), pageW - margin - 6, y + 14, { align: 'right' });
   y += 32;
 
-  // Pix
-  if (note.pixCode) {
+  // Pix (só na cobrança)
+  if (!isReceipt && note.pixCode) {
     if (y + 55 > pageH - 20) { doc.addPage(); y = margin; }
     doc.setTextColor(20, 20, 20);
     doc.setFont('helvetica', 'bold');
@@ -184,5 +223,5 @@ export async function generatePaymentNotePdf(note: PaymentNoteData) {
   doc.text('INOVA Co. — Marketing & Audiovisual · Documento sem valor fiscal', margin, footerY);
   doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')}`, pageW - margin, footerY, { align: 'right' });
 
-  doc.save(`nota-${(note.clientName || 'cliente').replace(/\s+/g, '_')}-${note.number}.pdf`);
+  doc.save(`${isReceipt ? 'comprovante' : 'cobranca'}-${(note.clientName || 'cliente').replace(/\s+/g, '_')}-${note.number}.pdf`);
 }

@@ -10,9 +10,10 @@ import { toast } from 'sonner';
 import { useAgency } from '@/contexts/AgencyContext';
 import { generatePixPayload } from '@/lib/pix';
 import {
-  generatePaymentNotePdf, paymentNoteTotal,
-  type PaymentNoteData, type PaymentNoteItem,
+  generatePaymentNotePdf, paymentNoteTotal, PAYMENT_NOTE_TITLES,
+  type PaymentNoteData, type PaymentNoteItem, type PaymentNoteKind,
 } from '@/lib/paymentNotePdf';
+import { cn } from '@/lib/utils';
 
 export interface PaymentNotePix {
   pixKey: string;
@@ -30,13 +31,20 @@ const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
-const newNumber = () => `NP-${today().replace(/-/g, '').slice(2)}-${Date.now().toString(36).slice(-4).toUpperCase()}`;
+const NUMBER_PREFIX: Record<PaymentNoteKind, string> = { cobranca: 'NC', comprovante: 'RC' };
+const KIND_OPTIONS: { value: PaymentNoteKind; label: string; hint: string }[] = [
+  { value: 'cobranca', label: 'Cobrança', hint: 'Pedir um pagamento' },
+  { value: 'comprovante', label: 'Comprovante', hint: 'Confirmar que recebeu' },
+];
+const newNumber = (kind: PaymentNoteKind) => `${NUMBER_PREFIX[kind]}-${today().replace(/-/g, '').slice(2)}-${Date.now().toString(36).slice(-4).toUpperCase()}`;
 
 type FormItem = { description: string; quantity: string; unitPrice: string };
 type NoteForm = {
+  kind: PaymentNoteKind;
   number: string;
   issueDate: string;
   dueDate: string;
+  paidDate: string;
   clientId: string;
   clientName: string;
   clientDocument: string;
@@ -48,8 +56,8 @@ type NoteForm = {
 type SavedNote = NoteForm & { savedAt: string; total: number };
 
 const emptyItem = (): FormItem => ({ description: '', quantity: '1', unitPrice: '' });
-const emptyForm = (): NoteForm => ({
-  number: newNumber(), issueDate: today(), dueDate: '',
+const emptyForm = (kind: PaymentNoteKind = 'cobranca'): NoteForm => ({
+  kind, number: newNumber(kind), issueDate: today(), dueDate: '', paidDate: today(),
   clientId: '', clientName: '', clientDocument: '', clientContact: '',
   items: [emptyItem()], paymentMethod: 'Pix', notes: '',
 });
@@ -88,7 +96,8 @@ export function PaymentNoteTab({ pix }: { pix: PaymentNotePix }) {
     [form.items],
   );
   const total = paymentNoteTotal(items);
-  const usesPix = form.paymentMethod === 'Pix';
+  const isReceipt = form.kind === 'comprovante';
+  const usesPix = !isReceipt && form.paymentMethod === 'Pix';
   const pixReady = usesPix && !!pix.pixKey && total > 0;
   const pixCode = useMemo(
     () => pixReady
@@ -115,10 +124,20 @@ export function PaymentNoteTab({ pix }: { pix: PaymentNotePix }) {
     writeHistory(next);
   };
 
+  const setKind = (kind: PaymentNoteKind) => setForm(f => ({
+    ...f,
+    kind,
+    // troca o prefixo do número gerado (NC-/RC-) sem mexer em número digitado à mão
+    number: /^(NC|RC|NP)-/.test(f.number) ? f.number.replace(/^(NC|RC|NP)-/, `${NUMBER_PREFIX[kind]}-`) : f.number,
+    paidDate: f.paidDate || today(),
+  }));
+
   const toPdfData = (): PaymentNoteData => ({
+    kind: form.kind,
     number: form.number,
     issueDate: form.issueDate || today(),
-    dueDate: form.dueDate || undefined,
+    dueDate: !isReceipt ? form.dueDate || undefined : undefined,
+    paidDate: isReceipt ? form.paidDate || undefined : undefined,
     clientName: form.clientName.trim(),
     clientDocument: form.clientDocument.trim() || undefined,
     clientContact: form.clientContact.trim() || undefined,
@@ -136,7 +155,7 @@ export function PaymentNoteTab({ pix }: { pix: PaymentNotePix }) {
     try {
       await generatePaymentNotePdf(toPdfData());
       remember();
-      toast.success('PDF da nota gerado!');
+      toast.success(isReceipt ? 'Comprovante gerado!' : 'Nota de cobrança gerada!');
     } catch (e: any) {
       toast.error('Erro ao gerar PDF: ' + (e?.message || ''));
     } finally {
@@ -148,15 +167,24 @@ export function PaymentNoteTab({ pix }: { pix: PaymentNotePix }) {
     if (!validate()) return;
     const phone = form.clientContact.replace(/\D/g, '');
     const lines = items.map(i => `• ${i.description || 'Serviço'}${i.quantity !== 1 ? ` (${i.quantity}x)` : ''}: ${fmtCurrency(i.quantity * i.unitPrice)}`);
-    const msg =
-      `Olá${form.clientName ? `, ${form.clientName}` : ''}! Segue a nota de pagamento ${form.number}:\n\n` +
-      `${lines.join('\n')}\n\n` +
-      `💰 Total: ${fmtCurrency(total)}\n` +
-      (form.dueDate ? `📅 Vencimento: ${fmtDate(form.dueDate)}\n` : '') +
-      `💳 Forma de pagamento: ${form.paymentMethod}\n` +
-      (pixCode ? `\nPix copia e cola:\n${pixCode}\n` : '') +
-      (form.notes.trim() ? `\n${form.notes.trim()}\n` : '') +
-      `\nQualquer dúvida estou à disposição 🙂`;
+    const hello = `Olá${form.clientName ? `, ${form.clientName}` : ''}!`;
+    const msg = isReceipt
+      ? `${hello} Confirmamos o recebimento do seu pagamento ✅\n\n` +
+        `🧾 Comprovante ${form.number}\n` +
+        `${lines.join('\n')}\n\n` +
+        `💰 Valor recebido: ${fmtCurrency(total)}\n` +
+        (form.paidDate ? `📅 Pago em: ${fmtDate(form.paidDate)}\n` : '') +
+        `💳 Pago via: ${form.paymentMethod}\n` +
+        (form.notes.trim() ? `\n${form.notes.trim()}\n` : '') +
+        `\nObrigado pela parceria! 🙌`
+      : `${hello} Segue a nota de cobrança ${form.number}:\n\n` +
+        `${lines.join('\n')}\n\n` +
+        `💰 Valor a pagar: ${fmtCurrency(total)}\n` +
+        (form.dueDate ? `📅 Vencimento: ${fmtDate(form.dueDate)}\n` : '') +
+        `💳 Forma de pagamento: ${form.paymentMethod}\n` +
+        (pixCode ? `\nChave Pix: ${pix.pixKey}\nPix copia e cola:\n${pixCode}\n` : '') +
+        (form.notes.trim() ? `\n${form.notes.trim()}\n` : '') +
+        `\nQualquer dúvida estou à disposição 🙂`;
     const text = encodeURIComponent(msg);
     window.open(phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`, '_blank');
     remember();
@@ -164,7 +192,8 @@ export function PaymentNoteTab({ pix }: { pix: PaymentNotePix }) {
 
   const reopen = (note: SavedNote) => {
     const { savedAt: _s, total: _t, ...rest } = note;
-    setForm(rest);
+    // notas salvas antes dos dois tipos não têm kind/paidDate
+    setForm({ ...emptyForm(), ...rest, kind: rest.kind || 'cobranca', paidDate: rest.paidDate || today() });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -180,7 +209,29 @@ export function PaymentNoteTab({ pix }: { pix: PaymentNotePix }) {
         {/* Formulário */}
         <Card>
           <CardContent className="p-4 sm:p-5 space-y-5">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Tipo de nota</Label>
+              <div role="radiogroup" aria-label="Tipo de nota" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+                {KIND_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={form.kind === opt.value}
+                    onClick={() => setKind(opt.value)}
+                    className={cn(
+                      'rounded-md px-3 py-2 text-left transition-colors active:scale-[0.97]',
+                      form.kind === opt.value ? 'bg-card text-foreground card-shadow' : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    <span className="block text-sm font-semibold">{opt.label}</span>
+                    <span className="block text-xs text-muted-foreground">{opt.hint}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Número</Label>
                 <Input value={form.number} onChange={e => setForm({ ...form, number: e.target.value })} className="font-mono" />
@@ -260,12 +311,19 @@ export function PaymentNoteTab({ pix }: { pix: PaymentNotePix }) {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
+              {isReceipt ? (
+                <div className="space-y-1.5">
+                  <Label>Data do pagamento</Label>
+                  <Input type="date" value={form.paidDate} onChange={e => setForm({ ...form, paidDate: e.target.value })} />
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label>Vencimento</Label>
+                  <Input type="date" value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} />
+                </div>
+              )}
               <div className="space-y-1.5">
-                <Label>Vencimento</Label>
-                <Input type="date" value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Forma de pagamento</Label>
+                <Label>{isReceipt ? 'Pago via' : 'Forma de pagamento'}</Label>
                 <Select value={form.paymentMethod} onValueChange={v => setForm({ ...form, paymentMethod: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -293,13 +351,18 @@ export function PaymentNoteTab({ pix }: { pix: PaymentNotePix }) {
             <CardContent className="p-4 sm:p-5 space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Nota de pagamento</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{PAYMENT_NOTE_TITLES[form.kind]}</p>
                   <p className="font-mono text-sm text-foreground/80">{form.number}</p>
                 </div>
-                <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground whitespace-nowrap">Sem valor fiscal</span>
+                <span className={cn(
+                  'rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap',
+                  isReceipt ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning',
+                )}>
+                  {isReceipt ? 'Pago' : 'Em aberto'}
+                </span>
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Para</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{isReceipt ? 'Recebemos de' : 'Para'}</p>
                 <p className="font-medium text-foreground truncate">{form.clientName || '—'}</p>
               </div>
               <div className="space-y-1.5 border-t border-border pt-3">
@@ -314,8 +377,11 @@ export function PaymentNoteTab({ pix }: { pix: PaymentNotePix }) {
               </div>
               <div className="flex items-end justify-between border-t border-border pt-3">
                 <div className="text-xs text-muted-foreground space-y-0.5">
-                  <p>{form.paymentMethod}</p>
-                  {form.dueDate && <p>Vence {fmtDate(form.dueDate)}</p>}
+                  <p>{isReceipt ? 'Valor recebido' : 'Valor a pagar'}</p>
+                  <p>{isReceipt ? 'Pago via' : 'Via'} {form.paymentMethod}</p>
+                  {isReceipt
+                    ? form.paidDate && <p>Pago em {fmtDate(form.paidDate)}</p>
+                    : form.dueDate && <p>Vence {fmtDate(form.dueDate)}</p>}
                 </div>
                 <p className="text-2xl font-semibold tabular-nums text-foreground">{fmtCurrency(total)}</p>
               </div>
@@ -326,12 +392,15 @@ export function PaymentNoteTab({ pix }: { pix: PaymentNotePix }) {
                 <Button variant="outline" onClick={shareWhatsApp} className="active:scale-[0.97]">
                   <Send className="h-4 w-4 mr-2" /> Enviar pelo WhatsApp
                 </Button>
-                <Button variant="ghost" onClick={() => setForm(emptyForm())}>
+                <Button variant="ghost" onClick={() => setForm(emptyForm(form.kind))}>
                   <RotateCcw className="h-4 w-4 mr-2" /> Nova nota
                 </Button>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                O WhatsApp leva o resumo{usesPix && pix.pixKey ? ' e o Pix copia e cola' : ''}; anexe o PDF baixado na conversa.
+                {isReceipt
+                  ? 'O WhatsApp leva a confirmação do pagamento; anexe o PDF do comprovante na conversa.'
+                  : `O WhatsApp leva o valor a pagar${usesPix && pix.pixKey ? ', a chave e o Pix copia e cola' : ''}; anexe o PDF baixado na conversa.`}
+                <span className="block mt-1">Documento sem valor fiscal.</span>
               </p>
             </CardContent>
           </Card>
@@ -352,7 +421,7 @@ export function PaymentNoteTab({ pix }: { pix: PaymentNotePix }) {
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-foreground truncate">{h.clientName}</p>
                   <p className="text-xs text-muted-foreground">
-                    <span className="font-mono">{h.number}</span> · {new Date(h.savedAt).toLocaleDateString('pt-BR')}
+                    {h.kind === 'comprovante' ? 'Comprovante' : 'Cobrança'} · <span className="font-mono">{h.number}</span> · {new Date(h.savedAt).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
