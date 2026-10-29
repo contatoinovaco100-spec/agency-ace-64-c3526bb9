@@ -18,7 +18,7 @@ type InvoicePdfData = {
 const formatBRL = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-async function loadImageAsDataUrl(src: string): Promise<string> {
+export async function loadImageAsDataUrl(src: string): Promise<string> {
   const res = await fetch(src);
   const blob = await res.blob();
   return await new Promise((resolve) => {

@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/integrations/supabase/client';
+import { PaymentNoteTab } from '@/components/finance/PaymentNoteTab';
 
 // ─── PIX BR Code Generator (EMV Standard) ────────────────────────────────
 function padValue(id: string, value: string): string {
@@ -564,6 +565,23 @@ export default function FinancePage() {
         </motion.div>
       )}
 
+      <Tabs defaultValue="faturas" className="space-y-6">
+        <div className="overflow-x-auto">
+          <TabsList>
+            <TabsTrigger value="faturas" className="whitespace-nowrap">
+              <Receipt className="mr-2 h-4 w-4" /> Faturas
+            </TabsTrigger>
+            <TabsTrigger value="nota" className="whitespace-nowrap">
+              <FileText className="mr-2 h-4 w-4" /> Nota simples
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="nota" className="mt-0">
+          <PaymentNoteTab pix={{ pixKey: pixConfig.pixKey, receiverName: pixConfig.receiverName, city: pixConfig.city }} />
+        </TabsContent>
+
+        <TabsContent value="faturas" className="mt-0 space-y-8">
       {/* Navegação por mês */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between bg-card p-4 rounded-xl border border-border/50 shadow-sm">
         <div className="flex items-center gap-2">
@@ -756,6 +774,9 @@ export default function FinancePage() {
           </AnimatePresence>
         </div>
       )}
+
+        </TabsContent>
+      </Tabs>
 
       {/* ─── Create / Edit Invoice Modal ──────────────────────────────────── */}
       <Dialog open={showInvoiceModal} onOpenChange={setShowInvoiceModal}>
