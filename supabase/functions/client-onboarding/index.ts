@@ -81,7 +81,8 @@ Deno.serve(async (req) => {
         steps,
         materials_url: onboarding.materials_url,
         kickoff_preference: onboarding.kickoff_preference,
-        meta_business_id: Deno.env.get("INOVA_META_BUSINESS_ID") ?? "",
+        // ID do Business Manager da INOVA (o segredo, se existir, tem prioridade)
+        meta_business_id: Deno.env.get("INOVA_META_BUSINESS_ID") || "4390314634558882",
         accounts: accounts ?? [],
       });
     }
