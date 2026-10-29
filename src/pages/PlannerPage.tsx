@@ -17,7 +17,11 @@ type Attachment = { task_id: string; file_url: string; file_type: string };
 type Client = { id: string; company_name: string };
 
 const DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const DAYS_FULL = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const MONTHS_FULL = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const ALL = "todos";
+const MONTH_VISIBLE = 2;
 const DONE = ["Postado", "Concluído", "Finalizado", "Publicado"];
 const SCHEDULED = ["Programado"];
 const STORAGE_KEY = "planner:client";
@@ -55,7 +59,10 @@ export default function PlannerPage() {
   const [panelTab, setPanelTab] = useState<"summary" | "undated">("summary");
 
   const clientId = params.get("cliente");
+  const isAll = clientId === ALL;
   const client = clients.find((c) => c.id === clientId);
+  const clientName = isAll ? "Todos os clientes" : client?.company_name;
+  const clientNames = useMemo(() => Object.fromEntries(clients.map((c) => [c.id, c.company_name])), [clients]);
 
   const selectClient = (id: string) => {
     try { localStorage.setItem(STORAGE_KEY, id); } catch { /* armazenamento indisponível */ }
@@ -70,12 +77,12 @@ export default function PlannerPage() {
 
   // Sem cliente na URL: abre o último usado ou o primeiro da lista
   useEffect(() => {
-    if (!clients.length || client) return;
+    if (!clients.length || client || isAll) return;
     let saved: string | null = null;
     try { saved = localStorage.getItem(STORAGE_KEY); } catch { /* armazenamento indisponível */ }
-    selectClient(clients.some((c) => c.id === saved) ? saved! : clients[0].id);
+    selectClient(saved === ALL || clients.some((c) => c.id === saved) ? saved! : clients[0].id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clients, client]);
+  }, [clients, client, isAll]);
 
   const days = useMemo(() => {
     if (view === "week") {
@@ -94,12 +101,14 @@ export default function PlannerPage() {
     let active = true;
     (async () => {
       setLoading(true);
+      const base = () => {
+        const q = supabase.from("tasks").select(TASK_FIELDS).is("deleted_at", null);
+        return clientId === ALL ? q : q.eq("client_id", clientId);
+      };
       const [{ data }, { data: noDate }] = await Promise.all([
-        supabase.from("tasks").select(TASK_FIELDS).is("deleted_at", null).eq("client_id", clientId)
-          .or(`and(post_date.gte.${from},post_date.lte.${to}),and(post_date.is.null,due_date.gte.${from},due_date.lte.${to})`)
+        base().or(`and(post_date.gte.${from},post_date.lte.${to}),and(post_date.is.null,due_date.gte.${from},due_date.lte.${to})`)
           .limit(2000),
-        supabase.from("tasks").select(TASK_FIELDS).is("deleted_at", null).eq("client_id", clientId)
-          .is("post_date", null).is("due_date", null).order("created_at", { ascending: false }).limit(100),
+        base().is("post_date", null).is("due_date", null).order("created_at", { ascending: false }).limit(100),
       ]);
       const list = (data ?? []) as Task[];
       const all = [...list, ...((noDate ?? []) as Task[])];
@@ -146,11 +155,23 @@ export default function PlannerPage() {
   const today = iso(new Date());
   const step = (n: number) => setAnchor(view === "week" ? addDays(anchor, 7 * n) : new Date(anchor.getFullYear(), anchor.getMonth() + n, 1));
   const a = days[0], b = days[days.length - 1];
-  const label = view === "month" ? `${MONTHS[anchor.getMonth()]} ${anchor.getFullYear()}`
+  const label = view === "month" ? `${MONTHS_FULL[anchor.getMonth()]} ${anchor.getFullYear()}`
     : a.getMonth() === b.getMonth() ? `${MONTHS[a.getMonth()]} ${a.getFullYear()}` : `${MONTHS[a.getMonth()]} - ${MONTHS[b.getMonth()]} ${b.getFullYear()}`;
 
   const openTask = (t: Task) => { window.location.href = t.task_type === "Arte" ? `/artes?task=${t.id}` : `/tarefas?task=${t.id}`; };
   const filteredClients = clients.filter((c) => c.company_name.toLowerCase().includes(search.trim().toLowerCase()));
+
+  const ClientOption = ({ id, name, hint }: { id: string; name: string; hint?: string }) => (
+    <button onClick={() => selectClient(id)}
+      className={`flex w-full items-center gap-3 rounded-md p-2 text-left text-sm transition hover:bg-muted ${id === clientId ? "bg-primary/10" : ""}`}>
+      <span className={`h-4 w-4 shrink-0 rounded-full border-2 ${id === clientId ? "border-primary bg-primary shadow-[inset_0_0_0_2px_hsl(var(--background))]" : "border-muted-foreground/40"}`} />
+      <ClientAvatar name={id === ALL ? "Todos" : name} />
+      <span className="min-w-0">
+        <span className="block truncate font-medium">{name}</span>
+        {hint && <span className="block truncate text-xs text-muted-foreground">{hint}</span>}
+      </span>
+    </button>
+  );
 
   const Thumb = ({ t, className }: { t: Task; className: string }) => {
     const isArte = t.task_type === "Arte";
@@ -166,7 +187,9 @@ export default function PlannerPage() {
     );
   };
 
-  const Card = ({ t, compact }: { t: Task; compact?: boolean }) => {
+  const ownerName = (t: Task) => (t.client_id && clientNames[t.client_id]) || "Sem cliente";
+
+  const Card = ({ t }: { t: Task }) => {
     const s = STAGE_STYLE[stage(t.status)];
     const time = t.post_time?.slice(0, 5);
     return (
@@ -175,9 +198,25 @@ export default function PlannerPage() {
         <div className={`flex items-center gap-1 text-xs font-semibold ${s.text}`}>
           <s.Icon className="h-3.5 w-3.5" />{time ?? (t.post_date ? "sem horário" : "prazo")}
         </div>
-        {!compact && <Thumb t={t} className="mt-1.5 aspect-[16/10] w-full" />}
+        <Thumb t={t} className="mt-1.5 aspect-[16/10] w-full" />
         <p className="mt-1.5 text-xs font-medium truncate text-foreground">{t.title}</p>
+        {isAll && <p className="text-[11px] font-medium truncate text-muted-foreground">{ownerName(t)}</p>}
         <p className={`text-[11px] truncate ${s.text}`}>{t.status}</p>
+      </button>
+    );
+  };
+
+  // Linha única da visão de mês: status + horário + tipo, como no planejador da Meta
+  const Chip = ({ t }: { t: Task }) => {
+    const s = STAGE_STYLE[stage(t.status)];
+    const time = t.post_time?.slice(0, 5) ?? (t.post_date ? "--:--" : "prazo");
+    return (
+      <button onClick={() => openTask(t)} title={`${isAll ? `${ownerName(t)} · ` : ""}${t.title} · ${t.status}`}
+        className={`flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-xs font-semibold transition hover:ring-1 hover:ring-primary ${s.card} border-0 ${s.text}`}>
+        <s.Icon className="h-3.5 w-3.5 shrink-0" />
+        <span className="shrink-0">{time}</span>
+        {isAll && <span className="truncate font-normal text-foreground/80">{ownerName(t)}</span>}
+        {t.task_type === "Arte" ? <ImageIcon className="ml-auto h-3.5 w-3.5 shrink-0" /> : <Film className="ml-auto h-3.5 w-3.5 shrink-0" />}
       </button>
     );
   };
@@ -192,8 +231,8 @@ export default function PlannerPage() {
         <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" className="h-11 gap-2 pl-2 pr-3 max-w-[280px]">
-              <ClientAvatar name={client?.company_name ?? "?"} className="h-7 w-7 text-[11px]" />
-              <span className="truncate font-semibold">{client?.company_name ?? "Escolher cliente"}</span>
+              <ClientAvatar name={isAll ? "Todos" : client?.company_name ?? "?"} className="h-7 w-7 text-[11px]" />
+              <span className="truncate font-semibold">{clientName ?? "Escolher cliente"}</span>
               <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
             </Button>
           </PopoverTrigger>
@@ -206,15 +245,14 @@ export default function PlannerPage() {
             </div>
             <div className="px-3 pt-3 pb-1 text-xs font-semibold text-muted-foreground">Clientes ({filteredClients.length})</div>
             <div className="max-h-[360px] overflow-y-auto p-2 pt-0">
+              {!search.trim() && (
+                <>
+                  <ClientOption id={ALL} name="Todos os clientes" hint={`${clients.length} clientes no mesmo calendário`} />
+                  <div className="my-1 border-t" />
+                </>
+              )}
               {filteredClients.length === 0 && <p className="p-3 text-sm text-muted-foreground">Nenhum cliente encontrado.</p>}
-              {filteredClients.map((c) => (
-                <button key={c.id} onClick={() => selectClient(c.id)}
-                  className={`flex w-full items-center gap-3 rounded-md p-2 text-left text-sm transition hover:bg-muted ${c.id === clientId ? "bg-primary/10" : ""}`}>
-                  <span className={`h-4 w-4 shrink-0 rounded-full border-2 ${c.id === clientId ? "border-primary bg-primary shadow-[inset_0_0_0_2px_hsl(var(--background))]" : "border-muted-foreground/40"}`} />
-                  <ClientAvatar name={c.company_name} />
-                  <span className="truncate font-medium">{c.company_name}</span>
-                </button>
-              ))}
+              {filteredClients.map((c) => <ClientOption key={c.id} id={c.id} name={c.company_name} />)}
             </div>
           </PopoverContent>
         </Popover>
@@ -260,14 +298,14 @@ export default function PlannerPage() {
 
         <div className="flex flex-col xl:flex-row">
           <div className="min-w-0 flex-1 overflow-x-auto">
-            <div className={view === "week" ? "min-w-[840px]" : "min-w-[720px]"}>
+            <div className={view === "week" ? "min-w-[840px]" : "min-w-[900px]"}>
               <div className="grid grid-cols-7 border-b">
                 {(view === "week" ? days : days.slice(0, 7)).map((d) => {
                   const isToday = view === "week" && iso(d) === today;
                   return (
                     <div key={iso(d)} className="flex justify-center py-2.5">
-                      <span className={`rounded px-3 py-0.5 text-sm ${isToday ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground"}`}>
-                        {view === "week" ? `${DAYS[d.getDay()]} ${d.getDate()}` : DAYS[d.getDay()]}
+                      <span className={`rounded px-3 py-0.5 text-sm ${isToday ? "bg-primary text-primary-foreground font-semibold" : view === "month" ? "text-foreground" : "text-muted-foreground"}`}>
+                        {view === "week" ? `${DAYS[d.getDay()]} ${d.getDate()}` : DAYS_FULL[d.getDay()]}
                       </span>
                     </div>
                   );
@@ -278,15 +316,23 @@ export default function PlannerPage() {
                   const key = iso(d); const list = byDay[key] ?? [];
                   const out = view === "month" && d.getMonth() !== anchor.getMonth();
                   const isToday = key === today;
+                  if (view === "month") {
+                    const weekend = d.getDay() === 0 || d.getDay() === 6;
+                    return (
+                      <div key={key} className={`h-[150px] space-y-1.5 border-b p-1.5 ${i % 7 ? "border-l" : ""} ${isToday ? "bg-primary/10" : weekend ? "bg-muted/40" : ""}`}>
+                        <div className={`px-1 pb-1 pt-0.5 text-sm ${isToday ? "font-bold text-primary" : out ? "text-muted-foreground" : "text-foreground"}`}>{d.getDate()}</div>
+                        {list.slice(0, MONTH_VISIBLE).map((t) => <Chip key={t.id} t={t} />)}
+                        {list.length > MONTH_VISIBLE && (
+                          <button className="px-1 text-xs font-medium text-primary hover:underline" onClick={() => { setAnchor(d); setView("week"); }}>
+                            + {list.length - MONTH_VISIBLE} mais
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }
                   return (
-                    <div key={key} className={`space-y-2 p-2 ${i % 7 ? "border-l" : ""} ${view === "month" ? "min-h-[130px] border-b" : "min-h-[560px]"} ${isToday ? "bg-primary/5 ring-1 ring-inset ring-primary/60" : ""} ${out ? "opacity-40" : ""}`}>
-                      {view === "month" && (
-                        <div className={`text-right text-xs ${isToday ? "font-bold text-primary" : "text-muted-foreground"}`}>{d.getDate()}</div>
-                      )}
-                      {(view === "month" ? list.slice(0, 3) : list).map((t) => <Card key={t.id} t={t} compact={view === "month"} />)}
-                      {view === "month" && list.length > 3 && (
-                        <button className="text-xs font-medium text-primary" onClick={() => { setAnchor(d); setView("week"); }}>+{list.length - 3} mais</button>
-                      )}
+                    <div key={key} className={`min-h-[560px] space-y-2 p-2 ${i % 7 ? "border-l" : ""} ${isToday ? "bg-primary/5 ring-1 ring-inset ring-primary/60" : ""}`}>
+                      {list.map((t) => <Card key={t.id} t={t} />)}
                     </div>
                   );
                 })}
@@ -304,9 +350,9 @@ export default function PlannerPage() {
             {panelTab === "summary" ? (
               <div className="space-y-3 pt-4">
                 <div className="flex items-center gap-3">
-                  <ClientAvatar name={client?.company_name ?? "?"} className="h-10 w-10 text-sm" />
+                  <ClientAvatar name={isAll ? "Todos" : client?.company_name ?? "?"} className="h-10 w-10 text-sm" />
                   <div className="min-w-0">
-                    <p className="truncate font-semibold">{client?.company_name ?? "—"}</p>
+                    <p className="truncate font-semibold">{clientName ?? "—"}</p>
                     <p className="text-xs text-muted-foreground">{view === "week" ? "Nesta semana" : "Neste mês"}</p>
                   </div>
                 </div>
@@ -334,6 +380,7 @@ export default function PlannerPage() {
                     <Thumb t={t} className="h-12 w-12" />
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{t.title}</p>
+                      {isAll && <p className="truncate text-xs text-muted-foreground">{ownerName(t)}</p>}
                       <p className={`truncate text-xs ${STAGE_STYLE[stage(t.status)].text}`}>{t.status}</p>
                     </div>
                   </button>
