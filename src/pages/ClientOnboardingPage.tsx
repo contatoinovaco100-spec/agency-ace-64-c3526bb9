@@ -2,12 +2,11 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  CalendarClock, Check, ClipboardList, Eye, EyeOff, ExternalLink, FolderUp, Instagram, KeyRound, Loader2, Phone,
+  Check, ClipboardList, Eye, EyeOff, ExternalLink, FolderUp, KeyRound, Loader2, Phone,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import logoInova from '@/assets/logo-inova.png';
 
@@ -16,7 +15,7 @@ const BriefingFormPage = lazy(() => import('./BriefingFormPage'));
 /** Endereço de retorno do login do Meta (já cadastrado no app da INOVA) */
 const META_REDIRECT_URI = 'https://inovamarketing.online/redes-sociais';
 
-type StepKey = 'briefing' | 'instagram' | 'access' | 'materials' | 'kickoff';
+type StepKey = 'briefing' | 'access' | 'materials';
 type OnboardingInfo = {
   client_name: string;
   contact_name?: string;
@@ -35,7 +34,7 @@ async function callOnboarding<T = Record<string, unknown>>(body: Record<string, 
   return data as T;
 }
 
-const STEP_ORDER: StepKey[] = ['briefing', 'instagram', 'access', 'materials', 'kickoff'];
+const STEP_ORDER: StepKey[] = ['briefing', 'access', 'materials'];
 
 const TZ = 'America/Sao_Paulo';
 const formatCall = (iso: string) =>
@@ -43,13 +42,11 @@ const formatCall = (iso: string) =>
 
 export default function ClientOnboardingPage() {
   const { token = '' } = useParams();
-  const [params, setParams] = useSearchParams();
   const [info, setInfo] = useState<OnboardingInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'steps' | 'briefing'>('steps');
   const [busy, setBusy] = useState<StepKey | null>(null);
   const [materials, setMaterials] = useState('');
-  const [kickoff, setKickoff] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -57,7 +54,6 @@ export default function ClientOnboardingPage() {
       // Tolera uma versão da função que ainda não manda os horários/contas
       setInfo({ ...data, steps: data.steps ?? {}, accounts: data.accounts ?? [], call_slots: data.call_slots ?? [], access_call_at: data.access_call_at ?? null });
       setMaterials(data.materials_url);
-      setKickoff(data.kickoff_preference);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -65,28 +61,9 @@ export default function ClientOnboardingPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Voltou do login do Facebook com sucesso
-  useEffect(() => {
-    if (params.get('conectado')) {
-      toast.success('Instagram conectado. Obrigado!');
-      setParams((p) => { p.delete('conectado'); return p; }, { replace: true });
-    }
-  }, [params, setParams]);
-
   const done = (k: StepKey) => !!info?.steps?.[k];
   const doneCount = STEP_ORDER.filter(done).length;
   const nextStep = STEP_ORDER.find((k) => !done(k));
-
-  const connectInstagram = async () => {
-    setBusy('instagram');
-    try {
-      const { url } = await callOnboarding<{ url: string }>({ action: 'auth_url', token, redirect_uri: META_REDIRECT_URI });
-      window.location.href = url;
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Não foi possível abrir o login do Facebook');
-      setBusy(null);
-    }
-  };
 
   const completeStep = async (step: StepKey, extra: Record<string, unknown> = {}) => {
     setBusy(step);
@@ -135,7 +112,7 @@ export default function ClientOnboardingPage() {
         <p className="text-sm text-muted-foreground [text-wrap:pretty]">
           {doneCount === STEP_ORDER.length
             ? 'Recebemos tudo o que precisávamos. Nossa equipe já está preparando o seu primeiro mês de conteúdo.'
-            : 'São 5 passos rápidos para a gente começar a produzir. Você pode parar e voltar por este mesmo link quando quiser.'}
+            : `São ${STEP_ORDER.length} passos rápidos para a gente começar a produzir. Você pode parar e voltar por este mesmo link quando quiser.`}
         </p>
         <div className="flex items-center gap-3 pt-1">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
@@ -151,30 +128,8 @@ export default function ClientOnboardingPage() {
           {!done('briefing') && <Button className="w-full sm:w-auto" onClick={() => setView('briefing')}>Responder o briefing</Button>}
         </StepCard>
 
-        <StepCard n={2} icon={Instagram} title="Conectar o Instagram" done={done('instagram')} active={nextStep === 'instagram'}
-          description="Entre com o Facebook que administra a página da sua empresa. Assim publicamos e acompanhamos os resultados sem precisar de senha.">
-          {info.accounts.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {info.accounts.map((a) => (
-                <span key={a.username} className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-xs font-medium text-success">
-                  <Check className="h-3 w-3" /> @{a.username}
-                </span>
-              ))}
-            </div>
-          )}
-          <Button variant={done('instagram') ? 'outline' : 'default'} className="w-full gap-2 sm:w-auto" onClick={connectInstagram} disabled={busy === 'instagram'}>
-            {busy === 'instagram' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Instagram className="h-4 w-4" />}
-            {done('instagram') ? 'Conectar outra conta' : 'Entrar com Facebook'}
-          </Button>
-          {!done('instagram') && (
-            <p className="text-xs text-muted-foreground [text-wrap:pretty]">
-              O Instagram precisa ser profissional (empresa ou criador) e estar ligado a uma página do Facebook. Na tela do Facebook, marque a sua página e a conta do Instagram.
-            </p>
-          )}
-        </StepCard>
-
-        <StepCard n={3} icon={KeyRound} title="Acesso ao Instagram" done={done('access')} active={nextStep === 'access'}
-          description="Para entrarmos na sua conta pela primeira vez, o Instagram manda um código de verificação para o seu celular. Passe os dados de acesso e escolha um horário: a gente liga e você só lê o código.">
+        <StepCard n={2} icon={KeyRound} title="Acesso ao Instagram" done={done('access')} active={nextStep === 'access'}
+          description="Para entrarmos na sua conta pela primeira vez, o Instagram manda um código de verificação para o seu celular. Passe o login e a senha e escolha um horário: a gente liga e você só lê o código.">
           <AccessStep
             token={token}
             done={done('access')}
@@ -186,7 +141,7 @@ export default function ClientOnboardingPage() {
           />
         </StepCard>
 
-        <StepCard n={4} icon={FolderUp} title="Logo e materiais" done={done('materials')} active={nextStep === 'materials'}
+        <StepCard n={3} icon={FolderUp} title="Logo e materiais" done={done('materials')} active={nextStep === 'materials'}
           description="Cole o link de uma pasta (Google Drive, Dropbox, WeTransfer) com logo, manual da marca, fotos e vídeos que você já tenha.">
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input value={materials} onChange={(e) => setMaterials(e.target.value)} placeholder="https://drive.google.com/…" inputMode="url" />
@@ -198,15 +153,6 @@ export default function ClientOnboardingPage() {
           </div>
         </StepCard>
 
-        <StepCard n={5} icon={CalendarClock} title="Reunião de kickoff" done={done('kickoff')} active={nextStep === 'kickoff'}
-          description="Diga os melhores dias e horários para a reunião de início. A equipe confirma com você pelo WhatsApp.">
-          <Textarea value={kickoff} onChange={(e) => setKickoff(e.target.value)} placeholder="Terças e quintas, depois das 14h" className="min-h-[80px]" />
-          <Button variant={done('kickoff') ? 'outline' : 'default'} className="w-full sm:w-auto"
-            disabled={kickoff.trim().length < 3 || busy === 'kickoff'}
-            onClick={() => completeStep('kickoff', { kickoff_preference: kickoff.trim() })}>
-            {busy === 'kickoff' && <Loader2 className="h-4 w-4 animate-spin" />} {done('kickoff') ? 'Atualizar horários' : 'Enviar horários'}
-          </Button>
-        </StepCard>
       </ol>
 
       <p className="pb-6 text-center text-xs text-muted-foreground">Dúvidas? Responda a mensagem da INOVA no WhatsApp.</p>
@@ -214,12 +160,12 @@ export default function ClientOnboardingPage() {
   );
 }
 
-/** Etapa 3: dados de acesso do Instagram (vão para a planilha da INOVA) + horário da ligação do código */
+/** Etapa 2: dados de acesso do Instagram (vão para a planilha da INOVA) + horário da ligação do código */
 function AccessStep({ token, done, callAt, slots, defaultInstagram, onSaved, onConflict }: {
   token: string; done: boolean; callAt: string | null; slots: string[]; defaultInstagram: string;
   onSaved: (steps: OnboardingInfo['steps'], callAt: string) => void; onConflict: () => void;
 }) {
-  const [form, setForm] = useState({ instagram: defaultInstagram, password: '', code_contact: '', responsible: '', whatsapp: '', notes: '' });
+  const [form, setForm] = useState({ instagram: defaultInstagram, password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
   const [slot, setSlot] = useState<string | null>(null);
@@ -240,8 +186,7 @@ function AccessStep({ token, done, callAt, slots, defaultInstagram, onSaved, onC
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
-  const formOk = !!(form.instagram.trim() && form.password && form.code_contact.trim() && form.responsible.trim()
-    && form.whatsapp.replace(/\D/g, '').length >= 10);
+  const formOk = !!(form.instagram.trim() && form.password);
 
   const submit = async () => {
     if (!slot) return;
@@ -290,18 +235,6 @@ function AccessStep({ token, done, callAt, slots, defaultInstagram, onSaved, onC
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-          </Field>
-          <Field label="E-mail ou celular que recebe o código" className="sm:col-span-2">
-            <Input value={form.code_contact} onChange={set('code_contact')} placeholder="(24) 99999-9999 ou email@empresa.com" />
-          </Field>
-          <Field label="Quem vai estar com o celular">
-            <Input value={form.responsible} onChange={set('responsible')} placeholder="Nome" />
-          </Field>
-          <Field label="WhatsApp dessa pessoa">
-            <Input value={form.whatsapp} onChange={set('whatsapp')} placeholder="(24) 99999-9999" inputMode="tel" />
-          </Field>
-          <Field label="Observações (opcional)" className="sm:col-span-2">
-            <Textarea value={form.notes} onChange={set('notes')} placeholder="Ex.: a conta também tem um Facebook ligado" className="min-h-[60px]" />
           </Field>
         </div>
       )}

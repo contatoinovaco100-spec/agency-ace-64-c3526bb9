@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
-  CalendarClock, Check, ChevronDown, ClipboardList, Copy, FolderUp, Instagram, KeyRound, Loader2, MessageCircle, Phone, Plus, Search,
+  Check, ChevronDown, ClipboardList, Copy, FolderUp, KeyRound, Loader2, MessageCircle, Phone, Plus, Search,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/PageHeader';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-type StepKey = 'briefing' | 'instagram' | 'access' | 'materials' | 'kickoff';
+type StepKey = 'briefing' | 'access' | 'materials';
 type Onboarding = {
   id: string; client_id: string; token: string; status: 'pendente' | 'em_andamento' | 'concluido';
   steps: Partial<Record<StepKey | 'access_call_at', string>>; materials_url: string; kickoff_preference: string;
@@ -25,10 +25,8 @@ const STALLED_DAYS = 3;
 
 const STEPS: { key: StepKey; label: string; icon: typeof Check }[] = [
   { key: 'briefing', label: 'Briefing', icon: ClipboardList },
-  { key: 'instagram', label: 'Instagram', icon: Instagram },
   { key: 'access', label: 'Acesso Instagram', icon: KeyRound },
   { key: 'materials', label: 'Materiais', icon: FolderUp },
-  { key: 'kickoff', label: 'Kickoff', icon: CalendarClock },
 ];
 
 const formatCall = (iso: string) =>
@@ -108,7 +106,7 @@ export default function ClientOnboardingsPage() {
     const name = (c?.contact_name || c?.company_name || '').split(/\s+/)[0];
     const message = o.sent_at
       ? `Oi, ${name}! Passando para lembrar do seu onboarding na INOVA. Faltam só alguns passos para a gente começar: ${linkFor(o)}`
-      : `Oi, ${name}! Seja muito bem-vindo(a) à INOVA 🎉\n\nPara começarmos, complete seu onboarding (são 5 passos rápidos, dá para fazer pelo celular): briefing, conectar o Instagram, dados de acesso com horário da ligação do código, materiais e horário do kickoff.\n\n${linkFor(o)}`;
+      : `Oi, ${name}! Seja muito bem-vindo(a) à INOVA 🎉\n\nPara começarmos, complete seu onboarding (são ${STEPS.length} passos rápidos, dá para fazer pelo celular): briefing, login do Instagram com o horário da ligação do código e materiais da marca.\n\n${linkFor(o)}`;
     const phone = onlyDigits(c?.phone ?? '');
     const to = phone ? (phone.length <= 11 ? `55${phone}` : phone) : '';
     window.open(`https://wa.me/${to}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
@@ -120,7 +118,7 @@ export default function ClientOnboardingsPage() {
       <PageHeader
         eyebrow="Operacional"
         title="Onboarding de clientes"
-        description="Cada cliente recebe um link e faz as 5 etapas sozinho. Aqui você acompanha quem avançou e quem travou."
+        description="Cada cliente recebe um link e faz as etapas sozinho. Aqui você acompanha quem avançou e quem travou."
         actions={
           <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
             <PopoverTrigger asChild>
@@ -196,11 +194,11 @@ export default function ClientOnboardingsPage() {
                       <p className="truncate font-semibold">{c?.company_name ?? 'Cliente removido'}</p>
                       <p className={cn('text-xs', stalled ? 'text-warning' : 'text-muted-foreground')}>
                         {o.status === 'concluido' ? 'Concluído' : !o.sent_at ? 'Link ainda não enviado'
-                          : stalled ? `Sem avanço há ${daysSince(o.updated_at)} dias` : `${doneCount} de 5 etapas`}
+                          : stalled ? `Sem avanço há ${daysSince(o.updated_at)} dias` : `${doneCount} de ${STEPS.length} etapas`}
                       </p>
                     </div>
                   </button>
-                  <div className="flex items-center gap-1.5 pl-7 sm:pl-0" aria-label={`${doneCount} de 5 etapas concluídas`}>
+                  <div className="flex items-center gap-1.5 pl-7 sm:pl-0" aria-label={`${doneCount} de ${STEPS.length} etapas concluídas`}>
                     {STEPS.map((s) => {
                       const done = !!o.steps?.[s.key];
                       return (
@@ -236,7 +234,6 @@ export default function ClientOnboardingsPage() {
                           {s.key === 'access' && o.steps?.access_call_at && (
                             <p className="text-xs capitalize">Ligação: {formatCall(o.steps.access_call_at)}</p>
                           )}
-                          {s.key === 'kickoff' && o.kickoff_preference && <p className="text-xs">“{o.kickoff_preference}”</p>}
                           {s.key === 'briefing' && o.steps?.briefing && (
                             <a href="/briefings" className="text-xs font-medium text-primary underline-offset-2 hover:underline">Ver respostas</a>
                           )}

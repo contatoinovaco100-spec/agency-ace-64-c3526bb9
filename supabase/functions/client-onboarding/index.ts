@@ -18,7 +18,10 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const STEPS = ["briefing", "instagram", "access", "materials", "kickoff"] as const;
+// O que o cliente precisa concluir. "instagram" (login do Facebook) e "kickoff" saíram do fluxo,
+// mas as ações continuam aceitas para links antigos.
+const STEPS = ["briefing", "access", "materials"] as const;
+type LegacyStep = "instagram" | "kickoff";
 type Step = typeof STEPS[number];
 
 // Campos do briefing aceitos (os mesmos da tabela client_briefings)
@@ -81,10 +84,10 @@ Deno.serve(async (req) => {
 
     const clientId = onboarding.client_id as string;
     // Além da data de cada etapa, guarda o horário marcado da ligação em `access_call_at`
-    const steps = (onboarding.steps ?? {}) as Partial<Record<Step | "access_call_at", string>>;
+    const steps = (onboarding.steps ?? {}) as Partial<Record<Step | LegacyStep | "access_call_at", string>>;
 
     // Marca etapas como concluídas e recalcula o status geral
-    const markSteps = async (done: Step[], extra: Record<string, unknown> = {}, extraSteps: typeof steps = {}) => {
+    const markSteps = async (done: (Step | LegacyStep)[], extra: Record<string, unknown> = {}, extraSteps: typeof steps = {}) => {
       const now = new Date().toISOString();
       const next = { ...steps, ...extraSteps };
       done.forEach((s) => { next[s] = next[s] ?? now; });
@@ -181,13 +184,9 @@ Deno.serve(async (req) => {
           cliente: onboarding.clients?.company_name ?? "",
           instagram: field("instagram").replace(/^@/, ""),
           senha: field("password"),
-          contato_codigo: field("code_contact"),
-          responsavel: field("responsible"),
-          whatsapp: field("whatsapp", 40),
           ligacao: formatCall(slot),
-          observacoes: field("notes", 1000),
         };
-        if (!row.instagram || !row.senha || !row.contato_codigo || !row.responsavel || !row.whatsapp) {
+        if (!row.instagram || !row.senha) {
           return json({ error: "Preencha todos os campos obrigatórios." }, 400);
         }
         if (!ACCESS_SHEET_URL) {
@@ -212,7 +211,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "step") {
-      const step = String(body.step || "") as Step;
+      const step = String(body.step || "") as Step | LegacyStep;
       if (!["materials", "kickoff"].includes(step)) return json({ error: "Etapa inválida" }, 400);
       const extra: Record<string, unknown> = {};
       if (step === "materials") extra.materials_url = String(body.materials_url || "").slice(0, 1000);
