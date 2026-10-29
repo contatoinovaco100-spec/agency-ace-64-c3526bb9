@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { PageHeader } from '@/components/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgency } from '@/contexts/AgencyContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -199,13 +200,11 @@ export default function MyTasksPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <ListChecks className="h-6 w-6 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Minhas Tarefas</h1>
-          <p className="text-sm text-muted-foreground">Olá {fullName.split(' ')[0] || ''} — organize seu dia</p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={fullName ? `Olá, ${fullName.split(' ')[0]}` : 'Seu dia'}
+        title="Minhas tarefas"
+        description="O que é seu para entregar, em ordem de prazo."
+      />
 
       {/* Stats — clicáveis */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -350,16 +349,16 @@ export default function MyTasksPage() {
 function StatCard({ label, value, tone, active, onClick }: {
   label: string; value: number; tone?: 'danger' | 'primary'; active?: boolean; onClick?: () => void;
 }) {
-  const border = active ? 'border-primary ring-1 ring-primary/40' : tone === 'danger' && value > 0 ? 'border-destructive/40' : '';
+  const ring = active ? 'ring-2 ring-primary' : tone === 'danger' && value > 0 ? 'ring-1 ring-destructive/40' : '';
   const valueClass = tone === 'danger' && value > 0 ? 'text-destructive' : tone === 'primary' ? 'text-primary' : '';
   return (
-    <button onClick={onClick} className="text-left">
-      <Card className={`transition ${border} hover:border-primary/50`}>
+    <button onClick={onClick} className="rounded-xl text-left transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <Card className={`transition-shadow hover:raised-shadow ${ring}`}>
         <CardContent className="p-4">
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <p className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
             {tone === 'danger' && value > 0 && <AlertCircle className="h-3 w-3 text-destructive" />} {label}
           </p>
-          <p className={`text-2xl font-bold ${valueClass}`}>{value}</p>
+          <p className={`mt-1 font-display text-[28px] font-semibold leading-8 tabular-nums ${valueClass}`}>{value}</p>
         </CardContent>
       </Card>
     </button>

@@ -670,7 +670,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                   href={form.rawFootageUrl.startsWith('http') ? form.rawFootageUrl : `https://${form.rawFootageUrl}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-amber-500 hover:text-amber-400 underline underline-offset-2 break-all"
+                  className="inline-flex items-center gap-1 text-xs text-amber-700 hover:text-amber-600 dark:text-amber-500 dark:hover:text-amber-400 underline underline-offset-2 break-all"
                 >
                   <FolderOpen className="h-3 w-3" /> Abrir pasta do material bruto
                 </a>

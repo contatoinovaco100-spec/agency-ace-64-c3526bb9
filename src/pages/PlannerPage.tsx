@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarClock, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Film, Image as ImageIcon, Loader2, Search, Timer } from "lucide-react";
 import { isReferenceAttachment } from "@/lib/attachmentPurpose";
+import { PageHeader } from "@/components/PageHeader";
 
 type Task = {
   id: string; title: string; task_type: string; status: string; client_id: string | null;
@@ -222,21 +223,21 @@ export default function PlannerPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold">Planejador</h1>
-          <p className="text-sm text-muted-foreground">Calendário de conteúdo de cada cliente, com as tarefas do kanban e das artes.</p>
-        </div>
+    <div className="space-y-4">
+      <PageHeader
+        eyebrow="Operacional"
+        title="Planejador"
+        description="Calendário de conteúdo de cada cliente, com as tarefas do kanban e das artes."
+        actions={
         <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="h-11 gap-2 pl-2 pr-3 max-w-[280px]">
+            <Button variant="outline" className="h-11 w-full max-w-full gap-2 pl-2 pr-3 sm:w-auto sm:max-w-[280px]">
               <ClientAvatar name={isAll ? "Todos" : client?.company_name ?? "?"} className="h-7 w-7 text-[11px]" />
-              <span className="truncate font-semibold">{clientName ?? "Escolher cliente"}</span>
+              <span className="flex-1 truncate text-left font-semibold">{clientName ?? "Escolher cliente"}</span>
               <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-[340px] p-0">
+          <PopoverContent align="end" className="w-[min(340px,calc(100vw-2rem))] p-0">
             <div className="border-b p-3">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -256,11 +257,12 @@ export default function PlannerPage() {
             </div>
           </PopoverContent>
         </Popover>
-      </div>
+        }
+      />
 
-      <div className="rounded-xl border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-xl border bg-card">
         <div className="grid grid-cols-1 items-center gap-3 border-b p-3 lg:grid-cols-[1fr_auto_1fr]">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-between gap-1 sm:justify-start">
             <div className="flex rounded-md bg-muted p-1">
               {(["week", "month"] as const).map((v) => (
                 <Button key={v} size="sm" variant={view === v ? "secondary" : "ghost"}
@@ -275,17 +277,17 @@ export default function PlannerPage() {
             {loading && <Loader2 className="ml-1 h-4 w-4 animate-spin text-muted-foreground" />}
           </div>
           <h2 className="text-center text-lg font-semibold">{label}</h2>
-          <div className="flex flex-wrap gap-2 lg:justify-end">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
             <Select value={type} onValueChange={setType}>
-              <SelectTrigger className="w-[210px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-[210px]"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tipo de conteúdo: todos</SelectItem>
+                <SelectItem value="all">Conteúdo: todos</SelectItem>
                 <SelectItem value="arte">Artes estáticas</SelectItem>
                 <SelectItem value="video">Vídeos (kanban)</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Status: todos</SelectItem>
                 <SelectItem value="progress">Em produção</SelectItem>
@@ -297,7 +299,26 @@ export default function PlannerPage() {
         </div>
 
         <div className="flex flex-col xl:flex-row">
-          <div className="min-w-0 flex-1 overflow-x-auto">
+          {view === "week" && (
+            // Celular: a semana vira uma lista de dias empilhados, sem rolagem lateral
+            <div className="divide-y sm:hidden">
+              {days.map((d) => {
+                const key = iso(d); const list = byDay[key] ?? [];
+                const isToday = key === today;
+                return (
+                  <section key={key} className={`p-3 ${isToday ? "bg-primary/5" : ""}`}>
+                    <div className="mb-2 flex items-center gap-2">
+                      {isToday && <span className="h-4 w-[3px] rounded-full bg-tally" />}
+                      <h3 className={`text-sm font-semibold ${isToday ? "text-primary" : "text-foreground"}`}>{DAYS_FULL[d.getDay()]}, {d.getDate()} {MONTHS[d.getMonth()].toLowerCase()}</h3>
+                      <span className="ml-auto text-xs tabular-nums text-muted-foreground">{list.length || "—"}</span>
+                    </div>
+                    {list.length > 0 && <div className="grid grid-cols-2 gap-2">{list.map((t) => <Card key={t.id} t={t} />)}</div>}
+                  </section>
+                );
+              })}
+            </div>
+          )}
+          <div className={`min-w-0 flex-1 overflow-x-auto ${view === "week" ? "hidden sm:block" : ""}`}>
             <div className={view === "week" ? "min-w-[840px]" : "min-w-[900px]"}>
               <div className="grid grid-cols-7 border-b">
                 {(view === "week" ? days : days.slice(0, 7)).map((d) => {

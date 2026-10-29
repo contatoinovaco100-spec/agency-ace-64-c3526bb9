@@ -103,7 +103,7 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
         <div className="flex items-center gap-2 min-w-0">
           <div className={cn(
             'shrink-0 rounded flex items-center justify-center h-6 w-6',
-            isArte ? 'bg-pink-500/15 text-pink-400' : 'bg-primary/15 text-primary'
+            isArte ? 'bg-pink-500/15 text-pink-600 dark:text-pink-400' : 'bg-primary/15 text-primary'
           )}>
             {isArte ? (
               <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
@@ -195,7 +195,7 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
       <div className="flex items-center gap-1.5 min-w-0">
         <div className={cn(
           'shrink-0 rounded flex items-center justify-center h-4 w-4',
-          isArte ? 'bg-pink-500/15 text-pink-400' : 'bg-primary/15 text-primary'
+          isArte ? 'bg-pink-500/15 text-pink-600 dark:text-pink-400' : 'bg-primary/15 text-primary'
         )}>
           {isArte ? (
             <svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
@@ -1079,10 +1079,10 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     <div className="flex h-full flex-col gap-3 sm:gap-4">
       {/* Header */}
       <div className="flex flex-col gap-2.5 sm:gap-3">
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg sm:text-xl font-bold text-foreground">{pageTitle ?? 'Tarefas'}</h1>
+              <h1 className="font-display text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{pageTitle ?? 'Tarefas'}</h1>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 {pageHint
                   ? <>{pageHint}{selectedClientName && <span className="text-primary font-medium"> · {selectedClientName}</span>}</>
@@ -1098,8 +1098,8 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
             </Button>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <div className="relative flex-1 sm:w-[180px]">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <div className="relative min-w-[160px] flex-1 sm:max-w-[240px]">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar tarefas..."
@@ -1108,7 +1108,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                 className="h-8 sm:h-9 w-full pl-8 text-xs sm:text-sm"
               />
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex flex-wrap items-center gap-1.5">
               {headerExtra}
               <Button
                 variant="outline"
@@ -1190,12 +1190,12 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
       {/* Tabs & Mobile Column Switcher */}
       <div className="space-y-2">
         {groupedByDueDate && (
-          <div className="flex w-fit items-center gap-1 rounded-lg border border-border bg-card/70 p-1 shadow-sm">
+          <div className="flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border bg-card/70 p-1 shadow-sm scroller-hide">
             <button
               type="button"
               onClick={() => setArteTab('progress')}
               className={cn(
-                'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+                'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
                 arteTab === 'progress' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
             >
@@ -1208,7 +1208,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
               type="button"
               onClick={() => setArteTab('done')}
               className={cn(
-                'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+                'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
                 arteTab === 'done' ? 'bg-success text-white' : 'text-muted-foreground hover:text-foreground',
               )}
             >
@@ -1222,7 +1222,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
               type="button"
               onClick={() => setArteTab('trash')}
               className={cn(
-                'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+                'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
                 arteTab === 'trash' ? 'bg-destructive text-white' : 'text-muted-foreground hover:text-foreground',
               )}
             >
@@ -1429,7 +1429,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                         {(mobileColumnFilter === 'all' ? progressStages : progressStages.filter(s => s.name === mobileColumnFilter)).map(stage => (
                           <div key={`${group.key}-${stage.id}`} className={cn(
                             'flex flex-col',
-                            mobileColumnFilter !== 'all' ? 'w-full min-w-0' : 'min-w-[220px] sm:min-w-[240px] lg:min-w-0 lg:flex-1'
+                            mobileColumnFilter !== 'all' ? 'w-full min-w-0' : 'min-w-[220px] sm:min-w-[240px] lg:min-w-[200px] lg:flex-1'
                           )}>
                             <KanbanColumn
                               prefix={`GROUP::${group.key}`}
@@ -1486,7 +1486,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                 type="button"
                 onClick={() => setArteTab(arteTab === 'trash' ? 'progress' : 'trash')}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+                  'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
                   arteTab === 'trash' ? 'bg-destructive text-white' : 'text-muted-foreground hover:text-foreground',
                 )}
               >
@@ -1577,7 +1577,7 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
                     key={stage.id}
                     className={cn(
                       'flex flex-col h-full',
-                      mobileColumnFilter !== 'all' ? 'w-full min-w-0' : 'min-w-[220px] sm:min-w-[240px] lg:min-w-0'
+                      mobileColumnFilter !== 'all' ? 'w-full min-w-0' : 'min-w-[220px] sm:min-w-[240px] lg:min-w-[200px] lg:flex-1'
                     )}
                   >
                     <KanbanColumn

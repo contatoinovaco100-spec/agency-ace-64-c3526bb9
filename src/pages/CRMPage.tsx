@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { PageHeader } from '@/components/PageHeader';
 import { useAgency } from '@/contexts/AgencyContext';
 import { Lead, LeadStage } from '@/types/agency';
 import { Plus, Settings2 } from 'lucide-react';
@@ -77,14 +78,11 @@ export default function CRMPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-heading font-semibold text-foreground">CRM — Pipeline</h1>
-          <p className="text-body text-muted-foreground">
-            Pipeline: <span className="tabular-nums font-medium text-foreground">R$ {totalPipeline.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span> · {leads.length} leads
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Comercial"
+        title="CRM"
+        description={<>Pipeline de <span className="tabular-nums font-medium text-foreground">R$ {totalPipeline.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span> em <span className="tabular-nums">{leads.length}</span> leads</>}
+      />
 
       <Tabs defaultValue="pipeline">
         <TabsList>

@@ -1,7 +1,7 @@
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import { BellOff, BellRing, ChevronLeft, LogOut, Menu, Moon, Sun, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +24,7 @@ const iconButton = 'flex h-9 w-9 items-center justify-center rounded-md text-mut
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
   const location = useLocation();
   const { signOut, user } = useAuth();
   const { hasPageAccess, isAdmin } = usePageAccess();
@@ -43,8 +44,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     .map(path => visiblePages.find(p => p.path === path))
     .filter((p): p is AppPage => !!p);
 
-  // Fecha o menu do celular ao trocar de página
-  useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
+  // Ao trocar de página: fecha o menu do celular e volta ao topo (o <main> é quem rola, não a janela)
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    mainRef.current?.scrollTo(0, 0);
+  }, [location.pathname]);
 
   const compact = collapsed && !mobileMenuOpen;
 
@@ -126,7 +130,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-background">
+      <main ref={mainRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-background">
         <div className="mx-auto w-full max-w-[1720px] px-4 pb-24 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pb-8">
           {children}
         </div>

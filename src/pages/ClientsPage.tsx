@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 import { useAgency } from '@/contexts/AgencyContext';
+import { PageHeader } from '@/components/PageHeader';
 import { Client, ServiceType, ClientStatus, ScopeDetails } from '@/types/agency';
 import { Plus, Search, X, ChevronDown, ChevronUp, BarChart3, Pause, Trash2, Square, CheckSquare } from 'lucide-react';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
@@ -237,21 +238,20 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-heading font-semibold text-foreground">Clientes</h1>
-          <p className="text-body text-muted-foreground">{clients.length} clientes cadastrados</p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center w-full sm:w-auto">
+      <PageHeader
+        eyebrow="Operacional"
+        title="Clientes"
+        description={<><span className="tabular-nums font-medium text-foreground">{clients.length}</span> clientes cadastrados</>}
+        actions={<div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
           <Button onClick={syncFromContracts} variant="outline" disabled={syncing} className="gap-2 w-full sm:w-auto">
             {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Sincronizar contratos
+            Sincronizar
           </Button>
           <Button onClick={openNew} className="gap-2 w-full sm:w-auto">
-            <Plus className="h-4 w-4" /> Novo Cliente
+            <Plus className="h-4 w-4" /> Novo cliente
           </Button>
-        </div>
-      </div>
+        </div>}
+      />
 
       {/* Search + Select All */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

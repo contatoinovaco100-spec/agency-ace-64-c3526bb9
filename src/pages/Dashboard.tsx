@@ -3,6 +3,7 @@ import { useModuleAccess } from '@/hooks/useUserRole';
 import { ExpensesPanel } from '@/components/dashboard/ExpensesPanel';
 import type { Client } from '@/types/agency';
 
+import { PageHeader } from '@/components/PageHeader';
 import { motion } from 'framer-motion';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
@@ -31,11 +32,11 @@ const statusColors: Record<string, string> = {
 };
 
 const CHART_COLORS = [
-  'hsl(73, 93%, 55%)',    // verde limão (primary)
-  'hsl(174, 98%, 19%)',   // verde escuro
+  'hsl(var(--chart-1))', // verde da marca (ajusta ao tema)
+  'hsl(var(--chart-2))', // verde-petróleo
   'hsl(38, 92%, 50%)',    // warning/amber
   'hsl(217, 91%, 60%)',   // info/blue
-  'hsl(338, 78%, 12%)',   // vinho
+  'hsl(var(--chart-4))', // vinho
   'hsl(180, 60%, 45%)',   // teal
 ];
 
@@ -510,13 +511,13 @@ export default function Dashboard() {
       >
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 bg-primary" />
-            <p className="text-[10px] font-semibold uppercase text-muted-foreground">Resumo operacional</p>
+            <span className="h-3 w-[3px] rounded-full bg-tally" />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Resumo operacional</p>
           </div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-[28px] sm:leading-9">
             {greeting}, <span className="text-primary">INOVA CO.</span>
           </h1>
-          <p className="text-xs text-muted-foreground">Indicadores financeiros, carteira e desempenho da operação.</p>
+          <p className="text-sm text-muted-foreground">Indicadores financeiros, carteira e desempenho da operação.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -558,7 +559,7 @@ export default function Dashboard() {
 
         {/* ==================== FINANCIAL TAB ==================== */}
         <TabsContent value="financeiro" className="space-y-5">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
             {[
               { label: 'MRR', value: formatCurrency(mrr), icon: DollarSign, accent: 'text-primary', highlight: true, hint: '' },
               { label: 'Receita Anual Projetada', value: formatCurrency(mrr * 12), icon: TrendingUp, accent: 'text-muted-foreground', highlight: false, hint: '' },
@@ -566,9 +567,9 @@ export default function Dashboard() {
               { label: 'Ticket Médio', value: formatCurrency(activeClients.length > 0 ? mrr / activeClients.length : 0), icon: BarChart3, accent: 'text-muted-foreground', highlight: false, hint: '' },
               { label: 'Churn', value: `${churnRate.toFixed(1)}%`, icon: TrendingDown, accent: 'text-destructive', highlight: false, hint: `${churnedClients.length} cancelados · ${churnRate30.toFixed(1)}% em 30 dias · ${formatCurrency(churnedMrr)}/mês perdidos` },
             ].map((kpi, i) => (
-              <motion.div key={kpi.label} {...anim(i)}>
-                <div className="group relative min-h-[138px] rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/40">
-                  <div className="mb-5 flex items-start justify-between">
+              <motion.div key={kpi.label} {...anim(i)} className={i === 0 ? 'col-span-2 lg:col-span-1' : undefined}>
+                <div className="group relative h-full rounded-xl border border-border bg-card p-3.5 transition-colors hover:border-primary/40 sm:min-h-[138px] sm:p-4">
+                  <div className="mb-3 flex items-start justify-between sm:mb-5">
                     <div className={`flex h-8 w-8 items-center justify-center rounded-md bg-secondary ${kpi.accent}`}>
                       <kpi.icon className="h-4 w-4" />
                     </div>
@@ -576,8 +577,8 @@ export default function Dashboard() {
                       <span className="rounded bg-primary/10 px-2 py-1 text-[9px] font-bold uppercase text-primary">Live</span>
                     )}
                   </div>
-                  <p className="mb-1 text-[10px] font-semibold uppercase text-muted-foreground">{kpi.label}</p>
-                  <h3 className="text-xl font-bold tabular-nums text-foreground sm:text-2xl">{kpi.value}</h3>
+                  <p className="mb-1 truncate text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{kpi.label}</p>
+                  <h3 className="truncate text-lg font-bold tabular-nums tracking-tight text-foreground sm:text-2xl">{kpi.value}</h3>
                   {kpi.hint && <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{kpi.hint}</p>}
                 </div>
               </motion.div>
@@ -622,7 +623,7 @@ export default function Dashboard() {
           <div className="grid gap-4 lg:grid-cols-3">
             {/* MoM comparison */}
             <motion.div {...anim(5)}>
-              <Card className="border-border/60 rounded-[2rem] bg-card h-full">
+              <Card className="bg-card h-full">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <TrendingUp className="h-4 w-4 text-primary" /> Mês atual vs anterior
@@ -664,7 +665,7 @@ export default function Dashboard() {
 
             {/* Renewals */}
             <motion.div {...anim(6)}>
-              <Card className="border-border/60 rounded-[2rem] bg-card h-full">
+              <Card className="bg-card h-full">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CalendarClock className="h-4 w-4 text-[hsl(var(--warning))]" /> Renovações em até 60 dias
@@ -709,7 +710,7 @@ export default function Dashboard() {
 
             {/* Team ranking */}
             <motion.div {...anim(7)}>
-              <Card className="border-border/60 rounded-[2rem] bg-card h-full">
+              <Card className="bg-card h-full">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Trophy className="h-4 w-4 text-primary" /> Ranking de Equipe
@@ -755,7 +756,7 @@ export default function Dashboard() {
           <div className="grid gap-4 lg:grid-cols-3">
             {/* Revenue Trend */}
             <motion.div {...anim(4)} className="lg:col-span-2">
-              <Card className="border-border/60 rounded-[2rem] bg-card">
+              <Card className="bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <TrendingUp className="h-4 w-4 text-primary" /> Evolução de Receita
@@ -766,8 +767,8 @@ export default function Dashboard() {
                     <AreaChart data={revenueHistory}>
                       <defs>
                         <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(73, 93%, 55%)" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="hsl(73, 93%, 55%)" stopOpacity={0} />
+                          <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(240, 3.7%, 15.9%)" />
@@ -778,7 +779,7 @@ export default function Dashboard() {
                         labelStyle={{ color: 'hsl(0, 0%, 98%)' }}
                         formatter={(v: number) => [formatCurrency(v), 'Receita']}
                       />
-                      <Area type="monotone" dataKey="receita" stroke="hsl(73, 93%, 55%)" strokeWidth={2.5} fill="url(#revenueGrad)" />
+                      <Area type="monotone" dataKey="receita" stroke="hsl(var(--chart-1))" strokeWidth={2.5} fill="url(#revenueGrad)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -787,7 +788,7 @@ export default function Dashboard() {
 
             {/* Client Status Pie */}
             <motion.div {...anim(5)}>
-              <Card className="border-border/60 rounded-[2rem] bg-card">
+              <Card className="bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <PieChart className="h-4 w-4 text-primary" /> Status dos Clientes
@@ -811,7 +812,7 @@ export default function Dashboard() {
           <div className="grid gap-4 lg:grid-cols-2">
             {/* Revenue by Client */}
             <motion.div {...anim(6)}>
-              <Card className="border-border/60 rounded-[2rem] bg-card">
+              <Card className="bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <BarChart3 className="h-4 w-4 text-primary" /> Receita por Cliente
@@ -824,7 +825,7 @@ export default function Dashboard() {
                       <XAxis type="number" tick={{ fill: 'hsl(240, 5%, 64.9%)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `R$${v}`} />
                       <YAxis type="category" dataKey="name" tick={{ fill: 'hsl(240, 5%, 64.9%)', fontSize: 11 }} axisLine={false} tickLine={false} width={110} />
                       <Tooltip contentStyle={{ background: 'hsl(240, 10%, 6%)', border: '1px solid hsl(240, 3.7%, 15.9%)', borderRadius: 8 }} formatter={(v: number) => [formatCurrency(v), 'Valor']} />
-                      <Bar dataKey="valor" fill="hsl(73, 93%, 55%)" radius={[0, 6, 6, 0]} barSize={24} />
+                      <Bar dataKey="valor" fill="hsl(var(--chart-1))" radius={[0, 6, 6, 0]} barSize={24} />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -833,7 +834,7 @@ export default function Dashboard() {
 
             {/* Revenue by Service */}
             <motion.div {...anim(7)}>
-              <Card className="border-border/60 rounded-[2rem] bg-card">
+              <Card className="bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Briefcase className="h-4 w-4 text-primary" /> Receita por Serviço
@@ -857,7 +858,7 @@ export default function Dashboard() {
           {/* LTV por Cliente — quem mais gerou receita histórica */}
           {ltvByClient.length > 0 && (
             <motion.div {...anim(8)}>
-              <Card className="border-border/60 rounded-[2rem] bg-card overflow-hidden">
+              <Card className="bg-card overflow-hidden">
                 <CardHeader className="pb-2">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <CardTitle className="flex items-center gap-2 text-base">
@@ -939,7 +940,7 @@ export default function Dashboard() {
 
           {newClients.length > 0 && (
             <motion.div {...anim(8)}>
-              <Card className="border-border/60 rounded-[2rem] bg-card">
+              <Card className="bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <ArrowUpRight className="h-4 w-4 text-[hsl(var(--success))]" /> Novos Clientes (últimos 30 dias)
@@ -972,7 +973,7 @@ export default function Dashboard() {
 
           {/* All Clients Table */}
           <motion.div {...anim(9)}>
-            <Card className="border-border/60 rounded-[2rem] bg-card">
+            <Card className="bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <FolderOpen className="h-4 w-4 text-primary" /> Todos os Contratos
@@ -1036,7 +1037,7 @@ export default function Dashboard() {
 
           {/* Churn — taxa + receita perdida + histórico */}
           <motion.div {...anim(10)}>
-            <Card className="border-destructive/30 rounded-[2rem] bg-card overflow-hidden">
+            <Card className="bg-card ring-1 ring-destructive/30 overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <ArrowDownRight className="h-4 w-4 text-destructive" />
@@ -1134,7 +1135,7 @@ export default function Dashboard() {
         {/* ==================== DELIVERY TAB ==================== */}
         <TabsContent value="entregas" className="space-y-6">
           {/* Delivery KPIs — Bento */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {[
               { label: 'Total de Tarefas', value: tasks.length, icon: CheckSquare, accent: 'text-primary', highlight: true },
               { label: 'Concluídas', value: completedTasks.length, icon: CheckCircle2, accent: 'text-[hsl(var(--success))]', highlight: false },
@@ -1142,7 +1143,7 @@ export default function Dashboard() {
               { label: 'Atrasadas', value: overdueTasks.length, icon: AlertTriangle, accent: 'text-[hsl(var(--warning))]', highlight: false },
             ].map((kpi, i) => (
               <motion.div key={kpi.label} {...anim(i)}>
-                <div className="group relative bg-card p-6 rounded-[2rem] border border-border/60 hover:border-primary/40 transition-all duration-300 hover:-translate-y-0.5">
+                <div className="group relative bg-card p-5 rounded-xl card-shadow transition-shadow duration-200 hover:raised-shadow">
                   <div className="flex justify-between items-start mb-6">
                     <div className={`p-2.5 rounded-xl bg-secondary/70 ${kpi.accent}`}>
                       <kpi.icon className="h-5 w-5" />
@@ -1161,7 +1162,7 @@ export default function Dashboard() {
 
           {/* Completion Progress */}
           <motion.div {...anim(4)}>
-            <Card className="border-border/60 rounded-[2rem] bg-card">
+            <Card className="bg-card">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-foreground">Taxa de Conclusão</span>
@@ -1177,7 +1178,7 @@ export default function Dashboard() {
           <div className="grid gap-4 lg:grid-cols-2">
             {/* Task Status Distribution */}
             <motion.div {...anim(5)}>
-              <Card className="border-border/60 rounded-[2rem] bg-card">
+              <Card className="bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <PieChart className="h-4 w-4 text-primary" /> Distribuição de Status
@@ -1199,7 +1200,7 @@ export default function Dashboard() {
 
             {/* Overdue Tasks */}
             <motion.div {...anim(6)}>
-              <Card className="border-border/60 rounded-[2rem] bg-card">
+              <Card className="bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <AlertTriangle className="h-4 w-4 text-[hsl(var(--warning))]" /> Tarefas Atrasadas
@@ -1242,7 +1243,7 @@ export default function Dashboard() {
 
           {/* Tasks by Client */}
           <motion.div {...anim(7)}>
-            <Card className="border-border/60 rounded-[2rem] bg-card">
+            <Card className="bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <BarChart3 className="h-4 w-4 text-primary" /> Tarefas por Cliente
@@ -1339,7 +1340,7 @@ function LtvTable({ rows }: { rows: LtvRow[] }) {
     : 'bg-muted text-muted-foreground';
 
   return (
-    <Card className="border-border/60 rounded-[2rem] bg-card overflow-hidden">
+    <Card className="bg-card overflow-hidden">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <FileText className="h-4 w-4 text-primary" /> Ranking Completo de LTV
@@ -1412,65 +1413,25 @@ function SimpleDashboard({ clients, tasks, leads, mrr, activeClients, pendingTas
 
   return (
     <div className="space-y-6 relative">
-      {/* Futuristic ambient background */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-primary/[0.07] blur-[120px]" />
-        <div className="absolute top-1/3 -right-40 h-[400px] w-[400px] rounded-full bg-[hsl(174,98%,19%)]/20 blur-[120px]" />
-        <div className="absolute bottom-0 left-1/3 h-[350px] w-[350px] rounded-full bg-[hsl(var(--info))]/10 blur-[100px]" />
-      </div>
-
-      
-
-
-      {/* Header — Futuristic */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card via-card to-card/40 p-6 backdrop-blur-xl"
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_hsl(73,93%,55%,0.08),_transparent_60%)]" />
-        <div className="absolute -top-px left-10 right-10 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/30">
-              <CheckSquare className="h-6 w-6 text-primary" />
-              <div className="absolute inset-0 rounded-xl bg-primary/20 blur-lg" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">Live · Suas Tarefas</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mt-0.5 tracking-tight">
-                Painel <span className="text-primary">de Trabalho</span>
-              </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Visão geral das suas tarefas e entregas</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => requestPermission()}
-              className="hidden sm:flex gap-2 border-border/50 backdrop-blur"
-            >
-              Habilitar Push
+      <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+        <PageHeader
+          eyebrow="Suas tarefas"
+          title="Painel de trabalho"
+          description="Visão geral das suas tarefas e entregas."
+          actions={
+            <Button variant="outline" size="sm" onClick={() => requestPermission()} className="hidden gap-2 sm:flex">
+              <BellRing className="h-4 w-4" /> Habilitar push
             </Button>
-          </div>
-
-        </div>
+          }
+        />
       </motion.div>
 
       {/* KPIs — Futuristic */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {kpis.map((kpi, i) => {
-          const glow = kpi.accent.includes('warning') ? 'hsl(var(--warning))' : kpi.accent.includes('info') ? 'hsl(var(--info))' : kpi.accent.includes('success') ? 'hsl(var(--success))' : kpi.accent.includes('destructive') ? 'hsl(0,84%,60%)' : 'hsl(73,93%,55%)';
           return (
             <motion.div key={kpi.label} {...anim(i)}>
-              <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-card/30 backdrop-blur-xl transition-all duration-300 hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_-5px_hsl(73,93%,55%/0.15)]">
-                <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full blur-2xl opacity-20 transition-opacity duration-500 group-hover:opacity-40" style={{ background: glow }} />
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <Card className="group relative overflow-hidden transition-shadow duration-200 hover:raised-shadow">
                 <CardContent className="relative p-5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.15em]">{kpi.label}</span>
@@ -1492,12 +1453,11 @@ function SimpleDashboard({ clients, tasks, leads, mrr, activeClients, pendingTas
 
       {/* Completion Rate */}
       <motion.div {...anim(4)}>
-        <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-card/30 backdrop-blur-xl">
-          <div className="absolute -top-20 left-1/2 -translate-x-1/2 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+        <Card className="relative overflow-hidden">
           <CardContent className="relative p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(73,93%,55%)]" />
+                <span className="h-2 w-2 rounded-full bg-primary animate-pulse " />
                 <span className="text-sm font-semibold text-foreground">Taxa de Conclusão</span>
               </div>
               <span className="text-3xl font-bold tabular-nums text-primary tracking-tight">{completionRate}%</span>
@@ -1512,7 +1472,7 @@ function SimpleDashboard({ clients, tasks, leads, mrr, activeClients, pendingTas
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Overdue */}
         <motion.div {...anim(5)}>
-          <Card className="border-border/60 rounded-[2rem] bg-card">
+          <Card className="bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
                 <AlertTriangle className="h-4 w-4 text-[hsl(var(--warning))]" /> Tarefas Atrasadas
@@ -1548,7 +1508,7 @@ function SimpleDashboard({ clients, tasks, leads, mrr, activeClients, pendingTas
 
         {/* Pending tasks */}
         <motion.div {...anim(6)}>
-          <Card className="border-border/60 rounded-[2rem] bg-card">
+          <Card className="bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Clock className="h-4 w-4 text-[hsl(var(--info))]" /> Próximas Tarefas

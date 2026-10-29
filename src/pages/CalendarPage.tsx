@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, Trash2, Link2, LogOut, RefreshCw, Loader2, Palette, Video } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -45,7 +46,8 @@ const COLORS_KEY = 'calendar_event_colors';
 // Helper to build a colored chip style from a hex color
 const chipStyle = (hex: string): React.CSSProperties => ({
   backgroundColor: `${hex}1A`, // ~10% alpha for a cleaner glass look
-  color: hex,
+  // Mistura a cor com o texto do tema: escurece no claro, clareia no escuro (lima continua legível)
+  color: `color-mix(in srgb, ${hex} 55%, hsl(var(--foreground)))`,
   borderColor: `${hex}40`,
   borderWidth: 1,
   borderStyle: 'solid',
@@ -215,37 +217,30 @@ export default function CalendarPage() {
     : `${weekDays[0].getDate()} ${MONTHS[weekDays[0].getMonth()].slice(0,3)} – ${weekDays[6].getDate()} ${MONTHS[weekDays[6].getMonth()].slice(0,3)} ${weekDays[6].getFullYear()}`;
 
   return (
-    <div className="space-y-8 pb-10">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl shadow-inner">
-              <Calendar className="h-7 w-7 text-primary" />
-            </div>
-            Calendário
-          </h1>
-          <p className="text-muted-foreground text-sm font-medium ml-1">Gerencie suas reuniões, gravações e eventos integrados</p>
-        </div>
-        
-        <div className="flex items-center gap-3 flex-wrap">
+    <div className="space-y-6 pb-10">
+      <PageHeader
+        eyebrow="Agenda"
+        title="Calendário"
+        description="Reuniões, gravações e entregas da equipe em um só lugar."
+        actions={<>
           {/* View toggle */}
-          <div className="flex items-center p-1 bg-secondary/40 backdrop-blur-md rounded-xl border border-border/50">
+          <div className="flex items-center rounded-lg bg-muted p-1">
             <button
               onClick={() => setView('month')}
-              className={cn('px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300', view === 'month' ? 'bg-background shadow-sm text-foreground scale-[1.02]' : 'text-muted-foreground hover:text-foreground')}
+              className={cn('h-8 px-3 text-sm font-medium rounded-md transition-colors', view === 'month' ? 'bg-card card-shadow text-foreground' : 'text-muted-foreground hover:text-foreground')}
             >Mês</button>
             <button
               onClick={() => setView('week')}
-              className={cn('px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300', view === 'week' ? 'bg-background shadow-sm text-foreground scale-[1.02]' : 'text-muted-foreground hover:text-foreground')}
+              className={cn('h-8 px-3 text-sm font-medium rounded-md transition-colors', view === 'week' ? 'bg-card card-shadow text-foreground' : 'text-muted-foreground hover:text-foreground')}
             >Semana</button>
           </div>
 
-          <Button variant="outline" onClick={() => setShowColors(true)} className="gap-2 rounded-xl h-10 border-border/50 bg-background/50 hover:bg-background shadow-sm">
+          <Button variant="outline" onClick={() => setShowColors(true)} className="gap-2">
             <Palette className="h-4 w-4" /> Cores
           </Button>
 
           {connected ? (
-            <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 p-1 pl-3 rounded-xl">
+            <div className="flex items-center gap-2 bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/20 p-1 pl-3 rounded-lg">
               <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mr-1 flex items-center gap-1.5">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -261,13 +256,13 @@ export default function CalendarPage() {
               </Button>
             </div>
           ) : (
-            <Button onClick={connect} disabled={loading} className="gap-2 rounded-xl h-10 bg-[#4285F4] hover:bg-[#3367D6] text-white shadow-md transition-all">
+            <Button onClick={connect} disabled={loading} className="gap-2 bg-[#4285F4] text-white hover:bg-[#3367D6]">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
               Conectar Google Agenda
             </Button>
           )}
-        </div>
-      </div>
+        </>}
+      />
 
       {/* Legend */}
       <div className="flex flex-wrap gap-2 items-center bg-card/30 p-2 rounded-xl border border-border/40 w-fit">

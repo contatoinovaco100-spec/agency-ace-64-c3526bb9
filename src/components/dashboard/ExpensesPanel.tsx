@@ -52,7 +52,7 @@ const FREELA_CATEGORIES = [
 ];
 
 const CHART_COLORS = [
-  'hsl(73, 93%, 55%)',
+  'hsl(var(--chart-1))',
   'hsl(142, 70%, 45%)',
   'hsl(217, 91%, 60%)',
   'hsl(38, 92%, 50%)',
@@ -624,7 +624,7 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
                     <Bar dataKey="Faturamento" fill="hsl(142, 70%, 45%)" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Gastos" fill="hsl(0, 62%, 50%)" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Investimentos" fill="hsl(217, 91%, 60%)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Ganhos Extras" fill="hsl(73, 93%, 55%)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Ganhos Extras" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
