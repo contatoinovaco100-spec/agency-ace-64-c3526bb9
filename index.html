@@ -23,7 +23,6 @@
     <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/ujzRfU8TcwYDKavB1e5eEMF7hyb2/social-images/social-1773519496222-LOGO_VERDE_LIMA.webp">
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/ujzRfU8TcwYDKavB1e5eEMF7hyb2/social-images/social-1773519496222-LOGO_VERDE_LIMA.webp">
 
     <meta property="og:title" content="INOVA Co. — Marketing e Produtora Audiovisual em Volta Redonda (RJ)">
@@ -49,7 +48,48 @@
       }
       @keyframes il-spin { to { transform: rotate(360deg); } }
       #root:not(:empty) + #initial-loader { display: none; }
+
+      /* Ocultar badge/pin do Lovable ("Edit with Lovable") */
+      #lovable-badge,
+      #lovable-badge-cta,
+      #lovable-badge-text,
+      [id*="lovable-badge"],
+      [class*="lovable-badge"],
+      a[href*="lovable.dev/projects"],
+      a[href*="lovable.dev"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+      }
     </style>
+
+    <script>
+      /* Remove o pin/badge do Lovable assim que for injetado no DOM */
+      (function () {
+        function removeLovableBadge() {
+          var badge = document.getElementById('lovable-badge') ||
+                      document.querySelector('[id*="lovable-badge"]') ||
+                      document.querySelector('a[href*="lovable.dev/projects"]') ||
+                      document.querySelector('a[href*="lovable.dev"]');
+          if (badge) {
+            badge.remove();
+          }
+        }
+        removeLovableBadge();
+        if (typeof MutationObserver !== 'undefined') {
+          var obs = new MutationObserver(function () {
+            removeLovableBadge();
+          });
+          obs.observe(document.documentElement, { childList: true, subtree: true });
+        }
+      })();
+    </script>
 
     <!-- OpenAI (ChatGPT) Pixel -->
     <script>

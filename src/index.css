@@ -116,6 +116,25 @@
   }
 }
 
+/* Ocultar badge/pin do Lovable ("Edit with Lovable") */
+#lovable-badge,
+#lovable-badge-cta,
+#lovable-badge-text,
+[id*="lovable-badge"],
+[class*="lovable-badge"],
+a[href*="lovable.dev/projects"],
+a[href*="lovable.dev"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+}
+
 /* ============ PRINT / PDF STYLES ============ */
 @media print {
   /* Hide UI chrome: sidebar, navigation, toasts, floating buttons */
