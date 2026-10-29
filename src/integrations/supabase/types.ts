@@ -626,6 +626,62 @@ export type Database = {
           },
         ]
       }
+      client_onboardings: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kickoff_preference: string
+          last_reminder_at: string | null
+          materials_url: string
+          notes: string
+          sent_at: string | null
+          status: string
+          steps: Json
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kickoff_preference?: string
+          last_reminder_at?: string | null
+          materials_url?: string
+          notes?: string
+          sent_at?: string | null
+          status?: string
+          steps?: Json
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kickoff_preference?: string
+          last_reminder_at?: string | null
+          materials_url?: string
+          notes?: string
+          sent_at?: string | null
+          status?: string
+          steps?: Json
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_onboardings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_scope_tasks: {
         Row: {
           completed_at: string | null
