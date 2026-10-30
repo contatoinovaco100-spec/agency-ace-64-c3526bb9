@@ -1,6 +1,7 @@
 // Prospecção automática pelo WhatsApp.
 // - action "search" (login): busca empresas da campanha no Google (Places API oficial) e coloca na fila.
 // - action "sample" (login): a IA escreve uma mensagem de exemplo para a campanha, sem enviar.
+// - action "start" (login): liga a campanha e envia a primeira mensagem na hora.
 // - action "run" (cron a cada 5 min, sem login): para cada campanha ligada, no horário e dentro do limite do dia,
 //   confere se o número tem WhatsApp, a IA escreve a mensagem e envia 1 por vez com intervalo aleatório.
 // A resposta do prospect é tratada no wa-inbound (vira lead, ou "não quer" se pedir para parar).
@@ -173,6 +174,13 @@ Deno.serve(async (req) => {
 
     const { data: campaign } = await admin.from("prospect_campaigns").select("*").eq("id", body.campaign_id).maybeSingle();
     const c = { ...(campaign ?? {}), ...(body.draft ?? {}) } as Campaign;
+
+    // Liga a campanha e já envia a primeira mensagem, sem esperar o próximo ciclo do cron
+    if (action === "start") {
+      if (!campaign) return json({ error: "Campanha não encontrada" }, 404);
+      await admin.from("prospect_campaigns").update({ active: true, next_send_at: null, updated_at: new Date().toISOString() }).eq("id", c.id);
+      return json(await runCampaign(admin, { ...c, active: true, next_send_at: null }));
+    }
 
     if (action === "sample") {
       const { data: first } = c.id

@@ -48,6 +48,15 @@ const EMPTY: Campaign = {
   example_message: '', daily_limit: 30, min_gap_min: 5, max_gap_min: 15, start_hour: 9, end_hour: 18, weekdays_only: true, active: false,
 };
 
+/** Por que a primeira mensagem não saiu na hora */
+const START_REASON: Record<string, string> = {
+  'fora do horário': 'Fora do horário de envio da campanha: começa sozinha no próximo horário (ajuste em Editar).',
+  'fim de semana': 'Hoje é fim de semana e a campanha envia só de seg a sex: começa na segunda (ajuste em Editar).',
+  'limite do dia': 'O limite de hoje já foi atingido: continua amanhã.',
+  'fila vazia': 'A fila está vazia: puxe empresas da Manual ou busque no Google.',
+  'nenhum com WhatsApp nesta rodada': 'As primeiras da fila não têm WhatsApp; a próxima rodada (em até 5 min) tenta as seguintes.',
+};
+
 const todayStart = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
 
 async function invoke<T>(body: Record<string, unknown>): Promise<T> {
@@ -98,9 +107,28 @@ export function ProspectCampaigns() {
 
   const toggle = async (c: Campaign, active: boolean) => {
     setCampaigns((list) => list?.map((x) => (x.id === c.id ? { ...x, active } : x)) ?? null);
-    const { error } = await supabase.from(CAMPAIGNS).update({ active, updated_at: new Date().toISOString() } as never).eq('id', c.id!);
-    if (error) { toast.error('Não foi possível salvar'); load(); return; }
-    toast.success(active ? 'Campanha ligada: os envios começam no próximo horário permitido' : 'Campanha pausada');
+    if (!active) {
+      const { error } = await supabase.from(CAMPAIGNS).update({ active, updated_at: new Date().toISOString() } as never).eq('id', c.id!);
+      if (error) { toast.error('Não foi possível pausar'); load(); return; }
+      toast.success('Campanha pausada');
+      return;
+    }
+    // Ligar = começar na hora: a primeira mensagem sai agora, as próximas seguem o intervalo
+    const t = toast.loading('Iniciando os disparos…');
+    try {
+      const r = await invoke<{ sent?: string; skipped?: string; error?: string }>({ action: 'start', campaign_id: c.id });
+      if (r.sent) toast.success(`Disparos iniciados: primeira mensagem enviada para ${r.sent}`, { id: t, description: `As próximas saem a cada ${c.min_gap_min}–${c.max_gap_min} min.` });
+      else if (r.error) toast.error('Campanha ligada, mas o envio falhou', { id: t, description: r.error });
+      else toast.info('Campanha ligada', { id: t, description: START_REASON[r.skipped ?? ''] ?? r.skipped });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '';
+      // Função ainda na versão antiga (sem "start"): liga e o cron começa em até 5 minutos
+      if (/desconhecida/i.test(msg)) {
+        await supabase.from(CAMPAIGNS).update({ active: true, next_send_at: null, updated_at: new Date().toISOString() } as never).eq('id', c.id!);
+        toast.success('Campanha ligada: a primeira mensagem sai em até 5 minutos', { id: t });
+      } else toast.error('Não foi possível iniciar', { id: t, description: msg });
+    }
+    load();
   };
 
   if (missing) return <p className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm">A prospecção automática ainda não está no banco. Peça ao Lovable para aplicar a migração <code>20261030230000_prospecting.sql</code>.</p>;
