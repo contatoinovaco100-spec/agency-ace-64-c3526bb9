@@ -125,7 +125,7 @@ function pipelineIndex(t: TaskData) {
 }
 
 const titleOf = (t: TaskData) =>
-  (isArteTask(t) ? t.title : t.video_name || t.title)?.replace(/^(vídeo|video|arte)\s*\|\s*/i, '') || 'Sem título';
+  (isArteTask(t) ? t.title : t.video_name || t.title)?.replace(/^(vídeo|video|arte)\s*\d*\s*\|\s*/i, '') || 'Sem título';
 
 /** Data em que o conteúdo vai ao ar (só datas no formato do banco, sem fuso) */
 function postDateOf(t: TaskData): Date | null {

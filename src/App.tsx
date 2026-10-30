@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { ClientReviewNotifications } from "@/components/ClientReviewNotifications";
 import { AGENDA_TABS, PLANNING_TABS, PORTFOLIO_TABS, PUBLISH_TABS, SectionRedirect, SectionTabs, TEAM_TABS } from "@/components/SectionTabs";
 import PublicQuizPage from "./pages/PublicQuizPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -404,6 +405,7 @@ function QuizRouter() {
         <AuthProvider>
           <RealtimeNotifications />
           <TaskMoveNotifications />
+          <ClientReviewNotifications />
           <AgencyProvider>
             <AppRoutes />
           </AgencyProvider>
