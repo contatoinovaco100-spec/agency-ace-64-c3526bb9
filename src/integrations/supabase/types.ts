@@ -1446,6 +1446,126 @@ export type Database = {
           },
         ]
       }
+      crm_enrollments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          last_error: string
+          lead_id: string
+          next_at: string
+          sequence_id: string
+          session_id: string | null
+          status: string
+          step_index: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_error?: string
+          lead_id: string
+          next_at?: string
+          sequence_id: string
+          session_id?: string | null
+          status?: string
+          step_index?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_error?: string
+          lead_id?: string
+          next_at?: string
+          sequence_id?: string
+          session_id?: string | null
+          status?: string
+          step_index?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_enrollments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_enrollments_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "crm_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_sellers: {
+        Row: {
+          active: boolean
+          created_at: string
+          last_assigned_at: string | null
+          profile_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          last_assigned_at?: string | null
+          profile_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          last_assigned_at?: string | null
+          profile_id?: string
+        }
+        Relationships: []
+      }
+      crm_sequences: {
+        Row: {
+          active: boolean
+          auto_enroll_new: boolean
+          created_at: string
+          end_hour: number
+          id: string
+          name: string
+          start_hour: number
+          steps: Json
+          stop_on_reply: boolean
+          updated_at: string
+          weekdays_only: boolean
+        }
+        Insert: {
+          active?: boolean
+          auto_enroll_new?: boolean
+          created_at?: string
+          end_hour?: number
+          id?: string
+          name: string
+          start_hour?: number
+          steps?: Json
+          stop_on_reply?: boolean
+          updated_at?: string
+          weekdays_only?: boolean
+        }
+        Update: {
+          active?: boolean
+          auto_enroll_new?: boolean
+          created_at?: string
+          end_hour?: number
+          id?: string
+          name?: string
+          start_hour?: number
+          steps?: Json
+          stop_on_reply?: boolean
+          updated_at?: string
+          weekdays_only?: boolean
+        }
+        Relationships: []
+      }
       diagnostics: {
         Row: {
           client_id: string | null
@@ -1892,13 +2012,18 @@ export type Database = {
           email: string
           estimated_value: number
           id: string
+          last_inbound_at: string | null
+          last_outbound_at: string | null
           logradouro: string | null
           municipio: string | null
           name: string
           natureza_juridica: string | null
+          next_step: string | null
+          next_step_at: string | null
           nome_fantasia: string | null
           notes: string
           numero: string | null
+          owner_id: string | null
           phone: string
           porte: string | null
           situacao_cadastral: string | null
@@ -1909,6 +2034,7 @@ export type Database = {
           telefone: string | null
           uf: string | null
           updated_at: string
+          whatsapp_session: string | null
         }
         Insert: {
           assignee?: string
@@ -1926,13 +2052,18 @@ export type Database = {
           email?: string
           estimated_value?: number
           id?: string
+          last_inbound_at?: string | null
+          last_outbound_at?: string | null
           logradouro?: string | null
           municipio?: string | null
           name: string
           natureza_juridica?: string | null
+          next_step?: string | null
+          next_step_at?: string | null
           nome_fantasia?: string | null
           notes?: string
           numero?: string | null
+          owner_id?: string | null
           phone?: string
           porte?: string | null
           situacao_cadastral?: string | null
@@ -1943,6 +2074,7 @@ export type Database = {
           telefone?: string | null
           uf?: string | null
           updated_at?: string
+          whatsapp_session?: string | null
         }
         Update: {
           assignee?: string
@@ -1960,13 +2092,18 @@ export type Database = {
           email?: string
           estimated_value?: number
           id?: string
+          last_inbound_at?: string | null
+          last_outbound_at?: string | null
           logradouro?: string | null
           municipio?: string | null
           name?: string
           natureza_juridica?: string | null
+          next_step?: string | null
+          next_step_at?: string | null
           nome_fantasia?: string | null
           notes?: string
           numero?: string | null
+          owner_id?: string | null
           phone?: string
           porte?: string | null
           situacao_cadastral?: string | null
@@ -1977,6 +2114,7 @@ export type Database = {
           telefone?: string | null
           uf?: string | null
           updated_at?: string
+          whatsapp_session?: string | null
         }
         Relationships: []
       }
@@ -4134,6 +4272,7 @@ export type Database = {
           scheduled_at: string | null
           send_time: string
           sent_at: string | null
+          session_id: string | null
           template: string
           templates_by_day: Json
           trigger: string
@@ -4154,6 +4293,7 @@ export type Database = {
           scheduled_at?: string | null
           send_time?: string
           sent_at?: string | null
+          session_id?: string | null
           template?: string
           templates_by_day?: Json
           trigger: string
@@ -4174,6 +4314,7 @@ export type Database = {
           scheduled_at?: string | null
           send_time?: string
           sent_at?: string | null
+          session_id?: string | null
           template?: string
           templates_by_day?: Json
           trigger?: string
@@ -4183,6 +4324,7 @@ export type Database = {
       }
       wa_conversations: {
         Row: {
+          assigned_to: string | null
           client_id: string | null
           contact_name: string
           contact_phone: string
@@ -4191,10 +4333,12 @@ export type Database = {
           last_message: string
           last_message_at: string
           lead_id: string | null
+          session_id: string
           unread_count: number
           updated_at: string
         }
         Insert: {
+          assigned_to?: string | null
           client_id?: string | null
           contact_name?: string
           contact_phone: string
@@ -4203,10 +4347,12 @@ export type Database = {
           last_message?: string
           last_message_at?: string
           lead_id?: string | null
+          session_id?: string
           unread_count?: number
           updated_at?: string
         }
         Update: {
+          assigned_to?: string | null
           client_id?: string | null
           contact_name?: string
           contact_phone?: string
@@ -4215,6 +4361,7 @@ export type Database = {
           last_message?: string
           last_message_at?: string
           lead_id?: string | null
+          session_id?: string
           unread_count?: number
           updated_at?: string
         }
@@ -4287,6 +4434,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      wa_numbers: {
+        Row: {
+          area: string
+          capture_leads: boolean
+          created_at: string
+          id: string
+          is_default: boolean
+          kind: string
+          name: string
+          owner_id: string | null
+        }
+        Insert: {
+          area?: string
+          capture_leads?: boolean
+          created_at?: string
+          id: string
+          is_default?: boolean
+          kind?: string
+          name?: string
+          owner_id?: string | null
+        }
+        Update: {
+          area?: string
+          capture_leads?: boolean
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          kind?: string
+          name?: string
+          owner_id?: string | null
+        }
+        Relationships: []
       }
       wa_sync_v1: {
         Row: {
