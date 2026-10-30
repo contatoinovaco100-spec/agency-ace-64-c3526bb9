@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.approval-reminders]
 verify_jwt = false
+
+[functions.wa-server]
+verify_jwt = true

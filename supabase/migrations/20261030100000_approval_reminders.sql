@@ -1,6 +1,10 @@
 -- Lembrete de aprovação pelo WhatsApp: roda seg a sex às 10h de Brasília (13:00 UTC).
 -- Cada mensagem (ou cliente sem telefone) fica registrada para a equipe acompanhar no Meu dia.
 
+-- Grupo do WhatsApp de cada cliente (id do grupo no servidor QR Code); o lembrete vai para ele quando existir
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS whatsapp_group_id text;
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS whatsapp_group_name text;
+
 CREATE TABLE IF NOT EXISTS public.approval_reminders (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id uuid REFERENCES public.clients(id) ON DELETE CASCADE,

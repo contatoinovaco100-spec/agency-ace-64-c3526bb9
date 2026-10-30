@@ -1,4 +1,5 @@
-// Lembrete de aprovação pelo WhatsApp (cron: seg a sex, 10h de Brasília).
+// Lembrete de aprovação pelo WhatsApp (cron: seg a sex, 10h de Brasília), enviado pelo servidor
+// WhatsApp da INOVA (QR Code, na Oracle Cloud): vai para o grupo do cliente ou, sem grupo, para o telefone.
 // Para cada cliente com conteúdo esperando aprovação há 2 dias ou mais, manda uma mensagem com o link /conteudo.
 // Regras: no máximo 1 lembrete por cliente a cada 3 dias e 3 lembretes por conteúdo; cliente sem telefone
 // fica registrado para a equipe completar o cadastro. Cada envio fica em `approval_reminders`.
@@ -91,10 +92,11 @@ Deno.serve(async (req) => {
     if (!byClient.size) return json({ sent: 0, reason: "Nenhum conteúdo esperando há 2 dias ou mais" });
 
     const { data: clients } = await admin.from("clients")
-      .select("id, company_name, contact_name, phone, status").in("id", [...byClient.keys()]);
+      .select("*").in("id", [...byClient.keys()]);
 
-    const ZAPI_BASE = `https://api.z-api.io/instances/${Deno.env.get("ZAPI_INSTANCE_ID")}/token/${Deno.env.get("ZAPI_TOKEN")}`;
-    const CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
+    const WA_URL = Deno.env.get("WA_SERVER_URL");
+    const WA_KEY = Deno.env.get("WA_API_KEY") ?? "";
+    if (!WA_URL && !dryRun) return json({ error: "WA_SERVER_URL não configurado" }, 500);
     const results: Record<string, unknown>[] = [];
 
     for (const c of clients ?? []) {
@@ -104,7 +106,9 @@ Deno.serve(async (req) => {
         && (r.status === "enviado" || r.status === "sem_telefone"));
       if (recent) continue;
 
-      const phone = phoneOf(c.phone);
+      // Grupo do cliente tem prioridade; sem grupo, o telefone do cadastro
+      const group = String(c.whatsapp_group_id ?? "").trim();
+      const phone = group || phoneOf(c.phone);
       const link = `${APP_URL}/conteudo/${c.id}`;
       const message = messageFor(c.contact_name ?? "", c.company_name ?? "", list, link);
       const row: Record<string, unknown> = {
@@ -115,10 +119,10 @@ Deno.serve(async (req) => {
         row.status = "sem_telefone";
       } else if (!dryRun) {
         try {
-          const res = await fetch(`${ZAPI_BASE}/send-text`, {
+          const res = await fetch(`${WA_URL}/send`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", ...(CLIENT_TOKEN ? { "Client-Token": CLIENT_TOKEN } : {}) },
-            body: JSON.stringify({ phone, message }),
+            headers: { "Content-Type": "application/json", "x-api-key": WA_KEY },
+            body: JSON.stringify({ to: phone, message }),
           });
           if (!res.ok) { row.status = "erro"; row.error = (await res.text()).slice(0, 300); }
         } catch (e) {
