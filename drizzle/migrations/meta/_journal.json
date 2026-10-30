@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793339709530,
+      "tag": "0000_client_review_task",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793339748853,
+      "tag": "0001_social_daily_sync",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793339766203,
+      "tag": "0002_sales_proposals",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793339786376,
+      "tag": "0003_approval_reminders",
+      "breakpoints": true
+    }
+  ]
+}

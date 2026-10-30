@@ -352,6 +352,50 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_reminders: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          error: string
+          id: string
+          kind: string
+          message: string
+          phone: string
+          status: string
+          task_ids: string[]
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          error?: string
+          id?: string
+          kind?: string
+          message?: string
+          phone?: string
+          status: string
+          task_ids?: string[]
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          error?: string
+          id?: string
+          kind?: string
+          message?: string
+          phone?: string
+          status?: string
+          task_ids?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_reminders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_items: {
         Row: {
           actual_cost: number
@@ -929,6 +973,8 @@ export type Database = {
           service_type: string[]
           status: string
           updated_at: string
+          whatsapp_group_id: string | null
+          whatsapp_group_name: string | null
         }
         Insert: {
           account_manager?: string[]
@@ -952,6 +998,8 @@ export type Database = {
           service_type?: string[]
           status?: string
           updated_at?: string
+          whatsapp_group_id?: string | null
+          whatsapp_group_name?: string | null
         }
         Update: {
           account_manager?: string[]
@@ -975,6 +1023,8 @@ export type Database = {
           service_type?: string[]
           status?: string
           updated_at?: string
+          whatsapp_group_id?: string | null
+          whatsapp_group_name?: string | null
         }
         Relationships: []
       }
@@ -2982,6 +3032,51 @@ export type Database = {
           },
         ]
       }
+      sales_proposals: {
+        Row: {
+          client_id: string | null
+          config: Json
+          created_at: string | null
+          id: string
+          lead_id: string | null
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          config?: Json
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          config?: Json
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_proposals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_proposals_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_contracts: {
         Row: {
           activities: string[]
@@ -3244,6 +3339,36 @@ export type Database = {
           slug?: string
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      social_sync_runs: {
+        Row: {
+          added: number
+          created_at: string
+          details: Json
+          id: string
+          message: string
+          status: string
+          updated: number
+        }
+        Insert: {
+          added?: number
+          created_at?: string
+          details?: Json
+          id?: string
+          message?: string
+          status: string
+          updated?: number
+        }
+        Update: {
+          added?: number
+          created_at?: string
+          details?: Json
+          id?: string
+          message?: string
+          status?: string
+          updated?: number
         }
         Relationships: []
       }
@@ -3578,6 +3703,8 @@ export type Database = {
       }
       tasks: {
         Row: {
+          approved_at: string | null
+          approved_by_client: boolean | null
           assignee: string
           caption: string | null
           client_id: string | null
@@ -3604,6 +3731,7 @@ export type Database = {
           post_time: string | null
           pre_stage: string | null
           priority: string
+          publish_job_id: string | null
           raw_footage_url: string | null
           recording_notes: string
           script_writer: string
@@ -3620,6 +3748,8 @@ export type Database = {
           videomaker: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by_client?: boolean | null
           assignee?: string
           caption?: string | null
           client_id?: string | null
@@ -3646,6 +3776,7 @@ export type Database = {
           post_time?: string | null
           pre_stage?: string | null
           priority?: string
+          publish_job_id?: string | null
           raw_footage_url?: string | null
           recording_notes?: string
           script_writer?: string
@@ -3662,6 +3793,8 @@ export type Database = {
           videomaker?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by_client?: boolean | null
           assignee?: string
           caption?: string | null
           client_id?: string | null
@@ -3688,6 +3821,7 @@ export type Database = {
           post_time?: string | null
           pre_stage?: string | null
           priority?: string
+          publish_job_id?: string | null
           raw_footage_url?: string | null
           recording_notes?: string
           script_writer?: string
@@ -4099,6 +4233,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      client_review_task: {
+        Args: { _approve: boolean; _comment?: string; _id: string }
+        Returns: undefined
+      }
       complete_public_quiz_response: {
         Args: {
           _lead_email?: string
@@ -4147,10 +4285,23 @@ export type Database = {
           title: string
         }[]
       }
+      get_public_client_invoices: {
+        Args: { _client_id: string }
+        Returns: {
+          amount: number
+          description: string
+          due_date: string
+          id: string
+          paid_at: string
+          status: string
+        }[]
+      }
       get_public_client_name: { Args: { _id: string }; Returns: string }
       get_public_client_tasks: {
         Args: { _anchor: string }
         Returns: {
+          approved_at: string | null
+          approved_by_client: boolean | null
           assignee: string
           caption: string | null
           client_id: string | null
@@ -4177,6 +4328,7 @@ export type Database = {
           post_time: string | null
           pre_stage: string | null
           priority: string
+          publish_job_id: string | null
           raw_footage_url: string | null
           recording_notes: string
           script_writer: string
@@ -4319,6 +4471,14 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      get_public_task_reviews: {
+        Args: { _ids: string[] }
+        Returns: {
+          approved_at: string
+          approved_by_client: boolean
+          id: string
+        }[]
       }
       has_page_access: {
         Args: { _path: string; _user_id: string }
