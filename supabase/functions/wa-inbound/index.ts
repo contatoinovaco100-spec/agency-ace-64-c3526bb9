@@ -4,7 +4,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
-  createLead, findClientByPhone, firstContactStage, findLeadByPhone, normalizePhone, recordMessage, upsertConversation,
+  createLead, enroll, findClientByPhone, firstContactStage, lostStage, newLeadStage, findLeadByPhone, normalizePhone, recordMessage, upsertConversation,
 } from "../_shared/crm.ts";
 
 const json = (body: unknown, status = 200) =>
@@ -12,22 +12,42 @@ const json = (body: unknown, status = 200) =>
 
 const OPT_OUT = /\b(parar|pare|sair|remover|remova|descadastr\w*|n[aã]o (tenho interesse|quero|me mande|mande mais)|sem interesse|stop)\b/i;
 
-/** Resposta de uma empresa abordada pela prospecção. Devolve o lead criado (ou null se pediu para parar ou não é prospect). */
-async function prospectReplied(admin: any, phone: string, name: string, session: string, text: string, at: string) {
-  const { data: p } = await admin.from("prospects").select("id, name, category, campaign_id, prospect_campaigns(name)")
+/** Resposta de uma empresa abordada pela prospecção.
+ *  Respondeu: o lead vai para "Primeiro contato"/"Contato iniciado" e devolve a sequência de follow-up da campanha.
+ *  Pediu para parar: sai da lista e o lead vai para "Perdido". */
+async function prospectReplied(admin: any, phone: string, name: string, session: string, text: string, at: string, knownLeadId: string | null) {
+  const { data: p } = await admin.from("prospects")
+    .select("id, name, category, lead_id, campaign_id, prospect_campaigns(name, followup_sequence_id)")
     .ilike("phone", `%${phone.slice(-8)}`).eq("status", "enviado").limit(1).maybeSingle();
   if (!p) return null;
+  const leadId: string | null = p.lead_id ?? knownLeadId;
+
   if (OPT_OUT.test(text)) {
     await admin.from("prospects").update({ status: "nao_quer", replied_at: at }).eq("id", p.id);
-    return null;
+    const lost = await lostStage(admin);
+    if (leadId && lost) await admin.from("leads").update({ stage: lost }).eq("id", leadId);
+    return { leadId, sequenceId: null as string | null };
   }
-  const lead = await createLead(admin, {
-    name: name || p.name, company: p.name, phone, source: "Prospecção", session,
-    stage: await firstContactStage(admin), // já houve contato: entra em "Primeiro contato" / "Contato iniciado"
-    notes: `Nicho: ${p.category || "-"}\nCampanha: ${p.prospect_campaigns?.name ?? ""}\nPrimeira resposta: ${text.slice(0, 300)}`,
-  });
-  await admin.from("prospects").update({ status: "respondeu", replied_at: at, lead_id: lead.id }).eq("id", p.id);
-  return lead.id as string;
+
+  const contact = await firstContactStage(admin);
+  let id = leadId;
+  if (id) {
+    // Só avança quem ainda está no começo do funil (não volta quem já foi movido para frente)
+    const { data: lead } = await admin.from("leads").select("name, company, stage").eq("id", id).maybeSingle();
+    const patch: Record<string, unknown> = {};
+    if (lead && (!lead.stage || lead.stage === await newLeadStage(admin))) patch.stage = contact;
+    // O lead foi criado com o nome da empresa: troca pelo nome de quem respondeu
+    if (lead && name && lead.name === (lead.company || p.name)) patch.name = name;
+    if (Object.keys(patch).length) await admin.from("leads").update(patch).eq("id", id);
+  } else {
+    const lead = await createLead(admin, {
+      name: name || p.name, company: p.name, phone, source: "Prospecção", session, stage: contact, autoEnroll: false,
+      notes: `Nicho: ${p.category || "-"}\nCampanha: ${p.prospect_campaigns?.name ?? ""}\nPrimeira resposta: ${text.slice(0, 300)}`,
+    });
+    id = lead.id as string;
+  }
+  await admin.from("prospects").update({ status: "respondeu", replied_at: at, lead_id: id }).eq("id", p.id);
+  return { leadId: id, sequenceId: (p.prospect_campaigns?.followup_sequence_id ?? null) as string | null };
 }
 
 Deno.serve(async (req) => {
@@ -57,11 +77,12 @@ Deno.serve(async (req) => {
     if (!conv.client_id) { const clientId = await findClientByPhone(admin, phone); if (clientId) patch.client_id = clientId; }
 
     let leadId = conv.lead_id as string | null;
+    // Empresa da prospecção respondendo: avança no CRM e (se a campanha tiver) entra no follow-up
+    const prospect = fromMe ? null : await prospectReplied(admin, phone, name, session, String(m.text || ""), at, leadId ?? (await findLeadByPhone(admin, phone))?.id ?? null);
+    if (prospect?.leadId && prospect.leadId !== leadId) { leadId = prospect.leadId; patch.lead_id = leadId; }
     if (!leadId) {
       const lead = await findLeadByPhone(admin, phone);
       leadId = lead?.id ?? null;
-      // Empresa da prospecção respondendo: vira lead (ou "não quer", se pediu para parar)
-      if (!leadId && !fromMe) leadId = await prospectReplied(admin, phone, name, session, String(m.text || ""), at);
       // Contato novo escrevendo para um número que captura leads (e que não é cliente): vira lead
       if (!leadId && !fromMe && !patch.client_id && !conv.client_id) {
         const { data: num } = await admin.from("wa_numbers").select("kind, owner_id, capture_leads").eq("id", session).maybeSingle();
@@ -87,6 +108,11 @@ Deno.serve(async (req) => {
         const { data: active } = await admin.from("crm_enrollments").select("id, crm_sequences(stop_on_reply)").eq("lead_id", leadId).eq("status", "ativo");
         const stop = (active ?? []).filter((e: { crm_sequences?: { stop_on_reply?: boolean } }) => e.crm_sequences?.stop_on_reply !== false).map((e: { id: string }) => e.id);
         if (stop.length) await admin.from("crm_enrollments").update({ status: "respondeu", updated_at: new Date().toISOString() }).in("id", stop);
+      }
+      // Depois de parar as outras: começa o follow-up de quem respondeu à prospecção
+      if (prospect?.sequenceId) {
+        const { data: seq } = await admin.from("crm_sequences").select("id, steps").eq("id", prospect.sequenceId).maybeSingle();
+        if (seq) await enroll(admin, leadId, seq, session);
       }
     }
     return json({ ok: true });

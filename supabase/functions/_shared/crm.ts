@@ -45,10 +45,23 @@ export async function firstContactStage(admin: any) {
   return stages.find((s) => /primeiro contato|contato iniciado/i.test(s.name))?.name ?? stages[1]?.name ?? stages[0]?.name ?? "Contato iniciado";
 }
 
+/** Nome da primeira etapa do CRM (onde entra o lead novo) */
+export async function newLeadStage(admin: any) {
+  return await firstStage(admin);
+}
+
+/** Etapa de perdido do CRM (quem pediu para não receber mais mensagens) */
+export async function lostStage(admin: any) {
+  const { data } = await admin.from("kanban_stages").select("name").eq("board", "crm").order("position");
+  return ((data ?? []) as { name: string }[]).find((s) => /perdid/i.test(s.name))?.name ?? null;
+}
+
 /** Cria o lead, define o dono (o dono do número ou o rodízio) e inscreve nas sequências automáticas */
 export async function createLead(admin: any, input: {
   name: string; phone: string | null; company?: string; email?: string; source: string; notes?: string;
   owner?: { id: string; full_name: string } | null; session?: string | null; stage?: string;
+  /** false = não entra nas sequências automáticas de lead novo (ex.: empresa abordada pela prospecção) */
+  autoEnroll?: boolean;
 }) {
   const owner = input.owner ?? await pickSeller(admin);
   const { data: lead, error } = await admin.from("leads").insert({
@@ -59,8 +72,10 @@ export async function createLead(admin: any, input: {
   }).select("id, name, company, assignee, owner_id, whatsapp_session").single();
   if (error) throw new Error(error.message);
 
-  const { data: seqs } = await admin.from("crm_sequences").select("id, steps").eq("active", true).eq("auto_enroll_new", true);
-  for (const s of seqs ?? []) await enroll(admin, lead.id, s, input.session ?? null);
+  if (input.autoEnroll !== false) {
+    const { data: seqs } = await admin.from("crm_sequences").select("id, steps").eq("active", true).eq("auto_enroll_new", true);
+    for (const s of seqs ?? []) await enroll(admin, lead.id, s, input.session ?? null);
+  }
   return lead;
 }
 

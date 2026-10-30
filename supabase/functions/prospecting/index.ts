@@ -1,13 +1,13 @@
 // Prospecção automática pelo WhatsApp.
 // - action "search" (login): busca empresas da campanha no Google (Places API oficial) e coloca na fila.
-// - action "sample" (login): a IA escreve uma mensagem de exemplo para a campanha, sem enviar.
+// - action "sample" (login): mostra como fica a mensagem da campanha para uma empresa, sem enviar.
 // - action "start" (login): liga a campanha e envia a primeira mensagem na hora.
 // - action "run" (cron a cada 5 min, sem login): para cada campanha ligada, no horário e dentro do limite do dia,
-//   confere se o número tem WhatsApp, a IA escreve a mensagem e envia 1 por vez com intervalo aleatório.
+//   confere se o número tem WhatsApp e envia a mensagem da campanha (a que você escreveu), 1 por vez com intervalo aleatório.
 // A resposta do prospect é tratada no wa-inbound (vira lead, ou "não quer" se pedir para parar).
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { findClientByPhone, findLeadByPhone, normalizePhone, recordMessage, upsertConversation } from "../_shared/crm.ts";
+import { createLead, findClientByPhone, findLeadByPhone, firstContactStage, normalizePhone, recordMessage, upsertConversation } from "../_shared/crm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,7 +21,7 @@ type Campaign = {
   daily_limit: number; min_gap_min: number; max_gap_min: number; start_hour: number; end_hour: number;
   weekdays_only: boolean; active: boolean; next_send_at: string | null;
 };
-type Prospect = { id: string; name: string; phone: string; message?: string; address: string; category: string; rating: number | null; reviews: number | null; website: string };
+type Prospect = { id: string; name: string; phone: string; message?: string; status?: string; sent_at?: string | null; lead_id?: string | null; campaign_id?: string; address: string; category: string; rating: number | null; reviews: number | null; website: string };
 
 const spNow = () => new Date(Date.now() - 3 * 3_600_000);
 const spDayStartUtc = () => new Date(spNow().toISOString().slice(0, 10) + "T03:00:00Z").toISOString();
@@ -54,37 +54,15 @@ async function searchPlaces(query: string, pages = 3) {
   return places;
 }
 
-// ─── Mensagem escrita pela IA ────────────────────────────────────────────────
-async function writeMessage(c: Campaign, p: Pick<Prospect, "name" | "category" | "address" | "rating" | "reviews" | "website">) {
-  const key = Deno.env.get("LOVABLE_API_KEY");
-  if (!key) throw new Error("LOVABLE_API_KEY não configurada");
-  const system = [
-    "Você escreve a PRIMEIRA mensagem de WhatsApp de uma agência de marketing para uma empresa local que ainda não a conhece.",
-    "Regras: português do Brasil, tom humano e simples, como uma pessoa escrevendo do celular (nada de texto de anúncio).",
-    "Até 450 caracteres, 2 ou 3 parágrafos curtos, no máximo 1 emoji. Cite o nome da empresa e um detalhe real dela (ramo, bairro/cidade ou avaliação no Google).",
-    "Sem links, sem preços, sem promessas de resultado. Termine com uma pergunta leve que dê para responder com sim ou não.",
-    "Na última linha, de forma gentil, diga que se não fizer sentido é só avisar que não manda mais mensagens.",
-    "Responda só com o texto da mensagem.",
-  ].join("\n");
-  const user = [
-    `O que a agência oferece / instruções: ${c.pitch || "gestão de redes sociais e produção de vídeos para empresas locais"}`,
-    c.example_message ? `Mensagem de referência (mantenha a ideia, mas escreva diferente):\n${c.example_message}` : "",
-    `Empresa: ${p.name}`,
-    p.category ? `Ramo: ${p.category}` : "",
-    p.address ? `Endereço: ${p.address}` : "",
-    p.rating ? `Avaliação no Google: ${p.rating} (${p.reviews ?? 0} avaliações)` : "",
-    p.website ? "Tem site." : "Não tem site cadastrado no Google.",
-  ].filter(Boolean).join("\n");
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: [{ role: "system", content: system }, { role: "user", content: user }] }),
-  });
-  if (!res.ok) throw new Error(`IA: ${res.status} ${(await res.text()).slice(0, 200)}`);
-  const data = await res.json();
-  const text = String(data?.choices?.[0]?.message?.content ?? "").trim().replace(/^["“]|["”]$/g, "");
-  if (!text) throw new Error("A IA não devolveu mensagem");
-  return text.slice(0, 1200);
+// ─── Mensagem da campanha (escrita por você) ─────────────────────────────────
+/** Troca {empresa}, {nicho} e {cidade} e sorteia variações {Oi|Olá|Bom dia} (cada empresa recebe uma combinação) */
+function renderMessage(c: Campaign, p: Pick<Prospect, "name" | "category">) {
+  const text = String(c.example_message ?? "").trim();
+  if (!text) throw new Error("Escreva a mensagem da campanha em Editar");
+  const vars: Record<string, string> = { empresa: p.name, nicho: p.category || c.niche, cidade: c.city };
+  return text
+    .replace(/\{(empresa|nicho|cidade)\}/gi, (_, k: string) => vars[k.toLowerCase()] ?? "")
+    .replace(/\{([^{}]*\|[^{}]*)\}/g, (_, opts: string) => { const o = opts.split("|"); return o[Math.floor(Math.random() * o.length)].trim(); });
 }
 
 // ─── Servidor do WhatsApp ────────────────────────────────────────────────────
@@ -109,6 +87,30 @@ async function alreadyKnown(admin: any, phone: string) {
   return data?.length ? "já conversou no WhatsApp" : null;
 }
 
+/** Empresa abordada vira lead no CRM: "Lead novo" ao enviar, "Contato iniciado" se já respondeu */
+async function leadForProspect(admin: any, c: Pick<Campaign, "name">, p: Prospect, phone: string, session: string | null, message: string) {
+  const lead = await createLead(admin, {
+    name: p.name, company: p.name, phone, source: "Prospecção", session, autoEnroll: false,
+    stage: p.status === "respondeu" ? await firstContactStage(admin) : undefined,
+    notes: `Nicho: ${p.category || "-"}\nCampanha: ${c.name}\nMensagem enviada: ${message.slice(0, 500)}`,
+  });
+  await admin.from("prospects").update({ lead_id: lead.id }).eq("id", p.id);
+  return lead.id as string;
+}
+
+/** Empresas que já receberam mensagem antes desta versão e ainda não estão no CRM */
+async function backfillLeads(admin: any) {
+  const { data } = await admin.from("prospects").select("*, prospect_campaigns(name, session_id)")
+    .in("status", ["enviado", "respondeu"]).is("lead_id", null).not("campaign_id", "is", null).limit(20);
+  for (const p of data ?? []) {
+    try {
+      const known = await findLeadByPhone(admin, p.phone);
+      if (known) { await admin.from("prospects").update({ lead_id: known.id }).eq("id", p.id); continue; }
+      await leadForProspect(admin, { name: p.prospect_campaigns?.name ?? "" }, p, p.phone, p.prospect_campaigns?.session_id ?? null, p.message || "");
+    } catch (e) { console.error("backfill lead", p.id, e); }
+  }
+}
+
 // ─── Envio: 1 mensagem por campanha a cada rodada, respeitando horário, limite e intervalo ─
 async function runCampaign(admin: any, c: Campaign) {
   const now = spNow();
@@ -116,6 +118,7 @@ async function runCampaign(admin: any, c: Campaign) {
   if (c.weekdays_only && (dow === 0 || dow === 6)) return { skipped: "fim de semana" };
   if (hour < c.start_hour || hour >= c.end_hour) return { skipped: "fora do horário" };
   if (c.next_send_at && new Date(c.next_send_at) > new Date()) return { skipped: "aguardando intervalo" };
+  if (!String(c.example_message ?? "").trim()) return { skipped: "sem mensagem" };
 
   const { count } = await admin.from("prospects").select("id", { count: "exact", head: true })
     .eq("campaign_id", c.id).gte("sent_at", spDayStartUtc());
@@ -137,12 +140,18 @@ async function runCampaign(admin: any, c: Campaign) {
     if (!waNumber) { await admin.from("prospects").update({ status: "sem_whatsapp" }).eq("id", p.id); continue; }
 
     try {
-      // Empresa que veio da prospecção manual com mensagem pronta: envia a mensagem dela
-      const message = p.message?.trim() || await writeMessage(c, p);
+      const message = renderMessage(c, p);
       const sent = await wa("/send", { to: waNumber, message, session: c.session_id || undefined });
       await admin.from("prospects").update({ status: "enviado", message, sent_at: new Date().toISOString(), error: "" }).eq("id", p.id);
-      const conv = await upsertConversation(admin, sent.session || c.session_id || "default", normalizePhone(waNumber) ?? p.phone, p.name);
-      if (conv) await recordMessage(admin, conv, { direction: "out", content: message, wa_message_id: sent.messageId ?? null });
+      const session = sent.session || c.session_id || "default";
+      const phone = normalizePhone(waNumber) ?? p.phone;
+      // Mensagem enviada: a empresa entra no CRM em "Lead novo" (quando responder, avança para "Contato iniciado")
+      const leadId = await leadForProspect(admin, c, p, phone, session, message).catch((e) => { console.error("lead da prospecção", e); return null; });
+      const conv = await upsertConversation(admin, session, phone, p.name);
+      if (conv) {
+        await recordMessage(admin, conv, { direction: "out", content: message, wa_message_id: sent.messageId ?? null });
+        if (leadId && !conv.lead_id) await admin.from("wa_conversations").update({ lead_id: leadId }).eq("id", conv.id);
+      }
       return { sent: p.name };
     } catch (e) {
       await admin.from("prospects").update({ status: "erro", error: String((e as Error).message).slice(0, 300) }).eq("id", p.id);
@@ -161,6 +170,7 @@ Deno.serve(async (req) => {
     const action = body.action ?? "run";
 
     if (action === "run") {
+      await backfillLeads(admin);
       const { data: campaigns } = await admin.from("prospect_campaigns").select("*").eq("active", true);
       const results = [];
       for (const c of (campaigns ?? []) as Campaign[]) results.push({ campaign: c.name, ...(await runCampaign(admin, c)) });
@@ -187,11 +197,12 @@ Deno.serve(async (req) => {
         ? await admin.from("prospects").select("*").eq("campaign_id", c.id).eq("status", "novo").order("created_at").limit(1).maybeSingle()
         : { data: null };
       const sample = first ?? { name: `${c.niche || "Empresa"} Exemplo`, category: c.niche, address: c.city, rating: 4.7, reviews: 85, website: "" };
-      return json({ prospect: sample.name, message: await writeMessage(c, sample) });
+      return json({ prospect: sample.name, message: renderMessage(c, sample) });
     }
 
     if (action === "search") {
       if (!campaign) return json({ error: "Salve a campanha antes de buscar" }, 400);
+      if (!String(c.city ?? "").trim()) return json({ error: "Preencha a cidade da campanha em Editar para buscar no Google" }, 400);
       const places = await searchPlaces(`${c.niche} em ${c.city}`);
       let added = 0, noPhone = 0, closed = 0, repeated = 0;
       for (const pl of places) {

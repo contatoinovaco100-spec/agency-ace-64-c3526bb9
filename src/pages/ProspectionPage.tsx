@@ -441,7 +441,7 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
           Prospecção com IA
         </h1>
         <p className="text-muted-foreground mt-1">
-          Encontre empresas no Google, a IA escreve a mensagem e o WhatsApp envia sozinho.
+          Capte empresas por nicho e dispare a sua mensagem pelo WhatsApp.
         </p>
       </div>
 

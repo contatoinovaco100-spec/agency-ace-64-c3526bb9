@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Download, ExternalLink, Loader2, MapPin, Pencil, Plus, Search, Sparkles, Star, Trash2, X } from 'lucide-react';
+import { Download, ExternalLink, Eye, Loader2, MapPin, Pencil, Plus, Search, Shuffle, Star, Trash2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,8 @@ type Campaign = {
   id?: string; name: string; niche: string; city: string; session_id: string | null; pitch: string; example_message: string;
   daily_limit: number; min_gap_min: number; max_gap_min: number; start_hour: number; end_hour: number;
   weekdays_only: boolean; active: boolean; last_search_at?: string | null;
+  /** Sequência do CRM para quem responder */
+  followup_sequence_id?: string | null;
 };
 type Prospect = {
   id: string; campaign_id: string; name: string; phone: string; address: string; category: string; rating: number | null;
@@ -24,6 +26,7 @@ type Prospect = {
   sent_at: string | null; replied_at: string | null; lead_id: string | null;
 };
 type WaNumber = { id: string; name: string; is_default: boolean };
+type Sequence = { id: string; name: string; active: boolean; steps: { day: number }[] };
 
 const CAMPAIGNS = 'prospect_campaigns' as never;
 const PROSPECTS = 'prospects' as never;
@@ -48,12 +51,33 @@ const EMPTY: Campaign = {
   example_message: '', daily_limit: 30, min_gap_min: 5, max_gap_min: 15, start_hour: 9, end_hour: 18, weekdays_only: true, active: false,
 };
 
+/** Mensagem da prospecção Manual (com {agencia} já trocado), para a campanha começar com o seu texto */
+function manualTemplate() {
+  try {
+    const tpl = localStorage.getItem('prospection_message_template') ?? '';
+    const agency = localStorage.getItem('prospection_agency_name') || 'INOVA';
+    return tpl.replace(/\{agencia\}/gi, agency).trim();
+  } catch { return ''; }
+}
+
+/** Igual ao envio: troca {empresa}, {nicho}, {cidade} e sorteia uma das variações {Oi|Olá} */
+function renderMessage(c: Campaign, p: { name: string; category: string }) {
+  const vars: Record<string, string> = { empresa: p.name, nicho: p.category || c.niche, cidade: c.city };
+  return c.example_message.trim()
+    .replace(/\{(empresa|nicho|cidade)\}/gi, (_, k: string) => vars[k.toLowerCase()] ?? '')
+    .replace(/\{([^{}]*\|[^{}]*)\}/g, (_, opts: string) => { const o = opts.split('|'); return o[Math.floor(Math.random() * o.length)].trim(); });
+}
+
+/** Sequência de follow-up sugerida para campanhas novas: a da prospecção, se existir */
+const defaultSequence = (seqs: Sequence[]) => seqs.find((q) => /prospec/i.test(q.name))?.id ?? null;
+
 /** Por que a primeira mensagem não saiu na hora */
 const START_REASON: Record<string, string> = {
   'fora do horário': 'Fora do horário de envio da campanha: começa sozinha no próximo horário (ajuste em Editar).',
   'fim de semana': 'Hoje é fim de semana e a campanha envia só de seg a sex: começa na segunda (ajuste em Editar).',
   'limite do dia': 'O limite de hoje já foi atingido: continua amanhã.',
   'fila vazia': 'A fila está vazia: puxe empresas da Manual ou busque no Google.',
+  'sem mensagem': 'A campanha está sem mensagem: escreva a mensagem em Editar.',
   'nenhum com WhatsApp nesta rodada': 'As primeiras da fila não têm WhatsApp; a próxima rodada (em até 5 min) tenta as seguintes.',
 };
 
@@ -74,6 +98,7 @@ export function ProspectCampaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [numbers, setNumbers] = useState<WaNumber[]>([]);
+  const [sequences, setSequences] = useState<Sequence[]>([]);
   const [missing, setMissing] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [editing, setEditing] = useState<Campaign | null>(null);
@@ -84,6 +109,8 @@ export function ProspectCampaigns() {
       supabase.from(PROSPECTS).select('*').not('campaign_id', 'is', null).order('created_at', { ascending: false }).limit(2000),
       supabase.from('wa_numbers' as never).select('id, name, is_default').order('name'),
     ]);
+    const { data: seqs } = await supabase.from('crm_sequences' as never).select('id, name, active, steps').order('name');
+    setSequences((seqs ?? []) as unknown as Sequence[]);
     setMissing(!!error);
     const list = (c ?? []) as unknown as Campaign[];
     setCampaigns(list);
@@ -140,12 +167,12 @@ export function ProspectCampaigns() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-2xl text-sm text-muted-foreground">
-          A campanha busca empresas no Google, a IA escreve uma mensagem diferente para cada uma e o WhatsApp envia sozinho,
+          A campanha pega as empresas (da sua prospecção Manual ou do Google) e o WhatsApp envia a sua mensagem sozinho,
           com limite por dia e intervalo aleatório. Quem responde vira lead no CRM; quem pede para parar não recebe mais nada.
         </p>
         <div className="flex shrink-0 flex-wrap gap-2">
-          <PullFromManual numbers={numbers} primary onDone={(id) => { if (id) setSelected(id); load(); }} />
-          <Button variant="outline" className="gap-1.5" onClick={() => setEditing({ ...EMPTY })}><Plus className="h-4 w-4" /> Nova campanha</Button>
+          <PullFromManual numbers={numbers} sequences={sequences} primary onDone={(id) => { if (id) setSelected(id); load(); }} />
+          <Button variant="outline" className="gap-1.5" onClick={() => setEditing({ ...EMPTY, example_message: manualTemplate(), followup_sequence_id: defaultSequence(sequences) })}><Plus className="h-4 w-4" /> Nova campanha</Button>
         </div>
       </div>
 
@@ -189,6 +216,7 @@ export function ProspectCampaigns() {
               key={current.id}
               campaign={current}
               numbers={numbers}
+              sequences={sequences}
               prospects={prospects.filter((p) => p.campaign_id === current.id)}
               stats={stats[current.id!] ?? { queue: 0, sent: 0, replied: 0, today: 0 }}
               onToggle={(v) => toggle(current, v)}
@@ -203,6 +231,7 @@ export function ProspectCampaigns() {
         <CampaignEditor
           campaign={editing}
           numbers={numbers}
+          sequences={sequences}
           onClose={() => setEditing(null)}
           onSaved={(id) => { setEditing(null); setSelected(id); load(); }}
         />
@@ -211,14 +240,15 @@ export function ProspectCampaigns() {
   );
 }
 
-function CampaignDetail({ campaign: c, numbers, prospects, stats, onToggle, onEdit, onChanged }: {
-  campaign: Campaign; numbers: WaNumber[]; prospects: Prospect[]; stats: { queue: number; sent: number; replied: number; today: number };
+function CampaignDetail({ campaign: c, numbers, sequences, prospects, stats, onToggle, onEdit, onChanged }: {
+  campaign: Campaign; numbers: WaNumber[]; sequences: Sequence[]; prospects: Prospect[]; stats: { queue: number; sent: number; replied: number; today: number };
   onToggle: (v: boolean) => void; onEdit: () => void; onChanged: () => void;
 }) {
   const [filter, setFilter] = useState('all');
   const [searching, setSearching] = useState(false);
   const [open, setOpen] = useState<Prospect | null>(null);
   const sender = numbers.find((n) => n.id === c.session_id) ?? numbers.find((n) => n.is_default);
+  const followup = sequences.find((q) => q.id === c.followup_sequence_id);
 
   const search = async () => {
     setSearching(true);
@@ -258,6 +288,9 @@ function CampaignDetail({ campaign: c, numbers, prospects, stats, onToggle, onEd
               Envia por <strong className="font-medium text-foreground">{sender?.name ?? 'número principal'}</strong> · até {c.daily_limit} por dia ·
               a cada {c.min_gap_min}–{c.max_gap_min} min · {c.start_hour}h às {c.end_hour}h{c.weekdays_only ? ', seg a sex' : ''}
             </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Quem responder: CRM em "Contato iniciado"{followup ? <> + follow-up <strong className="font-medium text-foreground">{followup.name}</strong>{!followup.active && ' (desligado)'}</> : ', sem follow-up automático'}
+            </p>
           </div>
           <label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium">
             <Switch checked={c.active} onCheckedChange={onToggle} /> {c.active ? 'Enviando' : 'Pausada'}
@@ -290,7 +323,7 @@ function CampaignDetail({ campaign: c, numbers, prospects, stats, onToggle, onEd
             {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Buscar empresas no Google
           </Button>
           <PullFromManual campaign={c} numbers={numbers} onDone={onChanged} />
-          <SampleButton campaign={c} />
+          <SampleButton campaign={c} next={prospects.find((p) => p.status === 'novo')} />
           <Button variant="ghost" className="gap-1.5" onClick={onEdit}><Pencil className="h-4 w-4" /> Editar</Button>
           <Button variant="ghost" size="icon" className="ml-auto" onClick={remove} aria-label="Apagar campanha"><Trash2 className="h-4 w-4" /></Button>
         </div>
@@ -345,8 +378,7 @@ function CampaignDetail({ campaign: c, numbers, prospects, stats, onToggle, onEd
               {open.error && <p className="text-xs text-muted-foreground">Motivo: {open.error}</p>}
               {open.message
                 ? <p className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3">{open.message}</p>
-                : <p className="text-xs text-muted-foreground">A mensagem é escrita pela IA na hora do envio.</p>}
-              {open.status === 'novo' && open.message && <p className="text-xs text-muted-foreground">Veio da prospecção manual: esta mensagem é enviada como está.</p>}
+                : <p className="text-xs text-muted-foreground">Vai receber a mensagem da campanha, com o nome da empresa.</p>}
               <div className="flex flex-wrap gap-2">
                 {open.maps_url && <Button asChild size="sm" variant="outline" className="gap-1.5"><a href={open.maps_url} target="_blank" rel="noreferrer"><MapPin className="h-3.5 w-3.5" /> Google Maps</a></Button>}
                 {open.website && <Button asChild size="sm" variant="outline" className="gap-1.5"><a href={open.website} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /> Site</a></Button>}
@@ -362,8 +394,8 @@ function CampaignDetail({ campaign: c, numbers, prospects, stats, onToggle, onEd
 /** Traz empresas da prospecção manual (por nicho) para a fila desta campanha */
 /** Traz empresas da prospecção manual (por nicho) para a fila de uma campanha.
  *  Sem campanha (botão do topo), cria uma campanha para os nichos escolhidos, pausada, pelo chip de prospecção se houver. */
-function PullFromManual({ campaign, numbers, primary, onDone }: {
-  campaign?: Campaign; numbers: WaNumber[]; primary?: boolean; onDone: (campaignId?: string) => void;
+function PullFromManual({ campaign, numbers, sequences = [], primary, onDone }: {
+  campaign?: Campaign; numbers: WaNumber[]; sequences?: Sequence[]; primary?: boolean; onDone: (campaignId?: string) => void;
 }) {
   const [rows, setRows] = useState<{ id: string; category: string; status: string; phone: string | null }[] | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
@@ -397,9 +429,17 @@ function PullFromManual({ campaign, numbers, primary, onDone }: {
       const niche = chosen.map((g) => g.label).join(', ');
       const sender = numbers.find((n) => !n.is_default) ?? numbers.find((n) => n.is_default);
       const { data: u } = await supabase.auth.getUser();
-      const { data, error } = await supabase.from(CAMPAIGNS).insert({
+      const row = {
         ...EMPTY, name: niche, niche, city: '', session_id: sender?.id ?? null, active: false, created_by: u.user?.id ?? null,
-      } as never).select('*').single();
+        example_message: manualTemplate(),
+        ...(defaultSequence(sequences) ? { followup_sequence_id: defaultSequence(sequences) } : {}),
+      };
+      let { data, error } = await supabase.from(CAMPAIGNS).insert(row as never).select('*').single();
+      // Migração do follow-up ainda não aplicada: cria sem ele
+      if (error && /followup_sequence_id/.test(error.message)) {
+        const { followup_sequence_id: _skip, ...rest } = row as typeof row & { followup_sequence_id?: string };
+        ({ data, error } = await supabase.from(CAMPAIGNS).insert(rest as never).select('*').single());
+      }
       if (error) { toast.error('Não foi possível criar a campanha', { description: error.message }); setMoving(false); return; }
       target = data as unknown as Campaign;
     }
@@ -410,7 +450,7 @@ function PullFromManual({ campaign, numbers, primary, onDone }: {
     setMoving(false);
     setRows(null);
     toast.success(`${ids.length} empresas na fila de "${target.name}"`, {
-      description: campaign ? 'Elas saem da lista manual e entram no disparo automático.' : 'Campanha criada pausada: confira o número que envia e ligue quando quiser começar.',
+      description: campaign ? 'Elas saem da lista manual e entram no disparo automático.' : 'Campanha criada pausada com a sua mensagem da Manual. Confira em Editar e ligue quando quiser começar.',
     });
     onDone(target.id);
   };
@@ -464,30 +504,25 @@ function PullFromManual({ campaign, numbers, primary, onDone }: {
   );
 }
 
-/** Mostra uma mensagem que a IA escreveria para a próxima empresa da fila (não envia) */
-function SampleButton({ campaign }: { campaign: Campaign }) {
-  const [state, setState] = useState<{ prospect: string; message: string } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const run = async () => {
-    setLoading(true);
-    try { setState(await invoke({ action: 'sample', campaign_id: campaign.id, draft: campaign.id ? undefined : campaign })); }
-    catch (e) { toast.error('Não foi possível gerar', { description: e instanceof Error ? e.message : '' }); }
-    setLoading(false);
+/** Mostra como a mensagem da campanha fica para a próxima empresa da fila (não envia) */
+function SampleButton({ campaign, next }: { campaign: Campaign; next?: { name: string; category: string } }) {
+  const [message, setMessage] = useState<string | null>(null);
+  const target = next ?? { name: 'Clínica Exemplo', category: campaign.niche };
+  const run = () => {
+    if (!campaign.example_message.trim()) { toast.error('Escreva a mensagem da campanha em Editar'); return; }
+    setMessage(renderMessage(campaign, target));
   };
+  const hasVariations = /\{[^{}]*\|[^{}]*\}/.test(campaign.example_message);
   return (
     <>
-      <Button variant="outline" onClick={run} disabled={loading} className="gap-1.5">
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Ver mensagem de exemplo
-      </Button>
-      {state && (
-        <Dialog open onOpenChange={(o) => !o && setState(null)}>
+      <Button variant="outline" onClick={run} className="gap-1.5"><Eye className="h-4 w-4" /> Ver como fica</Button>
+      {message !== null && (
+        <Dialog open onOpenChange={(o) => !o && setMessage(null)}>
           <DialogContent className="max-w-md">
-            <DialogTitle>Exemplo para {state.prospect}</DialogTitle>
-            <DialogDescription>Cada empresa recebe um texto diferente, escrito na hora do envio. Nada foi enviado.</DialogDescription>
-            <p className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm">{state.message}</p>
-            <Button variant="outline" onClick={run} disabled={loading} className="gap-1.5">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Gerar outra
-            </Button>
+            <DialogTitle>Mensagem para {target.name}</DialogTitle>
+            <DialogDescription>É exatamente o que a empresa recebe. Nada foi enviado.</DialogDescription>
+            <p className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm">{message}</p>
+            {hasVariations && <Button variant="outline" onClick={run} className="gap-1.5"><Shuffle className="h-4 w-4" /> Ver outra variação</Button>}
           </DialogContent>
         </Dialog>
       )}
@@ -495,8 +530,8 @@ function SampleButton({ campaign }: { campaign: Campaign }) {
   );
 }
 
-function CampaignEditor({ campaign, numbers, onClose, onSaved }: {
-  campaign: Campaign; numbers: WaNumber[]; onClose: () => void; onSaved: (id: string) => void;
+function CampaignEditor({ campaign, numbers, sequences, onClose, onSaved }: {
+  campaign: Campaign; numbers: WaNumber[]; sequences: Sequence[]; onClose: () => void; onSaved: (id: string) => void;
 }) {
   const [d, setD] = useState<Campaign>(campaign);
   const [saving, setSaving] = useState(false);
@@ -504,19 +539,28 @@ function CampaignEditor({ campaign, numbers, onClose, onSaved }: {
   const num = (v: string, min: number, max: number) => Math.min(max, Math.max(min, Math.round(Number(v) || min)));
 
   const save = async () => {
-    if (!d.niche.trim() || !d.city.trim()) { toast.error('Preencha o ramo e a cidade'); return; }
+    if (!d.niche.trim()) { toast.error('Preencha o nicho'); return; }
+    if (!d.example_message.trim()) { toast.error('Escreva a mensagem que será enviada'); return; }
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
     const row = {
-      name: d.name.trim() || `${d.niche.trim()} · ${d.city.trim()}`, niche: d.niche.trim(), city: d.city.trim(),
+      name: d.name.trim() || [d.niche.trim(), d.city.trim()].filter(Boolean).join(' · '), niche: d.niche.trim(), city: d.city.trim(),
       session_id: d.session_id, pitch: d.pitch.trim(), example_message: d.example_message.trim(),
       daily_limit: d.daily_limit, min_gap_min: d.min_gap_min, max_gap_min: Math.max(d.min_gap_min, d.max_gap_min),
       start_hour: d.start_hour, end_hour: Math.max(d.start_hour + 1, d.end_hour), weekdays_only: d.weekdays_only,
       updated_at: new Date().toISOString(),
+      followup_sequence_id: d.followup_sequence_id ?? null,
     };
-    const res = d.id
-      ? await supabase.from(CAMPAIGNS).update(row as never).eq('id', d.id).select('id').single()
-      : await supabase.from(CAMPAIGNS).insert({ ...row, active: false, created_by: u.user?.id ?? null } as never).select('id').single();
+    const write = (r: Record<string, unknown>) => d.id
+      ? supabase.from(CAMPAIGNS).update(r as never).eq('id', d.id).select('id').single()
+      : supabase.from(CAMPAIGNS).insert({ ...r, active: false, created_by: u.user?.id ?? null } as never).select('id').single();
+    let res = await write(row);
+    // Migração do follow-up ainda não aplicada: salva o resto
+    if (res.error && /followup_sequence_id/.test(res.error.message)) {
+      const { followup_sequence_id: _skip, ...rest } = row;
+      res = await write(rest);
+      if (!res.error && d.followup_sequence_id) toast.warning('Follow-up não salvo', { description: 'Peça ao Lovable para aplicar a migração 20261030235000_prospect_followup.sql.' });
+    }
     setSaving(false);
     if (res.error) { toast.error('Não foi possível salvar', { description: res.error.message }); return; }
     toast.success(d.id ? 'Campanha salva' : 'Campanha criada', { description: d.id ? undefined : 'Agora busque as empresas no Google e ligue a campanha.' });
@@ -532,9 +576,9 @@ function CampaignEditor({ campaign, numbers, onClose, onSaved }: {
         </div>
         <div className="flex-1 space-y-5 overflow-y-auto p-5">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5"><Label>Ramo (o que buscar)</Label>
+            <div className="space-y-1.5"><Label>Nicho</Label>
               <Input value={d.niche} onChange={(e) => set('niche', e.target.value)} placeholder="clínica de estética" /></div>
-            <div className="space-y-1.5"><Label>Cidade</Label>
+            <div className="space-y-1.5"><Label>Cidade <span className="font-normal text-muted-foreground">(para buscar no Google)</span></Label>
               <Input value={d.city} onChange={(e) => set('city', e.target.value)} placeholder="Volta Redonda, RJ" /></div>
           </div>
           <div className="space-y-1.5"><Label>Nome da campanha</Label>
@@ -548,11 +592,35 @@ function CampaignEditor({ campaign, numbers, onClose, onSaved }: {
             <p className="text-xs text-muted-foreground">Use um chip só de prospecção (conecte em CRM → Números do WhatsApp).</p>
           </div>
 
-          <div className="space-y-1.5"><Label>O que oferecer (instruções para a IA)</Label>
-            <Textarea rows={3} value={d.pitch} onChange={(e) => set('pitch', e.target.value)} /></div>
-          <div className="space-y-1.5"><Label>Mensagem de referência <span className="font-normal text-muted-foreground">(opcional)</span></Label>
-            <Textarea rows={4} value={d.example_message} onChange={(e) => set('example_message', e.target.value)}
-              placeholder="Uma mensagem no seu jeito de falar. A IA mantém a ideia e escreve diferente para cada empresa." /></div>
+          <div className="space-y-1.5"><Label>Mensagem que será enviada</Label>
+            <Textarea rows={7} value={d.example_message} onChange={(e) => set('example_message', e.target.value)}
+              placeholder={'{Oi|Olá}! Tudo bem? Aqui é da INOVA 👋\nVi o trabalho da {empresa} e achei incrível!\nPosso te mandar alguns resultados que tivemos com clientes parecidos?'} />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              <code className="rounded bg-muted px-1">{'{empresa}'}</code> vira o nome da empresa · <code className="rounded bg-muted px-1">{'{nicho}'}</code> o nicho ·{' '}
+              <code className="rounded bg-muted px-1">{'{cidade}'}</code> a cidade. Para variar o texto e diminuir o risco de bloqueio, escreva opções entre chaves:{' '}
+              <code className="rounded bg-muted px-1">{'{Oi|Olá|Bom dia}'}</code> — cada empresa recebe uma delas.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Follow-up de quem responder</Label>
+            <Select value={d.followup_sequence_id ?? 'none'} onValueChange={(v) => set('followup_sequence_id', v === 'none' ? null : v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem follow-up automático</SelectItem>
+                {sequences.map((q) => (
+                  <SelectItem key={q.id} value={q.id}>{q.name} · {q.steps.length} mensagens{q.active ? '' : ' (desligada)'}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Quem responder vai para "Contato iniciado" no CRM e entra nessa sequência. Ela para sozinha quando a pessoa responder de novo.
+              Crie e edite as sequências em CRM → Follow-up.
+            </p>
+            {sequences.find((q) => q.id === d.followup_sequence_id && !q.active) && (
+              <p className="rounded-lg bg-warning/10 px-3 py-2 text-xs">Esta sequência está desligada: os leads entram nela, mas as mensagens só saem quando você ligar em CRM → Follow-up.</p>
+            )}
+          </div>
 
           <div className="space-y-3 rounded-xl border p-4">
             <p className="text-sm font-medium">Ritmo dos envios</p>
