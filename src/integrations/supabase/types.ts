@@ -2442,6 +2442,11 @@ export type Database = {
       prospect_campaigns: {
         Row: {
           active: boolean
+          batch_max_sec: number
+          batch_min_sec: number
+          batch_pause_min: number
+          batch_running_since: string | null
+          batch_size: number
           city: string
           created_at: string
           created_by: string | null
@@ -2457,6 +2462,7 @@ export type Database = {
           next_send_at: string | null
           niche: string
           pitch: string
+          send_mode: string
           session_id: string | null
           start_hour: number
           updated_at: string
@@ -2464,6 +2470,11 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          batch_max_sec?: number
+          batch_min_sec?: number
+          batch_pause_min?: number
+          batch_running_since?: string | null
+          batch_size?: number
           city: string
           created_at?: string
           created_by?: string | null
@@ -2479,6 +2490,7 @@ export type Database = {
           next_send_at?: string | null
           niche: string
           pitch?: string
+          send_mode?: string
           session_id?: string | null
           start_hour?: number
           updated_at?: string
@@ -2486,6 +2498,11 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          batch_max_sec?: number
+          batch_min_sec?: number
+          batch_pause_min?: number
+          batch_running_since?: string | null
+          batch_size?: number
           city?: string
           created_at?: string
           created_by?: string | null
@@ -2501,6 +2518,7 @@ export type Database = {
           next_send_at?: string | null
           niche?: string
           pitch?: string
+          send_mode?: string
           session_id?: string | null
           start_hour?: number
           updated_at?: string
