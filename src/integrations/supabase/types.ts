@@ -3578,6 +3578,8 @@ export type Database = {
       }
       tasks: {
         Row: {
+          approved_at: string | null
+          approved_by_client: boolean | null
           assignee: string
           caption: string | null
           client_id: string | null
@@ -3604,6 +3606,7 @@ export type Database = {
           post_time: string | null
           pre_stage: string | null
           priority: string
+          publish_job_id: string | null
           raw_footage_url: string | null
           recording_notes: string
           script_writer: string
@@ -3620,6 +3623,8 @@ export type Database = {
           videomaker: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by_client?: boolean | null
           assignee?: string
           caption?: string | null
           client_id?: string | null
@@ -3646,6 +3651,7 @@ export type Database = {
           post_time?: string | null
           pre_stage?: string | null
           priority?: string
+          publish_job_id?: string | null
           raw_footage_url?: string | null
           recording_notes?: string
           script_writer?: string
@@ -3662,6 +3668,8 @@ export type Database = {
           videomaker?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by_client?: boolean | null
           assignee?: string
           caption?: string | null
           client_id?: string | null
@@ -3688,6 +3696,7 @@ export type Database = {
           post_time?: string | null
           pre_stage?: string | null
           priority?: string
+          publish_job_id?: string | null
           raw_footage_url?: string | null
           recording_notes?: string
           script_writer?: string
@@ -4099,6 +4108,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      client_review_task: {
+        Args: { _approve: boolean; _comment?: string; _id: string }
+        Returns: undefined
+      }
       complete_public_quiz_response: {
         Args: {
           _lead_email?: string
@@ -4151,6 +4164,8 @@ export type Database = {
       get_public_client_tasks: {
         Args: { _anchor: string }
         Returns: {
+          approved_at: string | null
+          approved_by_client: boolean | null
           assignee: string
           caption: string | null
           client_id: string | null
@@ -4177,6 +4192,7 @@ export type Database = {
           post_time: string | null
           pre_stage: string | null
           priority: string
+          publish_job_id: string | null
           raw_footage_url: string | null
           recording_notes: string
           script_writer: string
@@ -4319,6 +4335,14 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      get_public_task_reviews: {
+        Args: { _ids: string[] }
+        Returns: {
+          approved_at: string
+          approved_by_client: boolean
+          id: string
+        }[]
       }
       has_page_access: {
         Args: { _path: string; _user_id: string }
