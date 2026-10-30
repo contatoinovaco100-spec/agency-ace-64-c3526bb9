@@ -5,7 +5,8 @@ export type TriggerKey =
   | 'welcome_contract' | 'onboarding_stalled' | 'change_received' | 'approved_ack' | 'partnership_anniversary' | 'satisfaction_survey'
   | 'payment_confirmed' | 'invoice_created' | 'contract_ending' | 'post_published' | 'next_week'
   | 'task_assigned' | 'deadline_tomorrow' | 'client_at_risk' | 'instagram_disconnected' | 'sale_closed' | 'lead_stalled'
-  | 'script_missing' | 'change_request_team' | 'shooting_team' | 'manager_report';
+  | 'script_missing' | 'change_request_team' | 'shooting_team' | 'manager_report'
+  | 'recurring_clients' | 'recurring_team';
 
 export type Automation = {
   id: string; name: string; description: string; trigger: TriggerKey; enabled: boolean; template: string;
@@ -13,6 +14,8 @@ export type Automation = {
   audience: { type: 'all' | 'clients' | 'team'; client_ids?: string[]; to?: string; to_name?: string };
   destination: 'group_then_phone' | 'group' | 'phone';
   scheduled_at: string | null; sent_at: string | null; last_run_at: string | null; created_at: string;
+  /** Texto por dia da semana (0 = domingo); dia sem texto usa `template` */
+  templates_by_day?: Record<string, string>;
 };
 
 export type AutomationLog = {
@@ -31,7 +34,7 @@ export const CLIENT_VARS = [
 ];
 
 export const TRIGGERS: Record<TriggerKey, {
-  label: string; group: 'Cliente' | 'Financeiro' | 'Produção' | 'Equipe' | 'Comercial' | 'Disparo';
+  label: string; group: 'Cliente' | 'Financeiro' | 'Produção' | 'Equipe' | 'Comercial' | 'Recorrente' | 'Disparo';
   description: string; params: Param[]; vars: { key: string; label: string; sample: string }[];
   /** client = cliente; team = grupo/número da equipe; people = WhatsApp de cada pessoa responsável */
   audience: 'client' | 'team' | 'people';
@@ -242,6 +245,16 @@ export const TRIGGERS: Record<TriggerKey, {
     description: 'Leads sem contato há alguns dias, para o vendedor responsável.',
     params: [{ key: 'days_after', label: 'Sem contato há', suffix: 'dias', default: 3 }],
     vars: [{ key: 'pessoa', label: 'Nome do vendedor', sample: 'Lucas' }, { key: 'qtd', label: 'Quantidade', sample: '5' }, { key: 'lista_leads', label: 'Lista', sample: '• Padaria Exemplo — Proposta enviada' }, { key: 'link_crm', label: 'Link do CRM', sample: 'https://inovamarketing.online/crm' }],
+  },
+  recurring_clients: {
+    label: 'Mensagem recorrente para clientes', group: 'Recorrente', audience: 'client', schedule: 'weekly',
+    description: 'Mensagem nos dias e horário escolhidos, com um texto diferente para cada dia da semana (ex.: dica de segunda, bom fim de semana na sexta).',
+    params: [], vars: [{ key: 'data', label: 'Data de hoje', sample: '30/10/2026' }],
+  },
+  recurring_team: {
+    label: 'Mensagem recorrente para a equipe', group: 'Recorrente', audience: 'team', schedule: 'weekly',
+    description: 'Mensagem para o grupo ou números da equipe, com um texto diferente para cada dia da semana (ex.: metas de segunda, recado de sexta).',
+    params: [], vars: [{ key: 'data', label: 'Data de hoje', sample: '30/10/2026' }],
   },
   manual: {
     label: 'Disparo manual', group: 'Disparo', audience: 'client', schedule: 'once',

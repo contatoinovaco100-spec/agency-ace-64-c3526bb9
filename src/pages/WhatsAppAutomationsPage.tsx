@@ -115,7 +115,7 @@ export default function WhatsAppAutomationsPage() {
 
   const runPreview = async (a: Partial<Automation>) => {
     const { data, error } = await supabase.functions.invoke('wa-automations', {
-      body: { action: 'preview', automation_id: a.id, draft: a },
+      body: { action: 'preview', automation_id: a.id, draft: a, day: (a as { preview_day?: number }).preview_day },
     });
     if (error || data?.error) { toast.error('Não foi possível simular', { description: await fnError(error, data) }); return; }
     setPreview({ title: a.name ?? 'Prévia', total: data.total, items: data.items });
@@ -154,7 +154,7 @@ export default function WhatsAppAutomationsPage() {
         <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
       ) : tab === 'automacoes' ? (
         <div className="space-y-6">
-          {(['Cliente', 'Financeiro', 'Produção', 'Equipe', 'Comercial'] as const).map((group) => {
+          {(['Recorrente', 'Cliente', 'Financeiro', 'Produção', 'Equipe', 'Comercial'] as const).map((group) => {
             const list = automations.filter((a) => TRIGGERS[a.trigger]?.group === group);
             if (!list.length) return null;
             return (
@@ -314,6 +314,11 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
   const [groups, setGroups] = useState<Group[] | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const trigger = d.trigger as TriggerKey;
+  // Texto por dia da semana: liga sozinho nas mensagens recorrentes ou quando já há texto por dia salvo
+  const [perDay, setPerDay] = useState(() =>
+    /^recurring_/.test(String(initial.trigger)) || Object.values(initial.templates_by_day ?? {}).some((t) => t?.trim()));
+  // Aba ativa: null = texto padrão; número = dia da semana
+  const [dayTab, setDayTab] = useState<number | null>(() => (perDay ? (initial.days_of_week?.[0] ?? 1) : null));
   const meta = TRIGGERS[trigger];
   const isManual = trigger === 'manual';
   const set = (patch: Partial<Automation>) => setD((x) => ({ ...x, ...patch }));
@@ -323,16 +328,23 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
     supabase.functions.invoke('wa-server', { body: { action: 'groups' } }).then(({ data }) => setGroups(data?.groups ?? []));
   }, [meta.audience]);
 
+  const activeText = dayTab === null ? (d.template ?? '') : (d.templates_by_day?.[String(dayTab)] ?? '');
+  const setActiveText = (v: string) => (dayTab === null
+    ? set({ template: v })
+    : set({ templates_by_day: { ...(d.templates_by_day ?? {}), [String(dayTab)]: v } }));
   const insertVar = (key: string) => {
     const el = textRef.current;
-    const text = d.template ?? '';
+    const text = activeText;
     const pos = el?.selectionStart ?? text.length;
-    set({ template: `${text.slice(0, pos)}{${key}}${text.slice(pos)}` });
+    setActiveText(`${text.slice(0, pos)}{${key}}${text.slice(pos)}`);
     requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(pos + key.length + 2, pos + key.length + 2); });
   };
 
   const scheduledLocal = d.scheduled_at ? new Date(new Date(d.scheduled_at).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
-  const valid = !!d.name?.trim() && !!d.template?.trim() && (!isManual || !!d.scheduled_at)
+  const dayTexts = d.templates_by_day ?? {};
+  // Com texto por dia, basta cada dia marcado ter texto próprio (ou existir o texto padrão)
+  const hasText = !!d.template?.trim() || (perDay && (d.days_of_week ?? []).length > 0 && (d.days_of_week ?? []).every((i) => dayTexts[String(i)]?.trim()));
+  const valid = !!d.name?.trim() && hasText && (!isManual || !!d.scheduled_at)
     && (meta.audience !== 'team' || !!d.audience?.to) && (d.audience?.type !== 'clients' || (d.audience.client_ids?.length ?? 0) > 0);
 
   const save = async () => {
@@ -340,6 +352,10 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
     const { data: u } = await supabase.auth.getUser();
     const row = { ...d, updated_at: new Date().toISOString() } as Record<string, unknown>;
     delete row.id; delete row.created_at; delete row.last_run_at; delete row.sent_at;
+    // Só manda o campo quando é usado (ou para limpar), assim funciona mesmo antes da coluna existir no banco
+    if (perDay) row.templates_by_day = Object.fromEntries(Object.entries(dayTexts).filter(([, t]) => t?.trim()));
+    else if (Object.keys(initial.templates_by_day ?? {}).length) row.templates_by_day = {};
+    else delete row.templates_by_day;
     const { error } = d.id
       ? await supabase.from(AUTOMATIONS).update(row as never).eq('id', d.id)
       : await supabase.from(AUTOMATIONS).insert({ ...row, created_by: u.user?.id ?? null } as never);
@@ -351,7 +367,7 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
 
   const test = async () => {
     setTesting(true);
-    const { data, error } = await supabase.functions.invoke('wa-automations', { body: { action: 'test', automation_id: d.id, draft: d, to: testPhone } });
+    const { data, error } = await supabase.functions.invoke('wa-automations', { body: { action: 'test', automation_id: d.id, draft: d, to: testPhone, day: dayTab ?? undefined } });
     setTesting(false);
     if (error || data?.error) { toast.error('Teste não enviado', { description: await fnError(error, data) }); return; }
     toast.success('Teste enviado', { description: data.sample_from ? `Com os dados de ${data.sample_from}` : 'Com dados de exemplo' });
@@ -476,9 +492,32 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
           )}
 
           {/* Mensagem */}
-          <Field label="Mensagem">
-            <Textarea ref={textRef} value={d.template ?? ''} onChange={(e) => set({ template: e.target.value })}
-              className="min-h-[180px] font-mono text-[13px] leading-relaxed" placeholder="Escreva a mensagem. Use *negrito* e as variáveis abaixo." />
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={perDay} onCheckedChange={(v) => { setPerDay(v); setDayTab(v ? (d.days_of_week?.[0] ?? 1) : null); }} />
+              Texto diferente por dia da semana
+            </label>
+            {perDay && (
+              <div className="flex flex-wrap gap-1">
+                {[null, ...[...(d.days_of_week ?? [])].sort()].map((day) => {
+                  const filled = day === null ? !!d.template?.trim() : !!dayTexts[String(day)]?.trim();
+                  return (
+                    <button key={String(day)} type="button" onClick={() => setDayTab(day)}
+                      className={cn('flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors',
+                        dayTab === day ? 'border-primary bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-muted')}>
+                      {day === null ? 'Padrão' : WEEKDAYS[day]}
+                      <span className={cn('h-1.5 w-1.5 rounded-full', filled ? 'bg-success' : 'bg-foreground/20')} />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <Field label={!perDay ? 'Mensagem' : dayTab === null ? 'Texto padrão (para os dias sem texto próprio)' : `Texto de ${['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'][dayTab]}`}>
+            <Textarea ref={textRef} value={activeText} onChange={(e) => setActiveText(e.target.value)}
+              className="min-h-[180px] font-mono text-[13px] leading-relaxed"
+              placeholder={dayTab === null ? 'Escreva a mensagem. Use *negrito* e as variáveis abaixo.' : 'Deixe vazio para usar o texto padrão neste dia.'} />
             <div className="mt-2 flex flex-wrap gap-1.5">
               {[...(meta.audience === 'client' ? CLIENT_VARS : []), ...meta.vars].map((v) => (
                 <button key={v.key} type="button" onClick={() => insertVar(v.key)} title={v.label}
@@ -489,11 +528,13 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
             </div>
           </Field>
 
-          {d.template?.trim() && (
+          {(activeText.trim() || d.template?.trim()) && (
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">Prévia com dados de exemplo</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Prévia com dados de exemplo{dayTab !== null ? ` · ${WEEKDAYS[dayTab]}` : ''}
+              </p>
               <div className="rounded-xl bg-[#e7ffdb] p-3 text-sm text-[#111b21] dark:bg-[#005c4b] dark:text-[#e9edef]">
-                <p className="whitespace-pre-wrap">{sampleRender(d.template, trigger)}</p>
+                <p className="whitespace-pre-wrap">{sampleRender(activeText.trim() ? activeText : d.template ?? '', trigger)}</p>
               </div>
             </div>
           )}
@@ -502,7 +543,7 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
             <p className="text-sm font-medium">Testar no seu WhatsApp</p>
             <div className="flex gap-2">
               <Input placeholder="Seu telefone com DDD" value={testPhone} onChange={(e) => setTestPhone(e.target.value)} inputMode="tel" />
-              <Button variant="outline" className="shrink-0 gap-1.5" onClick={test} disabled={testing || testPhone.replace(/\D/g, '').length < 10 || !d.template?.trim()}>
+              <Button variant="outline" className="shrink-0 gap-1.5" onClick={test} disabled={testing || testPhone.replace(/\D/g, '').length < 10 || !hasText}>
                 {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Testar
               </Button>
             </div>
@@ -511,7 +552,7 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
         </div>
 
         <div className="flex flex-col-reverse gap-2 border-t p-4 sm:flex-row sm:justify-between">
-          <Button variant="ghost" className="gap-1.5" onClick={() => onPreview(d)} disabled={!d.template?.trim()}>
+          <Button variant="ghost" className="gap-1.5" onClick={() => onPreview({ ...d, preview_day: dayTab ?? undefined } as Partial<Automation>)} disabled={!hasText}>
             <Eye className="h-4 w-4" /> Simular quem recebe
           </Button>
           <div className="flex gap-2">

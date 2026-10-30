@@ -26,7 +26,12 @@ type Automation = {
   audience: { type: "all" | "clients" | "team"; client_ids?: string[]; to?: string };
   destination: "group_then_phone" | "group" | "phone";
   scheduled_at: string | null; sent_at: string | null; last_run_at: string | null; updated_at?: string; created_at?: string;
+  /** Texto por dia da semana (0 = domingo); dia sem texto usa `template` */
+  templates_by_day?: Record<string, string> | null;
 };
+
+/** Texto do dia (Brasília) ou o principal */
+const templateFor = (a: Automation, dow = spNow().getUTCDay()) => String(a.templates_by_day?.[String(dow)] ?? "").trim() || a.template;
 type Client = { id: string; company_name: string; contact_name: string | null; phone: string | null; status: string | null; whatsapp_group_id?: string | null };
 /** Um envio a fazer: para quem, com quais variáveis e com qual chave anti-repetição */
 type Job = { client: Client | null; to: string | null; vars: Record<string, string>; ref: string };
@@ -216,6 +221,12 @@ async function buildJobs(admin: SupabaseClient, a: Automation): Promise<Job[]> {
 
     case "manual":
       return clients.map((c) => job(c, {}, `manual:${a.id}`));
+
+    // Mensagem recorrente (texto pode mudar por dia da semana)
+    case "recurring_clients":
+      return clients.map((c) => job(c, { data: fmtDate(spDay(0)) }, `rec:${spDay(0)}`));
+    case "recurring_team":
+      return teamJob({ data: fmtDate(spDay(0)) }, `rec:${spDay(0)}`);
 
     // ── Cliente ──
     case "welcome_contract":
@@ -495,7 +506,7 @@ async function runAutomation(admin: SupabaseClient, a: Automation) {
   let ok = 0;
   for (const j of jobs) {
     if (sent.has(`${j.ref}|${j.client?.id ?? ""}`)) continue;
-    const message = render(a.template, j.vars);
+    const message = render(templateFor(a), j.vars);
     const row = { automation_id: a.id, client_id: j.client?.id ?? null, ref: j.ref, recipient: j.to ?? "", message, status: "enviado", error: "" };
     if (!j.to) row.status = "sem_contato";
     else {
@@ -563,10 +574,12 @@ Deno.serve(async (req) => {
     if (!automation.trigger) return json({ error: "Automação não encontrada" }, 404);
 
     const jobs = await buildJobs(admin, automation);
+    // Prévia/teste com o texto do dia escolhido no editor (ou de hoje)
+    const dow = Number.isInteger(body.day) ? Number(body.day) : spNow().getUTCDay();
     const items = jobs.slice(0, 50).map((j) => ({
       client: j.client?.company_name ?? "Equipe",
       destination: !j.to ? "sem contato" : j.to.includes("@g.us") ? "grupo" : "telefone",
-      message: render(automation.template, j.vars),
+      message: render(templateFor(automation, dow), j.vars),
     }));
 
     if (action === "preview") return json({ total: jobs.length, items });
@@ -574,7 +587,7 @@ Deno.serve(async (req) => {
     if (action === "test") {
       const to = phoneOf(body.to);
       if (!to) return json({ error: "Informe um telefone válido para o teste" }, 400);
-      const message = items[0]?.message ?? render(automation.template, {});
+      const message = items[0]?.message ?? render(templateFor(automation, dow), {});
       await sendWhatsApp(to, `🧪 *Teste: ${automation.name}*\n\n${message}`);
       await admin.from("wa_automation_logs").insert({ automation_id: a?.id ?? null, ref: "teste", recipient: to, message, status: "teste" });
       return json({ ok: true, sample_from: items[0]?.client ?? null });
