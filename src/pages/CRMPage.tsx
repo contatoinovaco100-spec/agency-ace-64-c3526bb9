@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
 import { useAgency } from '@/contexts/AgencyContext';
@@ -12,7 +12,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { WhatsAppPanel } from '@/components/crm/WhatsAppPanel';
+import { CrmInbox } from '@/components/crm/CrmInbox';
+import { CrmFollowUp } from '@/components/crm/CrmFollowUp';
+import { CrmDistribution } from '@/components/crm/CrmDistribution';
+import { LeadExtras } from '@/components/crm/LeadExtras';
+import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import { useKanbanStages, colorClasses } from '@/hooks/useKanbanStages';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -26,6 +30,15 @@ export default function CRMPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
   const [form, setForm] = useState<Partial<Lead>>({});
+  const [tab, setTab] = useState('pipeline');
+  const [openLeadConversation, setOpenLeadConversation] = useState<string | null>(null);
+  // Próximo passo de cada lead (campos novos, lidos à parte; somem se a migração ainda não foi aplicada)
+  const [nextSteps, setNextSteps] = useState<Record<string, { next_step: string | null; next_step_at: string | null }>>({});
+  useEffect(() => {
+    supabase.from('leads').select('id, next_step, next_step_at' as never).then(({ data, error }) => {
+      if (!error) setNextSteps(Object.fromEntries(((data ?? []) as unknown as { id: string; next_step: string | null; next_step_at: string | null }[]).map((r) => [r.id, r])));
+    });
+  }, [leads, dialogOpen]);
 
   const openNew = (stage?: LeadStage) => {
     setEditing(null);
@@ -84,10 +97,12 @@ export default function CRMPage() {
         description={<>Pipeline de <span className="tabular-nums font-medium text-foreground">R$ {totalPipeline.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span> em <span className="tabular-nums">{leads.length}</span> leads</>}
       />
 
-      <Tabs defaultValue="pipeline">
-        <TabsList>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="max-w-full overflow-x-auto">
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
-          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+          <TabsTrigger value="conversas">Conversas</TabsTrigger>
+          <TabsTrigger value="followup">Follow-up</TabsTrigger>
+          <TabsTrigger value="distribuicao">Distribuição e captura</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pipeline" className="space-y-4">
@@ -132,6 +147,16 @@ export default function CRMPage() {
                 >
                   <p className="text-body font-medium text-foreground">{lead.company}</p>
                   <p className="text-caption text-muted-foreground">{lead.name}</p>
+                  {nextSteps[lead.id]?.next_step && (() => {
+                    const ns = nextSteps[lead.id];
+                    const late = ns.next_step_at && new Date(ns.next_step_at).getTime() < Date.now();
+                    return (
+                      <p className={cn('mt-1.5 truncate rounded px-1.5 py-0.5 text-[11px]', late ? 'bg-warning/15 text-warning' : 'bg-muted text-muted-foreground')}
+                        title={ns.next_step ?? ''}>
+                        → {ns.next_step}{ns.next_step_at ? ` · ${new Date(ns.next_step_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}` : ''}
+                      </p>
+                    );
+                  })()}
                   <div className="mt-2 flex items-center justify-between">
                     <span className="tabular-nums text-caption font-medium text-success">
                       R$ {lead.estimatedValue.toLocaleString('pt-BR')}
@@ -215,8 +240,14 @@ export default function CRMPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="whatsapp">
-          <WhatsAppPanel />
+        <TabsContent value="conversas">
+          <CrmInbox openConversationFor={openLeadConversation} />
+        </TabsContent>
+        <TabsContent value="followup">
+          <CrmFollowUp />
+        </TabsContent>
+        <TabsContent value="distribuicao">
+          <CrmDistribution />
         </TabsContent>
       </Tabs>
 
@@ -265,6 +296,10 @@ export default function CRMPage() {
               </div>
             </div>
             <div><Label>Observações</Label><Textarea value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+            {editing && (
+              <LeadExtras leadId={editing.id}
+                onOpenConversation={() => { setOpenLeadConversation(editing.id); setTab('conversas'); setDialogOpen(false); }} />
+            )}
             <div className="flex gap-2">
               <Button onClick={handleSave} className="flex-1">{editing ? 'Salvar' : 'Adicionar'}</Button>
               {editing && (

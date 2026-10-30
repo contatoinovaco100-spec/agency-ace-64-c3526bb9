@@ -651,8 +651,15 @@ Deno.serve(async (req) => {
     if (action === "test") {
       const to = phoneOf(body.to);
       if (!to) return json({ error: "Informe um telefone válido para o teste" }, 400);
-      const message = items[0]?.message ?? render(templateFor(automation, dow), {});
-      await sendWhatsApp(to, `🧪 *Teste: ${automation.name}*\n\n${message}`, automation.session_id);
+      // Sem ninguém para receber hoje: usa um cliente ativo de verdade + valores de exemplo das variáveis
+      let message = items[0]?.message;
+      if (!message) {
+        const { data: sample } = await admin.from("clients").select("*").is("deleted_at", null).eq("status", "Ativo").limit(1).maybeSingle();
+        const vars = { ...(body.sample_vars ?? {}), ...(sample ? clientVars(sample as Client) : {}), data: fmtDate(spDay(0)) };
+        message = render(templateFor(automation, dow), vars);
+      }
+      const note = items.length ? "" : "\n\n_(Exemplo: hoje ninguém receberia esta mensagem, então usei dados de exemplo.)_";
+      await sendWhatsApp(to, `🧪 *Teste: ${automation.name}*\n\n${message}${note}`, automation.session_id);
       await admin.from("wa_automation_logs").insert({ automation_id: a?.id ?? null, ref: "teste", recipient: to, message, status: "teste" });
       return json({ ok: true, sample_from: items[0]?.client ?? null });
     }

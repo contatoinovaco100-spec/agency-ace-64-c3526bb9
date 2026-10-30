@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
-  CalendarClock, Eye, History, Loader2, Megaphone, MessageCircle, Pencil, Plus, Send, Trash2, Zap,
+  CalendarClock, Eye, History, Loader2, Megaphone, MessageCircle, Pencil, Plus, Send, Smartphone, Trash2, Zap,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/PageHeader';
@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { WhatsAppNumbers } from '@/components/whatsapp/WhatsAppNumbers';
 import {
   CLIENT_VARS, TRIGGERS, WEEKDAYS, sampleRender, scheduleLabel,
   type Automation, type AutomationLog, type TriggerKey,
@@ -26,7 +27,7 @@ const LOGS = 'wa_automation_logs' as never;
 
 type Client = { id: string; company_name: string };
 type Group = { id: string; name: string };
-type Tab = 'automacoes' | 'disparos' | 'historico';
+type Tab = 'automacoes' | 'disparos' | 'historico' | 'numeros';
 
 /** Lê a mensagem de erro real da função (em respostas de erro o supabase-js não preenche `data`) */
 async function fnError(error: unknown, data: { error?: string } | null) {
@@ -138,7 +139,7 @@ export default function WhatsAppAutomationsPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg bg-muted p-1">
-          {([['automacoes', 'Automações', Zap], ['disparos', 'Disparos', Megaphone], ['historico', 'Histórico', History]] as const).map(([k, l, Icon]) => (
+          {([['automacoes', 'Automações', Zap], ['disparos', 'Disparos', Megaphone], ['historico', 'Histórico', History], ['numeros', 'Números', Smartphone]] as const).map(([k, l, Icon]) => (
             <button key={k} onClick={() => setTab(k)}
               className={cn('flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-sm font-medium transition-colors',
                 tab === k ? 'bg-card text-foreground card-shadow' : 'text-muted-foreground hover:text-foreground')}>
@@ -150,7 +151,9 @@ export default function WhatsAppAutomationsPage() {
         {tab === 'disparos' && <Button className="gap-1.5" onClick={() => setEditing(emptyDraft('manual'))}><Plus className="h-4 w-4" /> Novo disparo</Button>}
       </div>
 
-      {!items ? (
+      {tab === 'numeros' ? (
+        <WhatsAppNumbers />
+      ) : !items ? (
         <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
       ) : tab === 'automacoes' ? (
         <div className="space-y-6">
@@ -367,7 +370,11 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
 
   const test = async () => {
     setTesting(true);
-    const { data, error } = await supabase.functions.invoke('wa-automations', { body: { action: 'test', automation_id: d.id, draft: d, to: testPhone, day: dayTab ?? undefined } });
+    const { data, error } = await supabase.functions.invoke('wa-automations', { body: {
+      action: 'test', automation_id: d.id, draft: d, to: testPhone, day: dayTab ?? undefined,
+      // Valores de exemplo das variáveis, usados quando hoje ninguém receberia a mensagem
+      sample_vars: Object.fromEntries([...CLIENT_VARS, ...meta.vars].map((v) => [v.key, v.sample])),
+    } });
     setTesting(false);
     if (error || data?.error) { toast.error('Teste não enviado', { description: await fnError(error, data) }); return; }
     toast.success('Teste enviado', { description: data.sample_from ? `Com os dados de ${data.sample_from}` : 'Com dados de exemplo' });
@@ -491,6 +498,8 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
             </div>
           )}
 
+          <SenderNumber value={d.session_id ?? ''} onChange={(v) => set({ session_id: v || null })} />
+
           {/* Mensagem */}
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm">
@@ -574,5 +583,25 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
       {children}
     </div>
+  );
+}
+
+/** De qual número sai a automação (vazio = número principal) */
+function SenderNumber({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [numbers, setNumbers] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    supabase.from('wa_numbers' as never).select('id, name').then(({ data }) => setNumbers((data ?? []) as unknown as { id: string; name: string }[]));
+  }, []);
+  if (numbers.length < 2) return null;
+  return (
+    <Field label="Enviar pelo número">
+      <Select value={value || 'principal'} onValueChange={(v) => onChange(v === 'principal' ? '' : v)}>
+        <SelectTrigger><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="principal">Número principal</SelectItem>
+          {numbers.map((n) => <SelectItem key={n.id} value={n.id}>{n.name}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </Field>
   );
 }

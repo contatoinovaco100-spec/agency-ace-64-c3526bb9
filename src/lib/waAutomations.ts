@@ -16,6 +16,8 @@ export type Automation = {
   scheduled_at: string | null; sent_at: string | null; last_run_at: string | null; created_at: string;
   /** Texto por dia da semana (0 = domingo); dia sem texto usa `template` */
   templates_by_day?: Record<string, string>;
+  /** Número que envia (sessão do servidor); vazio = principal */
+  session_id?: string | null;
 };
 
 export type AutomationLog = {
