@@ -5,6 +5,7 @@
 // - action "test" (login): envia a mensagem de exemplo para um telefone de teste.
 // As mensagens saem pelo servidor WhatsApp da INOVA (WA_SERVER_URL / WA_API_KEY) e ficam em wa_automation_logs.
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { recordMessage, upsertConversation } from "../_shared/crm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +29,8 @@ type Automation = {
   scheduled_at: string | null; sent_at: string | null; last_run_at: string | null; updated_at?: string; created_at?: string;
   /** Texto por dia da semana (0 = domingo); dia sem texto usa `template` */
   templates_by_day?: Record<string, string> | null;
+  /** Número que envia (sessão do servidor); vazio = principal */
+  session_id?: string | null;
 };
 
 /** Texto do dia (Brasília) ou o principal */
@@ -484,15 +487,75 @@ async function buildJobs(admin: SupabaseClient, a: Automation): Promise<Job[]> {
 }
 
 // ─── Envio ───────────────────────────────────────────────────────────────────
-async function sendWhatsApp(to: string, message: string) {
+async function sendWhatsApp(to: string, message: string, session?: string | null) {
   const url = Deno.env.get("WA_SERVER_URL");
   if (!url) throw new Error("WA_SERVER_URL não configurado");
   const res = await fetch(`${url}/send`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": Deno.env.get("WA_API_KEY") ?? "" },
-    body: JSON.stringify({ to, message }),
+    body: JSON.stringify({ to, message, session: session || undefined }),
   });
   if (!res.ok) throw new Error((await res.text()).slice(0, 300));
+  return (await res.json().catch(() => ({}))) as { messageId?: string; session?: string };
+}
+
+// ─── Follow-up do CRM: manda o passo da sequência na hora certa ──────────────
+async function runFollowUps(admin: SupabaseClient) {
+  const { data: due } = await admin.from("crm_enrollments")
+    .select("*, crm_sequences(*), leads(id, name, company, phone, telefone, assignee, owner_id, whatsapp_session, stage)")
+    .eq("status", "ativo").lte("next_at", new Date().toISOString()).order("next_at").limit(30);
+  const now = spNow();
+  const { data: numbers } = await admin.from("wa_numbers").select("id, owner_id, is_default");
+  let sent = 0;
+  for (const e of due ?? []) {
+    const seq = e.crm_sequences, lead = e.leads;
+    const stop = (status: string, last_error = "") =>
+      admin.from("crm_enrollments").update({ status, last_error, updated_at: new Date().toISOString() }).eq("id", e.id);
+    if (!seq || !lead) { await stop("parado", "Sequência ou lead removido"); continue; }
+    if (!seq.active) continue;
+    // Janela de envio: dias úteis e horário da sequência
+    if (seq.weekdays_only && (now.getUTCDay() === 0 || now.getUTCDay() === 6)) continue;
+    if (now.getUTCHours() < seq.start_hour || now.getUTCHours() >= seq.end_hour) continue;
+    if (/fechado|perdido/i.test(lead.stage ?? "")) { await stop("parado", `Lead em ${lead.stage}`); continue; }
+    const steps = (seq.steps ?? []) as { day: number; message: string }[];
+    const step = steps[e.step_index];
+    if (!step) { await stop("concluido"); continue; }
+    const phone = phoneOf(lead.phone || lead.telefone);
+    if (!phone) { await stop("erro", "Lead sem telefone"); continue; }
+
+    // Número: o da inscrição, o preferido do lead, o do vendedor dono ou o principal
+    const session = e.session_id || lead.whatsapp_session
+      || numbers?.find((n) => n.owner_id && n.owner_id === lead.owner_id)?.id
+      || numbers?.find((n) => n.is_default)?.id || "default";
+    const next = steps[e.step_index + 1];
+    const nextAt = next
+      ? new Date(Math.max(new Date(e.created_at).getTime() + Number(next.day) * DAY, Date.now() + 60 * 60 * 1000)).toISOString()
+      : null;
+    // Avança antes de enviar: se outra rodada chegar no meio, não duplica
+    await admin.from("crm_enrollments").update({
+      step_index: e.step_index + 1, next_at: nextAt ?? new Date().toISOString(),
+      status: next ? "ativo" : "concluido", updated_at: new Date().toISOString(),
+    }).eq("id", e.id);
+
+    const message = render(step.message, {
+      nome: String(lead.name ?? "").trim().split(/\s+/)[0], empresa: lead.company ?? "",
+      vendedor: String(lead.assignee ?? "").trim().split(/\s+/)[0] || "a equipe",
+    });
+    try {
+      const r = await sendWhatsApp(phone, message, session);
+      const conv = await upsertConversation(admin, r.session ?? session, phone, lead.name ?? "");
+      if (conv) {
+        await recordMessage(admin, conv, { direction: "out", content: message, wa_message_id: r.messageId ?? null });
+        if (!conv.lead_id) await admin.from("wa_conversations").update({ lead_id: lead.id }).eq("id", conv.id);
+      }
+      await admin.from("leads").update({ last_outbound_at: new Date().toISOString(), contacted: true, contacted_at: new Date().toISOString() }).eq("id", lead.id);
+      sent++;
+    } catch (err) {
+      await stop("erro", String((err as Error).message).slice(0, 300));
+    }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  return sent;
 }
 
 async function runAutomation(admin: SupabaseClient, a: Automation) {
@@ -510,7 +573,7 @@ async function runAutomation(admin: SupabaseClient, a: Automation) {
     const row = { automation_id: a.id, client_id: j.client?.id ?? null, ref: j.ref, recipient: j.to ?? "", message, status: "enviado", error: "" };
     if (!j.to) row.status = "sem_contato";
     else {
-      try { await sendWhatsApp(j.to, message); ok++; }
+      try { await sendWhatsApp(j.to, message, a.session_id); ok++; }
       catch (e) { row.status = "erro"; row.error = String((e as Error).message).slice(0, 300); }
       // Pausa curta entre mensagens: envio em rajada aumenta o risco de bloqueio
       await new Promise((r) => setTimeout(r, 1500));
@@ -560,7 +623,8 @@ Deno.serve(async (req) => {
           results.push({ name: a.name, ...(await runAutomation(admin, a)) });
         }
       }
-      return json({ ran: results });
+      const followUps = await runFollowUps(admin);
+      return json({ ran: results, follow_ups: followUps });
     }
 
     // Prévia e teste: só para quem está logado na plataforma
@@ -588,7 +652,7 @@ Deno.serve(async (req) => {
       const to = phoneOf(body.to);
       if (!to) return json({ error: "Informe um telefone válido para o teste" }, 400);
       const message = items[0]?.message ?? render(templateFor(automation, dow), {});
-      await sendWhatsApp(to, `🧪 *Teste: ${automation.name}*\n\n${message}`);
+      await sendWhatsApp(to, `🧪 *Teste: ${automation.name}*\n\n${message}`, automation.session_id);
       await admin.from("wa_automation_logs").insert({ automation_id: a?.id ?? null, ref: "teste", recipient: to, message, status: "teste" });
       return json({ ok: true, sample_from: items[0]?.client ?? null });
     }

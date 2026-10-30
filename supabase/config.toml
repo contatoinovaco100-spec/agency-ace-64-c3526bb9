@@ -42,3 +42,9 @@ verify_jwt = true
 
 [functions.wa-automations]
 verify_jwt = false
+
+[functions.wa-inbound]
+verify_jwt = false
+
+[functions.crm-capture]
+verify_jwt = false
