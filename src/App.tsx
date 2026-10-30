@@ -58,6 +58,7 @@ const VideoEditorPage      = lazy(() => import("./pages/VideoEditorPage"));
 const ThreadsPublishPage   = lazy(() => import("./pages/ThreadsPublishPage"));
 const PublicArtesPage      = lazy(() => import("./pages/PublicArtesPage"));
 const ClientContentPage    = lazy(() => import("./pages/ClientContentPage"));
+const ClientReportPage     = lazy(() => import("./pages/ClientReportPage"));
 // LoginPage é importada de forma estática (eager) — é a rota mais acessada
 // e evitar o lazy elimina um round-trip de chunk antes do usuário ver o form.
 import LoginPage from "./pages/LoginPage";
@@ -166,6 +167,7 @@ function AppRoutes() {
   const location = useLocation();
   const isPublicPage =
     location.pathname.startsWith('/conteudo/') ||
+    location.pathname.startsWith('/relatorio/') ||
     location.pathname.startsWith('/portal/') ||
     location.pathname.startsWith('/contrato/') ||
     location.pathname.startsWith('/vitrine') ||
@@ -195,6 +197,7 @@ function AppRoutes() {
       {isPublicPage ? (
         <Routes>
           <Route path="/conteudo/:taskId"    element={<ClientContentPage />} />
+          <Route path="/relatorio/:clientId" element={<ClientReportPage />} />
           <Route path="/portal/:clientId"    element={<ClientPortalPage />} />
           <Route path="/contrato/:contractId" element={<ContractSignPage />} />
           <Route path="/vitrine"             element={<PublicPortfolioPage />} />
@@ -356,7 +359,7 @@ const PUBLIC_DARK_PATHS = [
   '/indicar', '/afiliados/cadastro', '/in', '/quiz', '/painel-artes', '/lp', '/roleta', '/teleprompter',
 ];
 // Páginas públicas no tema claro (aprovação de conteúdo do cliente)
-const PUBLIC_LIGHT_PATHS = ['/conteudo'];
+const PUBLIC_LIGHT_PATHS = ['/conteudo', '/relatorio'];
 // Mantenha em sincronia com o script de tema do index.html
 const isPublicLightPath = (pathname: string) =>
   PUBLIC_LIGHT_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`));

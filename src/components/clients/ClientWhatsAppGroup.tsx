@@ -94,3 +94,20 @@ export function ClientWhatsAppGroup({ clientId }: { clientId: string }) {
     </div>
   );
 }
+
+/** Atalhos para copiar os links públicos do cliente (aprovação de conteúdo e relatório do mês) */
+export function ClientPublicLinks({ clientId }: { clientId: string }) {
+  const copy = async (path: string, label: string) => {
+    try { await navigator.clipboard.writeText(`${window.location.origin}${path}`); toast.success(`Link ${label} copiado`); }
+    catch { toast.error('Não foi possível copiar'); }
+  };
+  return (
+    <div>
+      <p className="text-caption text-muted-foreground">Links do cliente</p>
+      <div className="mt-1 flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={() => copy(`/conteudo/${clientId}`, 'de aprovação')}>Aprovação</Button>
+        <Button variant="outline" size="sm" onClick={() => copy(`/relatorio/${clientId}`, 'do relatório')}>Relatório do mês</Button>
+      </div>
+    </div>
+  );
+}

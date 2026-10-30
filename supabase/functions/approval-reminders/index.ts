@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
     const answered = new Set((reviews ?? []).filter((r) => r.created_at > enteredAt[r.task_id]).map((r) => r.task_id));
 
     const { data: pastRows } = await admin.from("approval_reminders")
-      .select("client_id, task_ids, status, created_at").gte("created_at", new Date(Date.now() - 60 * DAY).toISOString());
+      .select("client_id, task_ids, status, created_at").eq("kind", "aprovacao").gte("created_at", new Date(Date.now() - 60 * DAY).toISOString());
     const past = (pastRows ?? []) as Reminder[];
     const timesReminded = (taskId: string) => past.filter((r) => r.status === "enviado" && r.task_ids.includes(taskId)).length;
 

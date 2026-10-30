@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.wa-server]
 verify_jwt = true
+
+[functions.monthly-reports]
+verify_jwt = false

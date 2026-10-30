@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ClientWhatsAppGroup } from '@/components/clients/ClientWhatsAppGroup';
+import { ClientPublicLinks, ClientWhatsAppGroup } from '@/components/clients/ClientWhatsAppGroup';
 import { useClientHealth, type ClientHealth, type HealthLevel } from '@/lib/clientHealth';
 
 import { useAgency } from '@/contexts/AgencyContext';
@@ -431,6 +431,7 @@ export default function ClientsPage() {
                            <div><p className="text-caption text-muted-foreground">Início do contrato</p><p className="text-body text-foreground">{new Date(client.contractStartDate).toLocaleDateString('pt-BR')}</p></div>
                            <div><p className="text-caption text-muted-foreground">Responsável</p><p className="text-body text-foreground">{(client.accountManager || []).join(', ') || '—'}</p></div>
                            <ClientWhatsAppGroup clientId={client.id} />
+                           <ClientPublicLinks clientId={client.id} />
                          </div>
 
                          <div className="flex flex-wrap gap-1">

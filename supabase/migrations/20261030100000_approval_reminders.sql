@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS public.approval_reminders (
   task_ids uuid[] NOT NULL DEFAULT '{}',
   phone text NOT NULL DEFAULT '',
   message text NOT NULL DEFAULT '',
+  -- aprovacao = lembrete de aprovação; relatorio = relatório mensal
+  kind text NOT NULL DEFAULT 'aprovacao' CHECK (kind IN ('aprovacao', 'relatorio')),
   status text NOT NULL CHECK (status IN ('enviado', 'sem_telefone', 'erro')),
   error text NOT NULL DEFAULT '',
   created_at timestamptz NOT NULL DEFAULT now()
@@ -37,6 +39,26 @@ SELECT cron.schedule(
   $$
   SELECT net.http_post(
     url := 'https://cdzzewovtxotkghzeafr.supabase.co/functions/v1/approval-reminders',
+    headers := jsonb_build_object('Content-Type', 'application/json'),
+    body := '{}'
+  );
+  $$
+);
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'monthly-reports') THEN
+    PERFORM cron.unschedule('monthly-reports');
+  END IF;
+END $$;
+
+-- Relatório mensal: dia 1, 10h de Brasília
+SELECT cron.schedule(
+  'monthly-reports',
+  '0 13 1 * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://cdzzewovtxotkghzeafr.supabase.co/functions/v1/monthly-reports',
     headers := jsonb_build_object('Content-Type', 'application/json'),
     body := '{}'
   );

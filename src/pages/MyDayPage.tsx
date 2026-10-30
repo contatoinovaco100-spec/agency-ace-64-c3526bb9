@@ -53,7 +53,7 @@ export default function MyDayPage() {
   useEffect(() => {
     if (!social) return;
     // Lembretes de aprovação dos últimos 3 dias (tabela pode ainda não existir no banco)
-    supabase.from('approval_reminders' as never).select('client_id, status, created_at')
+    supabase.from('approval_reminders' as never).select('client_id, status, created_at').eq('kind' as never, 'aprovacao' as never)
       .gte('created_at', new Date(Date.now() - 3 * 86_400_000).toISOString()).order('created_at', { ascending: false })
       .then(({ data, error }) => { if (!error) setReminders((data ?? []) as unknown as ReminderRow[]); });
     supabase.from('social_accounts').select('username, token_status').eq('platform', 'instagram')
