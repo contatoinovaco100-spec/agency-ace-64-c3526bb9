@@ -2448,6 +2448,7 @@ export type Database = {
           daily_limit: number
           end_hour: number
           example_message: string
+          followup_sequence_id: string | null
           id: string
           last_search_at: string | null
           max_gap_min: number
@@ -2469,6 +2470,7 @@ export type Database = {
           daily_limit?: number
           end_hour?: number
           example_message?: string
+          followup_sequence_id?: string | null
           id?: string
           last_search_at?: string | null
           max_gap_min?: number
@@ -2490,6 +2492,7 @@ export type Database = {
           daily_limit?: number
           end_hour?: number
           example_message?: string
+          followup_sequence_id?: string | null
           id?: string
           last_search_at?: string | null
           max_gap_min?: number
@@ -2503,7 +2506,15 @@ export type Database = {
           updated_at?: string
           weekdays_only?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "prospect_campaigns_followup_sequence_id_fkey"
+            columns: ["followup_sequence_id"]
+            isOneToOne: false
+            referencedRelation: "crm_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prospects: {
         Row: {
