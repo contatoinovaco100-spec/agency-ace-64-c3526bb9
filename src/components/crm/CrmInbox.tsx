@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { EnrollButton } from '@/components/crm/LeadExtras';
 
@@ -90,24 +89,31 @@ export function CrmInbox({ openConversationFor }: { openConversationFor?: string
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Procurar conversa" className="pl-8" />
           </div>
-          <div className="flex gap-2">
-            {numbers.length > 1 && (
-              <Select value={filterNumber} onValueChange={setFilterNumber}>
-                <SelectTrigger className="h-8 flex-1 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os números</SelectItem>
-                  {numbers.map((n) => <SelectItem key={n.id} value={n.id}>{n.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            )}
+          {/* Uma aba por número, com as não lidas de cada um */}
+          <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-0.5">
+            {[{ id: 'todos', name: 'Todos' }, ...numbers].map((n) => {
+              const unread = (convs ?? []).filter((c) => n.id === 'todos' || c.session_id === n.id).reduce((t, c) => t + (c.unread_count || 0), 0);
+              return (
+                <button key={n.id} onClick={() => setFilterNumber(n.id)}
+                  className={cn('flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 text-xs font-medium transition-colors',
+                    filterNumber === n.id ? 'border-primary bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-muted')}>
+                  {n.name}
+                  {unread > 0 && <span className="rounded-full bg-brand px-1.5 text-[10px] font-semibold text-brand-foreground">{unread}</span>}
+                </button>
+              );
+            })}
             <button onClick={() => setOnlyLeads((v) => !v)}
-              className={cn('h-8 shrink-0 rounded-md border px-2.5 text-xs font-medium', onlyLeads ? 'border-primary bg-primary/10 text-foreground' : 'text-muted-foreground')}>
+              className={cn('ml-auto h-8 shrink-0 rounded-md border px-2.5 text-xs font-medium', onlyLeads ? 'border-primary bg-primary/10 text-foreground' : 'text-muted-foreground')}>
               Só leads
             </button>
           </div>
         </div>
         <ul className="min-h-0 flex-1 divide-y overflow-y-auto">
-          {visible.length === 0 && <li className="p-6 text-center text-sm text-muted-foreground">Nenhuma conversa ainda. As mensagens chegam aqui assim que alguém escrever para um número conectado.</li>}
+          {visible.length === 0 && (
+            <li className="p-6 text-center text-sm text-muted-foreground [text-wrap:pretty]">
+              Nenhuma conversa ainda. As mensagens novas aparecem aqui assim que chegam. Para trazer o histórico de um número, desconecte e conecte de novo pelo QR (aba Números do WhatsApp): o celular envia as conversas dos últimos 30 dias.
+            </li>
+          )}
           {visible.map((c) => {
             const lead = c.lead_id ? leads[c.lead_id] : null;
             return (
@@ -126,7 +132,7 @@ export function CrmInbox({ openConversationFor }: { openConversationFor?: string
                       {c.unread_count > 0 && <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-brand px-1.5 text-[11px] font-semibold text-brand-foreground">{c.unread_count}</span>}
                     </span>
                     <span className="mt-1 flex flex-wrap gap-1">
-                      {numbers.length > 1 && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{numberName(c.session_id)}</span>}
+                      {filterNumber === 'todos' && numbers.length > 1 && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{numberName(c.session_id)}</span>}
                       {lead && <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">{lead.stage}</span>}
                       {c.client_id && <span className="rounded bg-success/15 px-1.5 py-0.5 text-[10px] font-medium text-success">Cliente</span>}
                     </span>

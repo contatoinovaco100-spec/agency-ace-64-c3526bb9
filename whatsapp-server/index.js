@@ -20,6 +20,9 @@ const AUTH_ROOT = process.env.AUTH_ROOT || './sessions';
 const LEGACY_AUTH_DIR = process.env.AUTH_DIR || './auth';
 const INBOUND_URL = process.env.INBOUND_URL || '';
 const MAX_SESSIONS = Number(process.env.MAX_SESSIONS || 6);
+// Ao conectar um número por QR, importa as mensagens individuais desses últimos dias (até o limite)
+const HISTORY_DAYS = Number(process.env.HISTORY_DAYS || 30);
+const HISTORY_MAX = Number(process.env.HISTORY_MAX || 1500);
 const REGISTRY = path.join(AUTH_ROOT, 'sessions.json');
 
 if (!API_KEY || API_KEY.length < 24) {
@@ -58,15 +61,33 @@ function textOf(m) {
   return null;
 }
 
+/** Telefone (JID @s.whatsapp.net) da conversa individual. O WhatsApp pode identificar o contato por um id
+ *  privado (@lid); aí usa o número alternativo da mensagem ou o mapa lid→telefone da sessão. */
+async function phoneJidOf(sessionId, m) {
+  const jid = m.key?.remoteJid || '';
+  if (jid.endsWith('@s.whatsapp.net')) return jid;
+  if (!jid.endsWith('@lid')) return null; // grupos, status, canais
+  const alt = m.key?.remoteJidAlt || m.key?.senderPn;
+  if (alt && String(alt).endsWith('@s.whatsapp.net')) return String(alt);
+  try {
+    const pn = await sessions.get(sessionId)?.sock?.signalRepository?.lidMapping?.getPNForLID?.(jid);
+    if (pn) return String(pn).replace(/:\d+@/, '@');
+  } catch { /* sem mapa */ }
+  return null;
+}
+
 async function forward(sessionId, m) {
   if (!INBOUND_URL) return;
-  const jid = m.key?.remoteJid || '';
-  // Só conversas individuais (grupos e status ficam de fora do CRM)
-  if (!jid.endsWith('@s.whatsapp.net')) return;
+  const phoneJid = await phoneJidOf(sessionId, m);
+  // Só conversas individuais com telefone conhecido (grupos e status ficam de fora do CRM)
+  if (!phoneJid) {
+    if ((m.key?.remoteJid || '').endsWith('@lid')) console.warn(`⚠️ [${sessionId}] contato @lid sem telefone conhecido`);
+    return;
+  }
   const content = textOf(m);
   if (!content) return;
   const body = JSON.stringify({
-    session: sessionId, phone: jid.replace('@s.whatsapp.net', ''), name: m.pushName || '',
+    session: sessionId, phone: phoneJid.split('@')[0].split(':')[0], name: m.pushName || '',
     fromMe: !!m.key.fromMe, id: m.key.id, timestamp: Number(m.messageTimestamp || Date.now() / 1000), ...content,
   });
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -88,7 +109,8 @@ async function startSession(id, name) {
 
   const { state, saveCreds } = await useMultiFileAuthState(authDir(id));
   versionCache ??= (await fetchLatestBaileysVersion()).version;
-  const sock = makeWASocket({ version: versionCache, logger, auth: state });
+  // syncFullHistory: pede ao celular o histórico das conversas ao conectar
+  const sock = makeWASocket({ version: versionCache, logger, auth: state, syncFullHistory: true });
   s.sock = sock;
   sock.ev.on('creds.update', saveCreds);
 
@@ -113,6 +135,18 @@ async function startSession(id, name) {
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (type !== 'notify') return;
     for (const m of messages) if (m.message) await forward(id, m);
+  });
+
+  // Histórico que o celular manda ao conectar por QR: importa as conversas individuais dos últimos dias
+  sock.ev.on('messaging-history.set', async ({ messages }) => {
+    const since = Date.now() / 1000 - HISTORY_DAYS * 86400;
+    const recent = (messages || [])
+      .filter((m) => m.message && Number(m.messageTimestamp || 0) >= since)
+      .sort((a, b) => Number(a.messageTimestamp) - Number(b.messageTimestamp))
+      .slice(-HISTORY_MAX);
+    if (!recent.length) return;
+    console.log(`📥 [${id}] importando ${recent.length} mensagens do histórico`);
+    for (const m of recent) { await forward(id, m); await new Promise((r) => setTimeout(r, 150)); }
   });
   return s;
 }
