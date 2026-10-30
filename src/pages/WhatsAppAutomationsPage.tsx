@@ -28,6 +28,19 @@ type Client = { id: string; company_name: string };
 type Group = { id: string; name: string };
 type Tab = 'automacoes' | 'disparos' | 'historico';
 
+/** Lê a mensagem de erro real da função (em respostas de erro o supabase-js não preenche `data`) */
+async function fnError(error: unknown, data: { error?: string } | null) {
+  if (data?.error) return data.error;
+  try {
+    const body = await (error as { context?: Response })?.context?.json();
+    const msg = String(body?.error ?? '');
+    // O motor repassa o erro do servidor do WhatsApp como texto JSON
+    try { return JSON.parse(msg).error ?? msg; } catch { return msg || 'Erro desconhecido'; }
+  } catch {
+    return 'Não foi possível falar com a função wa-automations.';
+  }
+}
+
 const DESTINATIONS = {
   group_then_phone: 'Grupo do cliente (ou telefone, se não tiver grupo)',
   group: 'Só no grupo do cliente',
@@ -97,7 +110,7 @@ export default function WhatsAppAutomationsPage() {
     const { data, error } = await supabase.functions.invoke('wa-automations', {
       body: { action: 'preview', automation_id: a.id, draft: a },
     });
-    if (error || data?.error) { toast.error('Não foi possível simular', { description: data?.error ?? 'Função ainda não publicada no Lovable.' }); return; }
+    if (error || data?.error) { toast.error('Não foi possível simular', { description: await fnError(error, data) }); return; }
     setPreview({ title: a.name ?? 'Prévia', total: data.total, items: data.items });
   };
 
@@ -333,7 +346,7 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
     setTesting(true);
     const { data, error } = await supabase.functions.invoke('wa-automations', { body: { action: 'test', automation_id: d.id, draft: d, to: testPhone } });
     setTesting(false);
-    if (error || data?.error) { toast.error('Teste não enviado', { description: data?.error ?? 'Função ainda não publicada no Lovable.' }); return; }
+    if (error || data?.error) { toast.error('Teste não enviado', { description: await fnError(error, data) }); return; }
     toast.success('Teste enviado', { description: data.sample_from ? `Com os dados de ${data.sample_from}` : 'Com dados de exemplo' });
   };
 
