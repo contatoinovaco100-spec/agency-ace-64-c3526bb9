@@ -61,7 +61,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/publicar-threads',    label: 'Publicar Threads',     icon: AtSign,          category: 'Postagens' },
   { path: '/publicacoes',         label: 'Histórico de Posts',   icon: ListChecks,      category: 'Postagens', hidden: true },
   { path: '/redes-sociais',       label: 'Redes Sociais',        icon: Network,         category: 'Postagens' },
-  { path: '/portfolio-instagram', label: 'Posts Instagram',      icon: Sparkles,        category: 'Postagens' },
+  { path: '/portfolio-instagram', label: 'Posts Instagram',      icon: Sparkles,        category: 'Postagens', hidden: true },
   { path: '/instagram-analytics', label: 'Relatório Cliente',    icon: BarChart3,       category: 'Postagens' },
   // Sem uso (fila vazia): fora do menu, rota mantida
   { path: '/instagram-automacao', label: 'Fila Instagram',       icon: Sparkles,        category: 'Postagens', adminOnly: true, hidden: true },
@@ -101,7 +101,8 @@ export const APP_PAGES: AppPage[] = [
 
   // Produção
   // { path: '/galeria',             label: 'Galeria',             icon: Images,          category: 'Produção' },
-  { path: '/portfolio',           label: 'Portfólio',           icon: Film,            category: 'Produção' },
+  // Portfólio reúne os vídeos e os posts do Instagram da vitrine em abas
+  { path: '/portfolio',           label: 'Portfólio',           icon: Film,            category: 'Produção', includes: ['/portfolio-instagram'] },
   { path: '/gravacoes',           label: 'Gravações',           icon: Clapperboard,    category: 'Produção', hidden: true },
   { path: '/teleprompter',        label: 'Teleprompter',        icon: Video,           category: 'Produção' },
 

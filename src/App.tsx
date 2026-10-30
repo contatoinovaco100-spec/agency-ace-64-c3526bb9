@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { AGENDA_TABS, PLANNING_TABS, PUBLISH_TABS, SectionRedirect, SectionTabs, TEAM_TABS } from "@/components/SectionTabs";
+import { AGENDA_TABS, PLANNING_TABS, PORTFOLIO_TABS, PUBLISH_TABS, SectionRedirect, SectionTabs, TEAM_TABS } from "@/components/SectionTabs";
 import PublicQuizPage from "./pages/PublicQuizPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
@@ -267,8 +267,8 @@ function AppRoutes() {
                     <Route path="/contratos-prestadores" element={<CollaboratorContractsPage />} />
                     <Route path="/briefings"           element={<BriefingsPage />} />
                     <Route path="/relatorios"          element={<ReportsPage />} />
-                    <Route path="/portfolio"           element={<PortfolioPage />} />
-                    <Route path="/portfolio-instagram" element={<InstagramPostsPage />} />
+                    <Route path="/portfolio"           element={<SectionTabs tabs={PORTFOLIO_TABS}><PortfolioPage /></SectionTabs>} />
+                    <Route path="/portfolio-instagram" element={<SectionTabs tabs={PORTFOLIO_TABS}><InstagramPostsPage /></SectionTabs>} />
                     <Route path="/instagram-automacao" element={<InstagramAutomationPage />} />
                     <Route path="/redes-sociais"       element={<SocialAccountsPage />} />
                     <Route path="/instagram-analytics" element={<InstagramAnalyticsPage />} />

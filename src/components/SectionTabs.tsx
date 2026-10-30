@@ -22,6 +22,11 @@ export const PLANNING_TABS: SectionTab[] = [
   { path: '/planejamento-pdf', label: 'Importar PDF ou planilha' },
 ];
 
+export const PORTFOLIO_TABS: SectionTab[] = [
+  { path: '/portfolio', label: 'Vídeos' },
+  { path: '/portfolio-instagram', label: 'Posts do Instagram' },
+];
+
 export const PUBLISH_TABS: SectionTab[] = [
   { path: '/publicar', label: 'Nova publicação' },
   { path: '/publicacoes', label: 'Histórico' },
