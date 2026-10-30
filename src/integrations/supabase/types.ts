@@ -3247,6 +3247,36 @@ export type Database = {
         }
         Relationships: []
       }
+      social_sync_runs: {
+        Row: {
+          added: number
+          created_at: string
+          details: Json
+          id: string
+          message: string
+          status: string
+          updated: number
+        }
+        Insert: {
+          added?: number
+          created_at?: string
+          details?: Json
+          id?: string
+          message?: string
+          status: string
+          updated?: number
+        }
+        Update: {
+          added?: number
+          created_at?: string
+          details?: Json
+          id?: string
+          message?: string
+          status?: string
+          updated?: number
+        }
+        Relationships: []
+      }
       squad_clients: {
         Row: {
           client_id: string
