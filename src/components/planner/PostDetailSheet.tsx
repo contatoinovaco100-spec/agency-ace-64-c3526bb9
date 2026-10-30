@@ -15,6 +15,7 @@ import { useKanbanStages } from '@/hooks/useKanbanStages';
 import { isReferenceAttachment } from '@/lib/attachmentPurpose';
 import { cn } from '@/lib/utils';
 import { SchedulePostSection } from '@/components/planner/SchedulePostSection';
+import { CaptionSuggestions } from '@/components/planner/CaptionSuggestions';
 
 /** Limite de caracteres da legenda no Instagram */
 const CAPTION_LIMIT = 2200;
@@ -267,9 +268,12 @@ export function PostDetailSheet({ taskId, order, clientName, onNavigate, onClose
               </div>
               <Textarea value={draft.caption} onChange={(e) => setDraft({ ...draft, caption: e.target.value })}
                 placeholder="Escreva a legenda do post, com hashtags e chamada para ação" className="min-h-[140px] text-sm leading-relaxed" />
-              <Button size="sm" variant="outline" className="gap-1.5" disabled={!draft.caption.trim()} onClick={() => copy(draft.caption, 'Legenda copiada')}>
-                <Copy className="h-3.5 w-3.5" /> Copiar legenda
-              </Button>
+              <div className="flex flex-wrap items-start gap-2">
+                <Button size="sm" variant="outline" className="gap-1.5" disabled={!draft.caption.trim()} onClick={() => copy(draft.caption, 'Legenda copiada')}>
+                  <Copy className="h-3.5 w-3.5" /> Copiar legenda
+                </Button>
+                <CaptionSuggestions key={task.id} post={task} onPick={(caption) => setDraft((d) => ({ ...d, caption }))} />
+              </div>
             </section>
 
             {/* Agendar no Instagram/Threads com a mídia e a legenda deste post */}
