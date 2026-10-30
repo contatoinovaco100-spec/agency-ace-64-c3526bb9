@@ -70,6 +70,26 @@ const fromRow = (r: ManualRow): Lead => ({
   status: (MANUAL_STATUS.includes(r.status) ? r.status : 'novo') as Lead['status'],
 });
 
+/** Insere várias de uma vez; se alguma der erro (ex.: telefone repetido), tenta uma a uma em paralelo */
+async function insertManual(rows: (ReturnType<typeof toRow> & { created_by: string | null })[]) {
+  const ok: string[] = [], duplicated: string[] = [], failed: { id: string; message: string }[] = [];
+  if (!rows.length) return { ok, duplicated, failed };
+  const { error } = await supabase.from(MANUAL).insert(rows as never);
+  if (!error) return { ok: rows.map((r) => r.id), duplicated, failed };
+  for (let i = 0; i < rows.length; i += 10) {
+    await Promise.all(rows.slice(i, i + 10).map(async (r) => {
+      const { error: e } = await supabase.from(MANUAL).insert(r as never);
+      if (!e) ok.push(r.id);
+      else if (e.code === '23505') duplicated.push(r.id);
+      else failed.push({ id: r.id, message: e.message });
+    }));
+  }
+  return { ok, duplicated, failed };
+}
+
+/** Quantas empresas aparecem por vez (a lista grande deixava a página lenta) */
+const PAGE_SIZE = 30;
+
 export default function ProspectionPage() {
   const [searchNiche, setSearchNiche] = useState('');
   const [searchCity, setSearchCity] = useState('');
@@ -77,6 +97,9 @@ export default function ProspectionPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [leadsLoaded, setLeadsLoaded] = useState(false);
   const [nicheFilter, setNicheFilter] = useState('all');
+  const [shown, setShown] = useState(PAGE_SIZE);
+  // Trocou de nicho: volta a mostrar só o começo da lista
+  useEffect(() => setShown(PAGE_SIZE), [nicheFilter]);
   /** Telefones que já estão na prospecção (manual ou campanhas), para não entrar repetido */
   const takenPhones = useRef(new Set<string>());
 
@@ -97,6 +120,12 @@ export default function ProspectionPage() {
     return fresh;
   };
 
+  const uidRef = useRef<string | null | undefined>(undefined);
+  const userId = async () => {
+    if (uidRef.current === undefined) uidRef.current = (await supabase.auth.getUser()).data.user?.id ?? null;
+    return uidRef.current;
+  };
+
   /** Última versão salva de cada empresa (para salvar só o que mudou) */
   const saved = useRef(new Map<string, string>());
 
@@ -110,17 +139,15 @@ export default function ProspectionPage() {
       let local: Lead[] = [];
       try { local = JSON.parse(localStorage.getItem('prospection_leads') || '[]'); } catch { /* lista local inválida */ }
       if (local.length) {
-        const { data: u } = await supabase.auth.getUser();
+        const uid = await userId();
         const known = new Set(rows.map((r) => r.phone).filter(Boolean));
         const fresh = local.filter((l) => { const ph = onlyPhone(l.phone); if (ph && known.has(ph)) return false; if (ph) known.add(ph); return true; });
-        const imported: ManualRow[] = [];
-        for (const l of fresh) {
-          const { data: row } = await supabase.from(MANUAL).insert({ ...toRow(l), created_by: u.user?.id ?? null } as never).select('*').single();
-          if (row) imported.push(row as unknown as ManualRow);
-        }
+        const res = await insertManual(fresh.map((l) => ({ ...toRow(l), created_by: uid })));
+        const okIds = new Set(res.ok);
+        const imported = fresh.filter((l) => okIds.has(l.id)).map((l) => ({ ...toRow(l) }) as unknown as ManualRow);
         rows = [...rows, ...imported];
         // Só limpa o navegador se tudo foi salvo (os repetidos já estavam no banco)
-        if (imported.length === fresh.length) localStorage.removeItem('prospection_leads');
+        if (!res.failed.length) localStorage.removeItem('prospection_leads');
         if (imported.length) toast.success(`${imported.length} leads da sua lista foram salvos no banco`);
       }
       const list = rows.map(fromRow);
@@ -130,37 +157,73 @@ export default function ProspectionPage() {
     })();
   }, []);
 
-  // Salva no banco o que mudou (adicionou, editou, status, mensagem) e apaga o que foi excluído
+  // Salva no banco o que mudou (adicionou, editou, status, mensagem) e apaga o que foi excluído.
+  // Tudo em lote e uma sincronização por vez (antes salvava uma empresa por vez e duas rodadas
+  // simultâneas tentavam inserir a mesma empresa, que sumia da lista como "repetida").
+  const latest = useRef<Lead[]>([]);
+  latest.current = leads;
+  const syncing = useRef(false);
+  const syncAgain = useRef(false);
+
+  const sync = async () => {
+    if (syncing.current) { syncAgain.current = true; return; }
+    syncing.current = true;
+    try {
+      do {
+        syncAgain.current = false;
+        const list = latest.current;
+        const ids = new Set(list.map((l) => l.id));
+        const removed = [...saved.current.keys()].filter((id) => !ids.has(id));
+        if (removed.length) {
+          const { error } = await supabase.from(MANUAL).delete().in('id', removed);
+          if (!error) removed.forEach((id) => saved.current.delete(id));
+        }
+
+        const fresh: Lead[] = [], changed: Lead[] = [];
+        for (const l of list) {
+          if (l.isGenerating) continue;
+          const json = JSON.stringify(toRow(l));
+          if (saved.current.get(l.id) === json) continue;
+          (saved.current.has(l.id) ? changed : fresh).push(l);
+        }
+
+        const duplicates: Lead[] = [];
+        if (fresh.length) {
+          const uid = await userId();
+          const res = await insertManual(fresh.map((l) => ({ ...toRow(l), created_by: uid })));
+          const byId = new Map(fresh.map((l) => [l.id, l]));
+          res.ok.forEach((id) => saved.current.set(id, JSON.stringify(toRow(byId.get(id)!))));
+          res.duplicated.forEach((id) => duplicates.push(byId.get(id)!));
+          if (res.failed.length) toast.error(`Não foi possível salvar ${res.failed.length} empresa(s)`, { description: res.failed[0].message });
+        }
+
+        for (let i = 0; i < changed.length; i += 10) {
+          await Promise.all(changed.slice(i, i + 10).map(async (l) => {
+            const row = toRow(l);
+            const { error } = await supabase.from(MANUAL).update({ ...row, updated_at: new Date().toISOString() } as never).eq('id', l.id);
+            if (error?.code === '23505') { duplicates.push(l); return; }
+            if (error) { toast.error(`Não foi possível salvar ${l.name}`, { description: error.message }); return; }
+            saved.current.set(l.id, JSON.stringify(row));
+          }));
+        }
+
+        if (duplicates.length) {
+          // Telefone que já está na prospecção (manual ou automática): não entra de novo
+          const dup = new Set(duplicates.map((d) => d.id));
+          setLeads((prev) => prev.filter((l) => !dup.has(l.id)));
+          toast.info(`${duplicates.length} já estava${duplicates.length > 1 ? 'm' : ''} na prospecção`, { description: duplicates.slice(0, 5).map((d) => d.name).join(', ') });
+        }
+      } while (syncAgain.current);
+    } finally {
+      syncing.current = false;
+    }
+  };
+
   useEffect(() => {
     if (!leadsLoaded) return;
-    const t = setTimeout(async () => {
-      const ids = new Set(leads.map((l) => l.id));
-      const removed = [...saved.current.keys()].filter((id) => !ids.has(id));
-      if (removed.length) {
-        await supabase.from(MANUAL).delete().in('id', removed);
-        removed.forEach((id) => saved.current.delete(id));
-      }
-      const duplicates: Lead[] = [];
-      for (const l of leads) {
-        if (l.isGenerating) continue;
-        const row = toRow(l), json = JSON.stringify(row);
-        if (saved.current.get(l.id) === json) continue;
-        const isNew = !saved.current.has(l.id);
-        const { data: u } = isNew ? await supabase.auth.getUser() : { data: null };
-        const { error } = isNew
-          ? await supabase.from(MANUAL).insert({ ...row, created_by: u?.user?.id ?? null } as never)
-          : await supabase.from(MANUAL).update({ ...row, updated_at: new Date().toISOString() } as never).eq('id', l.id);
-        if (error?.code === '23505') { duplicates.push(l); continue; }
-        if (error) { toast.error(`Não foi possível salvar ${l.name}`, { description: error.message }); continue; }
-        saved.current.set(l.id, json);
-      }
-      if (duplicates.length) {
-        // Telefone que já está na prospecção (manual ou automática): não entra de novo
-        setLeads((prev) => prev.filter((l) => !duplicates.some((d) => d.id === l.id)));
-        toast.info(`${duplicates.length} já estava${duplicates.length > 1 ? 'm' : ''} na prospecção`, { description: duplicates.slice(0, 5).map((d) => d.name).join(', ') });
-      }
-    }, 600);
+    const t = setTimeout(sync, 600);
     return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leads, leadsLoaded]);
   
   // Persistência local
@@ -443,6 +506,7 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
   // Nicho que sumiu (todas as empresas excluídas ou trocadas): volta para Todos
   const activeNiche = niches.some(n => n.key === nicheFilter) ? nicheFilter : 'all';
   const visibleLeads = activeNiche === 'all' ? leads : leads.filter(l => nicheKey(l.category) === activeNiche);
+  const shownLeads = visibleLeads.slice(0, shown);
 
   const statusColors: Record<string, string> = {
     novo: 'bg-zinc-600/20 text-muted-foreground border-border',
@@ -685,7 +749,7 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
         </div>
       ) : (
         <div className="space-y-4">
-          {visibleLeads.map(lead => (
+          {shownLeads.map(lead => (
             <div key={lead.id} className="border border-foreground/5 bg-card rounded-2xl overflow-hidden shadow-md hover:border-foreground/10 transition-colors">
               
               {/* Lead Header */}
@@ -789,6 +853,13 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
               </div>
             </div>
           ))}
+          {visibleLeads.length > shownLeads.length && (
+            <div className="flex justify-center">
+              <Button variant="outline" onClick={() => setShown(n => n + PAGE_SIZE)}>
+                Mostrar mais {Math.min(PAGE_SIZE, visibleLeads.length - shownLeads.length)} de {visibleLeads.length - shownLeads.length} restantes
+              </Button>
+            </div>
+          )}
         </div>
       )}
         </TabsContent>

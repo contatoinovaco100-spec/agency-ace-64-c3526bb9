@@ -5,8 +5,9 @@ import {
   DollarSign, Copy, CheckCircle2, Loader2, AlertCircle, X,
   ChevronRight, ChevronLeft, Filter, Globe, MessageCircle, ExternalLink,
   Download, Save, CheckSquare, Square, Map, Database, RefreshCw,
-  CircleCheckBig,
+  CircleCheckBig, Send,
 } from 'lucide-react';
+import { addToManualProspecting } from '@/lib/prospectImport';
 
 const SUPABASE_URL = 'https://coblfehkclfjofrshlwl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvYmxmZWhrY2xmam9mcnNobHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNTkzODQsImV4cCI6MjA4OTYzNTM4NH0.Mi4DGSWEtf6sn4NUKOlYws0_DotBgIOVXlZ45SYGQuM';
@@ -328,6 +329,78 @@ function ErrorBanner({ msg, onDismiss }: { msg: string; onDismiss: () => void })
   );
 }
 
+/** Atividade da Receita sem o código CNAE: "8630-5/04 - Atividade odontológica" → "Atividade odontológica" */
+function activityName(a?: string | null) {
+  return String(a ?? '').replace(/^[\d./-]+\s*-\s*/, '').trim();
+}
+
+/** Joga as empresas na lista da Prospecção Manual, no nicho escolhido, para o disparo */
+function SendToProspecting({ items, defaultNiche, onSent }: {
+  items: CnpjData[]; defaultNiche: string; onSent?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [niche, setNiche] = useState(defaultNiche);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => { if (!open) setNiche(defaultNiche); }, [defaultNiche, open]);
+
+  async function send() {
+    setBusy(true); setMsg(null);
+    try {
+      const r = await addToManualProspecting(items.map((d) => ({
+        name: d.nome_fantasia || d.razao_social,
+        phones: d.telefone,
+        address: buildAddress(d),
+      })), niche);
+      const parts = [
+        `${r.added} empresa${r.added !== 1 ? 's' : ''} na Prospecção Manual, nicho "${r.category}"`,
+        r.repeated.length ? `${r.repeated.length} já estava${r.repeated.length !== 1 ? 'm' : ''} na prospecção` : '',
+        r.noPhone ? `${r.noPhone} sem telefone` : '',
+      ].filter(Boolean);
+      setMsg({ ok: r.added > 0, text: parts.join(' · ') });
+      if (r.added) { setOpen(false); onSent?.(); }
+    } catch (err: any) {
+      setMsg({ ok: false, text: err?.message || 'Não foi possível enviar.' });
+    } finally { setBusy(false); }
+  }
+
+  const withPhone = items.filter((d) => d.telefone).length;
+  return (
+    <div className="w-full">
+      {!open ? (
+        <button
+          onClick={() => { setOpen(true); setMsg(null); }}
+          disabled={!withPhone}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#BFF720] text-black text-xs font-semibold hover:bg-[#d4ff30] transition-colors disabled:opacity-40"
+        >
+          <Send className="w-3.5 h-3.5" /> Enviar {withPhone} para prospecção
+        </button>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-zinc-900 border border-[#BFF720]/30">
+          <span className="text-xs text-zinc-400">Nicho:</span>
+          <input
+            value={niche} onChange={(e) => setNiche(e.target.value)} autoFocus
+            onKeyDown={(e) => e.key === 'Enter' && niche.trim() && !busy && send()}
+            placeholder="Ex.: Clínicas odontológicas"
+            className="flex-1 min-w-[180px] px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[#BFF720]/50"
+          />
+          <button onClick={send} disabled={busy || !niche.trim()}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#BFF720] text-black text-xs font-semibold hover:bg-[#d4ff30] disabled:opacity-40">
+            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />} Enviar {withPhone}
+          </button>
+          <button onClick={() => setOpen(false)} disabled={busy} className="px-2 py-2 text-xs text-zinc-500 hover:text-zinc-300">Cancelar</button>
+        </div>
+      )}
+      {msg && (
+        <p className={`mt-2 text-xs ${msg.ok ? 'text-emerald-400' : 'text-red-400'}`}>
+          {msg.text}
+          {msg.ok && <> · <a href="/prospeccao" className="underline underline-offset-2 hover:text-emerald-300">Abrir a prospecção</a></>}
+        </p>
+      )}
+    </div>
+  );
+}
+
 /* ─── Tab: Lookup by CNPJ ────────────────────────────────────────────────── */
 
 function LookupTab() {
@@ -404,6 +477,9 @@ function LookupTab() {
             <InfoRow icon={MapPin}     label="Bairro"               value={result.bairro}        copy />
             <InfoRow icon={Phone}      label="Telefone"             value={result.telefone}      copy />
             <InfoRow icon={Mail}       label="E-mail"               value={result.email}         copy />
+          </div>
+          <div className="px-5 pb-5">
+            <SendToProspecting items={[result]} defaultNiche={activityName(result.atividade_principal)} />
           </div>
           <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-950/40">
             <p className="text-xs text-zinc-600 text-center">Dados da Receita Federal via BrasilAPI</p>
@@ -685,6 +761,18 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
                     Salvar {selectedIds.size} lead{selectedIds.size !== 1 ? 's' : ''}
                   </button>
                 )}
+              </div>
+            )}
+
+            {filteredResults.length > 0 && (
+              <div className="mt-3">
+                <SendToProspecting
+                  items={selectedItems.length ? selectedItems : filteredResults}
+                  defaultNiche={activity.trim() || activityName(filteredResults[0]?.atividade_principal)}
+                />
+                <p className="mt-1.5 text-[11px] text-zinc-600">
+                  {selectedItems.length ? `Só as ${selectedItems.length} selecionadas.` : 'Todas as empresas da busca. Marque algumas para enviar só elas.'}
+                </p>
               </div>
             )}
 
