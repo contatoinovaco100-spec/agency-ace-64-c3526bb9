@@ -105,6 +105,7 @@ export function ClientPublicLinks({ clientId }: { clientId: string }) {
     <div>
       <p className="text-caption text-muted-foreground">Links do cliente</p>
       <div className="mt-1 flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={() => copy(`/portal/${clientId}`, 'do portal')}>Portal</Button>
         <Button variant="outline" size="sm" onClick={() => copy(`/conteudo/${clientId}`, 'de aprovação')}>Aprovação</Button>
         <Button variant="outline" size="sm" onClick={() => copy(`/relatorio/${clientId}`, 'do relatório')}>Relatório do mês</Button>
       </div>
