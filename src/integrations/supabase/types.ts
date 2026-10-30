@@ -2439,6 +2439,152 @@ export type Database = {
           },
         ]
       }
+      prospect_campaigns: {
+        Row: {
+          active: boolean
+          city: string
+          created_at: string
+          created_by: string | null
+          daily_limit: number
+          end_hour: number
+          example_message: string
+          id: string
+          last_search_at: string | null
+          max_gap_min: number
+          min_gap_min: number
+          name: string
+          next_send_at: string | null
+          niche: string
+          pitch: string
+          session_id: string | null
+          start_hour: number
+          updated_at: string
+          weekdays_only: boolean
+        }
+        Insert: {
+          active?: boolean
+          city: string
+          created_at?: string
+          created_by?: string | null
+          daily_limit?: number
+          end_hour?: number
+          example_message?: string
+          id?: string
+          last_search_at?: string | null
+          max_gap_min?: number
+          min_gap_min?: number
+          name: string
+          next_send_at?: string | null
+          niche: string
+          pitch?: string
+          session_id?: string | null
+          start_hour?: number
+          updated_at?: string
+          weekdays_only?: boolean
+        }
+        Update: {
+          active?: boolean
+          city?: string
+          created_at?: string
+          created_by?: string | null
+          daily_limit?: number
+          end_hour?: number
+          example_message?: string
+          id?: string
+          last_search_at?: string | null
+          max_gap_min?: number
+          min_gap_min?: number
+          name?: string
+          next_send_at?: string | null
+          niche?: string
+          pitch?: string
+          session_id?: string | null
+          start_hour?: number
+          updated_at?: string
+          weekdays_only?: boolean
+        }
+        Relationships: []
+      }
+      prospects: {
+        Row: {
+          address: string
+          campaign_id: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          error: string
+          id: string
+          instagram: string
+          lead_id: string | null
+          maps_url: string
+          message: string
+          name: string
+          phone: string | null
+          place_id: string | null
+          rating: number | null
+          replied_at: string | null
+          reviews: number | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+          website: string
+        }
+        Insert: {
+          address?: string
+          campaign_id?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          error?: string
+          id?: string
+          instagram?: string
+          lead_id?: string | null
+          maps_url?: string
+          message?: string
+          name: string
+          phone?: string | null
+          place_id?: string | null
+          rating?: number | null
+          replied_at?: string | null
+          reviews?: number | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          website?: string
+        }
+        Update: {
+          address?: string
+          campaign_id?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          error?: string
+          id?: string
+          instagram?: string
+          lead_id?: string | null
+          maps_url?: string
+          message?: string
+          name?: string
+          phone?: string | null
+          place_id?: string | null
+          rating?: number | null
+          replied_at?: string | null
+          reviews?: number | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          website?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospects_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "prospect_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       publish_jobs: {
         Row: {
           audio_name: string
