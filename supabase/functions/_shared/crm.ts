@@ -9,6 +9,14 @@ export function normalizePhone(raw: string | null | undefined) {
   return d.length <= 11 ? `55${d}` : d;
 }
 
+/** Chave do telefone para achar repetidos: DDD + últimos 8 dígitos (ignora 55 e o 9 a mais do celular) */
+export function phoneKey(raw: string | null | undefined) {
+  let d = String(raw ?? "").replace(/\D/g, "");
+  if (d.length >= 12 && d.startsWith("55")) d = d.slice(2);
+  if (d.length < 10) return null;
+  return d.slice(0, 2) + d.slice(-8);
+}
+
 /** Lead com esse telefone (compara os 8 últimos dígitos: ignora DDI, DDD com/sem 9) */
 export async function findLeadByPhone(admin: any, phone: string) {
   const tail = phone.slice(-8);

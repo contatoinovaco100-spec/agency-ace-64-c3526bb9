@@ -307,8 +307,12 @@ app.post('/send', auth, async (req, res) => {
   const message = String(req.body?.message || '').slice(0, 4000);
   if (!jid || !message) return res.status(400).json({ error: 'Informe "to" (telefone ou grupo) e "message"' });
   if (!s || s.status !== 'CONNECTED') return res.status(503).json({ error: `Número ${req.body?.session || 'principal'} não conectado` });
+  // Prospecção ("once"): não manda para quem já recebeu
+  const once = !!req.body?.once && !jid.endsWith('@g.us');
+  if (once && await alreadySent(jid)) return res.status(409).json({ error: 'já recebeu mensagem da prospecção', duplicate: true });
   try {
     const result = await s.sock.sendMessage(jid, { text: message });
+    if (once) await markSent(jid);
     res.json({ ok: true, messageId: result?.key?.id, session: s.id });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -331,6 +335,27 @@ async function bulkCallback(body) {
   console.warn(`⚠️ Não consegui avisar o resultado do lote ${body.campaign}`);
 }
 
+// Registro dos números que já receberam mensagem de prospecção (DDD + últimos 8 dígitos): nunca manda duas vezes
+const SENT_LOG = path.join(AUTH_ROOT, 'prospect-sent.json');
+let sentKeys = null;
+const phoneKey = (raw) => {
+  let d = String(raw ?? '').replace(/\D/g, '');
+  if (d.length >= 12 && d.startsWith('55')) d = d.slice(2);
+  return d.length < 10 ? null : d.slice(0, 2) + d.slice(-8);
+};
+async function loadSentKeys() {
+  if (sentKeys) return sentKeys;
+  try { sentKeys = new Set(JSON.parse(await fs.readFile(SENT_LOG, 'utf8'))); } catch { sentKeys = new Set(); }
+  return sentKeys;
+}
+async function markSent(raw) {
+  const key = phoneKey(raw); if (!key) return;
+  (await loadSentKeys()).add(key);
+  await fs.mkdir(AUTH_ROOT, { recursive: true });
+  await fs.writeFile(SENT_LOG, JSON.stringify([...sentKeys]));
+}
+const alreadySent = async (raw) => { const key = phoneKey(raw); return !!key && (await loadSentKeys()).has(key); };
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const randomBetween = (min, max) => min + Math.random() * Math.max(0, max - min);
 
@@ -348,6 +373,10 @@ async function runBulk(sessionId, campaign, items, minSec, maxSec) {
         break;
       }
       let status = 'erro', number = null, messageId = null, error = '';
+      if (await alreadySent(it.to)) {
+        await bulkCallback({ action: 'bulk_result', campaign, ref: it.ref, status: 'descartado', error: 'já recebeu mensagem da prospecção' });
+        continue;
+      }
       try {
         const [hit] = (await s.sock.onWhatsApp(String(it.to).replace(/\D/g, ''))) ?? [];
         if (!hit?.exists) status = 'sem_whatsapp';
@@ -358,6 +387,7 @@ async function runBulk(sessionId, campaign, items, minSec, maxSec) {
           const result = await s.sock.sendMessage(hit.jid, { text: String(it.message).slice(0, 4000) });
           await s.sock.sendPresenceUpdate('paused', hit.jid).catch(() => {});
           messageId = result?.key?.id ?? null; status = 'enviado'; sent++;
+          await markSent(it.to); await markSent(number);
         }
       } catch (err) { error = String(err?.message || err).slice(0, 300); }
       job.done = i + 1;

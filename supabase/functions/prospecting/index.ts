@@ -9,7 +9,7 @@
 // A resposta do prospect é tratada no wa-inbound (vira lead, ou "não quer" se pedir para parar).
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { createLead, findClientByPhone, findLeadByPhone, firstContactStage, normalizePhone, recordMessage, upsertConversation } from "../_shared/crm.ts";
+import { createLead, findClientByPhone, findLeadByPhone, firstContactStage, normalizePhone, phoneKey, recordMessage, upsertConversation } from "../_shared/crm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,11 +84,18 @@ async function wa(path: string, body: unknown) {
 }
 
 /** Já é cliente, lead ou já conversou com a gente: não prospecta */
-async function alreadyKnown(admin: any, phone: string) {
+const SENT_STATUSES = ["enviando", "enviado", "respondeu", "nao_quer"];
+
+/** Já recebeu mensagem (em qualquer campanha, mesmo com o número escrito diferente), é cliente, lead ou já conversou */
+async function alreadyKnown(admin: any, phone: string, prospectId?: string) {
+  const key = phoneKey(phone);
+  const tail = phone.slice(-8);
+  const { data: sent } = await admin.from("prospects").select("id, phone").ilike("phone", `%${tail}`).in("status", SENT_STATUSES);
+  if ((sent ?? []).some((x: { id: string; phone: string }) => x.id !== prospectId && phoneKey(x.phone) === key)) return "já recebeu mensagem da prospecção";
   if (await findClientByPhone(admin, phone)) return "já é cliente";
   if (await findLeadByPhone(admin, phone)) return "já é lead";
-  const { data } = await admin.from("wa_conversations").select("id").ilike("contact_phone", `%${phone.slice(-8)}`).limit(1);
-  return data?.length ? "já conversou no WhatsApp" : null;
+  const { data: convs } = await admin.from("wa_conversations").select("contact_phone").ilike("contact_phone", `%${tail}`);
+  return (convs ?? []).some((x: { contact_phone: string }) => phoneKey(x.contact_phone) === key) ? "já conversou no WhatsApp" : null;
 }
 
 /** Empresa abordada vira lead no CRM: "Lead novo" ao enviar, "Contato iniciado" se já respondeu */
@@ -134,9 +141,14 @@ async function runBatch(admin: any, c: Campaign, remainingToday: number) {
   const { data: queue } = await admin.from("prospects").select("*").eq("campaign_id", c.id).eq("status", "novo").order("created_at").limit(size * 2);
   if (!queue?.length) return { skipped: "fila vazia" };
   const batch: Prospect[] = [];
+  const keys = new Set<string>();
   for (const p of queue as Prospect[]) {
     if (batch.length >= size) break;
-    const known = await alreadyKnown(admin, p.phone);
+    // O mesmo número duas vezes no mesmo lote (escrito diferente): só o primeiro
+    const key = phoneKey(p.phone) ?? p.phone;
+    if (keys.has(key)) { await admin.from("prospects").update({ status: "descartado", error: "número repetido no lote" }).eq("id", p.id); continue; }
+    keys.add(key);
+    const known = await alreadyKnown(admin, p.phone, p.id);
     if (known) { await admin.from("prospects").update({ status: "descartado", error: known }).eq("id", p.id); continue; }
     batch.push(p);
   }
@@ -189,7 +201,7 @@ async function runCampaign(admin: any, c: Campaign) {
   const { data: queue } = await admin.from("prospects").select("*").eq("campaign_id", c.id).eq("status", "novo").order("created_at").limit(5);
   if (!queue?.length) return { skipped: "fila vazia" };
   for (const p of queue as Prospect[]) {
-    const known = await alreadyKnown(admin, p.phone);
+    const known = await alreadyKnown(admin, p.phone, p.id);
     if (known) { await admin.from("prospects").update({ status: "descartado", error: known }).eq("id", p.id); continue; }
 
     const { results } = await wa("/check", { session: c.session_id || undefined, phones: [p.phone] });
@@ -198,13 +210,16 @@ async function runCampaign(admin: any, c: Campaign) {
 
     try {
       const message = renderMessage(c, p);
-      const sent = await wa("/send", { to: waNumber, message, session: c.session_id || undefined });
+      const sent = await wa("/send", { to: waNumber, message, session: c.session_id || undefined, once: true });
       // Mensagem enviada: a empresa entra no CRM em "Lead novo" (quando responder, avança para "Contato iniciado")
       await afterSent(admin, c, p, waNumber, message, sent.session || c.session_id || "default", sent.messageId ?? null);
       return { sent: p.name };
     } catch (e) {
-      await admin.from("prospects").update({ status: "erro", error: String((e as Error).message).slice(0, 300) }).eq("id", p.id);
-      return { error: (e as Error).message };
+      const msg = String((e as Error).message);
+      // O servidor já tinha mandado para esse número antes: só tira da fila
+      if (/já recebeu/.test(msg)) { await admin.from("prospects").update({ status: "descartado", error: msg }).eq("id", p.id); continue; }
+      await admin.from("prospects").update({ status: "erro", error: msg.slice(0, 300) }).eq("id", p.id);
+      return { error: msg };
     }
   }
   return { skipped: "nenhum com WhatsApp nesta rodada" };
@@ -230,7 +245,7 @@ Deno.serve(async (req) => {
       const { data: p } = await admin.from("prospects").select("*").eq("id", body.ref).maybeSingle();
       if (!p || !camp) return json({ ok: true, skipped: "não encontrado" });
       if (body.status === "enviado") await afterSent(admin, camp, p, String(body.number || p.phone), p.message, String(body.session || camp.session_id || "default"), body.messageId ?? null);
-      else await admin.from("prospects").update({ status: ["sem_whatsapp", "novo"].includes(body.status) ? body.status : "erro", error: String(body.error || "") }).eq("id", p.id);
+      else await admin.from("prospects").update({ status: ["sem_whatsapp", "novo", "descartado"].includes(body.status) ? body.status : "erro", error: String(body.error || "") }).eq("id", p.id);
       return json({ ok: true });
     }
 

@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProspectCampaigns } from '@/components/prospecting/ProspectCampaigns';
-import { nicheKey, nicheLabel } from '@/lib/prospectNiche';
+import { nicheKey, nicheLabel, phoneKey } from '@/lib/prospectNiche';
 import { 
   Dialog, 
   DialogContent, 
@@ -77,6 +77,26 @@ export default function ProspectionPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [leadsLoaded, setLeadsLoaded] = useState(false);
   const [nicheFilter, setNicheFilter] = useState('all');
+  /** Telefones que já estão na prospecção (manual ou campanhas), para não entrar repetido */
+  const takenPhones = useRef(new Set<string>());
+
+  /** Separa as empresas novas das que já estão na prospecção (mesmo número escrito diferente) */
+  const dropKnown = async (list: Lead[]) => {
+    const { data } = await supabase.from(MANUAL).select('phone').not('phone', 'is', null);
+    const taken = new Set([...takenPhones.current, ...((data ?? []) as unknown as { phone: string }[]).map((r) => phoneKey(r.phone)).filter(Boolean) as string[]]);
+    leads.forEach((l) => { const k = phoneKey(l.phone); if (k) taken.add(k); });
+    const fresh: Lead[] = [], repeated: Lead[] = [];
+    for (const l of list) {
+      const k = phoneKey(l.phone);
+      if (k && taken.has(k)) { repeated.push(l); continue; }
+      if (k) taken.add(k);
+      fresh.push(l);
+    }
+    takenPhones.current = taken;
+    if (repeated.length) toast.info(`${repeated.length} já estava${repeated.length > 1 ? 'm' : ''} na prospecção e não ${repeated.length > 1 ? 'foram adicionadas' : 'foi adicionada'}`, { description: repeated.slice(0, 5).map((r) => r.name).join(', ') });
+    return fresh;
+  };
+
   /** Última versão salva de cada empresa (para salvar só o que mudou) */
   const saved = useRef(new Map<string, string>());
 
@@ -267,8 +287,9 @@ export default function ProspectionPage() {
         return;
       }
 
-      setLeads(prev => [...prev, ...newLeads]);
-      toast.success(`✨ ${newLeads.length} leads extraídos com sucesso!`);
+      const fresh = await dropKnown(newLeads);
+      setLeads(prev => [...prev, ...fresh]);
+      if (fresh.length) toast.success(`✨ ${fresh.length} leads novos extraídos com sucesso!`);
       setMagicText('');
       setShowMagicModal(false);
     } catch (err: any) {
@@ -279,7 +300,7 @@ export default function ProspectionPage() {
     }
   };
 
-  const addManualLead = () => {
+  const addManualLead = async () => {
     if (!manualName.trim()) {
       toast.error('Informe pelo menos o nome da empresa.');
       return;
@@ -303,6 +324,8 @@ export default function ProspectionPage() {
       status: 'novo',
     };
 
+    const [fresh] = await dropKnown([newLead]);
+    if (!fresh) return;
     setLeads(prev => [...prev, newLead]);
     setManualName('');
     setManualPhone('');
