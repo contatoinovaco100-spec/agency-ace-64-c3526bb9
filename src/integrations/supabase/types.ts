@@ -4064,6 +4064,117 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_automation_logs: {
+        Row: {
+          automation_id: string | null
+          client_id: string | null
+          created_at: string
+          error: string
+          id: string
+          message: string
+          recipient: string
+          ref: string
+          status: string
+        }
+        Insert: {
+          automation_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          error?: string
+          id?: string
+          message?: string
+          recipient?: string
+          ref?: string
+          status: string
+        }
+        Update: {
+          automation_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          error?: string
+          id?: string
+          message?: string
+          recipient?: string
+          ref?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_automation_logs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_automation_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_automations: {
+        Row: {
+          audience: Json
+          created_at: string
+          created_by: string | null
+          days_of_week: number[]
+          description: string
+          destination: string
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          name: string
+          params: Json
+          scheduled_at: string | null
+          send_time: string
+          sent_at: string | null
+          template: string
+          trigger: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: Json
+          created_at?: string
+          created_by?: string | null
+          days_of_week?: number[]
+          description?: string
+          destination?: string
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          name: string
+          params?: Json
+          scheduled_at?: string | null
+          send_time?: string
+          sent_at?: string | null
+          template?: string
+          trigger: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: Json
+          created_at?: string
+          created_by?: string | null
+          days_of_week?: number[]
+          description?: string
+          destination?: string
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          params?: Json
+          scheduled_at?: string | null
+          send_time?: string
+          sent_at?: string | null
+          template?: string
+          trigger?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       wa_conversations: {
         Row: {
           client_id: string | null

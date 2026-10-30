@@ -29,6 +29,13 @@
       "when": 1793339786376,
       "tag": "0003_approval_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793340691601,
+      "tag": "0004_whatsapp_automations",
+      "breakpoints": true
     }
   ]
 }
