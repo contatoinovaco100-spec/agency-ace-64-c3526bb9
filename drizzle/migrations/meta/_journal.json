@@ -64,6 +64,13 @@
       "when": 1793368926395,
       "tag": "0008_crm_whatsapp",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793371442215,
+      "tag": "0009_prospecting",
+      "breakpoints": true
     }
   ]
 }
