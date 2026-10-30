@@ -92,6 +92,13 @@
       "when": 1793376317748,
       "tag": "0012_prospect_batches",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793385747059,
+      "tag": "0013_crm_quick_replies",
+      "breakpoints": true
     }
   ]
 }

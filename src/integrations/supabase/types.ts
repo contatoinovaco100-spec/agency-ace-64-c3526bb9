@@ -1503,6 +1503,36 @@ export type Database = {
           },
         ]
       }
+      crm_quick_replies: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          message: string
+          shortcut: string
+          updated_at: string
+          uses: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message: string
+          shortcut: string
+          updated_at?: string
+          uses?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message?: string
+          shortcut?: string
+          updated_at?: string
+          uses?: number
+        }
+        Relationships: []
+      }
       crm_sellers: {
         Row: {
           active: boolean
