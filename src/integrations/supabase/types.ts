@@ -2511,19 +2511,22 @@ export type Database = {
           campaign_id: string | null
           category: string
           created_at: string
+          created_by: string | null
           error: string
           id: string
+          instagram: string
           lead_id: string | null
           maps_url: string
           message: string
           name: string
-          phone: string
+          phone: string | null
           place_id: string | null
           rating: number | null
           replied_at: string | null
           reviews: number | null
           sent_at: string | null
           status: string
+          updated_at: string
           website: string
         }
         Insert: {
@@ -2531,19 +2534,22 @@ export type Database = {
           campaign_id?: string | null
           category?: string
           created_at?: string
+          created_by?: string | null
           error?: string
           id?: string
+          instagram?: string
           lead_id?: string | null
           maps_url?: string
           message?: string
           name: string
-          phone: string
+          phone?: string | null
           place_id?: string | null
           rating?: number | null
           replied_at?: string | null
           reviews?: number | null
           sent_at?: string | null
           status?: string
+          updated_at?: string
           website?: string
         }
         Update: {
@@ -2551,19 +2557,22 @@ export type Database = {
           campaign_id?: string | null
           category?: string
           created_at?: string
+          created_by?: string | null
           error?: string
           id?: string
+          instagram?: string
           lead_id?: string | null
           maps_url?: string
           message?: string
           name?: string
-          phone?: string
+          phone?: string | null
           place_id?: string | null
           rating?: number | null
           replied_at?: string | null
           reviews?: number | null
           sent_at?: string | null
           status?: string
+          updated_at?: string
           website?: string
         }
         Relationships: [
