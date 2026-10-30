@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { EnrollButton } from '@/components/crm/LeadExtras';
+import { QuickReplyButton, SlashMenu, countUse, fillReply, matchReplies, useQuickReplies, type QuickReply } from '@/components/crm/QuickReplies';
 
 type Conversation = {
   id: string; session_id: string; contact_phone: string; contact_name: string; last_message: string;
@@ -162,6 +163,24 @@ function Thread({ conv, numberName, lead, onBack, onChanged }: {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const quick = useQuickReplies();
+  const [slashActive, setSlashActive] = useState(0);
+  const [slashClosed, setSlashClosed] = useState(false);
+
+  // "/" no começo da mensagem (sem espaço depois) abre as respostas rápidas
+  const slash = /^\/(\S*)$/.exec(text);
+  const slashItems = slash && !slashClosed && !quick.missing ? matchReplies(quick.replies, slash[1].toLowerCase()) : null;
+
+  /** Insere a resposta rápida com {nome} e {empresa} da conversa */
+  const pickReply = (r: QuickReply) => {
+    const nome = String(lead?.name || conv.contact_name || '').trim().split(/\s+/)[0];
+    const filled = fillReply(r.message, { nome: /^\d+$/.test(nome) ? '' : nome, empresa: lead?.company || '' });
+    setText((t) => (slash ? filled : t ? `${t}${t.endsWith(' ') || t.endsWith('\n') ? '' : ' '}${filled}` : filled));
+    setSlashActive(0);
+    countUse(r);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
 
   const load = useCallback(async () => {
     const { data } = await supabase.from(MSGS).select('id, direction, content, type, created_at, status')
@@ -239,9 +258,21 @@ function Thread({ conv, numberName, lead, onBack, onChanged }: {
         <div ref={endRef} />
       </div>
 
-      <div className="flex items-end gap-2 border-t p-3">
-        <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={1} placeholder="Escreva uma mensagem"
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+      <div className="relative flex items-end gap-2 border-t p-3">
+        {slashItems && <SlashMenu items={slashItems} active={slashActive} onPick={pickReply} />}
+        <QuickReplyButton replies={quick.replies} missing={quick.missing} onPick={pickReply} onChanged={quick.reload} />
+        <Textarea ref={inputRef} value={text} rows={1} placeholder="Escreva uma mensagem ou / para respostas rápidas"
+          onChange={(e) => { setText(e.target.value); setSlashActive(0); setSlashClosed(false); }}
+          onKeyDown={(e) => {
+            if (slashItems?.length) {
+              const max = Math.min(slashItems.length, 8);
+              if (e.key === 'ArrowDown') { e.preventDefault(); setSlashActive((i) => (i + 1) % max); return; }
+              if (e.key === 'ArrowUp') { e.preventDefault(); setSlashActive((i) => (i - 1 + max) % max); return; }
+              if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); pickReply(slashItems[slashActive] ?? slashItems[0]); return; }
+              if (e.key === 'Escape') { e.preventDefault(); setSlashClosed(true); return; }
+            }
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+          }}
           className="max-h-32 min-h-[40px] resize-none" />
         <Button onClick={send} disabled={sending || !text.trim()} size="icon" aria-label="Enviar">
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
