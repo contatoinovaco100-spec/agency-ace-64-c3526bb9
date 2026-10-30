@@ -43,6 +43,13 @@
       "when": 1793342952264,
       "tag": "0005_more_wa_automations",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793366467844,
+      "tag": "0006_manager_report",
+      "breakpoints": true
     }
   ]
 }
