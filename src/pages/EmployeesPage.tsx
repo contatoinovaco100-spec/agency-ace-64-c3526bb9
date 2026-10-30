@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { EmployeeWhatsApp } from '@/components/team/EmployeeWhatsApp';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Navigate } from 'react-router-dom';
@@ -243,6 +244,7 @@ export default function EmployeesPage() {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                       {emp.job_title && <span>{emp.job_title}</span>}
+                      <EmployeeWhatsApp profileId={emp.id} />
                       {emp.username && (
                         <span className="flex items-center gap-1">
                           <Mail className="h-3 w-3" />

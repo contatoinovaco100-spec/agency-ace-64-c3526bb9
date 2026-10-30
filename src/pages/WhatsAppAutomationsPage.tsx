@@ -53,6 +53,7 @@ const emptyDraft = (trigger: TriggerKey): Partial<Automation> => ({
   days_of_week: [1, 2, 3, 4, 5], send_time: '10:00',
   params: Object.fromEntries(TRIGGERS[trigger].params.map((p) => [p.key, p.default])),
   audience: TRIGGERS[trigger].audience === 'team' ? { type: 'team', to: '' } : { type: 'all' },
+  ...(TRIGGERS[trigger].schedule === 'event' ? { days_of_week: [0, 1, 2, 3, 4, 5, 6] } : {}),
   destination: 'group_then_phone', scheduled_at: null,
 });
 
@@ -94,6 +95,12 @@ export default function WhatsAppAutomationsPage() {
   }, [logs]);
 
   const toggle = async (a: Automation, enabled: boolean) => {
+    // Automação de grupo da equipe sem grupo escolhido: abre o editor em vez de ligar
+    if (enabled && TRIGGERS[a.trigger].audience === 'team' && !a.audience?.to) {
+      toast.info('Escolha o grupo da equipe antes de ligar');
+      setEditing({ ...a, enabled: true });
+      return;
+    }
     setItems((list) => list?.map((x) => (x.id === a.id ? { ...x, enabled } : x)) ?? null);
     const { error } = await supabase.from(AUTOMATIONS).update({ enabled, updated_at: new Date().toISOString() } as never).eq('id', a.id);
     if (error) { toast.error('Não foi possível salvar'); load(); return; }
@@ -147,7 +154,7 @@ export default function WhatsAppAutomationsPage() {
         <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
       ) : tab === 'automacoes' ? (
         <div className="space-y-6">
-          {(['Cliente', 'Financeiro', 'Produção', 'Equipe'] as const).map((group) => {
+          {(['Cliente', 'Financeiro', 'Produção', 'Equipe', 'Comercial'] as const).map((group) => {
             const list = automations.filter((a) => TRIGGERS[a.trigger]?.group === group);
             if (!list.length) return null;
             return (
@@ -160,7 +167,7 @@ export default function WhatsAppAutomationsPage() {
                         <p className="font-medium">{a.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {scheduleLabel(a)}
-                          {TRIGGERS[a.trigger].audience === 'team' ? ' · grupo da equipe' : ` · ${a.audience?.type === 'clients' ? `${a.audience.client_ids?.length ?? 0} clientes` : 'todos os clientes ativos'}`}
+                          {TRIGGERS[a.trigger].audience === 'team' ? ' · grupo da equipe' : TRIGGERS[a.trigger].audience === 'people' ? ' · WhatsApp de cada responsável' : ` · ${a.audience?.type === 'clients' ? `${a.audience.client_ids?.length ?? 0} clientes` : 'todos os clientes ativos'}`}
                           {sentCount[a.id] ? ` · ${sentCount[a.id]} enviadas em 30 dias` : ''}
                         </p>
                       </div>
@@ -372,7 +379,7 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
               {meta.params.map((p) => (
                 <Field key={p.key} label={p.label}>
                   <div className="flex items-center gap-2">
-                    <Input type="number" min={p.key === 'days_before' ? 0 : 1} max={p.key === 'day_of_month' ? 28 : 60} className="w-24"
+                    <Input type="number" min={p.key === 'days_before' || p.key.endsWith('_hour') ? 0 : 1} max={p.key === 'day_of_month' ? 28 : p.key.endsWith('_hour') ? 24 : 60} className="w-24"
                       value={d.params?.[p.key] ?? p.default}
                       onChange={(e) => set({ params: { ...d.params, [p.key]: e.target.value === '' ? p.default : Math.max(0, Number(e.target.value)) } })} />
                     <span className="text-sm text-muted-foreground">{p.suffix}</span>
@@ -390,7 +397,7 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
             </Field>
           ) : (
             <div className="space-y-2">
-              {meta.schedule === 'weekly' && (
+              {(meta.schedule === 'weekly' || meta.schedule === 'event') && (
                 <Field label="Dias">
                   <div className="flex flex-wrap gap-1.5">
                     {WEEKDAYS.map((w, i) => {
@@ -406,14 +413,18 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
                   </div>
                 </Field>
               )}
-              <Field label="Horário (Brasília)">
+              {meta.schedule !== 'event' && <Field label="Horário (Brasília)">
                 <Input type="time" className="w-32" value={d.send_time?.slice(0, 5) ?? '10:00'} onChange={(e) => set({ send_time: e.target.value })} />
-              </Field>
+              </Field>}
             </div>
           )}
 
           {/* Para quem */}
-          {meta.audience === 'team' ? (
+          {meta.audience === 'people' ? (
+            <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+              Vai para o WhatsApp de cada pessoa responsável. Cadastre o número de cada um em <strong>Equipe → Funcionários</strong>.
+            </p>
+          ) : meta.audience === 'team' ? (
             <Field label="Enviar para (grupo ou número da equipe)">
               {groups && groups.length > 0 ? (
                 <Select value={d.audience?.to ?? ''} onValueChange={(v) => set({ audience: { type: 'team', to: v, to_name: groups.find((g) => g.id === v)?.name } })}>
@@ -463,7 +474,7 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
             <Textarea ref={textRef} value={d.template ?? ''} onChange={(e) => set({ template: e.target.value })}
               className="min-h-[180px] font-mono text-[13px] leading-relaxed" placeholder="Escreva a mensagem. Use *negrito* e as variáveis abaixo." />
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {[...(meta.audience === 'team' ? [] : CLIENT_VARS), ...meta.vars].map((v) => (
+              {[...(meta.audience === 'client' ? CLIENT_VARS : []), ...meta.vars].map((v) => (
                 <button key={v.key} type="button" onClick={() => insertVar(v.key)} title={v.label}
                   className="rounded-full border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-foreground">
                   {`{${v.key}}`}

@@ -1,7 +1,11 @@
 /** Catálogo dos gatilhos das Automações do WhatsApp: rótulos, parâmetros e variáveis de cada um. */
 export type TriggerKey =
   | 'approval_pending' | 'monthly_report' | 'invoice_due_soon' | 'invoice_due_today' | 'invoice_overdue'
-  | 'shooting_tomorrow' | 'post_today' | 'team_daily_summary' | 'manual';
+  | 'shooting_tomorrow' | 'post_today' | 'team_daily_summary' | 'manual'
+  | 'welcome_contract' | 'onboarding_stalled' | 'change_received' | 'approved_ack' | 'partnership_anniversary' | 'satisfaction_survey'
+  | 'payment_confirmed' | 'invoice_created' | 'contract_ending' | 'post_published' | 'next_week'
+  | 'task_assigned' | 'deadline_tomorrow' | 'client_at_risk' | 'instagram_disconnected' | 'sale_closed' | 'lead_stalled'
+  | 'script_missing' | 'change_request_team' | 'shooting_team';
 
 export type Automation = {
   id: string; name: string; description: string; trigger: TriggerKey; enabled: boolean; template: string;
@@ -27,9 +31,12 @@ export const CLIENT_VARS = [
 ];
 
 export const TRIGGERS: Record<TriggerKey, {
-  label: string; group: 'Cliente' | 'Financeiro' | 'Produção' | 'Equipe' | 'Disparo';
+  label: string; group: 'Cliente' | 'Financeiro' | 'Produção' | 'Equipe' | 'Comercial' | 'Disparo';
   description: string; params: Param[]; vars: { key: string; label: string; sample: string }[];
-  audience: 'client' | 'team'; schedule: 'weekly' | 'monthly' | 'once';
+  /** client = cliente; team = grupo/número da equipe; people = WhatsApp de cada pessoa responsável */
+  audience: 'client' | 'team' | 'people';
+  /** event = assim que acontece (conferido a cada 15 min, dentro da janela de horário) */
+  schedule: 'weekly' | 'monthly' | 'once' | 'event';
 }> = {
   approval_pending: {
     label: 'Aprovação pendente', group: 'Cliente', audience: 'client', schedule: 'weekly',
@@ -101,6 +108,126 @@ export const TRIGGERS: Record<TriggerKey, {
       { key: 'link_meu_dia', label: 'Link do Meu dia', sample: 'https://inovamarketing.online/meu-dia' },
     ],
   },
+  welcome_contract: {
+    label: 'Boas-vindas (contrato assinado)', group: 'Cliente', audience: 'client', schedule: 'event',
+    description: 'Assim que o cliente assina o contrato.', params: [{ key: 'start_hour', label: 'Enviar a partir das', suffix: 'h', default: 8 }, { key: 'end_hour', label: 'Até as', suffix: 'h', default: 20 }], vars: [],
+  },
+  onboarding_stalled: {
+    label: 'Onboarding parado', group: 'Cliente', audience: 'client', schedule: 'weekly',
+    description: 'Onboarding sem avanço há alguns dias (inclui materiais pendentes), com o link para continuar.',
+    params: [{ key: 'days_after', label: 'Parado há pelo menos', suffix: 'dias', default: 3 }, { key: 'gap_days', label: 'Intervalo entre lembretes', suffix: 'dias', default: 3 }],
+    vars: [{ key: 'link_onboarding', label: 'Link do onboarding', sample: 'https://inovamarketing.online/bem-vindo/…' }],
+  },
+  change_received: {
+    label: 'Pedido de ajuste recebido', group: 'Cliente', audience: 'client', schedule: 'event',
+    description: 'Confirma para o cliente que o pedido de ajuste chegou.', params: [{ key: 'start_hour', label: 'Enviar a partir das', suffix: 'h', default: 8 }, { key: 'end_hour', label: 'Até as', suffix: 'h', default: 20 }],
+    vars: [{ key: 'titulo', label: 'Conteúdo', sample: 'Dicas de verão' }, { key: 'pedido', label: 'O que ele pediu', sample: 'trocar a música' }],
+  },
+  approved_ack: {
+    label: 'Conteúdo aprovado', group: 'Cliente', audience: 'client', schedule: 'event',
+    description: 'Agradece a aprovação e diz quando vai ao ar.', params: [{ key: 'start_hour', label: 'Enviar a partir das', suffix: 'h', default: 8 }, { key: 'end_hour', label: 'Até as', suffix: 'h', default: 20 }],
+    vars: [{ key: 'titulo', label: 'Conteúdo', sample: 'Dicas de verão' }, { key: 'data_post', label: 'Data e hora do post', sample: '05/11/2026 às 18:00' }],
+  },
+  partnership_anniversary: {
+    label: 'Aniversário de parceria', group: 'Cliente', audience: 'client', schedule: 'weekly',
+    description: '6 meses e cada ano desde o início do contrato.', params: [],
+    vars: [{ key: 'tempo', label: '6 meses / 1 ano…', sample: '1 ano' }],
+  },
+  satisfaction_survey: {
+    label: 'Pesquisa de satisfação', group: 'Cliente', audience: 'client', schedule: 'monthly',
+    description: 'Pergunta mensal de 0 a 10 (a resposta chega no WhatsApp).',
+    params: [{ key: 'day_of_month', label: 'Dia do mês', suffix: '', default: 25 }],
+    vars: [{ key: 'mes', label: 'Mês', sample: 'novembro' }],
+  },
+  payment_confirmed: {
+    label: 'Pagamento confirmado', group: 'Financeiro', audience: 'client', schedule: 'event',
+    description: 'Quando a fatura é marcada como paga.', params: [{ key: 'start_hour', label: 'Enviar a partir das', suffix: 'h', default: 8 }, { key: 'end_hour', label: 'Até as', suffix: 'h', default: 20 }],
+    vars: [{ key: 'descricao', label: 'Descrição', sample: 'Mensalidade novembro' }, { key: 'valor', label: 'Valor', sample: 'R$ 1.500,00' }],
+  },
+  invoice_created: {
+    label: 'Fatura nova', group: 'Financeiro', audience: 'client', schedule: 'event',
+    description: 'Quando uma fatura nova é gerada para o cliente.', params: [{ key: 'start_hour', label: 'Enviar a partir das', suffix: 'h', default: 8 }, { key: 'end_hour', label: 'Até as', suffix: 'h', default: 20 }],
+    vars: [
+      { key: 'descricao', label: 'Descrição', sample: 'Mensalidade novembro' }, { key: 'valor', label: 'Valor', sample: 'R$ 1.500,00' },
+      { key: 'vencimento', label: 'Vencimento', sample: '10/11/2026' }, { key: 'link_fatura', label: 'Link da fatura', sample: 'https://inovamarketing.online/fatura/…' },
+    ],
+  },
+  contract_ending: {
+    label: 'Contrato perto do fim', group: 'Financeiro', audience: 'client', schedule: 'weekly',
+    description: 'Alguns dias antes do fim do contrato, para falar de renovação.',
+    params: [{ key: 'days_before', label: 'Avisar', suffix: 'dias antes', default: 30 }],
+    vars: [{ key: 'fim_contrato', label: 'Fim do contrato', sample: '30/11/2026' }],
+  },
+  post_published: {
+    label: 'Post publicado', group: 'Produção', audience: 'client', schedule: 'event',
+    description: 'Quando um post agendado pela plataforma vai ao ar.', params: [{ key: 'start_hour', label: 'Enviar a partir das', suffix: 'h', default: 8 }, { key: 'end_hour', label: 'Até as', suffix: 'h', default: 20 }],
+    vars: [{ key: 'link_post', label: 'Link do post', sample: 'https://instagram.com/p/…' }],
+  },
+  next_week: {
+    label: 'O que vai ao ar na próxima semana', group: 'Produção', audience: 'client', schedule: 'weekly',
+    description: 'Lista dos posts de segunda a domingo da semana seguinte.', params: [],
+    vars: [{ key: 'qtd', label: 'Quantidade', sample: '4' }, { key: 'lista_conteudos', label: 'Lista com datas', sample: '• 03/11 — Dicas de verão' }],
+  },
+  task_assigned: {
+    label: 'Tarefa nova para você', group: 'Equipe', audience: 'people', schedule: 'event',
+    description: 'Avisa cada pessoa marcada numa tarefa nova do kanban.', params: [{ key: 'start_hour', label: 'Enviar a partir das', suffix: 'h', default: 8 }, { key: 'end_hour', label: 'Até as', suffix: 'h', default: 20 }],
+    vars: [
+      { key: 'pessoa', label: 'Nome da pessoa', sample: 'Lucas' }, { key: 'titulo', label: 'Tarefa', sample: 'Vídeo de verão' },
+      { key: 'cliente', label: 'Cliente', sample: 'Padaria Exemplo' }, { key: 'prazo', label: 'Prazo', sample: '05/11/2026' },
+      { key: 'link_tarefa', label: 'Link da tarefa', sample: 'https://inovamarketing.online/tarefas?taskId=…' },
+    ],
+  },
+  deadline_tomorrow: {
+    label: 'Prazo vencendo', group: 'Equipe', audience: 'people', schedule: 'weekly',
+    description: 'Tarefas com entrega próxima que ainda não estão prontas, para cada responsável.',
+    params: [{ key: 'days_before', label: 'Avisar', suffix: 'dias antes da entrega', default: 1 }],
+    vars: [
+      { key: 'pessoa', label: 'Nome da pessoa', sample: 'Lucas' }, { key: 'qtd', label: 'Quantidade', sample: '2' },
+      { key: 'data', label: 'Data da entrega', sample: '31/10/2026' }, { key: 'lista_tarefas', label: 'Lista de tarefas', sample: '• Vídeo de verão (Padaria) — Em edição' },
+    ],
+  },
+  script_missing: {
+    label: 'Roteiro pendente', group: 'Equipe', audience: 'people', schedule: 'weekly',
+    description: 'Vídeo na fila de gravação (ou com gravação próxima) sem roteiro, para o copywriter.',
+    params: [{ key: 'days_before', label: 'Gravações nos próximos', suffix: 'dias', default: 3 }],
+    vars: [{ key: 'pessoa', label: 'Nome da pessoa', sample: 'Lucas' }, { key: 'qtd', label: 'Quantidade', sample: '2' }, { key: 'lista_tarefas', label: 'Lista', sample: '• Vídeo de verão (Padaria)' }],
+  },
+  change_request_team: {
+    label: 'Cliente pediu ajuste (equipe)', group: 'Equipe', audience: 'people', schedule: 'event',
+    description: 'Avisa quem está marcado na tarefa, com o pedido do cliente.', params: [{ key: 'start_hour', label: 'Enviar a partir das', suffix: 'h', default: 8 }, { key: 'end_hour', label: 'Até as', suffix: 'h', default: 20 }],
+    vars: [
+      { key: 'pessoa', label: 'Nome da pessoa', sample: 'Lucas' }, { key: 'cliente', label: 'Cliente', sample: 'Padaria Exemplo' },
+      { key: 'titulo', label: 'Conteúdo', sample: 'Dicas de verão' }, { key: 'pedido', label: 'Pedido', sample: 'trocar a música' },
+      { key: 'link_tarefa', label: 'Link da tarefa', sample: 'https://inovamarketing.online/tarefas?taskId=…' },
+    ],
+  },
+  shooting_team: {
+    label: 'Gravações do dia seguinte (equipe)', group: 'Equipe', audience: 'team', schedule: 'weekly',
+    description: 'Agenda de gravações do dia seguinte no grupo da equipe.',
+    params: [{ key: 'days_before', label: 'Gravações daqui a', suffix: 'dias (0 = hoje)', default: 1 }],
+    vars: [{ key: 'data', label: 'Data', sample: '31/10/2026' }, { key: 'qtd', label: 'Quantidade', sample: '3' }, { key: 'lista_gravacoes', label: 'Lista com horários', sample: '• 14:00 — Captação Padaria (Centro)' }],
+  },
+  client_at_risk: {
+    label: 'Clientes em risco', group: 'Equipe', audience: 'team', schedule: 'weekly',
+    description: 'Clientes com 3+ posts atrasados ou fatura vencida há mais de 10 dias.', params: [],
+    vars: [{ key: 'qtd', label: 'Quantidade', sample: '2' }, { key: 'lista_clientes', label: 'Lista', sample: '• Padaria — 4 posts atrasados' }, { key: 'link_clientes', label: 'Link de Clientes', sample: 'https://inovamarketing.online/clientes' }],
+  },
+  instagram_disconnected: {
+    label: 'Instagram desconectado', group: 'Equipe', audience: 'team', schedule: 'event',
+    description: 'Contas do Instagram que perderam o acesso.', params: [{ key: 'start_hour', label: 'Enviar a partir das', suffix: 'h', default: 8 }, { key: 'end_hour', label: 'Até as', suffix: 'h', default: 20 }],
+    vars: [{ key: 'qtd', label: 'Quantidade', sample: '1' }, { key: 'lista_contas', label: 'Contas', sample: '• @padariaexemplo' }, { key: 'link_redes', label: 'Link de Redes Sociais', sample: 'https://inovamarketing.online/redes-sociais' }],
+  },
+  sale_closed: {
+    label: 'Venda fechada 🎉', group: 'Comercial', audience: 'team', schedule: 'event',
+    description: 'Contrato assinado: comemora no grupo da equipe.', params: [{ key: 'start_hour', label: 'Enviar a partir das', suffix: 'h', default: 8 }, { key: 'end_hour', label: 'Até as', suffix: 'h', default: 20 }],
+    vars: [{ key: 'empresa', label: 'Empresa', sample: 'Padaria Exemplo' }, { key: 'valor', label: 'Valor mensal', sample: 'R$ 1.500,00' }, { key: 'plano', label: 'Plano', sample: 'Social Media' }],
+  },
+  lead_stalled: {
+    label: 'Lead parado', group: 'Comercial', audience: 'people', schedule: 'weekly',
+    description: 'Leads sem contato há alguns dias, para o vendedor responsável.',
+    params: [{ key: 'days_after', label: 'Sem contato há', suffix: 'dias', default: 3 }],
+    vars: [{ key: 'pessoa', label: 'Nome do vendedor', sample: 'Lucas' }, { key: 'qtd', label: 'Quantidade', sample: '5' }, { key: 'lista_leads', label: 'Lista', sample: '• Padaria Exemplo — Proposta enviada' }, { key: 'link_crm', label: 'Link do CRM', sample: 'https://inovamarketing.online/crm' }],
+  },
   manual: {
     label: 'Disparo manual', group: 'Disparo', audience: 'client', schedule: 'once',
     description: 'Mensagem única para os clientes escolhidos, na data e hora marcadas.', params: [], vars: [],
@@ -114,6 +241,7 @@ export function scheduleLabel(a: Pick<Automation, 'trigger' | 'days_of_week' | '
   const t = TRIGGERS[a.trigger];
   if (t.schedule === 'once') return a.scheduled_at ? new Date(a.scheduled_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Sem data';
   if (t.schedule === 'monthly') return `Todo dia ${a.params?.day_of_month ?? 1} · ${time}`;
+  if (t.schedule === 'event') return `Na hora · ${a.params?.start_hour ?? 8}h às ${a.params?.end_hour ?? 20}h`;
   const d = [...(a.days_of_week ?? [])].sort();
   const days = d.length === 7 ? 'Todos os dias' : d.join() === '1,2,3,4,5' ? 'Seg a sex' : d.map((i) => WEEKDAYS[i]).join(', ');
   return `${days} · ${time}`;
