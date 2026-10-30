@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,25 +40,104 @@ interface Lead {
   status: 'novo' | 'contatado' | 'interessado' | 'fechado';
 }
 
+/** Prospecção manual salva no banco: empresas sem campanha na tabela prospects */
+const MANUAL = 'prospects' as never;
+type ManualRow = {
+  id: string; name: string; phone: string | null; address: string; category: string; rating: number | null;
+  website: string; instagram: string; message: string; status: string;
+};
+
+/** Só dígitos, com 55; vazio quando não é um telefone */
+const onlyPhone = (raw: string | null | undefined) => {
+  const d = String(raw ?? '').replace(/\D/g, '');
+  if (d.length < 10) return null;
+  return d.length <= 11 ? `55${d}` : d;
+};
+
+const MANUAL_STATUS = ['novo', 'contatado', 'interessado', 'fechado'];
+
+const toRow = (l: Lead) => ({
+  id: l.id, campaign_id: null, name: l.name, phone: onlyPhone(l.phone), address: l.address || '', category: l.category || '',
+  rating: l.rating || null, website: l.website || '', instagram: l.instagram || '', message: l.aiMessage || '', status: l.status,
+});
+
+const fromRow = (r: ManualRow): Lead => ({
+  id: r.id, name: r.name, address: r.address, phone: r.phone ?? '', rating: Number(r.rating) || 0, website: r.website,
+  instagram: r.instagram, category: r.category, aiMessage: r.message, isGenerating: false,
+  status: (MANUAL_STATUS.includes(r.status) ? r.status : 'novo') as Lead['status'],
+});
+
 export default function ProspectionPage() {
   const [searchNiche, setSearchNiche] = useState('');
   const [searchCity, setSearchCity] = useState('');
   const [searching, setSearching] = useState(false);
-  const [leads, setLeads] = useState<Lead[]>(() => {
-    const saved = localStorage.getItem('prospection_leads');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return [];
-      }
-    }
-    return [];
-  });
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leadsLoaded, setLeadsLoaded] = useState(false);
+  /** Última versão salva de cada empresa (para salvar só o que mudou) */
+  const saved = useRef(new Map<string, string>());
 
+  // Lista salva no banco (prospects sem campanha); na primeira vez, traz o que estava só neste navegador
   useEffect(() => {
-    localStorage.setItem('prospection_leads', JSON.stringify(leads));
-  }, [leads]);
+    (async () => {
+      const { data, error } = await supabase.from(MANUAL).select('*').is('campaign_id', null).order('created_at');
+      if (error) { toast.error('Não foi possível carregar a lista salva', { description: error.message }); return; }
+      let rows = (data ?? []) as unknown as ManualRow[];
+
+      let local: Lead[] = [];
+      try { local = JSON.parse(localStorage.getItem('prospection_leads') || '[]'); } catch { /* lista local inválida */ }
+      if (local.length) {
+        const { data: u } = await supabase.auth.getUser();
+        const known = new Set(rows.map((r) => r.phone).filter(Boolean));
+        const fresh = local.filter((l) => { const ph = onlyPhone(l.phone); if (ph && known.has(ph)) return false; if (ph) known.add(ph); return true; });
+        const imported: ManualRow[] = [];
+        for (const l of fresh) {
+          const { data: row } = await supabase.from(MANUAL).insert({ ...toRow(l), created_by: u.user?.id ?? null } as never).select('*').single();
+          if (row) imported.push(row as unknown as ManualRow);
+        }
+        rows = [...rows, ...imported];
+        // Só limpa o navegador se tudo foi salvo (os repetidos já estavam no banco)
+        if (imported.length === fresh.length) localStorage.removeItem('prospection_leads');
+        if (imported.length) toast.success(`${imported.length} leads da sua lista foram salvos no banco`);
+      }
+      const list = rows.map(fromRow);
+      saved.current = new Map(list.map((l) => [l.id, JSON.stringify(toRow(l))]));
+      setLeads(list);
+      setLeadsLoaded(true);
+    })();
+  }, []);
+
+  // Salva no banco o que mudou (adicionou, editou, status, mensagem) e apaga o que foi excluído
+  useEffect(() => {
+    if (!leadsLoaded) return;
+    const t = setTimeout(async () => {
+      const ids = new Set(leads.map((l) => l.id));
+      const removed = [...saved.current.keys()].filter((id) => !ids.has(id));
+      if (removed.length) {
+        await supabase.from(MANUAL).delete().in('id', removed);
+        removed.forEach((id) => saved.current.delete(id));
+      }
+      const duplicates: Lead[] = [];
+      for (const l of leads) {
+        if (l.isGenerating) continue;
+        const row = toRow(l), json = JSON.stringify(row);
+        if (saved.current.get(l.id) === json) continue;
+        const isNew = !saved.current.has(l.id);
+        const { data: u } = isNew ? await supabase.auth.getUser() : { data: null };
+        const { error } = isNew
+          ? await supabase.from(MANUAL).insert({ ...row, created_by: u?.user?.id ?? null } as never)
+          : await supabase.from(MANUAL).update({ ...row, updated_at: new Date().toISOString() } as never).eq('id', l.id);
+        if (error?.code === '23505') { duplicates.push(l); continue; }
+        if (error) { toast.error(`Não foi possível salvar ${l.name}`, { description: error.message }); continue; }
+        saved.current.set(l.id, json);
+      }
+      if (duplicates.length) {
+        // Telefone que já está na prospecção (manual ou automática): não entra de novo
+        setLeads((prev) => prev.filter((l) => !duplicates.some((d) => d.id === l.id)));
+        toast.info(`${duplicates.length} já estava${duplicates.length > 1 ? 'm' : ''} na prospecção`, { description: duplicates.slice(0, 5).map((d) => d.name).join(', ') });
+      }
+    }, 600);
+    return () => clearTimeout(t);
+  }, [leads, leadsLoaded]);
   
   // Persistência local
   const [agencyName, setAgencyName] = useState(() => localStorage.getItem('prospection_agency_name') || 'Inova Lab');

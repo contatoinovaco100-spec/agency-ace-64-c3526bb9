@@ -71,7 +71,7 @@ export function ProspectCampaigns() {
   const load = useCallback(async () => {
     const [{ data: c, error }, { data: p }, { data: n }] = await Promise.all([
       supabase.from(CAMPAIGNS).select('*').order('created_at'),
-      supabase.from(PROSPECTS).select('*').order('created_at', { ascending: false }).limit(2000),
+      supabase.from(PROSPECTS).select('*').not('campaign_id', 'is', null).order('created_at', { ascending: false }).limit(2000),
       supabase.from('wa_numbers' as never).select('id, name, is_default').order('name'),
     ]);
     setMissing(!!error);
