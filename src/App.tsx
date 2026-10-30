@@ -354,12 +354,12 @@ function QuizOnlyRoutes() {
 
 // Páginas vistas por clientes e visitantes: mantêm a identidade escura, seja qual for o tema da equipe (exceto as claras abaixo)
 const PUBLIC_DARK_PATHS = [
-  '/portal', '/bem-vindo', '/contrato', '/vitrine', '/links', '/briefing', '/fatura', '/proposta',
+  '/bem-vindo', '/contrato', '/vitrine', '/links', '/briefing', '/fatura', '/proposta',
   '/diagnostico', '/diagnostico-anuncios', '/diagnostico-social', '/negocios', '/rede', '/indicacoes',
   '/indicar', '/afiliados/cadastro', '/in', '/quiz', '/painel-artes', '/lp', '/roleta', '/teleprompter',
 ];
 // Páginas públicas no tema claro (aprovação de conteúdo do cliente)
-const PUBLIC_LIGHT_PATHS = ['/conteudo', '/relatorio'];
+const PUBLIC_LIGHT_PATHS = ['/conteudo', '/relatorio', '/portal'];
 // Mantenha em sincronia com o script de tema do index.html
 const isPublicLightPath = (pathname: string) =>
   PUBLIC_LIGHT_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`));

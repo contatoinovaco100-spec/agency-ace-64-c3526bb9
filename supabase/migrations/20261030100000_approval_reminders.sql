@@ -64,3 +64,21 @@ SELECT cron.schedule(
   );
   $$
 );
+
+-- Portal do cliente (/portal/:clientId): faturas do cliente (o vínculo das faturas é pelo nome da empresa)
+CREATE OR REPLACE FUNCTION public.get_public_client_invoices(_client_id uuid)
+RETURNS TABLE (id uuid, description text, amount numeric, due_date date, status text, paid_at timestamptz)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $function$
+  SELECT i.id, i.description, i.amount, i.due_date, i.status, i.paid_at
+  FROM public.invoices i
+  JOIN public.clients c ON lower(trim(c.company_name)) = lower(trim(i.client_name))
+  WHERE c.id = _client_id AND c.deleted_at IS NULL
+  ORDER BY i.due_date DESC NULLS LAST
+  LIMIT 12;
+$function$;
+
+GRANT EXECUTE ON FUNCTION public.get_public_client_invoices(uuid) TO anon, authenticated;

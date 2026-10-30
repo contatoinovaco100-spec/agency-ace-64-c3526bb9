@@ -1,330 +1,154 @@
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { BarChart3, CalendarDays, CheckCircle2, ChevronRight, Loader2, Receipt } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Calendar, Tag, Target, Video, CheckCircle2, VideoIcon, Eye, ArrowRight, UserCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Loader2 } from 'lucide-react';
+import { fetchClientReviews, type ClientReview } from '@/lib/clientApprovals';
 import { useSeo } from '@/lib/seo';
-import { PAGE_THUMBS } from '@/lib/pageThumbs';
+import logoInova from '@/assets/logo-inova.png';
+import { cn } from '@/lib/utils';
 
-interface EditorialLine {
-  niche: string;
-  audience: string;
-  tone: string;
-  objective: string;
-  pillars: string[];
-}
+/**
+ * Portal do cliente (/portal/:clientId): o único link que o cliente precisa guardar.
+ * Reúne aprovações pendentes, relatório do mês, calendário dos próximos dias e faturas.
+ */
+type Task = { id: string; title: string; video_name: string; task_type: string | null; status: string; post_date: string | null; post_time?: string | null; client_id: string };
+type Invoice = { id: string; description: string; amount: number; due_date: string | null; status: string; paid_at: string | null };
 
-interface ContentIdea {
-  id: string;
-  title: string;
-  content_type: string;
-  pillar: string;
-  objective: string;
-  status: string;
-  scheduled_date: string;
-  script?: ContentScript;
-}
-
-interface ContentScript {
-  hook: string;
-  development: string;
-  cta: string;
-  observations: string;
-}
+const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const titleOf = (t: Task) => ((t.task_type === 'Arte' ? t.title : t.video_name || t.title) || 'Sem título').replace(/^(vídeo|video|arte)\s*\d*\s*\|\s*/i, '');
+const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const AWAITING = /revis|finalizado/i;
 
 export default function ClientPortalPage() {
-  useSeo({
-    title: 'Portal do Cliente — INOVA Co.',
-    description: 'Acompanhe seus conteúdos, entregas e cronograma com a INOVA Co.',
-    image: PAGE_THUMBS.conteudo,
-    noindex: true,
-  });
-  const { clientId } = useParams<{ clientId: string }>();
-  
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [clientName, setClientName] = useState('Seu Cliente');
-  
-  const [editorialLine, setEditorialLine] = useState<EditorialLine | null>(null);
-  const [scheduledIdeas, setScheduledIdeas] = useState<ContentIdea[]>([]);
+  useSeo({ title: 'Portal do cliente — INOVA Co.', description: 'Aprovações, relatório, calendário e faturas da sua marca.', noindex: true });
+  const { clientId = '' } = useParams();
+  const [tasks, setTasks] = useState<Task[] | null>(null);
+  const [name, setName] = useState('');
+  const [reviews, setReviews] = useState<Record<string, ClientReview>>({});
+  const [invoices, setInvoices] = useState<Invoice[] | null>(null);
 
   useEffect(() => {
-    async function fetchPortalData() {
-      if (!clientId) return;
-      try {
-        setLoading(true);
-        
-        // 1. Fetch Client Name
-        const { data: clientData, error: clientError } = await supabase
-          .from('clients')
-          .select('company_name')
-          .eq('id', clientId)
-          .maybeSingle();
-          
-        if (clientData) setClientName(clientData.company_name);
-
-        // 2. Fetch Editorial Line
-        const { data: editorialData } = await supabase
-          .from('content_editorial_lines')
-          .select('*')
-          .eq('client_id', clientId)
-          .maybeSingle();
-          
-        if (editorialData) {
-          setEditorialLine(editorialData);
-        }
-
-        // 3. Fetch Scheduled Ideas and corresponding Scripts
-        const { data: ideasData } = await supabase
-          .from('content_ideas')
-          .select('*')
-          .eq('client_id', clientId)
-          .not('status', 'eq', 'Postado')
-          .order('scheduled_date', { ascending: true });
-          
-        if (ideasData && ideasData.length > 0) {
-          const scheduled = ideasData.filter(i => i.scheduled_date !== null);
-          
-          if (scheduled.length > 0) {
-            const ideaIds = scheduled.map(i => i.id);
-            const { data: scriptsData } = await supabase
-              .from('content_scripts')
-              .select('*')
-              .in('idea_id', ideaIds);
-              
-            const completeIdeas = scheduled.map(idea => {
-              const script = scriptsData?.find(s => s.idea_id === idea.id);
-              return { ...idea, script } as ContentIdea;
-            });
-            
-            setScheduledIdeas(completeIdeas);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching portal data:', err);
-        setError('Ocorreu um erro ao carregar o portal. Verifique o link e tente novamente.');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchPortalData();
+    (async () => {
+      const { data } = await (supabase as any).rpc('get_public_client_tasks', { _anchor: clientId });
+      const list = (data ?? []) as Task[];
+      setTasks(list);
+      const { data: n } = await (supabase as any).rpc('get_public_client_name', { _id: list[0]?.client_id ?? clientId });
+      if (n) setName(n as string);
+      setReviews(await fetchClientReviews(list.map((t) => t.id)));
+    })();
+    // Faturas: a função pode ainda não existir no banco (aí o bloco não aparece)
+    (supabase as any).rpc('get_public_client_invoices', { _client_id: clientId })
+      .then(({ data, error }: { data: Invoice[] | null; error: unknown }) => setInvoices(error ? null : data ?? []));
   }, [clientId]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
-        <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-        <h2 className="text-xl font-medium text-white">Carregando Dashboard...</h2>
-        <p className="text-muted-foreground mt-2">Buscando as estratégias aprovadas</p>
-      </div>
-    );
-  }
+  const view = useMemo(() => {
+    if (!tasks) return null;
+    const today = isoDay(new Date());
+    const in14 = isoDay(new Date(Date.now() + 14 * 86_400_000));
+    return {
+      toApprove: tasks.filter((t) => AWAITING.test(t.status) && !reviews[t.id]?.approved && !reviews[t.id]?.changeRequested).length,
+      upcoming: tasks.filter((t) => t.post_date && t.post_date >= today && t.post_date <= in14 && !/^ideia|backlog/i.test(t.status))
+        .sort((a, b) => (a.post_date! + (a.post_time ?? '')).localeCompare(b.post_date! + (b.post_time ?? ''))),
+    };
+  }, [tasks, reviews]);
 
-  if (error || !clientName) {
-    return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 text-center">
-        <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
-          <Eye className="w-8 h-8 text-red-500" />
-        </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Portal Indisponível</h2>
-        <p className="text-muted-foreground max-w-md">{error || "Cliente não encontrado ou portal não configurado."}</p>
-      </div>
-    );
-  }
+  if (!tasks) return <div className="flex min-h-[100dvh] items-center justify-center bg-background"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  if (!tasks.length) return (
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-background px-6 text-center">
+      <img src={logoInova} alt="INOVA Co." className="h-10 brightness-0 dark:brightness-100" />
+      <p className="font-display text-xl font-semibold">Portal não encontrado</p>
+      <p className="text-sm text-muted-foreground">Confira o link ou fale com a equipe da INOVA.</p>
+    </div>
+  );
 
+  const v = view!;
+  const openInvoices = (invoices ?? []).filter((i) => i.status !== 'pago');
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-300 pb-20 selection:bg-primary/30">
-      
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-black/50 border-b border-white/5 py-12 sm:py-20">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 relative z-10 flex flex-col items-center text-center">
-          <Badge className="bg-primary/10 text-primary border-primary/20 mb-6 hover:bg-primary/20 px-3 py-1 text-xs">
-            PORTAL DO CLIENTE
-          </Badge>
-          <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
-            Estratégia de Conteúdo <br className="hidden sm:block"/>
-            <span className="text-primary">{clientName}</span>
-          </h1>
-          <p className="max-w-2xl text-base sm:text-lg text-muted-foreground">
-            Acompanhe o planejamento completo da sua marca, desde a estrutura da linha editorial até os roteiros finais dos vídeos que gravaremos para suas redes.
-          </p>
+    <div className="min-h-[100dvh] bg-background text-foreground">
+      <div className="border-b">
+        <div className="mx-auto flex h-14 max-w-2xl items-center px-4">
+          <img src={logoInova} alt="INOVA Co." className="h-8 brightness-0 dark:brightness-100" />
         </div>
       </div>
+      <main className="mx-auto max-w-2xl space-y-6 px-4 pb-16 pt-8">
+        <header className="space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">Portal do cliente</p>
+          <h1 className="font-display text-[28px] font-semibold leading-tight tracking-tight sm:text-[32px]">{name || 'Sua marca'}</h1>
+          <p className="text-sm text-muted-foreground">Tudo da sua marca com a INOVA em um só lugar. Salve este link.</p>
+        </header>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-12 space-y-16">
-        
-        {/* Editorial Line Section */}
-        {editorialLine && (
-          <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center">
-                <Target className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white">Linha Editorial</h2>
-                <p className="text-sm text-muted-foreground">O mapa da mina da nossa comunicação</p>
-              </div>
-            </div>
+        {/* Ação principal: o que depende do cliente agora */}
+        <Link to={`/conteudo/${clientId}`}
+          className={cn('flex items-center gap-4 rounded-xl border p-5 transition-colors',
+            v.toApprove ? 'border-brand bg-brand/15 hover:bg-brand/20' : 'bg-card hover:bg-foreground/[0.03]')}>
+          <CheckCircle2 className={cn('h-6 w-6 shrink-0', v.toApprove ? 'text-primary' : 'text-muted-foreground')} />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">{v.toApprove ? `${v.toApprove} ${v.toApprove === 1 ? 'conteúdo esperando' : 'conteúdos esperando'} sua aprovação` : 'Nada para aprovar agora'}</p>
+            <p className="text-sm text-muted-foreground">Veja os vídeos e artes, aprove ou peça ajuste.</p>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+        </Link>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="bg-zinc-950/50 border-white/5 hover:border-white/10 transition-colors">
-                <CardHeader className="p-5 pb-3">
-                  <Badge variant="outline" className="w-fit mb-2 bg-white/5">Público</Badge>
-                  <CardTitle className="text-base font-semibold leading-tight text-white">{editorialLine.audience || '-'}</CardTitle>
-                </CardHeader>
-              </Card>
+        <Link to={`/relatorio/${clientId}`} className="flex items-center gap-4 rounded-xl border bg-card p-5 transition-colors hover:bg-foreground/[0.03]">
+          <BarChart3 className="h-6 w-6 shrink-0 text-muted-foreground" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">Relatório do mês</p>
+            <p className="text-sm text-muted-foreground">O que foi ao ar e o que vem por aí.</p>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+        </Link>
 
-              <Card className="bg-zinc-950/50 border-white/5 hover:border-white/10 transition-colors">
-                <CardHeader className="p-5 pb-3">
-                  <Badge variant="outline" className="w-fit mb-2 bg-white/5">Nicho</Badge>
-                  <CardTitle className="text-base font-semibold leading-tight text-white">{editorialLine.niche || '-'}</CardTitle>
-                </CardHeader>
-              </Card>
+        <section className="space-y-3">
+          <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            <CalendarDays className="h-3.5 w-3.5" /> Próximos 14 dias
+          </h2>
+          {v.upcoming.length === 0 ? (
+            <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Nenhuma publicação marcada para os próximos dias.</p>
+          ) : (
+            <ul className="divide-y overflow-hidden rounded-xl border bg-card">
+              {v.upcoming.slice(0, 10).map((t) => (
+                <li key={t.id} className="flex items-center gap-3 px-4 py-3">
+                  <span className="w-20 shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+                    {new Date(t.post_date!.slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }).replace('.', '')}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm">{titleOf(t)}</span>
+                  {t.post_time && <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{t.post_time.slice(0, 5)}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-              <Card className="bg-zinc-950/50 border-white/5 hover:border-white/10 transition-colors">
-                <CardHeader className="p-5 pb-3">
-                  <Badge variant="outline" className="w-fit mb-2 bg-white/5">Tom de Voz</Badge>
-                  <CardTitle className="text-base font-semibold leading-tight text-white">{editorialLine.tone || '-'}</CardTitle>
-                </CardHeader>
-              </Card>
-
-              <Card className="bg-zinc-950/50 border-white/5 hover:border-white/10 transition-colors">
-                <CardHeader className="p-5 pb-3">
-                  <Badge variant="outline" className="w-fit mb-2 bg-white/5">Objetivo Master</Badge>
-                  <CardTitle className="text-base font-semibold leading-tight text-white">{editorialLine.objective || '-'}</CardTitle>
-                </CardHeader>
-              </Card>
-            </div>
-
-            {editorialLine.pillars && editorialLine.pillars.length > 0 && (
-              <div className="mt-6 p-6 rounded-2xl bg-zinc-900/30 border border-white/5">
-                <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Pilares de Conteúdo Aprovados</h4>
-                <div className="flex flex-wrap gap-2">
-                  {editorialLine.pillars.map((pillar, i) => (
-                    <span key={i} className="px-3 py-1.5 rounded-md bg-white/5 text-sm font-medium border border-white/10 text-zinc-300">
-                      {pillar}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+        {invoices && invoices.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              <Receipt className="h-3.5 w-3.5" /> Faturas {openInvoices.length > 0 && <span className="text-warning">· {openInvoices.length} em aberto</span>}
+            </h2>
+            <ul className="divide-y overflow-hidden rounded-xl border bg-card">
+              {invoices.slice(0, 6).map((i) => {
+                const late = i.status !== 'pago' && i.due_date && i.due_date < isoDay(new Date());
+                return (
+                  <li key={i.id}>
+                    <Link to={`/fatura/${i.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-foreground/[0.03]">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{i.description || 'Fatura'}</p>
+                        <p className={cn('text-xs', late ? 'text-destructive' : 'text-muted-foreground')}>
+                          {i.status === 'pago' ? 'Paga' : late ? 'Vencida' : 'Em aberto'}
+                          {i.due_date && ` · vence ${new Date(i.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}`}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums">{brl(Number(i.amount))}</span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
           </section>
         )}
 
-        {/* Calendar and Scripts Section */}
-        <section className="animate-in fade-in slide-in-from-bottom-8 duration-1000">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="h-10 w-10 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-white">Cronograma & Roteiros</h2>
-              <p className="text-sm text-muted-foreground">Os conteúdos que já estão mapeados no tempo</p>
-            </div>
-          </div>
-
-          {scheduledIdeas.length === 0 ? (
-             <div className="text-center py-16 px-4 rounded-2xl bg-zinc-900/30 border border-white/5">
-                <VideoIcon className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-white mb-1">Nenhum conteúdo agendado</h3>
-                <p className="text-muted-foreground max-w-sm mx-auto">Em breve novos materiais estarão disponíveis e agendados para a sua conta.</p>
-             </div>
-          ) : (
-            <div className="space-y-6">
-              {scheduledIdeas.map((idea, index) => {
-                const postDate = new Date(idea.scheduled_date);
-                const isPast = postDate < new Date();
-
-                return (
-                  <div key={idea.id} className={`flex flex-col md:flex-row gap-4 md:gap-8 rounded-2xl p-6 transition-all duration-300 ${isPast ? 'bg-zinc-950/20 opacity-60 grayscale-[30%]' : 'bg-zinc-950/80 border border-white/5 hover:border-white/10 shadow-lg'}`}>
-                    
-                    {/* Data Indicator */}
-                    <div className="shrink-0 flex flex-row md:flex-col items-center gap-4 md:gap-1 md:w-32">
-                       <div className="flex flex-col items-center justify-center h-16 w-16 md:h-24 md:w-24 rounded-2xl bg-zinc-900 border border-white/10 shadow-inner">
-                          <span className="text-xs font-semibold text-primary uppercase">{format(postDate, 'MMM', { locale: ptBR })}</span>
-                          <span className="text-2xl md:text-3xl font-black text-white">{format(postDate, 'dd')}</span>
-                       </div>
-                       <div className="flex md:hidden flex-col">
-                          <span className="text-sm font-medium text-white">{format(postDate, 'EEEE', { locale: ptBR })}</span>
-                          <span className="text-xs text-muted-foreground">{idea.status}</span>
-                       </div>
-                       <Badge variant="outline" className="hidden md:flex mt-2 w-full justify-center bg-transparent border-white/10 text-muted-foreground">{idea.status}</Badge>
-                    </div>
-
-                    {/* Content Details */}
-                    <div className="flex-1 space-y-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          {idea.content_type && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">{idea.content_type}</Badge>}
-                          {idea.pillar && <Badge variant="outline" className="border-white/10 text-zinc-400">{idea.pillar}</Badge>}
-                        </div>
-                        <h3 className="text-xl font-bold text-white mb-1">{idea.title}</h3>
-                        {idea.objective && <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Target className="w-3.5 h-3.5"/> {idea.objective}</p>}
-                      </div>
-
-                      {/* Scripts / Texts Box */}
-                      {idea.script ? (
-                        <div className="rounded-xl bg-black/40 border border-white/5 p-4 sm:p-5 mt-4 space-y-4">
-                           {idea.script.hook && (
-                             <div>
-                               <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2 flex items-center gap-1.5"><ArrowRight className="w-3 h-3 text-primary"/> Gancho <span className="text-muted-foreground font-normal normal-case">(Os primeiros 3 segundos)</span></h4>
-                               <p className="text-sm text-zinc-300 leading-relaxed bg-zinc-900/50 p-3 rounded-lg border border-white/5">{idea.script.hook}</p>
-                             </div>
-                           )}
-                           
-                           {idea.script.development && (
-                             <div>
-                               <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2 flex items-center gap-1.5"><ArrowRight className="w-3 h-3 text-primary"/> Desenvolvimento</h4>
-                               <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{idea.script.development}</p>
-                             </div>
-                           )}
-
-                           {idea.script.cta && (
-                             <div>
-                               <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2 flex items-center gap-1.5"><ArrowRight className="w-3 h-3 text-primary"/> Call To Action</h4>
-                               <p className="text-sm text-zinc-300 leading-relaxed font-medium">"{idea.script.cta}"</p>
-                             </div>
-                           )}
-
-                           {idea.script.observations && (
-                             <div className="pt-3 border-t border-white/10 mt-3">
-                               <h4 className="text-xs font-semibold text-muted-foreground mb-1">Notas de Gravação:</h4>
-                               <p className="text-sm text-zinc-400 italic">*{idea.script.observations}</p>
-                             </div>
-                           )}
-                        </div>
-                      ) : (
-                        <div className="rounded-xl border border-dashed border-white/10 p-5 text-center flex flex-col items-center justify-center">
-                          <CheckCircle2 className="w-6 h-6 text-muted-foreground/50 mb-2" />
-                          <p className="text-sm text-muted-foreground font-medium">Roteirização em andamento</p>
-                          <p className="text-xs text-muted-foreground/70 mt-1">O script exato deste vídeo será disponibilizado aqui em breve.</p>
-                        </div>
-                      )}
-
-                    </div>
-
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-        </section>
-
-      </div>
-      
-      {/* Footer */}
-      <footer className="mt-20 border-t border-white/5 py-8 text-center text-zinc-500 text-sm flex items-center justify-center gap-2">
-        <UserCircle className="w-4 h-4" />
-        Portal Seguro do Cliente
-      </footer>
-
+        <p className="pt-4 text-center text-xs text-muted-foreground">Dúvidas? Fale com a equipe da INOVA pelo WhatsApp.</p>
+      </main>
     </div>
   );
 }
