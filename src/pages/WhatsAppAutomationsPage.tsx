@@ -425,16 +425,22 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
               Vai para o WhatsApp de cada pessoa responsável. Cadastre o número de cada um em <strong>Equipe → Funcionários</strong>.
             </p>
           ) : meta.audience === 'team' ? (
-            <Field label="Enviar para (grupo ou número da equipe)">
-              {groups && groups.length > 0 ? (
-                <Select value={d.audience?.to ?? ''} onValueChange={(v) => set({ audience: { type: 'team', to: v, to_name: groups.find((g) => g.id === v)?.name } })}>
-                  <SelectTrigger><SelectValue placeholder="Escolher grupo da equipe" /></SelectTrigger>
-                  <SelectContent>{groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
-                </Select>
-              ) : (
-                <Input placeholder="Telefone com DDD, ex.: 24 99999-9999" value={d.audience?.to ?? ''} onChange={(e) => set({ audience: { type: 'team', to: e.target.value } })} />
+            <div className="space-y-2">
+              {groups && groups.length > 0 && (
+                <Field label="Enviar para um grupo">
+                  <Select value={d.audience?.to?.includes('@') ? d.audience.to : ''}
+                    onValueChange={(v) => set({ audience: { type: 'team', to: v, to_name: groups.find((g) => g.id === v)?.name } })}>
+                    <SelectTrigger><SelectValue placeholder="Escolher grupo (ex.: gestores)" /></SelectTrigger>
+                    <SelectContent>{groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </Field>
               )}
-            </Field>
+              <Field label={groups && groups.length > 0 ? 'Ou para números (separados por vírgula)' : 'Enviar para números (separados por vírgula)'}>
+                <Input placeholder="24 99999-9999, 24 98888-8888" inputMode="tel"
+                  value={d.audience?.to && !d.audience.to.includes('@') ? d.audience.to : ''}
+                  onChange={(e) => set({ audience: { type: 'team', to: e.target.value } })} />
+              </Field>
+            </div>
           ) : (
             <div className="space-y-3">
               <Field label="Clientes">

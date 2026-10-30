@@ -96,9 +96,11 @@ async function buildJobs(admin: SupabaseClient, a: Automation): Promise<Job[]> {
   const byId = new Map(clients.map((c) => [c.id, c]));
   const job = (c: Client, extra: Record<string, string>, ref: string): Job =>
     ({ client: c, to: recipientFor(c, a.destination), vars: { ...clientVars(c), ...extra }, ref });
-  // Equipe: grupo/número escolhido na automação
-  const teamTo = (() => { const t = String(a.audience?.to ?? "").trim(); return t.includes("@") ? t : phoneOf(t); })();
-  const teamJob = (vars: Record<string, string>, ref: string): Job => ({ client: null, to: teamTo, vars, ref });
+  // Equipe: grupo escolhido ou um ou mais números separados por vírgula (ex.: os gestores)
+  const teamTos = String(a.audience?.to ?? "").split(",").map((t) => t.trim()).filter(Boolean)
+    .map((t) => (t.includes("@") ? t : phoneOf(t)));
+  const teamJob = (vars: Record<string, string>, ref: string): Job[] =>
+    (teamTos.length ? teamTos : [null]).map((to) => ({ client: null, to, vars, ref: teamTos.length > 1 ? `${ref}:${to}` : ref }));
   // Eventos: só o que aconteceu depois que a automação foi ligada/salva (e nas últimas 24h)
   const since = new Date(Math.max(new Date(a.updated_at ?? a.created_at ?? Date.now()).getTime(), Date.now() - DAY)).toISOString();
   const people = PEOPLE_TRIGGERS.has(a.trigger) ? await loadPeople(admin) : new Map();
@@ -195,7 +197,6 @@ async function buildJobs(admin: SupabaseClient, a: Automation): Promise<Job[]> {
     }
 
     case "team_daily_summary": {
-      const to = String(a.audience?.to ?? "").trim();
       const today = spDay(0);
       const { data: tasks } = await admin.from("tasks").select("id, status, post_date, caption, updated_at").is("deleted_at", null);
       const open = (tasks ?? []).filter((t) => !DONE.test(t.status));
@@ -210,7 +211,7 @@ async function buildJobs(admin: SupabaseClient, a: Automation): Promise<Job[]> {
         aguardando: String(open.filter((t) => /revis|finalizado/i.test(t.status) && !state[t.id] && Date.now() - new Date(t.updated_at).getTime() > 2 * DAY).length),
         link_meu_dia: `${APP_URL}/meu-dia`,
       };
-      return [{ client: null, to: phoneOf(to) && !to.includes("@") ? phoneOf(to) : to || null, vars, ref: `summary:${today}` }];
+      return teamJob(vars, `summary:${today}`);
     }
 
     case "manual":
@@ -224,7 +225,7 @@ async function buildJobs(admin: SupabaseClient, a: Automation): Promise<Job[]> {
       if (!ids.length) return [];
       const { data: contracts } = await admin.from("contracts").select("id, client_id, client_name, client_company, monthly_value, total_value, plan_name").in("id", ids);
       if (a.trigger === "sale_closed") {
-        return (contracts ?? []).map((ct) => teamJob({
+        return (contracts ?? []).flatMap((ct) => teamJob({
           empresa: ct.client_company || ct.client_name || "Novo cliente", valor: brl(Number(ct.monthly_value || ct.total_value || 0)), plano: ct.plan_name || "",
         }, `sale:${ct.id}`));
       }
@@ -401,19 +402,19 @@ async function buildJobs(admin: SupabaseClient, a: Automation): Promise<Job[]> {
       const overdue = new Set((inv ?? []).map((i) => String(i.client_name).trim().toLowerCase()));
       const risky = clients.filter((c) => (late.get(c.id) ?? 0) >= 3 || overdue.has(String(c.company_name).trim().toLowerCase()));
       if (!risky.length) return [];
-      return [teamJob({
+      return teamJob({
         qtd: String(risky.length),
         lista_clientes: risky.slice(0, 15).map((c) => `• ${c.company_name}${(late.get(c.id) ?? 0) >= 3 ? ` — ${late.get(c.id)} posts atrasados` : ""}${overdue.has(String(c.company_name).trim().toLowerCase()) ? " — fatura vencida há 10+ dias" : ""}`).join("\n"),
         link_clientes: `${APP_URL}/clientes`,
-      }, `risk:${today}`)];
+      }, `risk:${today}`);
     }
 
     case "instagram_disconnected": {
       const { data: accs } = await admin.from("social_accounts").select("username, token_status").eq("platform", "instagram");
       const broken = (accs ?? []).filter((x) => x.token_status && x.token_status !== "ok");
       if (!broken.length) return [];
-      return [teamJob({ qtd: String(broken.length), lista_contas: broken.map((x) => `• @${x.username}`).join("\n"), link_redes: `${APP_URL}/redes-sociais` },
-        `ig:${broken.map((x) => x.username).sort().join(",")}:${spDay(0)}`)];
+      return teamJob({ qtd: String(broken.length), lista_contas: broken.map((x) => `• @${x.username}`).join("\n"), link_redes: `${APP_URL}/redes-sociais` },
+        `ig:${broken.map((x) => x.username).sort().join(",")}:${spDay(0)}`);
     }
 
     case "shooting_team": {
@@ -421,11 +422,49 @@ async function buildJobs(admin: SupabaseClient, a: Automation): Promise<Job[]> {
       const { data: rows } = await admin.from("shooting_schedules").select("title, start_time, location, client_id, status").eq("shooting_date", day);
       const list = (rows ?? []).filter((x) => !/cancel/i.test(x.status ?? ""));
       if (!list.length) return [];
-      return [teamJob({
+      return teamJob({
         data: fmtDate(day), qtd: String(list.length),
         lista_gravacoes: list.sort((x, y) => String(x.start_time).localeCompare(String(y.start_time)))
           .map((x) => `• ${x.start_time ? String(x.start_time).slice(0, 5) : "--:--"} — ${x.title}${x.location ? ` (${x.location})` : ""}`).join("\n"),
-      }, `shootteam:${day}`)];
+      }, `shootteam:${day}`);
+    }
+
+    case "manager_report": {
+      // Movimentações do kanban de hoje (desde 00:00 de Brasília) e retrato atual da produção
+      const today = spDay(0);
+      const startUtc = new Date(`${today}T03:00:00Z`).toISOString();
+      const { data: moves } = await admin.from("task_stage_history").select("task_id, to_stage, changed_by, created_at").gte("created_at", startUtc);
+      const idsTo = (re: RegExp) => [...new Set((moves ?? []).filter((m) => re.test(m.to_stage)).map((m) => m.task_id))];
+      const finalizados = idsTo(/finalizado/i), concluidos = idsTo(/conclu|postado|publicado/i);
+      const revisao = idsTo(/revis|para aprovar/i), alteracao = idsTo(/altera/i);
+      const allIds = [...new Set([...finalizados, ...concluidos])];
+      const { data: tasks } = allIds.length
+        ? await admin.from("tasks").select("id, title, video_name, client_id, task_type").in("id", allIds)
+        : { data: [] as { id: string; title: string; video_name: string; client_id: string; task_type: string }[] };
+      const byTask = new Map((tasks ?? []).map((t) => [t.id, t]));
+      const lista = (ids: string[]) => {
+        const rows = ids.map((id) => byTask.get(id)).filter(Boolean).map((t) => `• ${cleanTitle(t!)} — ${clientName(t!.client_id)}`);
+        return rows.length ? rows.slice(0, 8).join("\n") + (rows.length > 8 ? `\n• e mais ${rows.length - 8}` : "") : "—";
+      };
+      const videos = (ids: string[]) => ids.filter((id) => byTask.get(id)?.task_type !== "Arte").length;
+      const { data: approvals } = await admin.from("task_comments").select("task_id").eq("author", CLIENT_REVIEW_AUTHOR)
+        .like("content", "✅%").gte("created_at", startUtc);
+      const { data: snap } = await admin.from("tasks").select("status, post_date").is("deleted_at", null);
+      const people = new Map<string, number>();
+      (moves ?? []).forEach((m) => { const n = String(m.changed_by ?? "").trim(); if (n) people.set(n, (people.get(n) ?? 0) + 1); });
+      const ranking = [...people].sort((x, y) => y[1] - x[1]).slice(0, 3)
+        .map(([n, c], i) => `${["🥇", "🥈", "🥉"][i]} ${n.split(/\s+/)[0]} (${c})`).join("  ");
+      const nowSp = spNow();
+      return teamJob({
+        data: fmtDate(today), hora: `${String(nowSp.getUTCHours()).padStart(2, "0")}:${String(nowSp.getUTCMinutes()).padStart(2, "0")}`,
+        finalizados_hoje: String(finalizados.length), videos_finalizados_hoje: String(videos(finalizados)), lista_finalizados: lista(finalizados),
+        concluidos_hoje: String(concluidos.length), lista_concluidos: lista(concluidos),
+        revisao_hoje: String(revisao.length), alteracoes_hoje: String(alteracao.length),
+        aprovados_hoje: String(new Set((approvals ?? []).map((x) => x.task_id)).size),
+        em_finalizado_agora: String((snap ?? []).filter((t) => /finalizado/i.test(t.status)).length),
+        atrasados: String((snap ?? []).filter((t) => t.post_date && t.post_date < today && t.post_date >= spDay(-30) && !DONE.test(t.status)).length),
+        movimentacoes: String(moves?.length ?? 0), ranking_equipe: ranking || "—",
+      }, `prod:${today}:${a.send_time}`);
     }
 
     default:

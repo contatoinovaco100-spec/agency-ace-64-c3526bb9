@@ -5,7 +5,7 @@ export type TriggerKey =
   | 'welcome_contract' | 'onboarding_stalled' | 'change_received' | 'approved_ack' | 'partnership_anniversary' | 'satisfaction_survey'
   | 'payment_confirmed' | 'invoice_created' | 'contract_ending' | 'post_published' | 'next_week'
   | 'task_assigned' | 'deadline_tomorrow' | 'client_at_risk' | 'instagram_disconnected' | 'sale_closed' | 'lead_stalled'
-  | 'script_missing' | 'change_request_team' | 'shooting_team';
+  | 'script_missing' | 'change_request_team' | 'shooting_team' | 'manager_report';
 
 export type Automation = {
   id: string; name: string; description: string; trigger: TriggerKey; enabled: boolean; template: string;
@@ -206,6 +206,21 @@ export const TRIGGERS: Record<TriggerKey, {
     description: 'Agenda de gravações do dia seguinte no grupo da equipe.',
     params: [{ key: 'days_before', label: 'Gravações daqui a', suffix: 'dias (0 = hoje)', default: 1 }],
     vars: [{ key: 'data', label: 'Data', sample: '31/10/2026' }, { key: 'qtd', label: 'Quantidade', sample: '3' }, { key: 'lista_gravacoes', label: 'Lista com horários', sample: '• 14:00 — Captação Padaria (Centro)' }],
+  },
+  manager_report: {
+    label: 'Relatório de produção (gestores)', group: 'Equipe', audience: 'team', schedule: 'weekly',
+    description: 'O que a equipe entregou hoje: finalizados, concluídos, aprovações, ajustes e quem mais movimentou. Crie uma para cada horário (ex.: 12h e 18h).',
+    params: [],
+    vars: [
+      { key: 'data', label: 'Data', sample: '30/10/2026' }, { key: 'hora', label: 'Hora do envio', sample: '18:00' },
+      { key: 'finalizados_hoje', label: 'Finalizados hoje', sample: '4' }, { key: 'videos_finalizados_hoje', label: 'Vídeos finalizados hoje', sample: '3' },
+      { key: 'lista_finalizados', label: 'Lista dos finalizados', sample: '• Dicas de verão — Padaria\n• Promoção — Ótica' },
+      { key: 'concluidos_hoje', label: 'Concluídos/postados hoje', sample: '6' }, { key: 'lista_concluidos', label: 'Lista dos concluídos', sample: '• Reels de outubro — Academia' },
+      { key: 'revisao_hoje', label: 'Foram para revisão', sample: '5' }, { key: 'alteracoes_hoje', label: 'Voltaram para alteração', sample: '2' },
+      { key: 'aprovados_hoje', label: 'Aprovados pelos clientes hoje', sample: '3' }, { key: 'em_finalizado_agora', label: 'Em Finalizado agora', sample: '9' },
+      { key: 'atrasados', label: 'Posts atrasados (30 dias)', sample: '12' }, { key: 'movimentacoes', label: 'Movimentações no kanban', sample: '48' },
+      { key: 'ranking_equipe', label: 'Quem mais movimentou', sample: '🥇 Stefani (20)  🥈 Petrus (14)  🥉 Íris (9)' },
+    ],
   },
   client_at_risk: {
     label: 'Clientes em risco', group: 'Equipe', audience: 'team', schedule: 'weekly',
