@@ -2226,6 +2226,7 @@ export type Database = {
           last_spin_date: string | null
           updated_at: string
           username: string | null
+          whatsapp: string | null
           won_prizes: Json | null
         }
         Insert: {
@@ -2241,6 +2242,7 @@ export type Database = {
           last_spin_date?: string | null
           updated_at?: string
           username?: string | null
+          whatsapp?: string | null
           won_prizes?: Json | null
         }
         Update: {
@@ -2256,6 +2258,7 @@ export type Database = {
           last_spin_date?: string | null
           updated_at?: string
           username?: string | null
+          whatsapp?: string | null
           won_prizes?: Json | null
         }
         Relationships: []

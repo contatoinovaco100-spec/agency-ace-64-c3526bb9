@@ -36,6 +36,13 @@
       "when": 1793340691601,
       "tag": "0004_whatsapp_automations",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793342952264,
+      "tag": "0005_more_wa_automations",
+      "breakpoints": true
     }
   ]
 }
