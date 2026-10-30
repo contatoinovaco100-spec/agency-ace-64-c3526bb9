@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { ExternalLink, Loader2, MapPin, Pencil, Plus, Search, Sparkles, Star, Trash2, X } from 'lucide-react';
+import { Download, ExternalLink, Loader2, MapPin, Pencil, Plus, Search, Sparkles, Star, Trash2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { nicheKey, nicheLabel } from '@/lib/prospectNiche';
 
 type Campaign = {
   id?: string; name: string; niche: string; city: string; session_id: string | null; pitch: string; example_message: string;
@@ -255,6 +256,7 @@ function CampaignDetail({ campaign: c, numbers, prospects, stats, onToggle, onEd
           <Button onClick={search} disabled={searching} className="gap-1.5">
             {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Buscar empresas no Google
           </Button>
+          <PullFromManual campaign={c} onDone={onChanged} />
           <SampleButton campaign={c} />
           <Button variant="ghost" className="gap-1.5" onClick={onEdit}><Pencil className="h-4 w-4" /> Editar</Button>
           <Button variant="ghost" size="icon" className="ml-auto" onClick={remove} aria-label="Apagar campanha"><Trash2 className="h-4 w-4" /></Button>
@@ -272,7 +274,7 @@ function CampaignDetail({ campaign: c, numbers, prospects, stats, onToggle, onEd
 
       {shown.length === 0 ? (
         <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          {prospects.length === 0 ? 'Clique em "Buscar empresas no Google" para encher a fila.' : 'Nenhuma empresa neste filtro.'}
+          {prospects.length === 0 ? 'Encha a fila com "Buscar empresas no Google" ou "Puxar da Manual".' : 'Nenhuma empresa neste filtro.'}
         </p>
       ) : (
         <ul className="divide-y overflow-hidden rounded-xl border bg-card">
@@ -311,6 +313,7 @@ function CampaignDetail({ campaign: c, numbers, prospects, stats, onToggle, onEd
               {open.message
                 ? <p className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3">{open.message}</p>
                 : <p className="text-xs text-muted-foreground">A mensagem é escrita pela IA na hora do envio.</p>}
+              {open.status === 'novo' && open.message && <p className="text-xs text-muted-foreground">Veio da prospecção manual: esta mensagem é enviada como está.</p>}
               <div className="flex flex-wrap gap-2">
                 {open.maps_url && <Button asChild size="sm" variant="outline" className="gap-1.5"><a href={open.maps_url} target="_blank" rel="noreferrer"><MapPin className="h-3.5 w-3.5" /> Google Maps</a></Button>}
                 {open.website && <Button asChild size="sm" variant="outline" className="gap-1.5"><a href={open.website} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /> Site</a></Button>}
@@ -320,6 +323,91 @@ function CampaignDetail({ campaign: c, numbers, prospects, stats, onToggle, onEd
         </Dialog>
       )}
     </section>
+  );
+}
+
+/** Traz empresas da prospecção manual (por nicho) para a fila desta campanha */
+function PullFromManual({ campaign, onDone }: { campaign: Campaign; onDone: () => void }) {
+  const [rows, setRows] = useState<{ id: string; category: string; status: string; phone: string | null }[] | null>(null);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [moving, setMoving] = useState(false);
+
+  const openDialog = async () => {
+    const { data, error } = await supabase.from(PROSPECTS).select('id, category, status, phone').is('campaign_id', null);
+    if (error) { toast.error('Não foi possível ler a prospecção manual', { description: error.message }); return; }
+    setRows((data ?? []) as unknown as { id: string; category: string; status: string; phone: string | null }[]);
+    setPicked([]);
+  };
+
+  // Só entra quem tem telefone e ainda não foi contatado na manual
+  const groups = useMemo(() => {
+    const acc: Record<string, { key: string; label: string; ready: string[]; skipped: number }> = {};
+    for (const r of rows ?? []) {
+      const g = (acc[nicheKey(r.category)] ??= { key: nicheKey(r.category), label: nicheLabel(r.category), ready: [], skipped: 0 });
+      if (r.phone && r.status === 'novo') g.ready.push(r.id); else g.skipped++;
+    }
+    return Object.values(acc).sort((a, b) => b.ready.length - a.ready.length);
+  }, [rows]);
+
+  const total = groups.filter((g) => picked.includes(g.key)).reduce((n, g) => n + g.ready.length, 0);
+
+  const move = async () => {
+    const ids = groups.filter((g) => picked.includes(g.key)).flatMap((g) => g.ready);
+    setMoving(true);
+    for (let i = 0; i < ids.length; i += 200) {
+      const { error } = await supabase.from(PROSPECTS).update({ campaign_id: campaign.id, status: 'novo', error: '' } as never).in('id', ids.slice(i, i + 200));
+      if (error) { toast.error('Não foi possível puxar', { description: error.message }); setMoving(false); return; }
+    }
+    setMoving(false);
+    setRows(null);
+    toast.success(`${ids.length} empresas na fila de "${campaign.name}"`, { description: 'Elas saem da lista manual e entram no disparo automático.' });
+    onDone();
+  };
+
+  return (
+    <>
+      <Button variant="outline" onClick={openDialog} className="gap-1.5"><Download className="h-4 w-4" /> Puxar da Manual</Button>
+      {rows && (
+        <Dialog open onOpenChange={(o) => !o && setRows(null)}>
+          <DialogContent className="max-w-md">
+            <DialogTitle>Puxar da prospecção manual</DialogTitle>
+            <DialogDescription>
+              Escolha os nichos. Entram na fila desta campanha as empresas com telefone que ainda estão como "Novo" na manual.
+            </DialogDescription>
+            {groups.length === 0 ? (
+              <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">A lista manual está vazia.</p>
+            ) : (
+              <ul className="max-h-80 space-y-1.5 overflow-y-auto">
+                {groups.map((g) => {
+                  const on = picked.includes(g.key);
+                  return (
+                    <li key={g.key}>
+                      <button
+                        disabled={!g.ready.length}
+                        onClick={() => setPicked((p) => (on ? p.filter((k) => k !== g.key) : [...p, g.key]))}
+                        className={cn('flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors disabled:opacity-50',
+                          on ? 'border-primary bg-primary/10' : 'hover:border-primary/40')}
+                      >
+                        <span className={cn('flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px]', on && 'border-primary bg-primary text-primary-foreground')}>{on && '✓'}</span>
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium">{g.label}</span>
+                        <span className="text-xs tabular-nums text-muted-foreground">
+                          <strong className="font-semibold text-foreground">{g.ready.length}</strong> prontas{g.skipped ? ` · ${g.skipped} fora` : ''}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            <p className="text-xs text-muted-foreground">"Fora" são as sem telefone ou que você já marcou como contatado, interessado ou fechado.</p>
+            <Button onClick={move} disabled={!total || moving} className="w-full">
+              {moving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              {total ? `Puxar ${total} empresa${total > 1 ? 's' : ''} para a fila` : 'Escolha um nicho'}
+            </Button>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }
 

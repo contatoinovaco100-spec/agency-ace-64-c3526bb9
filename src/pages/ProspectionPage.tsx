@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProspectCampaigns } from '@/components/prospecting/ProspectCampaigns';
+import { nicheKey, nicheLabel } from '@/lib/prospectNiche';
 import { 
   Dialog, 
   DialogContent, 
@@ -56,12 +57,6 @@ const onlyPhone = (raw: string | null | undefined) => {
 
 const MANUAL_STATUS = ['novo', 'contatado', 'interessado', 'fechado'];
 
-/** Nicho da empresa como aparece nas abas ("clínicas odontológicas" → "Clínicas odontológicas") */
-const nicheLabel = (raw: string | null | undefined) => {
-  const t = String(raw ?? '').trim().replace(/\s+/g, ' ');
-  return t ? t[0].toUpperCase() + t.slice(1) : 'Sem nicho';
-};
-const nicheKey = (raw: string | null | undefined) => nicheLabel(raw).toLocaleLowerCase('pt-BR');
 
 
 const toRow = (l: Lead) => ({

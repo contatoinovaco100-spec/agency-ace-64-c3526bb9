@@ -20,7 +20,7 @@ type Campaign = {
   daily_limit: number; min_gap_min: number; max_gap_min: number; start_hour: number; end_hour: number;
   weekdays_only: boolean; active: boolean; next_send_at: string | null;
 };
-type Prospect = { id: string; name: string; phone: string; address: string; category: string; rating: number | null; reviews: number | null; website: string };
+type Prospect = { id: string; name: string; phone: string; message?: string; address: string; category: string; rating: number | null; reviews: number | null; website: string };
 
 const spNow = () => new Date(Date.now() - 3 * 3_600_000);
 const spDayStartUtc = () => new Date(spNow().toISOString().slice(0, 10) + "T03:00:00Z").toISOString();
@@ -136,7 +136,8 @@ async function runCampaign(admin: any, c: Campaign) {
     if (!waNumber) { await admin.from("prospects").update({ status: "sem_whatsapp" }).eq("id", p.id); continue; }
 
     try {
-      const message = await writeMessage(c, p);
+      // Empresa que veio da prospecção manual com mensagem pronta: envia a mensagem dela
+      const message = p.message?.trim() || await writeMessage(c, p);
       const sent = await wa("/send", { to: waNumber, message, session: c.session_id || undefined });
       await admin.from("prospects").update({ status: "enviado", message, sent_at: new Date().toISOString(), error: "" }).eq("id", p.id);
       const conv = await upsertConversation(admin, sent.session || c.session_id || "default", normalizePhone(waNumber) ?? p.phone, p.name);
