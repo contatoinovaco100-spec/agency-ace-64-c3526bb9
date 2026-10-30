@@ -26,7 +26,7 @@ const taskLink = (t: Task) => `${t.taskType === 'Arte' ? '/artes' : '/tarefas'}?
 const taskName = (t: Task) => (t.videoName || t.title || 'Sem título').replace(/^(vídeo|video|arte)\s*\d*\s*\|\s*/i, '');
 const dateOf = (t: Task) => t.postDate || t.dueDate || '';
 
-type ReminderRow = { client_id: string; status: 'enviado' | 'sem_telefone' | 'erro'; created_at: string };
+type ReminderRow = { client_id: string; status: 'enviado' | 'sem_contato' | 'erro' | 'teste'; created_at: string };
 
 type Shooting = { id: string; title: string; shooting_date: string; start_time: string | null; location: string; client_id: string | null };
 
@@ -53,7 +53,7 @@ export default function MyDayPage() {
   useEffect(() => {
     if (!social) return;
     // Lembretes de aprovação dos últimos 3 dias (tabela pode ainda não existir no banco)
-    supabase.from('approval_reminders' as never).select('client_id, status, created_at').eq('kind' as never, 'aprovacao' as never)
+    supabase.from('wa_automation_logs' as never).select('client_id, status, created_at').like('ref' as never, 'task:%' as never)
       .gte('created_at', new Date(Date.now() - 3 * 86_400_000).toISOString()).order('created_at', { ascending: false })
       .then(({ data, error }) => { if (!error) setReminders((data ?? []) as unknown as ReminderRow[]); });
     supabase.from('social_accounts').select('username, token_status').eq('platform', 'instagram')
@@ -160,18 +160,18 @@ export default function MyDayPage() {
           )}
           {reminders.length > 0 && (() => {
             const sent = reminders.filter((r) => r.status === 'enviado');
-            const noPhone = [...new Set(reminders.filter((r) => r.status === 'sem_telefone').map((r) => r.client_id))];
+            const noPhone = [...new Set(reminders.filter((r) => r.status === 'sem_contato').map((r) => r.client_id))];
             const failed = reminders.filter((r) => r.status === 'erro').length;
             return (
               <Block title="Lembretes de aprovação pelo WhatsApp" hint="Enviados nos últimos 3 dias para quem tem conteúdo esperando há 2 dias ou mais"
-                tone={noPhone.length || failed ? 'warning' : 'success'} icon={MessageCircle} action={noPhone.length ? { label: 'Completar telefones', to: '/clientes' } : undefined}>
+                tone={noPhone.length || failed ? 'warning' : 'success'} icon={MessageCircle} action={noPhone.length ? { label: 'Completar cadastro', to: '/clientes' } : { label: 'Automações', to: '/automacoes' }}>
                 <li className="px-4 py-3 text-sm">
                   {sent.length} {sent.length === 1 ? 'cliente lembrado' : 'clientes lembrados'}
                   {sent.length > 0 && `: ${[...new Set(sent.map((r) => clientName[r.client_id]).filter(Boolean))].join(', ')}`}
                 </li>
                 {noPhone.length > 0 && (
                   <li className="px-4 py-3 text-sm text-warning">
-                    Sem telefone no cadastro: {noPhone.map((id) => clientName[id] || 'cliente').join(', ')}
+                    Sem grupo nem telefone no cadastro: {noPhone.map((id) => clientName[id] || 'cliente').join(', ')}
                   </li>
                 )}
                 {failed > 0 && <li className="px-4 py-3 text-sm text-destructive">{failed} envio(s) falharam no WhatsApp</li>}

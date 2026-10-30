@@ -127,6 +127,7 @@ const CollaboratorContractsPage = lazy(() => import("./pages/CollaboratorContrac
 const EmployeesPage             = lazy(() => import("./pages/EmployeesPage"));
 const MyTasksPage               = lazy(() => import("./pages/MyTasksPage"));
 const MyDayPage                 = lazy(() => import("./pages/MyDayPage"));
+const WhatsAppAutomationsPage   = lazy(() => import("./pages/WhatsAppAutomationsPage"));
 const WhatsAppPage              = lazy(() => import("./pages/WhatsAppPage"));
 const WhatsAppConfigPage        = lazy(() => import("./pages/WhatsAppConfigPage"));
 const KanbanStagesPage          = lazy(() => import("./pages/KanbanStagesPage"));
@@ -311,6 +312,7 @@ function AppRoutes() {
                     <Route path="/linktree/:id"        element={<LinktreeEditorPage />} />
                     <Route path="/nova"                element={<NovaAssistantPage />} />
                     <Route path="/funcionarios"        element={<SectionTabs tabs={TEAM_TABS}><EmployeesPage /></SectionTabs>} />
+                    <Route path="/automacoes"          element={<WhatsAppAutomationsPage />} />
                     <Route path="/meu-dia"             element={<SectionTabs tabs={MY_DAY_TABS}><MyDayPage /></SectionTabs>} />
                     <Route path="/minhas-tarefas"      element={<SectionTabs tabs={MY_DAY_TABS}><MyTasksPage /></SectionTabs>} />
                     <Route path="/whatsapp"            element={<WhatsAppPage />} />

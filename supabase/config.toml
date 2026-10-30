@@ -36,11 +36,9 @@ verify_jwt = false
 [functions.social-daily-sync]
 verify_jwt = false
 
-[functions.approval-reminders]
-verify_jwt = false
 
 [functions.wa-server]
 verify_jwt = true
 
-[functions.monthly-reports]
+[functions.wa-automations]
 verify_jwt = false

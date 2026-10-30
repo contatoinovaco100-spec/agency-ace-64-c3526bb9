@@ -62,6 +62,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/publicar',            label: 'Publicar Conteúdo',    icon: Sparkles,        category: 'Postagens', highlight: true, includes: ['/publicacoes'] },
   { path: '/publicar-threads',    label: 'Publicar Threads',     icon: AtSign,          category: 'Postagens' },
   { path: '/publicacoes',         label: 'Histórico de Posts',   icon: ListChecks,      category: 'Postagens', hidden: true },
+  { path: '/automacoes',          label: 'Automações WhatsApp', icon: MessageSquare,   category: 'Postagens' },
   { path: '/redes-sociais',       label: 'Redes Sociais',        icon: Network,         category: 'Postagens' },
   { path: '/portfolio-instagram', label: 'Posts Instagram',      icon: Sparkles,        category: 'Postagens', hidden: true },
   { path: '/instagram-analytics', label: 'Relatório Cliente',    icon: BarChart3,       category: 'Postagens' },
