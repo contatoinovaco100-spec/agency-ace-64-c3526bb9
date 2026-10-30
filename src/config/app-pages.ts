@@ -44,7 +44,9 @@ export const APP_PAGES: AppPage[] = [
   // Geral
   { path: '/',                    label: 'Dashboard',           icon: LayoutDashboard, category: 'Geral' },
   { path: '/desempenho',          label: 'Desempenho da Equipe', icon: Gauge,          category: 'Administração', adminOnly: true, hidden: true },
-  { path: '/minhas-tarefas',      label: 'Minhas Tarefas',      icon: ListChecks,      category: 'Geral' },
+  // Meu dia: resumo pessoal do dia, com Minhas Tarefas como segunda aba
+  { path: '/meu-dia',             label: 'Meu dia',             icon: Sparkles,        category: 'Geral', alwaysAllowed: true, includes: ['/minhas-tarefas'] },
+  { path: '/minhas-tarefas',      label: 'Minhas Tarefas',      icon: ListChecks,      category: 'Geral', hidden: true },
   // Agenda reúne Calendário, Gravações e Escala semanal em abas (cada aba mantém o próprio endereço e permissão)
   { path: '/agenda',              label: 'Agenda',              icon: Calendar,        category: 'Geral', includes: ['/calendario', '/gravacoes', '/agenda-videos'] },
   { path: '/calendario',          label: 'Calendário',          icon: Calendar,        category: 'Geral', hidden: true },

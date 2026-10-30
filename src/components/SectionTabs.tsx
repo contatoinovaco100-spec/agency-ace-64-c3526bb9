@@ -27,6 +27,11 @@ export const PORTFOLIO_TABS: SectionTab[] = [
   { path: '/portfolio-instagram', label: 'Posts do Instagram' },
 ];
 
+export const MY_DAY_TABS: SectionTab[] = [
+  { path: '/meu-dia', label: 'Hoje' },
+  { path: '/minhas-tarefas', label: 'Todas as minhas tarefas' },
+];
+
 export const PUBLISH_TABS: SectionTab[] = [
   { path: '/publicar', label: 'Nova publicação' },
   { path: '/publicacoes', label: 'Histórico' },

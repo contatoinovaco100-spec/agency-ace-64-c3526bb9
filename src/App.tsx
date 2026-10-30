@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { ClientReviewNotifications } from "@/components/ClientReviewNotifications";
-import { AGENDA_TABS, PLANNING_TABS, PORTFOLIO_TABS, PUBLISH_TABS, SectionRedirect, SectionTabs, TEAM_TABS } from "@/components/SectionTabs";
+import { AGENDA_TABS, MY_DAY_TABS, PLANNING_TABS, PORTFOLIO_TABS, PUBLISH_TABS, SectionRedirect, SectionTabs, TEAM_TABS } from "@/components/SectionTabs";
 import PublicQuizPage from "./pages/PublicQuizPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
@@ -125,6 +125,7 @@ const SocialAuditPage           = lazy(() => import("./pages/SocialAuditPage"));
 const CollaboratorContractsPage = lazy(() => import("./pages/CollaboratorContractsPage"));
 const EmployeesPage             = lazy(() => import("./pages/EmployeesPage"));
 const MyTasksPage               = lazy(() => import("./pages/MyTasksPage"));
+const MyDayPage                 = lazy(() => import("./pages/MyDayPage"));
 const WhatsAppPage              = lazy(() => import("./pages/WhatsAppPage"));
 const WhatsAppConfigPage        = lazy(() => import("./pages/WhatsAppConfigPage"));
 const KanbanStagesPage          = lazy(() => import("./pages/KanbanStagesPage"));
@@ -307,7 +308,8 @@ function AppRoutes() {
                     <Route path="/linktree/:id"        element={<LinktreeEditorPage />} />
                     <Route path="/nova"                element={<NovaAssistantPage />} />
                     <Route path="/funcionarios"        element={<SectionTabs tabs={TEAM_TABS}><EmployeesPage /></SectionTabs>} />
-                    <Route path="/minhas-tarefas"      element={<MyTasksPage />} />
+                    <Route path="/meu-dia"             element={<SectionTabs tabs={MY_DAY_TABS}><MyDayPage /></SectionTabs>} />
+                    <Route path="/minhas-tarefas"      element={<SectionTabs tabs={MY_DAY_TABS}><MyTasksPage /></SectionTabs>} />
                     <Route path="/whatsapp"            element={<WhatsAppPage />} />
                     <Route path="/whatsapp/config"     element={<WhatsAppConfigPage />} />
                     <Route path="/etapas-kanban"       element={<KanbanStagesPage />} />
