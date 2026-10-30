@@ -92,8 +92,9 @@ export const APP_PAGES: AppPage[] = [
   { path: '/escopos',             label: 'Escopo do Cliente',   icon: ListChecks,      category: 'Operacional' },
   { path: '/nota-cliente',        label: 'Nota do Cliente',     icon: Gauge,           category: 'Operacional' },
   { path: '/observacoes-semanais', label: 'Observações Semanais', icon: NotebookPen,    category: 'Operacional' },
-  { path: '/planejamento',        label: 'Planejamento',        icon: LayoutList,      category: 'Operacional' },
-  { path: '/planejamento-pdf',    label: 'Planejamento PDF',     icon: FileText,        category: 'Operacional' },
+  // Planejamento reúne o gerador com IA e a importação de PDF/planilha em abas
+  { path: '/planejamento',        label: 'Planejamento',        icon: LayoutList,      category: 'Operacional', includes: ['/planejamento-pdf'] },
+  { path: '/planejamento-pdf',    label: 'Planejamento PDF',     icon: FileText,        category: 'Operacional', hidden: true },
   { path: '/diagnostico/editar',  label: 'Diagnóstico',         icon: Target,          category: 'Operacional' },
   // { path: '/metas',               label: 'Metas',               icon: Target,          category: 'Operacional' },
   // { path: '/resultados-semanais', label: 'Resultados Semanais', icon: TrendingUp,      category: 'Operacional' },

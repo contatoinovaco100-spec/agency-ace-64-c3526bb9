@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { AGENDA_TABS, PUBLISH_TABS, SectionRedirect, SectionTabs, TEAM_TABS } from "@/components/SectionTabs";
+import { AGENDA_TABS, PLANNING_TABS, PUBLISH_TABS, SectionRedirect, SectionTabs, TEAM_TABS } from "@/components/SectionTabs";
 import PublicQuizPage from "./pages/PublicQuizPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
@@ -260,8 +260,8 @@ function AppRoutes() {
                     <Route path="/editor-video"        element={<StudioScope><VideoEditorPage /></StudioScope>} />
                     <Route path="/publicar-threads"     element={<ThreadsPublishPage />} />
                     <Route path="/equipe"              element={<SectionRedirect tabs={TEAM_TABS} />} />
-                    <Route path="/planejamento"        element={<ContentPlanningPage />} />
-                    <Route path="/planejamento-pdf"    element={<PdfPlanningPage />} />
+                    <Route path="/planejamento"        element={<SectionTabs tabs={PLANNING_TABS}><ContentPlanningPage /></SectionTabs>} />
+                    <Route path="/planejamento-pdf"    element={<SectionTabs tabs={PLANNING_TABS}><PdfPlanningPage /></SectionTabs>} />
 
                     <Route path="/contratos"           element={<ContractsPage />} />
                     <Route path="/contratos-prestadores" element={<CollaboratorContractsPage />} />

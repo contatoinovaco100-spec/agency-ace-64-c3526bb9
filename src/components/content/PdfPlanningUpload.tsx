@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Upload, FileText, FileSpreadsheet, Loader2, X, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { parsePlanningFile, type PlanningItem } from '@/lib/pdfPlanningParser';
+import type { PlanningItem } from '@/lib/pdfPlanningParser';
 
 interface PdfPlanningUploadProps {
   onParsed: (items: PlanningItem[], rawText: string) => void;
@@ -41,6 +41,8 @@ export function PdfPlanningUpload({ onParsed }: PdfPlanningUploadProps) {
     setIsProcessing(true);
 
     try {
+      // Leitor de PDF/planilha carregado só quando um arquivo é enviado (é pesado)
+      const { parsePlanningFile } = await import('@/lib/pdfPlanningParser');
       const items = await parsePlanningFile(file);
       if (items.length === 0) {
         setError('Nenhum item com título/conteúdo foi encontrado no arquivo. Verifique a planilha ou PDF.');

@@ -11,8 +11,6 @@ import {
 import { motion } from 'framer-motion';
 import { PdfPlanningUpload } from '@/components/content/PdfPlanningUpload';
 import { PdfPlanningCards } from '@/components/content/PdfPlanningCards';
-import { generatePlanningTemplate } from '@/lib/pdfPlanningTemplate';
-import { generateMonthlyExcelTemplate } from '@/lib/excelPlanningTemplate';
 import type { PlanningItem } from '@/lib/pdfPlanningParser';
 
 const MONTHS = [
@@ -38,7 +36,9 @@ export default function PdfPlanningPage() {
     setActiveTab('cards');
   };
 
-  const handleDownloadExcel = () => {
+  // Geradores de PDF/Excel carregados só no clique: deixam a página bem mais leve para abrir
+  const handleDownloadExcel = async () => {
+    const { generateMonthlyExcelTemplate } = await import('@/lib/excelPlanningTemplate');
     generateMonthlyExcelTemplate({
       clientName: selectedClient?.companyName || 'Cliente',
       monthName: monthNameFormatted,
@@ -46,7 +46,8 @@ export default function PdfPlanningPage() {
     });
   };
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
+    const { generatePlanningTemplate } = await import('@/lib/pdfPlanningTemplate');
     generatePlanningTemplate({
       clientName: selectedClient?.companyName || 'Cliente',
       monthName: monthNameFormatted,

@@ -17,6 +17,11 @@ export const TEAM_TABS: SectionTab[] = [
   { path: '/desempenho', label: 'Desempenho' },
 ];
 
+export const PLANNING_TABS: SectionTab[] = [
+  { path: '/planejamento', label: 'Gerar com IA' },
+  { path: '/planejamento-pdf', label: 'Importar PDF ou planilha' },
+];
+
 export const PUBLISH_TABS: SectionTab[] = [
   { path: '/publicar', label: 'Nova publicação' },
   { path: '/publicacoes', label: 'Histórico' },
