@@ -56,6 +56,14 @@ const onlyPhone = (raw: string | null | undefined) => {
 
 const MANUAL_STATUS = ['novo', 'contatado', 'interessado', 'fechado'];
 
+/** Nicho da empresa como aparece nas abas ("clínicas odontológicas" → "Clínicas odontológicas") */
+const nicheLabel = (raw: string | null | undefined) => {
+  const t = String(raw ?? '').trim().replace(/\s+/g, ' ');
+  return t ? t[0].toUpperCase() + t.slice(1) : 'Sem nicho';
+};
+const nicheKey = (raw: string | null | undefined) => nicheLabel(raw).toLocaleLowerCase('pt-BR');
+
+
 const toRow = (l: Lead) => ({
   id: l.id, campaign_id: null, name: l.name, phone: onlyPhone(l.phone), address: l.address || '', category: l.category || '',
   rating: l.rating || null, website: l.website || '', instagram: l.instagram || '', message: l.aiMessage || '', status: l.status,
@@ -63,7 +71,7 @@ const toRow = (l: Lead) => ({
 
 const fromRow = (r: ManualRow): Lead => ({
   id: r.id, name: r.name, address: r.address, phone: r.phone ?? '', rating: Number(r.rating) || 0, website: r.website,
-  instagram: r.instagram, category: r.category, aiMessage: r.message, isGenerating: false,
+  instagram: r.instagram, category: nicheLabel(r.category), aiMessage: r.message, isGenerating: false,
   status: (MANUAL_STATUS.includes(r.status) ? r.status : 'novo') as Lead['status'],
 });
 
@@ -73,6 +81,7 @@ export default function ProspectionPage() {
   const [searching, setSearching] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [leadsLoaded, setLeadsLoaded] = useState(false);
+  const [nicheFilter, setNicheFilter] = useState('all');
   /** Última versão salva de cada empresa (para salvar só o que mudou) */
   const saved = useRef(new Map<string, string>());
 
@@ -193,6 +202,10 @@ export default function ProspectionPage() {
       toast.error('Cole o texto do Google Maps primeiro.');
       return;
     }
+    if (!searchNiche.trim()) {
+      toast.error('Informe o nicho dessas empresas para salvar organizado.');
+      return;
+    }
 
     setIsExtracting(true);
     try {
@@ -247,7 +260,7 @@ export default function ProspectionPage() {
             rating: 0,
             website: item.website || '',
             instagram: item.instagram || '',
-            category: searchNiche || 'Geral',
+            category: nicheLabel(searchNiche),
             aiMessage: filledMessage,
             isGenerating: false,
             status: 'novo' as const,
@@ -289,7 +302,7 @@ export default function ProspectionPage() {
       rating: 0,
       website: manualWebsite,
       instagram: manualInstagram,
-      category: manualCategory || searchNiche || 'Geral',
+      category: nicheLabel(manualCategory || searchNiche),
       aiMessage: filledMessage,
       isGenerating: false,
       status: 'novo',
@@ -373,7 +386,7 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
   };
 
   const generateAllMessages = async () => {
-    const leadsWithoutMessage = leads.filter(l => !l.aiMessage && l.phone);
+    const leadsWithoutMessage = visibleLeads.filter(l => !l.aiMessage && l.phone);
     if (leadsWithoutMessage.length === 0) {
       toast.info('Todos os leads com telefone já possuem mensagem.');
       return;
@@ -403,6 +416,15 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
     navigator.clipboard.writeText(text);
     toast.success('Mensagem copiada!');
   };
+
+  const niches = Object.values(leads.reduce<Record<string, { key: string; label: string; count: number }>>((acc, l) => {
+    const key = nicheKey(l.category);
+    (acc[key] ??= { key, label: nicheLabel(l.category), count: 0 }).count++;
+    return acc;
+  }, {})).sort((a, b) => b.count - a.count);
+  // Nicho que sumiu (todas as empresas excluídas ou trocadas): volta para Todos
+  const activeNiche = niches.some(n => n.key === nicheFilter) ? nicheFilter : 'all';
+  const visibleLeads = activeNiche === 'all' ? leads : leads.filter(l => nicheKey(l.category) === activeNiche);
 
   const statusColors: Record<string, string> = {
     novo: 'bg-zinc-600/20 text-muted-foreground border-border',
@@ -521,6 +543,10 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
                     </DialogDescription>
                   </DialogHeader>
                   <div className="py-4 space-y-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Nicho dessas empresas</Label>
+                      <Input list="prospect-niches" value={searchNiche} onChange={e => setSearchNiche(e.target.value)} placeholder="Ex: clínicas odontológicas" className="bg-muted/60 border-foreground/10" />
+                    </div>
                     <Textarea 
                       placeholder="Cole aqui o texto copiado do Google Maps..." 
                       className="min-h-[250px] bg-muted/60 border-foreground/10 text-xs font-mono leading-relaxed"
@@ -606,15 +632,29 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
         </CardContent>
       </Card>
 
-      {/* Actions Bar */}
+      {/* Nichos: a lista fica separada pelo nicho de cada empresa */}
+      <datalist id="prospect-niches">{niches.map(n => <option key={n.key} value={n.label} />)}</datalist>
       {leads.length > 0 && (
-        <div className="flex items-center justify-between px-2">
-          <p className="text-sm text-muted-foreground">
-            <span className="text-foreground font-bold">{leads.length}</span> leads na lista
-          </p>
-          <Button onClick={generateAllMessages} variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
-            <Sparkles className="w-4 h-4 mr-2" /> Gerar Mensagens para Todos
-          </Button>
+        <div className="space-y-3 px-2">
+          <div className="flex flex-wrap gap-1.5">
+            {[{ key: 'all', label: 'Todos', count: leads.length }, ...niches].map(n => (
+              <button
+                key={n.key}
+                onClick={() => setNicheFilter(n.key)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${activeNiche === n.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
+              >
+                {n.label} <span className="ml-1 tabular-nums opacity-70">{n.count}</span>
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              <span className="text-foreground font-bold">{visibleLeads.length}</span> leads{activeNiche !== 'all' && ` em ${niches.find(n => n.key === activeNiche)?.label ?? ''}`}
+            </p>
+            <Button onClick={generateAllMessages} variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
+              <Sparkles className="w-4 h-4 mr-2" /> {activeNiche === 'all' ? 'Gerar Mensagens para Todos' : 'Gerar Mensagens deste nicho'}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -627,7 +667,7 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
         </div>
       ) : (
         <div className="space-y-4">
-          {leads.map(lead => (
+          {visibleLeads.map(lead => (
             <div key={lead.id} className="border border-foreground/5 bg-card rounded-2xl overflow-hidden shadow-md hover:border-foreground/10 transition-colors">
               
               {/* Lead Header */}
@@ -638,6 +678,15 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-bold text-foreground truncate">{lead.name}</h3>
+                    <input
+                      list="prospect-niches"
+                      defaultValue={lead.category}
+                      onBlur={e => { const v = nicheLabel(e.target.value); if (v !== lead.category) setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, category: v } : l)); }}
+                      onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                      className="mt-1 w-48 rounded-full border border-transparent bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary outline-none hover:border-primary/30 focus:border-primary/50"
+                      aria-label="Nicho"
+                      title="Nicho (clique para trocar)"
+                    />
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {lead.phone || 'N/A'}</span>
                       {lead.website && (
