@@ -9,21 +9,14 @@ import {
 } from 'lucide-react';
 import { addToManualProspecting } from '@/lib/prospectImport';
 
-const SUPABASE_URL = 'https://coblfehkclfjofrshlwl.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvYmxmZWhrY2xmam9mcnNobHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNTkzODQsImV4cCI6MjA4OTYzNTM4NH0.Mi4DGSWEtf6sn4NUKOlYws0_DotBgIOVXlZ45SYGQuM';
-
+/** Função consulta-cnpj do projeto da plataforma (o projeto antigo foi desativado e dava "Failed to fetch") */
 async function invokeFunction(name: string, body: Record<string, unknown>) {
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error || `Erro ${res.status}`);
+  const { data, error } = await supabase.functions.invoke(name, { body });
+  if (error) {
+    let detail = error.message;
+    try { const ctx = (error as { context?: Response }).context; if (ctx?.json) detail = (await ctx.json()).error || detail; } catch { /* sem corpo */ }
+    throw new Error(detail);
+  }
   return data;
 }
 
