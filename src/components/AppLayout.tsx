@@ -95,7 +95,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 {category}
               </div>
               {items.map(item => (
-                <NavItem key={item.path} item={item} active={isActivePath(location.pathname, item.path)} compact={compact} />
+                <NavItem key={item.path} item={item} compact={compact}
+                  active={[item.path, ...(item.includes ?? [])].some((p) => isActivePath(location.pathname, p))} />
               ))}
             </div>
           ))}

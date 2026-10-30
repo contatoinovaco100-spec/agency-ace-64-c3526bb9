@@ -30,6 +30,8 @@ export interface AppPage {
   hidden?: boolean;
   /** Render in a highlighted style in the sidebar (e.g. Publicar) */
   highlight?: boolean;
+  /** Página que reúne outras em abas: liberada para quem tem acesso a qualquer uma delas */
+  includes?: string[];
 
 }
 
@@ -43,7 +45,9 @@ export const APP_PAGES: AppPage[] = [
   { path: '/',                    label: 'Dashboard',           icon: LayoutDashboard, category: 'Geral' },
   { path: '/desempenho',          label: 'Desempenho da Equipe', icon: Gauge,          category: 'Administração', adminOnly: true },
   { path: '/minhas-tarefas',      label: 'Minhas Tarefas',      icon: ListChecks,      category: 'Geral' },
-  { path: '/calendario',          label: 'Calendário',          icon: Calendar,        category: 'Geral' },
+  // Agenda reúne Calendário, Gravações e Escala semanal em abas (cada aba mantém o próprio endereço e permissão)
+  { path: '/agenda',              label: 'Agenda',              icon: Calendar,        category: 'Geral', includes: ['/calendario', '/gravacoes', '/agenda-videos'] },
+  { path: '/calendario',          label: 'Calendário',          icon: Calendar,        category: 'Geral', hidden: true },
   { path: '/notificacoes',        label: 'Notificações',        icon: Bell,            category: 'Geral' },
   { path: '/alterar-senha',       label: 'Alterar Senha',       icon: KeyRound,        category: 'Geral', alwaysAllowed: true },
   { path: '/historico-kanban',    label: 'Histórico Kanban',    icon: Bell,            category: 'Geral', alwaysAllowed: true, hidden: true },
@@ -53,9 +57,9 @@ export const APP_PAGES: AppPage[] = [
   // { path: '/negocios',            label: 'Rede de Negócios',    icon: Network,         category: 'Geral' },
 
   // Postagens (publicar + relatórios de cliente)
-  { path: '/publicar',            label: 'Publicar Conteúdo',    icon: Sparkles,        category: 'Postagens', highlight: true },
+  { path: '/publicar',            label: 'Publicar Conteúdo',    icon: Sparkles,        category: 'Postagens', highlight: true, includes: ['/publicacoes'] },
   { path: '/publicar-threads',    label: 'Publicar Threads',     icon: AtSign,          category: 'Postagens' },
-  { path: '/publicacoes',         label: 'Histórico de Posts',   icon: ListChecks,      category: 'Postagens' },
+  { path: '/publicacoes',         label: 'Histórico de Posts',   icon: ListChecks,      category: 'Postagens', hidden: true },
   { path: '/redes-sociais',       label: 'Redes Sociais',        icon: Network,         category: 'Postagens' },
   { path: '/portfolio-instagram', label: 'Posts Instagram',      icon: Sparkles,        category: 'Postagens' },
   { path: '/instagram-analytics', label: 'Relatório Cliente',    icon: BarChart3,       category: 'Postagens' },
@@ -75,13 +79,14 @@ export const APP_PAGES: AppPage[] = [
   // Operacional
   { path: '/clientes',            label: 'Clientes',            icon: Users,           category: 'Operacional' },
   { path: '/tarefas',             label: 'Tarefas (Kanban)',    icon: CheckSquare,     category: 'Operacional' },
-  { path: '/calendario-postagens', label: 'Calendário Posts',   icon: CalendarDays,    category: 'Operacional' },
-  { path: '/planner',             label: 'Planner',             icon: CalendarDays,    category: 'Operacional' },
+  // Substituído pelo Planner (o endereço antigo leva para lá)
+  { path: '/calendario-postagens', label: 'Calendário Posts',   icon: CalendarDays,    category: 'Operacional', hidden: true },
+  { path: '/planner',             label: 'Planner',             icon: CalendarDays,    category: 'Operacional', includes: ['/calendario-postagens'] },
   { path: '/onboarding-clientes', label: 'Onboarding Clientes', icon: Rocket,          category: 'Operacional' },
   { path: '/briefings',           label: 'Briefings',           icon: FileText,        category: 'Operacional' },
   { path: '/artes',               label: 'Artes Estáticas',     icon: Palette,         category: 'Operacional' },
   { path: '/videos-finalizados',  label: 'Vídeos Finalizados',  icon: Play,            category: 'Operacional' },
-  { path: '/agenda-videos',       label: 'Agenda de Vídeos',    icon: CalendarDays,    category: 'Operacional' },
+  { path: '/agenda-videos',       label: 'Agenda de Vídeos',    icon: CalendarDays,    category: 'Operacional', hidden: true },
   { path: '/pre-producao',        label: 'Pré-Produção',        icon: Scissors,        category: 'Operacional' },
   { path: '/editor-video',        label: 'Editor de Vídeo',     icon: Scissors,        category: 'Operacional' },
   { path: '/escopos',             label: 'Escopo do Cliente',   icon: ListChecks,      category: 'Operacional' },
@@ -96,7 +101,7 @@ export const APP_PAGES: AppPage[] = [
   // Produção
   // { path: '/galeria',             label: 'Galeria',             icon: Images,          category: 'Produção' },
   { path: '/portfolio',           label: 'Portfólio',           icon: Film,            category: 'Produção' },
-  { path: '/gravacoes',           label: 'Gravações',           icon: Clapperboard,    category: 'Produção' },
+  { path: '/gravacoes',           label: 'Gravações',           icon: Clapperboard,    category: 'Produção', hidden: true },
   { path: '/teleprompter',        label: 'Teleprompter',        icon: Video,           category: 'Produção' },
 
   // Ferramentas

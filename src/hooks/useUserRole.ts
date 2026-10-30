@@ -167,9 +167,11 @@ export function usePageAccess() {
       });
   }, [user, isAdmin, roleLoading, isRedeCompanyUser, redeLoading, isAffiliate, affiliateLoading]);
 
-  const hasPageAccess = (path: string) => {
+  const hasPageAccess = (path: string): boolean => {
     if (isAffiliate && path.startsWith('/afiliado')) return true;
     const page = APP_PAGES.find(p => p.path === path);
+    // Página com abas: liberada se o usuário acessa qualquer uma das páginas reunidas
+    if (page?.includes?.some((p) => hasPageAccess(p))) return true;
     if (page?.affiliateOnly && !isAffiliate) return false;
     if (page?.affiliateOnly && isAffiliate) return true;
     

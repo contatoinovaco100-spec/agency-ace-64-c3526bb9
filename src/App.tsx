@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { AGENDA_TABS, PUBLISH_TABS, SectionRedirect, SectionTabs } from "@/components/SectionTabs";
 import PublicQuizPage from "./pages/PublicQuizPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
@@ -127,7 +128,6 @@ const MyTasksPage               = lazy(() => import("./pages/MyTasksPage"));
 const WhatsAppPage              = lazy(() => import("./pages/WhatsAppPage"));
 const WhatsAppConfigPage        = lazy(() => import("./pages/WhatsAppConfigPage"));
 const KanbanStagesPage          = lazy(() => import("./pages/KanbanStagesPage"));
-const PostCalendarPage          = lazy(() => import("./pages/PostCalendarPage"));
 const PlannerPage               = lazy(() => import("./pages/PlannerPage"));
 const ClientOnboardingsPage     = lazy(() => import("./pages/ClientOnboardingsPage"));
 const CommercialTeamPage        = lazy(() => import("./pages/CommercialTeamPage"));
@@ -255,7 +255,8 @@ function AppRoutes() {
                     <Route path="/tarefas"             element={<TasksPage groupedByDueDate />} />
                     <Route path="/artes"               element={<ArtesPage />} />
                     <Route path="/videos-finalizados"  element={<VideosFinalizadosPage />} />
-                    <Route path="/agenda-videos"       element={<VideoSchedulePage />} />
+                    <Route path="/agenda"              element={<SectionRedirect tabs={AGENDA_TABS} />} />
+                    <Route path="/agenda-videos"       element={<SectionTabs tabs={AGENDA_TABS}><VideoSchedulePage /></SectionTabs>} />
                     <Route path="/pre-producao"        element={<PreProducaoPage />} />
                     <Route path="/editor-video"        element={<StudioScope><VideoEditorPage /></StudioScope>} />
                     <Route path="/publicar-threads"     element={<ThreadsPublishPage />} />
@@ -273,9 +274,9 @@ function AppRoutes() {
                     <Route path="/redes-sociais"       element={<SocialAccountsPage />} />
                     <Route path="/instagram-analytics" element={<InstagramAnalyticsPage />} />
 
-                    <Route path="/publicar"            element={<PublishContentPage />} />
-                    <Route path="/publicacoes"         element={<PublishHistoryPage />} />
-                    <Route path="/gravacoes"           element={<ShootingSchedulePage />} />
+                    <Route path="/publicar"            element={<SectionTabs tabs={PUBLISH_TABS}><PublishContentPage /></SectionTabs>} />
+                    <Route path="/publicacoes"         element={<SectionTabs tabs={PUBLISH_TABS}><PublishHistoryPage /></SectionTabs>} />
+                    <Route path="/gravacoes"           element={<SectionTabs tabs={AGENDA_TABS}><ShootingSchedulePage /></SectionTabs>} />
                     <Route path="/whiteboard"          element={<StudioScope><WhiteboardPage /></StudioScope>} />
                     <Route path="/prospeccao"          element={<ProspectionPage />} />
                     <Route path="/consulta-cnpj"       element={<CnpjLookupPage />} />
@@ -287,8 +288,9 @@ function AppRoutes() {
 
                     <Route path="/alterar-senha"       element={<ChangePasswordPage />} />
                     {/* New routes */}
-                    <Route path="/calendario"          element={<CalendarPage />} />
-                    <Route path="/calendario-postagens"  element={<PostCalendarPage />} />
+                    <Route path="/calendario"          element={<SectionTabs tabs={AGENDA_TABS}><CalendarPage /></SectionTabs>} />
+                    {/* Calendário Posts foi substituído pelo Planner */}
+                    <Route path="/calendario-postagens"  element={<Navigate to="/planner" replace />} />
                     <Route path="/planner"             element={<PlannerPage />} />
                     <Route path="/onboarding-clientes" element={<ClientOnboardingsPage />} />
                     <Route path="/chat"                element={<ChatPage />} />
