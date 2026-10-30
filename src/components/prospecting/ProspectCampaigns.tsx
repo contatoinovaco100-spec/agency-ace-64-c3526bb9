@@ -115,13 +115,18 @@ export function ProspectCampaigns() {
           A campanha busca empresas no Google, a IA escreve uma mensagem diferente para cada uma e o WhatsApp envia sozinho,
           com limite por dia e intervalo aleatório. Quem responde vira lead no CRM; quem pede para parar não recebe mais nada.
         </p>
-        <Button className="shrink-0 gap-1.5" onClick={() => setEditing({ ...EMPTY })}><Plus className="h-4 w-4" /> Nova campanha</Button>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <PullFromManual numbers={numbers} primary onDone={(id) => { if (id) setSelected(id); load(); }} />
+          <Button variant="outline" className="gap-1.5" onClick={() => setEditing({ ...EMPTY })}><Plus className="h-4 w-4" /> Nova campanha</Button>
+        </div>
       </div>
 
       {campaigns.length === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center">
           <p className="font-medium">Nenhuma campanha ainda</p>
-          <p className="mt-1 text-sm text-muted-foreground">Crie uma campanha com o ramo e a cidade (ex.: "clínica de estética" em "Volta Redonda, RJ").</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Clique em <strong className="font-medium text-foreground">Disparar da Manual</strong> e escolha o nicho que você captou: a campanha é criada sozinha com essas empresas.
+          </p>
         </div>
       ) : (
         <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
@@ -139,7 +144,7 @@ export function ProspectCampaigns() {
                       <span className="min-w-0 flex-1 truncate text-sm font-medium">{c.name}</span>
                       <span className="text-xs tabular-nums text-muted-foreground">{s.today}/{c.daily_limit} hoje</span>
                     </div>
-                    <p className="mt-0.5 truncate pl-4 text-xs text-muted-foreground">{c.niche} · {c.city}</p>
+                    <p className="mt-0.5 truncate pl-4 text-xs text-muted-foreground">{[c.niche, c.city].filter(Boolean).join(' · ')}</p>
                     <div className="mt-2 flex gap-3 pl-4 text-xs tabular-nums">
                       <span><strong className="font-semibold">{s.queue}</strong> <span className="text-muted-foreground">na fila</span></span>
                       <span><strong className="font-semibold">{s.sent}</strong> <span className="text-muted-foreground">enviados</span></span>
@@ -220,7 +225,7 @@ function CampaignDetail({ campaign: c, numbers, prospects, stats, onToggle, onEd
         <div className="flex flex-wrap items-start gap-3">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold tracking-tight">{c.name}</h2>
-            <p className="flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> {c.niche} em {c.city}</p>
+            <p className="flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> {c.city ? `${c.niche} em ${c.city}` : c.niche}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               Envia por <strong className="font-medium text-foreground">{sender?.name ?? 'número principal'}</strong> · até {c.daily_limit} por dia ·
               a cada {c.min_gap_min}–{c.max_gap_min} min · {c.start_hour}h às {c.end_hour}h{c.weekdays_only ? ', seg a sex' : ''}
@@ -256,7 +261,7 @@ function CampaignDetail({ campaign: c, numbers, prospects, stats, onToggle, onEd
           <Button onClick={search} disabled={searching} className="gap-1.5">
             {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Buscar empresas no Google
           </Button>
-          <PullFromManual campaign={c} onDone={onChanged} />
+          <PullFromManual campaign={c} numbers={numbers} onDone={onChanged} />
           <SampleButton campaign={c} />
           <Button variant="ghost" className="gap-1.5" onClick={onEdit}><Pencil className="h-4 w-4" /> Editar</Button>
           <Button variant="ghost" size="icon" className="ml-auto" onClick={remove} aria-label="Apagar campanha"><Trash2 className="h-4 w-4" /></Button>
@@ -327,7 +332,11 @@ function CampaignDetail({ campaign: c, numbers, prospects, stats, onToggle, onEd
 }
 
 /** Traz empresas da prospecção manual (por nicho) para a fila desta campanha */
-function PullFromManual({ campaign, onDone }: { campaign: Campaign; onDone: () => void }) {
+/** Traz empresas da prospecção manual (por nicho) para a fila de uma campanha.
+ *  Sem campanha (botão do topo), cria uma campanha para os nichos escolhidos, pausada, pelo chip de prospecção se houver. */
+function PullFromManual({ campaign, numbers, primary, onDone }: {
+  campaign?: Campaign; numbers: WaNumber[]; primary?: boolean; onDone: (campaignId?: string) => void;
+}) {
   const [rows, setRows] = useState<{ id: string; category: string; status: string; phone: string | null }[] | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
   const [moving, setMoving] = useState(false);
@@ -352,27 +361,43 @@ function PullFromManual({ campaign, onDone }: { campaign: Campaign; onDone: () =
   const total = groups.filter((g) => picked.includes(g.key)).reduce((n, g) => n + g.ready.length, 0);
 
   const move = async () => {
-    const ids = groups.filter((g) => picked.includes(g.key)).flatMap((g) => g.ready);
+    const chosen = groups.filter((g) => picked.includes(g.key));
+    const ids = chosen.flatMap((g) => g.ready);
     setMoving(true);
+    let target = campaign;
+    if (!target) {
+      const niche = chosen.map((g) => g.label).join(', ');
+      const sender = numbers.find((n) => !n.is_default) ?? numbers.find((n) => n.is_default);
+      const { data: u } = await supabase.auth.getUser();
+      const { data, error } = await supabase.from(CAMPAIGNS).insert({
+        ...EMPTY, name: niche, niche, city: '', session_id: sender?.id ?? null, active: false, created_by: u.user?.id ?? null,
+      } as never).select('*').single();
+      if (error) { toast.error('Não foi possível criar a campanha', { description: error.message }); setMoving(false); return; }
+      target = data as unknown as Campaign;
+    }
     for (let i = 0; i < ids.length; i += 200) {
-      const { error } = await supabase.from(PROSPECTS).update({ campaign_id: campaign.id, status: 'novo', error: '' } as never).in('id', ids.slice(i, i + 200));
+      const { error } = await supabase.from(PROSPECTS).update({ campaign_id: target.id, status: 'novo', error: '' } as never).in('id', ids.slice(i, i + 200));
       if (error) { toast.error('Não foi possível puxar', { description: error.message }); setMoving(false); return; }
     }
     setMoving(false);
     setRows(null);
-    toast.success(`${ids.length} empresas na fila de "${campaign.name}"`, { description: 'Elas saem da lista manual e entram no disparo automático.' });
-    onDone();
+    toast.success(`${ids.length} empresas na fila de "${target.name}"`, {
+      description: campaign ? 'Elas saem da lista manual e entram no disparo automático.' : 'Campanha criada pausada: confira o número que envia e ligue quando quiser começar.',
+    });
+    onDone(target.id);
   };
 
   return (
     <>
-      <Button variant="outline" onClick={openDialog} className="gap-1.5"><Download className="h-4 w-4" /> Puxar da Manual</Button>
+      <Button variant={primary ? 'default' : 'outline'} onClick={openDialog} className="gap-1.5">
+        <Download className="h-4 w-4" /> {campaign ? 'Puxar da Manual' : 'Disparar da Manual'}
+      </Button>
       {rows && (
         <Dialog open onOpenChange={(o) => !o && setRows(null)}>
           <DialogContent className="max-w-md">
-            <DialogTitle>Puxar da prospecção manual</DialogTitle>
+            <DialogTitle>{campaign ? 'Puxar da prospecção manual' : 'Disparar da prospecção manual'}</DialogTitle>
             <DialogDescription>
-              Escolha os nichos. Entram na fila desta campanha as empresas com telefone que ainda estão como "Novo" na manual.
+              Escolha os nichos. Entram {campaign ? 'na fila desta campanha' : 'numa campanha nova'} as empresas com telefone que ainda estão como "Novo" na manual.
             </DialogDescription>
             {groups.length === 0 ? (
               <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">A lista manual está vazia.</p>
