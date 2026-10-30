@@ -19,6 +19,9 @@ type Campaign = {
   weekdays_only: boolean; active: boolean; last_search_at?: string | null;
   /** Sequência do CRM para quem responder */
   followup_sequence_id?: string | null;
+  /** Um por vez (intervalo em minutos) ou em lotes (N seguidas com intervalo de segundos, depois pausa) */
+  send_mode?: 'um_por_vez' | 'lotes'; batch_size?: number; batch_min_sec?: number; batch_max_sec?: number; batch_pause_min?: number;
+  batch_running_since?: string | null;
 };
 type Prospect = {
   id: string; campaign_id: string; name: string; phone: string; address: string; category: string; rating: number | null;
@@ -33,6 +36,7 @@ const PROSPECTS = 'prospects' as never;
 
 const STATUS: Record<string, { label: string; tone: string }> = {
   novo: { label: 'Na fila', tone: 'bg-muted text-muted-foreground' },
+  enviando: { label: 'Enviando…', tone: 'bg-primary/10 text-primary' },
   enviado: { label: 'Enviado', tone: 'bg-primary/10 text-primary' },
   respondeu: { label: 'Respondeu', tone: 'bg-success/15 text-success' },
   nao_quer: { label: 'Pediu para parar', tone: 'bg-muted text-muted-foreground' },
@@ -78,8 +82,15 @@ const START_REASON: Record<string, string> = {
   'limite do dia': 'O limite de hoje já foi atingido: continua amanhã.',
   'fila vazia': 'A fila está vazia: puxe empresas da Manual ou busque no Google.',
   'sem mensagem': 'A campanha está sem mensagem: escreva a mensagem em Editar.',
+  'lote em andamento': 'Já tem um lote sendo enviado agora: o próximo começa depois da pausa.',
   'nenhum com WhatsApp nesta rodada': 'As primeiras da fila não têm WhatsApp; a próxima rodada (em até 5 min) tenta as seguintes.',
 };
+
+const BATCH_DEFAULTS = { batch_size: 20, batch_min_sec: 8, batch_max_sec: 20, batch_pause_min: 5 };
+const isBatch = (c: Campaign) => c.send_mode === 'lotes';
+const pacingLabel = (c: Campaign) => isBatch(c)
+  ? `lotes de ${c.batch_size ?? 20} (a cada ${c.batch_min_sec ?? 8}–${c.batch_max_sec ?? 20} s), pausa de ${c.batch_pause_min ?? 5} min`
+  : `a cada ${c.min_gap_min}–${c.max_gap_min} min`;
 
 const todayStart = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
 
@@ -143,8 +154,9 @@ export function ProspectCampaigns() {
     // Ligar = começar na hora: a primeira mensagem sai agora, as próximas seguem o intervalo
     const t = toast.loading('Iniciando os disparos…');
     try {
-      const r = await invoke<{ sent?: string; skipped?: string; error?: string }>({ action: 'start', campaign_id: c.id });
-      if (r.sent) toast.success(`Disparos iniciados: primeira mensagem enviada para ${r.sent}`, { id: t, description: `As próximas saem a cada ${c.min_gap_min}–${c.max_gap_min} min.` });
+      const r = await invoke<{ sent?: string; batch?: number; skipped?: string; error?: string }>({ action: 'start', campaign_id: c.id });
+      if (r.batch) toast.success(`Disparos iniciados: lote de ${r.batch} mensagens saindo agora`, { id: t, description: `Uma a cada ${c.batch_min_sec ?? 8}–${c.batch_max_sec ?? 20} s; depois pausa de ${c.batch_pause_min ?? 5} min e vem o próximo lote.` });
+      else if (r.sent) toast.success(`Disparos iniciados: primeira mensagem enviada para ${r.sent}`, { id: t, description: `As próximas saem a cada ${c.min_gap_min}–${c.max_gap_min} min.` });
       else if (r.error) toast.error('Campanha ligada, mas o envio falhou', { id: t, description: r.error });
       else toast.info('Campanha ligada', { id: t, description: START_REASON[r.skipped ?? ''] ?? r.skipped });
     } catch (e) {
@@ -286,7 +298,7 @@ function CampaignDetail({ campaign: c, numbers, sequences, prospects, stats, onT
             <p className="flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> {c.city ? `${c.niche} em ${c.city}` : c.niche}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               Envia por <strong className="font-medium text-foreground">{sender?.name ?? 'número principal'}</strong> · até {c.daily_limit} por dia ·
-              a cada {c.min_gap_min}–{c.max_gap_min} min · {c.start_hour}h às {c.end_hour}h{c.weekdays_only ? ', seg a sex' : ''}
+              {' '}{pacingLabel(c)} · {c.start_hour}h às {c.end_hour}h{c.weekdays_only ? ', seg a sex' : ''}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
               Quem responder: CRM em "Contato iniciado"{followup ? <> + follow-up <strong className="font-medium text-foreground">{followup.name}</strong>{!followup.active && ' (desligado)'}</> : ', sem follow-up automático'}
@@ -296,6 +308,12 @@ function CampaignDetail({ campaign: c, numbers, sequences, prospects, stats, onT
             <Switch checked={c.active} onCheckedChange={onToggle} /> {c.active ? 'Enviando' : 'Pausada'}
           </label>
         </div>
+
+        {c.batch_running_since && (
+          <p className="mt-3 flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Lote sendo enviado agora ({prospects.filter((p) => p.status === 'enviando').length} na vez)
+          </p>
+        )}
 
         {sender?.is_default && (
           <p className="mt-3 rounded-lg bg-warning/10 px-3 py-2 text-xs">
@@ -550,16 +568,20 @@ function CampaignEditor({ campaign, numbers, sequences, onClose, onSaved }: {
       start_hour: d.start_hour, end_hour: Math.max(d.start_hour + 1, d.end_hour), weekdays_only: d.weekdays_only,
       updated_at: new Date().toISOString(),
       followup_sequence_id: d.followup_sequence_id ?? null,
+      ...(d.send_mode ? {
+        send_mode: d.send_mode, batch_size: d.batch_size ?? 20, batch_pause_min: d.batch_pause_min ?? 5,
+        batch_min_sec: d.batch_min_sec ?? 8, batch_max_sec: Math.max(d.batch_min_sec ?? 8, d.batch_max_sec ?? 20),
+      } : {}),
     };
     const write = (r: Record<string, unknown>) => d.id
       ? supabase.from(CAMPAIGNS).update(r as never).eq('id', d.id).select('id').single()
       : supabase.from(CAMPAIGNS).insert({ ...r, active: false, created_by: u.user?.id ?? null } as never).select('id').single();
     let res = await write(row);
-    // Migração do follow-up ainda não aplicada: salva o resto
-    if (res.error && /followup_sequence_id/.test(res.error.message)) {
-      const { followup_sequence_id: _skip, ...rest } = row;
+    // Migração ainda não aplicada (follow-up ou lotes): salva o resto e avisa
+    if (res.error && /followup_sequence_id|send_mode|batch_/.test(res.error.message)) {
+      const rest = Object.fromEntries(Object.entries(row).filter(([k]) => k !== 'followup_sequence_id' && k !== 'send_mode' && !k.startsWith('batch_')));
       res = await write(rest);
-      if (!res.error && d.followup_sequence_id) toast.warning('Follow-up não salvo', { description: 'Peça ao Lovable para aplicar a migração 20261030235000_prospect_followup.sql.' });
+      if (!res.error) toast.warning('Follow-up e envio em lotes não foram salvos', { description: 'Peça ao Lovable para aplicar as migrações 20261030235000_prospect_followup.sql e 20261031000000_prospect_batches.sql.' });
     }
     setSaving(false);
     if (res.error) { toast.error('Não foi possível salvar', { description: res.error.message }); return; }
@@ -624,20 +646,50 @@ function CampaignEditor({ campaign, numbers, sequences, onClose, onSaved }: {
 
           <div className="space-y-3 rounded-xl border p-4">
             <p className="text-sm font-medium">Ritmo dos envios</p>
+            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+              {([['um_por_vez', 'Um por vez', 'Intervalo de minutos'], ['lotes', 'Em lotes', 'Várias seguidas e pausa']] as const).map(([mode, label, hint]) => (
+                <button key={mode} type="button" onClick={() => setD((x) => ({ ...BATCH_DEFAULTS, ...x, send_mode: mode, daily_limit: mode === 'lotes' && x.daily_limit < 40 ? 100 : x.daily_limit }))}
+                  className={cn('rounded-md px-3 py-2 text-left transition-colors', (d.send_mode ?? 'um_por_vez') === mode ? 'bg-card shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+                  <span className="block text-sm font-medium">{label}</span><span className="block text-xs text-muted-foreground">{hint}</span>
+                </button>
+              ))}
+            </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Máximo por dia</Label>
-                <Input type="number" min={1} max={80} value={d.daily_limit} onChange={(e) => set('daily_limit', num(e.target.value, 1, 80))} /></div>
-              <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Intervalo mín. (min)</Label>
-                <Input type="number" min={3} max={120} value={d.min_gap_min} onChange={(e) => set('min_gap_min', num(e.target.value, 3, 120))} /></div>
-              <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Intervalo máx. (min)</Label>
-                <Input type="number" min={3} max={180} value={d.max_gap_min} onChange={(e) => set('max_gap_min', num(e.target.value, 3, 180))} /></div>
+                <Input type="number" min={1} max={500} value={d.daily_limit} onChange={(e) => set('daily_limit', num(e.target.value, 1, 500))} /></div>
+              {isBatch(d) ? (
+                <>
+                  <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Mensagens por lote</Label>
+                    <Input type="number" min={1} max={50} value={d.batch_size ?? 20} onChange={(e) => set('batch_size', num(e.target.value, 1, 50))} /></div>
+                  <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Pausa entre lotes (min)</Label>
+                    <Input type="number" min={1} max={240} value={d.batch_pause_min ?? 5} onChange={(e) => set('batch_pause_min', num(e.target.value, 1, 240))} /></div>
+                  <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Intervalo mín. (seg)</Label>
+                    <Input type="number" min={3} max={300} value={d.batch_min_sec ?? 8} onChange={(e) => set('batch_min_sec', num(e.target.value, 3, 300))} /></div>
+                  <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Intervalo máx. (seg)</Label>
+                    <Input type="number" min={3} max={600} value={d.batch_max_sec ?? 20} onChange={(e) => set('batch_max_sec', num(e.target.value, 3, 600))} /></div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Intervalo mín. (min)</Label>
+                    <Input type="number" min={3} max={120} value={d.min_gap_min} onChange={(e) => set('min_gap_min', num(e.target.value, 3, 120))} /></div>
+                  <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Intervalo máx. (min)</Label>
+                    <Input type="number" min={3} max={180} value={d.max_gap_min} onChange={(e) => set('max_gap_min', num(e.target.value, 3, 180))} /></div>
+                </>
+              )}
               <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Começa às (h)</Label>
                 <Input type="number" min={6} max={22} value={d.start_hour} onChange={(e) => set('start_hour', num(e.target.value, 6, 22))} /></div>
               <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Para às (h)</Label>
                 <Input type="number" min={7} max={23} value={d.end_hour} onChange={(e) => set('end_hour', num(e.target.value, 7, 23))} /></div>
               <label className="flex items-end gap-2 pb-2 text-sm"><Switch checked={d.weekdays_only} onCheckedChange={(v) => set('weekdays_only', v)} /> Só seg a sex</label>
             </div>
-            <p className="text-xs text-muted-foreground">Chip novo: comece com 15–20 por dia e aumente aos poucos. Acima de 50 por dia o risco de bloqueio cresce bastante.</p>
+            {isBatch(d) ? (
+              <p className="rounded-lg bg-warning/10 px-3 py-2 text-xs">
+                Em lotes o WhatsApp percebe o volume mais rápido: use um chip só de prospecção, varie o texto com {'{Oi|Olá}'} e comece com lotes menores
+                (ex.: 10 a cada 15 min) em chip novo. Antes de cada mensagem o número aparece "digitando…".
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Chip novo: comece com 15–20 por dia e aumente aos poucos. Acima de 50 por dia o risco de bloqueio cresce bastante.</p>
+            )}
           </div>
         </div>
         <div className="flex justify-end gap-2 border-t p-4">

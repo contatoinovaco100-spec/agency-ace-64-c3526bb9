@@ -2,8 +2,10 @@
 // - action "search" (login): busca empresas da campanha no Google (Places API oficial) e coloca na fila.
 // - action "sample" (login): mostra como fica a mensagem da campanha para uma empresa, sem enviar.
 // - action "start" (login): liga a campanha e envia a primeira mensagem na hora.
-// - action "run" (cron a cada 5 min, sem login): para cada campanha ligada, no horário e dentro do limite do dia,
-//   confere se o número tem WhatsApp e envia a mensagem da campanha (a que você escreveu), 1 por vez com intervalo aleatório.
+// - action "run" (cron a cada minuto, sem login): para cada campanha ligada, no horário e dentro do limite do dia,
+//   envia a mensagem da campanha (a que você escreveu): "um_por_vez" (1 mensagem e intervalo de minutos) ou
+//   "lotes" (N mensagens pelo servidor do WhatsApp com intervalo de segundos, depois pausa de X minutos).
+// - action "bulk_result" / "bulk_done" (servidor do WhatsApp, com a chave dele): resultado de cada envio do lote e fim do lote.
 // A resposta do prospect é tratada no wa-inbound (vira lead, ou "não quer" se pedir para parar).
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -20,6 +22,8 @@ type Campaign = {
   id: string; name: string; niche: string; city: string; session_id: string | null; pitch: string; example_message: string;
   daily_limit: number; min_gap_min: number; max_gap_min: number; start_hour: number; end_hour: number;
   weekdays_only: boolean; active: boolean; next_send_at: string | null;
+  send_mode?: "um_por_vez" | "lotes"; batch_size?: number; batch_min_sec?: number; batch_max_sec?: number; batch_pause_min?: number;
+  batch_running_since?: string | null;
 };
 type Prospect = { id: string; name: string; phone: string; message?: string; status?: string; sent_at?: string | null; lead_id?: string | null; campaign_id?: string; address: string; category: string; rating: number | null; reviews: number | null; website: string };
 
@@ -111,18 +115,71 @@ async function backfillLeads(admin: any) {
   }
 }
 
+/** Depois de enviar: marca a empresa, cria o lead em "Lead novo" e registra a mensagem na conversa */
+async function afterSent(admin: any, c: Pick<Campaign, "name">, p: Prospect, waNumber: string, message: string, session: string, messageId: string | null) {
+  await admin.from("prospects").update({ status: "enviado", message, sent_at: new Date().toISOString(), error: "" }).eq("id", p.id);
+  const phone = normalizePhone(waNumber) ?? p.phone;
+  const leadId = await leadForProspect(admin, c, p, phone, session, message).catch((e) => { console.error("lead da prospecção", e); return null; });
+  const conv = await upsertConversation(admin, session, phone, p.name);
+  if (conv) {
+    await recordMessage(admin, conv, { direction: "out", content: message, wa_message_id: messageId });
+    if (leadId && !conv.lead_id) await admin.from("wa_conversations").update({ lead_id: leadId }).eq("id", conv.id);
+  }
+}
+
+// ─── Envio em lotes: N mensagens pelo servidor (intervalo de segundos), depois pausa ─
+async function runBatch(admin: any, c: Campaign, remainingToday: number) {
+  const size = Math.max(1, Math.min(c.batch_size ?? 20, remainingToday, 100));
+  // Separa as próximas da fila, pulando quem já é cliente/lead/conversa
+  const { data: queue } = await admin.from("prospects").select("*").eq("campaign_id", c.id).eq("status", "novo").order("created_at").limit(size * 2);
+  if (!queue?.length) return { skipped: "fila vazia" };
+  const batch: Prospect[] = [];
+  for (const p of queue as Prospect[]) {
+    if (batch.length >= size) break;
+    const known = await alreadyKnown(admin, p.phone);
+    if (known) { await admin.from("prospects").update({ status: "descartado", error: known }).eq("id", p.id); continue; }
+    batch.push(p);
+  }
+  if (!batch.length) return { skipped: "fila vazia" };
+
+  const items = batch.map((p) => ({ ref: p.id, to: p.phone, message: renderMessage(c, p) }));
+  const now = new Date().toISOString();
+  // Trava a campanha até o servidor avisar que o lote terminou (no máximo 1 hora, se o aviso se perder)
+  await admin.from("prospect_campaigns").update({ batch_running_since: now, next_send_at: new Date(Date.now() + 60 * 60_000).toISOString() }).eq("id", c.id);
+  for (const it of items) await admin.from("prospects").update({ status: "enviando", message: it.message, updated_at: now }).eq("id", it.ref);
+  try {
+    await wa("/bulk", { session: c.session_id || undefined, campaign: c.id, items, minSec: c.batch_min_sec ?? 8, maxSec: c.batch_max_sec ?? 20 });
+  } catch (e) {
+    // Servidor recusou: devolve para a fila e tenta de novo daqui a pouco
+    await admin.from("prospects").update({ status: "novo" }).in("id", items.map((i) => i.ref));
+    await admin.from("prospect_campaigns").update({ batch_running_since: null, next_send_at: new Date(Date.now() + 2 * 60_000).toISOString() }).eq("id", c.id);
+    return { error: (e as Error).message };
+  }
+  return { batch: items.length };
+}
+
+/** Lote que ficou preso (o aviso do servidor se perdeu): não reenvia — a mensagem pode ter saído */
+async function releaseStuck(admin: any) {
+  const old = new Date(Date.now() - 45 * 60_000).toISOString();
+  await admin.from("prospects").update({ status: "erro", error: "Envio não confirmado pelo servidor: confira a conversa antes de reenviar" })
+    .eq("status", "enviando").lt("updated_at", old);
+  await admin.from("prospect_campaigns").update({ batch_running_since: null }).lt("batch_running_since", old);
+}
+
 // ─── Envio: 1 mensagem por campanha a cada rodada, respeitando horário, limite e intervalo ─
 async function runCampaign(admin: any, c: Campaign) {
   const now = spNow();
   const dow = now.getUTCDay(), hour = now.getUTCHours();
   if (c.weekdays_only && (dow === 0 || dow === 6)) return { skipped: "fim de semana" };
   if (hour < c.start_hour || hour >= c.end_hour) return { skipped: "fora do horário" };
+  if (c.batch_running_since) return { skipped: "lote em andamento" };
   if (c.next_send_at && new Date(c.next_send_at) > new Date()) return { skipped: "aguardando intervalo" };
   if (!String(c.example_message ?? "").trim()) return { skipped: "sem mensagem" };
 
   const { count } = await admin.from("prospects").select("id", { count: "exact", head: true })
     .eq("campaign_id", c.id).gte("sent_at", spDayStartUtc());
   if ((count ?? 0) >= c.daily_limit) return { skipped: "limite do dia" };
+  if (c.send_mode === "lotes") return await runBatch(admin, c, c.daily_limit - (count ?? 0));
 
   // Marca o próximo horário antes de enviar: se outra rodada chegar no meio, não duplica
   const gap = c.min_gap_min + Math.random() * Math.max(0, c.max_gap_min - c.min_gap_min);
@@ -142,16 +199,8 @@ async function runCampaign(admin: any, c: Campaign) {
     try {
       const message = renderMessage(c, p);
       const sent = await wa("/send", { to: waNumber, message, session: c.session_id || undefined });
-      await admin.from("prospects").update({ status: "enviado", message, sent_at: new Date().toISOString(), error: "" }).eq("id", p.id);
-      const session = sent.session || c.session_id || "default";
-      const phone = normalizePhone(waNumber) ?? p.phone;
       // Mensagem enviada: a empresa entra no CRM em "Lead novo" (quando responder, avança para "Contato iniciado")
-      const leadId = await leadForProspect(admin, c, p, phone, session, message).catch((e) => { console.error("lead da prospecção", e); return null; });
-      const conv = await upsertConversation(admin, session, phone, p.name);
-      if (conv) {
-        await recordMessage(admin, conv, { direction: "out", content: message, wa_message_id: sent.messageId ?? null });
-        if (leadId && !conv.lead_id) await admin.from("wa_conversations").update({ lead_id: leadId }).eq("id", conv.id);
-      }
+      await afterSent(admin, c, p, waNumber, message, sent.session || c.session_id || "default", sent.messageId ?? null);
       return { sent: p.name };
     } catch (e) {
       await admin.from("prospects").update({ status: "erro", error: String((e as Error).message).slice(0, 300) }).eq("id", p.id);
@@ -169,7 +218,24 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action ?? "run";
 
+    // Avisos do servidor do WhatsApp sobre o lote (autenticados pela chave do servidor)
+    if (action === "bulk_result" || action === "bulk_done") {
+      if (req.headers.get("x-api-key") !== Deno.env.get("WA_API_KEY")) return json({ error: "Chave inválida" }, 401);
+      const { data: camp } = await admin.from("prospect_campaigns").select("*").eq("id", body.campaign).maybeSingle();
+      if (action === "bulk_done") {
+        const pause = Number(camp?.batch_pause_min ?? 5);
+        await admin.from("prospect_campaigns").update({ batch_running_since: null, next_send_at: new Date(Date.now() + pause * 60_000).toISOString() }).eq("id", body.campaign);
+        return json({ ok: true });
+      }
+      const { data: p } = await admin.from("prospects").select("*").eq("id", body.ref).maybeSingle();
+      if (!p || !camp) return json({ ok: true, skipped: "não encontrado" });
+      if (body.status === "enviado") await afterSent(admin, camp, p, String(body.number || p.phone), p.message, String(body.session || camp.session_id || "default"), body.messageId ?? null);
+      else await admin.from("prospects").update({ status: ["sem_whatsapp", "novo"].includes(body.status) ? body.status : "erro", error: String(body.error || "") }).eq("id", p.id);
+      return json({ ok: true });
+    }
+
     if (action === "run") {
+      await releaseStuck(admin);
       await backfillLeads(admin);
       const { data: campaigns } = await admin.from("prospect_campaigns").select("*").eq("active", true);
       const results = [];

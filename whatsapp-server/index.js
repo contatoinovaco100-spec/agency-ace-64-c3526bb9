@@ -313,6 +313,81 @@ app.post('/send', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ─── Lotes da prospecção ─────────────────────────────────────────────────────
+// A plataforma manda o lote inteiro (ex.: 20 mensagens); aqui elas saem uma a uma com intervalo aleatório
+// de segundos e "digitando…" antes de cada uma. Cada resultado é avisado na função prospecting.
+const PROSPECT_CALLBACK_URL = process.env.PROSPECT_CALLBACK_URL || INBOUND_URL.replace(/wa-inbound\/?$/, 'prospecting');
+const bulkJobs = new Map(); // campanha → { total, done }
+
+async function bulkCallback(body) {
+  if (!PROSPECT_CALLBACK_URL) return;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(PROSPECT_CALLBACK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY }, body: JSON.stringify(body) });
+      if (res.ok) return;
+    } catch { /* tenta de novo */ }
+    await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+  }
+  console.warn(`⚠️ Não consegui avisar o resultado do lote ${body.campaign}`);
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const randomBetween = (min, max) => min + Math.random() * Math.max(0, max - min);
+
+async function runBulk(sessionId, campaign, items, minSec, maxSec) {
+  const job = { total: items.length, done: 0 };
+  bulkJobs.set(campaign, job);
+  let sent = 0;
+  try {
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      const s = getSession(sessionId);
+      // Número caiu no meio do lote: o resto volta para a fila
+      if (!s || s.status !== 'CONNECTED' || process.env.SEND_PAUSED === '1') {
+        for (const rest of items.slice(i)) await bulkCallback({ action: 'bulk_result', campaign, ref: rest.ref, status: 'novo', error: 'Número desconectado durante o lote' });
+        break;
+      }
+      let status = 'erro', number = null, messageId = null, error = '';
+      try {
+        const [hit] = (await s.sock.onWhatsApp(String(it.to).replace(/\D/g, ''))) ?? [];
+        if (!hit?.exists) status = 'sem_whatsapp';
+        else {
+          number = String(hit.jid).split('@')[0];
+          await s.sock.sendPresenceUpdate('composing', hit.jid).catch(() => {});
+          await sleep(randomBetween(1500, 3500));
+          const result = await s.sock.sendMessage(hit.jid, { text: String(it.message).slice(0, 4000) });
+          await s.sock.sendPresenceUpdate('paused', hit.jid).catch(() => {});
+          messageId = result?.key?.id ?? null; status = 'enviado'; sent++;
+        }
+      } catch (err) { error = String(err?.message || err).slice(0, 300); }
+      job.done = i + 1;
+      await bulkCallback({ action: 'bulk_result', campaign, ref: it.ref, status, number, messageId, session: s.id, error });
+      // Intervalo só depois de um envio de verdade (sem WhatsApp não conta)
+      if (status === 'enviado' && i < items.length - 1) await sleep(randomBetween(minSec, maxSec) * 1000);
+    }
+  } finally {
+    bulkJobs.delete(campaign);
+    console.log(`📤 [${sessionId}] lote da campanha ${campaign}: ${sent}/${items.length} enviadas`);
+    await bulkCallback({ action: 'bulk_done', campaign, sent, total: items.length });
+  }
+}
+
+app.post('/bulk', auth, (req, res) => {
+  if (process.env.SEND_PAUSED === '1') return res.status(423).json({ error: 'Envios pausados no servidor' });
+  const s = getSession(req.body?.session);
+  if (!s || s.status !== 'CONNECTED') return res.status(503).json({ error: `Número ${req.body?.session || 'principal'} não conectado` });
+  const campaign = String(req.body?.campaign || '');
+  const items = (Array.isArray(req.body?.items) ? req.body.items : []).filter((i) => i?.ref && i?.to && i?.message).slice(0, 100);
+  if (!campaign || !items.length) return res.status(400).json({ error: 'Informe "campaign" e "items"' });
+  if (bulkJobs.has(campaign)) return res.status(409).json({ error: 'Já existe um lote em andamento nesta campanha', ...bulkJobs.get(campaign) });
+  const minSec = Math.max(3, Number(req.body?.minSec) || 8);
+  const maxSec = Math.max(minSec, Number(req.body?.maxSec) || 20);
+  runBulk(s.id, campaign, items, minSec, maxSec).catch((e) => console.error('lote', e));
+  res.status(202).json({ ok: true, queued: items.length, session: s.id });
+});
+
+app.get('/bulk/:campaign', auth, (req, res) => res.json({ running: bulkJobs.has(req.params.campaign), ...(bulkJobs.get(req.params.campaign) ?? {}) }));
+
 // Quais telefones têm WhatsApp (prospecção). Devolve o número como o WhatsApp conhece (com ou sem o 9) ou null.
 app.post('/check', auth, async (req, res) => {
   const s = getSession(req.body?.session);
