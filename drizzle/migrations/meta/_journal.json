@@ -15,6 +15,13 @@
       "when": 1793339748853,
       "tag": "0001_social_daily_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793339766203,
+      "tag": "0002_sales_proposals",
+      "breakpoints": true
     }
   ]
 }

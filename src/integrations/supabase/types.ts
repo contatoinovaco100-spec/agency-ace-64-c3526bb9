@@ -2982,6 +2982,51 @@ export type Database = {
           },
         ]
       }
+      sales_proposals: {
+        Row: {
+          client_id: string | null
+          config: Json
+          created_at: string | null
+          id: string
+          lead_id: string | null
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          config?: Json
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          config?: Json
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_proposals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_proposals_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_contracts: {
         Row: {
           activities: string[]
