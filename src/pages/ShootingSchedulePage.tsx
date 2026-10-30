@@ -104,6 +104,7 @@ export default function ShootingSchedulePage() {
                     <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
                     <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.companyName}</SelectItem>)}</SelectContent>
                   </Select>
+                  {!form.client_id && <p className="mt-1 text-xs text-warning">Sem cliente, ele não recebe o lembrete no WhatsApp.</p>}
                 </div>
                 <div><Label>Status</Label>
                   <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>

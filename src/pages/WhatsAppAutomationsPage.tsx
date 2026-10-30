@@ -372,9 +372,9 @@ function AutomationEditor({ draft: initial, clients, onClose, onSaved, onPreview
               {meta.params.map((p) => (
                 <Field key={p.key} label={p.label}>
                   <div className="flex items-center gap-2">
-                    <Input type="number" min={1} max={p.key === 'day_of_month' ? 28 : 60} className="w-24"
+                    <Input type="number" min={p.key === 'days_before' ? 0 : 1} max={p.key === 'day_of_month' ? 28 : 60} className="w-24"
                       value={d.params?.[p.key] ?? p.default}
-                      onChange={(e) => set({ params: { ...d.params, [p.key]: Number(e.target.value) || p.default } })} />
+                      onChange={(e) => set({ params: { ...d.params, [p.key]: e.target.value === '' ? p.default : Math.max(0, Number(e.target.value)) } })} />
                     <span className="text-sm text-muted-foreground">{p.suffix}</span>
                   </div>
                 </Field>

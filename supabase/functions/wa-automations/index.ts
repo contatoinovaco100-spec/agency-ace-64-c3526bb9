@@ -138,10 +138,14 @@ async function buildJobs(admin: SupabaseClient, a: Automation): Promise<Job[]> {
     }
 
     case "shooting_tomorrow": {
-      const { data: rows } = await admin.from("shooting_schedules").select("id, title, shooting_date, start_time, location, client_id").eq("shooting_date", spDay(1));
-      return (rows ?? []).filter((s) => s.client_id && byId.has(s.client_id)).map((s) => job(byId.get(s.client_id)!, {
-        titulo: s.title, data: fmtDate(s.shooting_date), hora: s.start_time ? String(s.start_time).slice(0, 5) : "a combinar", local: s.location || "a combinar",
-      }, `shoot:${s.id}`));
+      // Gravações da agenda que acontecem daqui a N dias (0 = no próprio dia)
+      const days = Math.max(0, p.days_before ?? 1);
+      const { data: rows } = await admin.from("shooting_schedules").select("id, title, shooting_date, start_time, location, client_id, status").eq("shooting_date", spDay(days));
+      const when = days === 0 ? "hoje" : days === 1 ? "amanhã" : `em ${days} dias`;
+      return (rows ?? []).filter((s) => s.client_id && byId.has(s.client_id) && !/cancel/i.test(s.status ?? "")).map((s) => job(byId.get(s.client_id)!, {
+        titulo: s.title, data: fmtDate(s.shooting_date), hora: s.start_time ? String(s.start_time).slice(0, 5) : "a combinar",
+        local: s.location || "a combinar", quando: when,
+      }, `shoot:${s.id}:${days}`));
     }
 
     case "post_today": {

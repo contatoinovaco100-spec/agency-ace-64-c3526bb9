@@ -78,9 +78,11 @@ export const TRIGGERS: Record<TriggerKey, {
     ],
   },
   shooting_tomorrow: {
-    label: 'Gravação amanhã', group: 'Produção', audience: 'client', schedule: 'weekly',
-    description: 'Gravação marcada para o dia seguinte (agenda de Gravações).', params: [],
+    label: 'Lembrete de gravação', group: 'Produção', audience: 'client', schedule: 'weekly',
+    description: 'Gravações da agenda de Gravações: avisa alguns dias antes ou no próprio dia (0 = no dia).',
+    params: [{ key: 'days_before', label: 'Avisar', suffix: 'dias antes (0 = no dia)', default: 1 }],
     vars: [
+      { key: 'quando', label: 'hoje / amanhã / em 2 dias', sample: 'amanhã' },
       { key: 'titulo', label: 'Título', sample: 'Gravação de Reels' }, { key: 'data', label: 'Data', sample: '31/10/2026' },
       { key: 'hora', label: 'Horário', sample: '14:00' }, { key: 'local', label: 'Local', sample: 'Estúdio INOVA' },
     ],
