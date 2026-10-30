@@ -78,7 +78,7 @@ function toJid(to) {
   return `${digits.length <= 11 ? `55${digits}` : digits}@s.whatsapp.net`;
 }
 
-app.get('/status', (_req, res) => res.json({ status: currentStatus, number: currentStatus === 'CONNECTED' ? me : null }));
+app.get('/status', (_req, res) => res.json({ status: currentStatus, number: currentStatus === 'CONNECTED' ? me : null, paused: process.env.SEND_PAUSED === '1' }));
 
 // Página para escanear o QR Code (WhatsApp → Aparelhos conectados → Conectar um aparelho)
 app.get('/qr', auth, (_req, res) => {
@@ -103,7 +103,9 @@ app.get('/groups', auth, async (_req, res) => {
 });
 
 // Envia texto para um telefone ou grupo: { to, message } (aceita também { phone, message })
+// SEND_PAUSED=1 bloqueia todos os envios (status e grupos continuam funcionando)
 app.post('/send', auth, async (req, res) => {
+  if (process.env.SEND_PAUSED === '1') return res.status(423).json({ error: 'Envios pausados no servidor' });
   try {
     const jid = toJid(req.body?.to ?? req.body?.phone);
     const message = String(req.body?.message || '').slice(0, 4000);
