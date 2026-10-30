@@ -4135,6 +4135,7 @@ export type Database = {
           send_time: string
           sent_at: string | null
           template: string
+          templates_by_day: Json
           trigger: string
           updated_at: string
         }
@@ -4154,6 +4155,7 @@ export type Database = {
           send_time?: string
           sent_at?: string | null
           template?: string
+          templates_by_day?: Json
           trigger: string
           updated_at?: string
         }
@@ -4173,6 +4175,7 @@ export type Database = {
           send_time?: string
           sent_at?: string | null
           template?: string
+          templates_by_day?: Json
           trigger?: string
           updated_at?: string
         }
