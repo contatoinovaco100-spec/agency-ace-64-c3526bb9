@@ -4,8 +4,7 @@
 import express from 'express';
 import pino from 'pino';
 import qrcode from 'qrcode';
-import {
-  makeWASocket,
+import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
@@ -30,7 +29,7 @@ async function connectToWhatsApp() {
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
   const { version } = await fetchLatestBaileysVersion();
 
-  sock = makeWASocket({ version, logger, printQRInTerminal: false, auth: state, browser: ['INOVA', 'Chrome', '1.0.0'] });
+  sock = makeWASocket({ version, logger, auth: state });
   sock.ev.on('creds.update', saveCreds);
 
   sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
@@ -48,8 +47,8 @@ async function connectToWhatsApp() {
     if (connection === 'close') {
       const code = lastDisconnect?.error?.output?.statusCode;
       currentStatus = 'DISCONNECTED';
-      // Deslogado pelo celular: precisa escanear de novo (a pasta de sessão fica inválida)
-      const loggedOut = code === DisconnectReason.loggedOut;
+      // Deslogado pelo celular ou sessão corrompida: apaga a sessão e gera um QR novo
+      const loggedOut = code === DisconnectReason.loggedOut || code === DisconnectReason.badSession;
       console.log(`⚠️ Conexão fechada (${code}). ${loggedOut ? 'Deslogado: escaneie o QR de novo.' : 'Reconectando…'}`);
       if (loggedOut) {
         const fs = await import('node:fs/promises');
