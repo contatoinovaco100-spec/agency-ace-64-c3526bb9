@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useClientHealth, type ClientHealth, type HealthLevel } from '@/lib/clientHealth';
 
 import { useAgency } from '@/contexts/AgencyContext';
 import { PageHeader } from '@/components/PageHeader';
@@ -33,10 +34,21 @@ const statusColors: Record<string, string> = {
   'Cancelado': 'bg-destructive/10 text-destructive',
 };
 
+const HEALTH_ORDER: Record<HealthLevel, number> = { risco: 0, atencao: 1, ok: 2 };
+
+/** Bolinha da saúde do cliente: verde em dia, amarela pede atenção, vermelha em risco */
+function HealthDot({ health }: { health: ClientHealth }) {
+  const label = health.level === 'ok' ? 'Em dia' : health.reasons.map((r) => r.text).join(' · ');
+  return (
+    <span title={label} aria-label={`Saúde do cliente: ${label}`}
+      className={`h-2.5 w-2.5 shrink-0 rounded-full ${health.level === 'risco' ? 'bg-destructive' : health.level === 'atencao' ? 'bg-warning' : 'bg-success'}`} />
+  );
+}
+
 const emptyScope: ScopeDetails = { monthlyDeliverables: [], includedServices: [], demandLimits: '', platforms: [], strategicNotes: '' };
 
 export default function ClientsPage() {
-  const { clients, team, addClient, updateClient, deleteClient, refresh } = useAgency();
+  const { clients, team, tasks, addClient, updateClient, deleteClient, refresh } = useAgency();
   const [syncing, setSyncing] = useState(false);
 
   const syncFromContracts = async () => {
@@ -154,6 +166,7 @@ export default function ClientsPage() {
   };
   const { isAdmin } = useUserRole();
   const [search, setSearch] = useState('');
+  const [onlyAtRisk, setOnlyAtRisk] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -208,10 +221,13 @@ export default function ClientsPage() {
     }
   };
 
+  const health = useClientHealth(clients, tasks, isAdmin);
+  const atRiskCount = Object.values(health).filter((h) => h.level !== 'ok').length;
   const filtered = clients.filter(c =>
-    c.companyName.toLowerCase().includes(search.toLowerCase()) ||
-    c.contactName.toLowerCase().includes(search.toLowerCase())
-  );
+    (c.companyName.toLowerCase().includes(search.toLowerCase()) ||
+    c.contactName.toLowerCase().includes(search.toLowerCase())) &&
+    (!onlyAtRisk || (health[c.id] && health[c.id].level !== 'ok'))
+  ).sort((a, b) => onlyAtRisk ? HEALTH_ORDER[health[a.id]?.level ?? 'ok'] - HEALTH_ORDER[health[b.id]?.level ?? 'ok'] : 0);
 
   const openNew = () => { setEditing(null); setForm({ serviceType: [], accountManager: [], scopeDetails: emptyScope }); setDialogOpen(true); };
   const openEdit = (c: Client) => { setEditing(c); setForm(c); setDialogOpen(true); };
@@ -264,6 +280,13 @@ export default function ClientsPage() {
             className="pl-9"
           />
         </div>
+        {atRiskCount > 0 && (
+          <button onClick={() => setOnlyAtRisk((v) => !v)}
+            className={`flex h-9 shrink-0 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors ${onlyAtRisk ? 'border-warning/50 bg-warning/10 text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+            <span className="h-2.5 w-2.5 rounded-full bg-warning" />
+            Precisam de atenção <span className="tabular-nums">{atRiskCount}</span>
+          </button>
+        )}
         <button
           onClick={toggleSelectAll}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
@@ -348,8 +371,17 @@ export default function ClientsPage() {
                 {client.companyName.substring(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground truncate">{client.companyName}</p>
-                <p className="text-caption text-muted-foreground truncate hidden sm:block">{client.contactName} · {client.scope}</p>
+                <p className="flex items-center gap-2 font-medium text-foreground">
+                  {health[client.id] && <HealthDot health={health[client.id]} />}
+                  <span className="truncate">{client.companyName}</span>
+                </p>
+                {health[client.id]?.reasons.length ? (
+                  <p className={`truncate text-caption ${health[client.id].level === 'risco' ? 'text-destructive' : 'text-warning'}`}>
+                    {health[client.id].reasons.map((r) => r.text).join(' · ')}
+                  </p>
+                ) : (
+                  <p className="text-caption text-muted-foreground truncate hidden sm:block">{client.contactName} · {client.scope}</p>
+                )}
               </div>
               <div className="text-right shrink-0">
                 {isAdmin && (
