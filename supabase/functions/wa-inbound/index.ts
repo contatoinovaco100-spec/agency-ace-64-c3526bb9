@@ -21,7 +21,9 @@ Deno.serve(async (req) => {
     const fromMe = !!m.fromMe;
     const at = new Date((Number(m.timestamp) || Date.now() / 1000) * 1000).toISOString();
 
-    const conv = await upsertConversation(admin, session, phone, fromMe ? "" : String(m.name || ""));
+    // Nome: o do perfil (quem escreveu) ou o da agenda do celular (vem também nas mensagens enviadas)
+    const name = String((fromMe ? m.contactName : m.name || m.contactName) || "");
+    const conv = await upsertConversation(admin, session, phone, name);
     if (!conv) return json({ error: "Não foi possível abrir a conversa" }, 500);
     const isNew = await recordMessage(admin, conv, {
       direction: fromMe ? "out" : "in", content: String(m.text || ""), type: m.type, wa_message_id: m.id, at,
@@ -30,7 +32,7 @@ Deno.serve(async (req) => {
 
     // Nome do contato (o que ele mesmo usa no WhatsApp) e vínculos com lead/cliente
     const patch: Record<string, unknown> = {};
-    if (!fromMe && m.name && (!conv.contact_name || conv.contact_name === conv.contact_phone)) patch.contact_name = m.name;
+    if (name && (!conv.contact_name || conv.contact_name === conv.contact_phone)) patch.contact_name = name;
     if (!conv.client_id) { const clientId = await findClientByPhone(admin, phone); if (clientId) patch.client_id = clientId; }
 
     let leadId = conv.lead_id as string | null;
@@ -45,7 +47,7 @@ Deno.serve(async (req) => {
             ? (await admin.from("profiles").select("id, full_name").eq("id", num.owner_id).maybeSingle()).data
             : null;
           const created = await createLead(admin, {
-            name: String(m.name || phone), phone, source: "WhatsApp", owner, session,
+            name: name || phone, phone, source: "WhatsApp", owner, session,
             notes: `Primeira mensagem: ${String(m.text || "").slice(0, 300)}`,
           });
           leadId = created.id;

@@ -21,7 +21,8 @@ const LEGACY_AUTH_DIR = process.env.AUTH_DIR || './auth';
 const INBOUND_URL = process.env.INBOUND_URL || '';
 const MAX_SESSIONS = Number(process.env.MAX_SESSIONS || 6);
 // Ao conectar um número por QR, importa as mensagens individuais desses últimos dias (até o limite)
-const HISTORY_DAYS = Number(process.env.HISTORY_DAYS || 30);
+// Importar histórico ao conectar por QR: desligado (0). Para ligar, defina HISTORY_DAYS no .env
+const HISTORY_DAYS = Number(process.env.HISTORY_DAYS || 0);
 const HISTORY_MAX = Number(process.env.HISTORY_MAX || 1500);
 const REGISTRY = path.join(AUTH_ROOT, 'sessions.json');
 
@@ -36,6 +37,57 @@ const sessions = new Map();
 let versionCache = null;
 
 const authDir = (id) => (id === 'default' ? LEGACY_AUTH_DIR : path.join(AUTH_ROOT, id));
+
+// ─── Nomes dos contatos (agenda do celular e nome do perfil), por telefone ───
+/** @type {Map<string, Record<string,string>>} */
+const contactNames = new Map();
+const namesFile = (id) => path.join(AUTH_ROOT, `names-${id}.json`);
+const namesSaveTimers = new Map();
+
+async function loadNames(id) {
+  if (contactNames.has(id)) return contactNames.get(id);
+  let map = {};
+  try { map = JSON.parse(await fs.readFile(namesFile(id), 'utf8')); } catch { /* ainda sem nomes */ }
+  contactNames.set(id, map);
+  return map;
+}
+
+/** Guarda o nome de um telefone. Nome da agenda vence o nome do perfil. */
+function rememberName(id, phone, name, fromBook = false) {
+  const map = contactNames.get(id);
+  const clean = String(name || '').trim();
+  if (!map || !phone || !clean || /^\+?\d+$/.test(clean)) return;
+  if (!fromBook && map[phone] && map[`${phone}#book`]) return;
+  if (map[phone] === clean) return;
+  map[phone] = clean;
+  if (fromBook) map[`${phone}#book`] = '1';
+  clearTimeout(namesSaveTimers.get(id));
+  namesSaveTimers.set(id, setTimeout(async () => {
+    await fs.mkdir(AUTH_ROOT, { recursive: true });
+    await fs.writeFile(namesFile(id), JSON.stringify(map));
+  }, 2000));
+}
+
+const nameOf = (id, phone) => contactNames.get(id)?.[phone] || '';
+
+/** Contato do Baileys → telefone. O id pode ser o telefone ou o id privado (@lid). */
+async function phoneOfContact(sessionId, c) {
+  for (const j of [c.id, c.phoneNumber, c.jid]) if (j && String(j).endsWith('@s.whatsapp.net')) return String(j).split('@')[0].split(':')[0];
+  const lid = [c.id, c.lid].find((j) => j && String(j).endsWith('@lid'));
+  if (!lid) return null;
+  try { const pn = await sessions.get(sessionId)?.sock?.signalRepository?.lidMapping?.getPNForLID?.(lid);
+    if (pn) return String(pn).split('@')[0].split(':')[0]; } catch { /* sem mapa */ }
+  return null;
+}
+
+async function rememberContacts(sessionId, contacts) {
+  for (const c of contacts || []) {
+    const phone = await phoneOfContact(sessionId, c);
+    if (!phone) continue;
+    if (c.name) rememberName(sessionId, phone, c.name, true);
+    else rememberName(sessionId, phone, c.notify || c.verifiedName || c.verifiedBizName);
+  }
+}
 
 async function saveRegistry() {
   await fs.mkdir(AUTH_ROOT, { recursive: true });
@@ -86,8 +138,11 @@ async function forward(sessionId, m) {
   }
   const content = textOf(m);
   if (!content) return;
+  const phone = phoneJid.split('@')[0].split(':')[0];
+  if (!m.key.fromMe && m.pushName) rememberName(sessionId, phone, m.pushName);
+  const contactName = nameOf(sessionId, phone);
   const body = JSON.stringify({
-    session: sessionId, phone: phoneJid.split('@')[0].split(':')[0], name: m.pushName || '',
+    session: sessionId, phone, name: (!m.key.fromMe && m.pushName) || contactName, contactName,
     fromMe: !!m.key.fromMe, id: m.key.id, timestamp: Number(m.messageTimestamp || Date.now() / 1000), ...content,
   });
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -107,9 +162,10 @@ async function startSession(id, name) {
   s.name = name ?? s.name; s.stopped = false;
   sessions.set(id, s);
 
+  await loadNames(id);
   const { state, saveCreds } = await useMultiFileAuthState(authDir(id));
   versionCache ??= (await fetchLatestBaileysVersion()).version;
-  // syncFullHistory: pede ao celular o histórico das conversas ao conectar
+  // syncFullHistory: ao conectar por QR o celular manda a agenda (nomes) e o histórico; o histórico só é importado se HISTORY_DAYS > 0
   const sock = makeWASocket({ version: versionCache, logger, auth: state, syncFullHistory: true });
   s.sock = sock;
   sock.ev.on('creds.update', saveCreds);
@@ -138,7 +194,12 @@ async function startSession(id, name) {
   });
 
   // Histórico que o celular manda ao conectar por QR: importa as conversas individuais dos últimos dias
-  sock.ev.on('messaging-history.set', async ({ messages }) => {
+  sock.ev.on('contacts.upsert', (list) => rememberContacts(id, list));
+  sock.ev.on('contacts.update', (list) => rememberContacts(id, list));
+
+  sock.ev.on('messaging-history.set', async ({ messages, contacts }) => {
+    await rememberContacts(id, contacts);
+    if (HISTORY_DAYS <= 0) return;
     const since = Date.now() / 1000 - HISTORY_DAYS * 86400;
     const recent = (messages || [])
       .filter((m) => m.message && Number(m.messageTimestamp || 0) >= since)
@@ -199,6 +260,11 @@ app.patch('/sessions/:id', auth, async (req, res) => {
 });
 
 // QR como imagem (data URL), para mostrar dentro da plataforma
+app.get('/sessions/:id/contacts', auth, async (req, res) => {
+  const map = await loadNames(req.params.id);
+  res.json({ contacts: Object.fromEntries(Object.entries(map).filter(([k]) => !k.includes('#'))) });
+});
+
 app.get('/sessions/:id/qr', auth, (req, res) => {
   const s = sessions.get(req.params.id);
   if (!s) return res.status(404).json({ error: 'Número não encontrado' });
