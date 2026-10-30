@@ -352,6 +352,50 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_reminders: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          error: string
+          id: string
+          kind: string
+          message: string
+          phone: string
+          status: string
+          task_ids: string[]
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          error?: string
+          id?: string
+          kind?: string
+          message?: string
+          phone?: string
+          status: string
+          task_ids?: string[]
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          error?: string
+          id?: string
+          kind?: string
+          message?: string
+          phone?: string
+          status?: string
+          task_ids?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_reminders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_items: {
         Row: {
           actual_cost: number
@@ -929,6 +973,8 @@ export type Database = {
           service_type: string[]
           status: string
           updated_at: string
+          whatsapp_group_id: string | null
+          whatsapp_group_name: string | null
         }
         Insert: {
           account_manager?: string[]
@@ -952,6 +998,8 @@ export type Database = {
           service_type?: string[]
           status?: string
           updated_at?: string
+          whatsapp_group_id?: string | null
+          whatsapp_group_name?: string | null
         }
         Update: {
           account_manager?: string[]
@@ -975,6 +1023,8 @@ export type Database = {
           service_type?: string[]
           status?: string
           updated_at?: string
+          whatsapp_group_id?: string | null
+          whatsapp_group_name?: string | null
         }
         Relationships: []
       }
@@ -4233,6 +4283,17 @@ export type Database = {
           priority: string
           status: string
           title: string
+        }[]
+      }
+      get_public_client_invoices: {
+        Args: { _client_id: string }
+        Returns: {
+          amount: number
+          description: string
+          due_date: string
+          id: string
+          paid_at: string
+          status: string
         }[]
       }
       get_public_client_name: { Args: { _id: string }; Returns: string }
