@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, BadgeCheck, CalendarClock, Camera, ChevronRight, Clock, MessageSquareWarning, PenLine, Sun } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, CalendarClock, Camera, ChevronRight, Clock, MessageCircle, MessageSquareWarning, PenLine, Sun } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgency } from '@/contexts/AgencyContext';
@@ -26,6 +26,8 @@ const taskLink = (t: Task) => `${t.taskType === 'Arte' ? '/artes' : '/tarefas'}?
 const taskName = (t: Task) => (t.videoName || t.title || 'Sem título').replace(/^(vídeo|video|arte)\s*\d*\s*\|\s*/i, '');
 const dateOf = (t: Task) => t.postDate || t.dueDate || '';
 
+type ReminderRow = { client_id: string; status: 'enviado' | 'sem_telefone' | 'erro'; created_at: string };
+
 type Shooting = { id: string; title: string; shooting_date: string; start_time: string | null; location: string; client_id: string | null };
 
 export default function MyDayPage() {
@@ -36,6 +38,7 @@ export default function MyDayPage() {
   const [name, setName] = useState('');
   const [shootings, setShootings] = useState<Shooting[]>([]);
   const [brokenAccounts, setBrokenAccounts] = useState<string[]>([]);
+  const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const social = isAdmin || hasPageAccess('/planner');
 
   useEffect(() => {
@@ -49,6 +52,10 @@ export default function MyDayPage() {
 
   useEffect(() => {
     if (!social) return;
+    // Lembretes de aprovação dos últimos 3 dias (tabela pode ainda não existir no banco)
+    supabase.from('approval_reminders' as never).select('client_id, status, created_at')
+      .gte('created_at', new Date(Date.now() - 3 * 86_400_000).toISOString()).order('created_at', { ascending: false })
+      .then(({ data, error }) => { if (!error) setReminders((data ?? []) as unknown as ReminderRow[]); });
     supabase.from('social_accounts').select('username, token_status').eq('platform', 'instagram')
       .then(({ data }) => setBrokenAccounts(((data ?? []) as { username: string; token_status: string | null }[])
         .filter((a) => a.token_status && a.token_status !== 'ok').map((a) => a.username)));
@@ -139,7 +146,7 @@ export default function MyDayPage() {
         </Block>
       )}
 
-      {social && (data.approved.length > 0 || data.noCaption.length > 0 || brokenAccounts.length > 0) && (
+      {social && (data.approved.length > 0 || data.noCaption.length > 0 || brokenAccounts.length > 0 || reminders.length > 0) && (
         <div className="grid gap-4 lg:grid-cols-2">
           {data.approved.length > 0 && (
             <Block title="Aprovados pelo cliente, falta agendar" tone="success" icon={BadgeCheck} action={{ label: 'Abrir fila', to: '/planner?cliente=todos' }}>
@@ -151,6 +158,26 @@ export default function MyDayPage() {
               {data.noCaption.slice(0, 8).map((t) => row(t, shortDate(t.postDate!)))}
             </Block>
           )}
+          {reminders.length > 0 && (() => {
+            const sent = reminders.filter((r) => r.status === 'enviado');
+            const noPhone = [...new Set(reminders.filter((r) => r.status === 'sem_telefone').map((r) => r.client_id))];
+            const failed = reminders.filter((r) => r.status === 'erro').length;
+            return (
+              <Block title="Lembretes de aprovação pelo WhatsApp" hint="Enviados nos últimos 3 dias para quem tem conteúdo esperando há 2 dias ou mais"
+                tone={noPhone.length || failed ? 'warning' : 'success'} icon={MessageCircle} action={noPhone.length ? { label: 'Completar telefones', to: '/clientes' } : undefined}>
+                <li className="px-4 py-3 text-sm">
+                  {sent.length} {sent.length === 1 ? 'cliente lembrado' : 'clientes lembrados'}
+                  {sent.length > 0 && `: ${[...new Set(sent.map((r) => clientName[r.client_id]).filter(Boolean))].join(', ')}`}
+                </li>
+                {noPhone.length > 0 && (
+                  <li className="px-4 py-3 text-sm text-warning">
+                    Sem telefone no cadastro: {noPhone.map((id) => clientName[id] || 'cliente').join(', ')}
+                  </li>
+                )}
+                {failed > 0 && <li className="px-4 py-3 text-sm text-destructive">{failed} envio(s) falharam no WhatsApp</li>}
+              </Block>
+            );
+          })()}
           {brokenAccounts.length > 0 && (
             <Block title="Instagram com acesso vencido" hint="Reconecte em Redes Sociais para não falhar o agendamento" tone="danger" icon={AlertTriangle} action={{ label: 'Redes Sociais', to: '/redes-sociais' }}>
               <li className="px-4 py-3 text-sm">{brokenAccounts.map((u) => '@' + u).join(', ')}</li>
