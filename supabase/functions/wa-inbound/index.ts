@@ -1,6 +1,7 @@
 // Recebe do servidor WhatsApp cada mensagem individual (recebida ou enviada pelo celular) e grava no CRM:
 // conversa do número + contato, vínculo com lead/cliente, captura de lead novo e parada do follow-up
-// quando o lead responde. Autenticado pela mesma chave do servidor (WA_API_KEY).
+// quando o lead responde; resposta de empresa da prospecção vira lead. Autenticado pela mesma chave do servidor (WA_API_KEY).
+// deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   createLead, findClientByPhone, findLeadByPhone, normalizePhone, recordMessage, upsertConversation,
@@ -8,6 +9,25 @@ import {
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+
+const OPT_OUT = /\b(parar|pare|sair|remover|remova|descadastr\w*|n[aã]o (tenho interesse|quero|me mande|mande mais)|sem interesse|stop)\b/i;
+
+/** Resposta de uma empresa abordada pela prospecção. Devolve o lead criado (ou null se pediu para parar ou não é prospect). */
+async function prospectReplied(admin: any, phone: string, name: string, session: string, text: string, at: string) {
+  const { data: p } = await admin.from("prospects").select("id, name, campaign_id, prospect_campaigns(name)")
+    .ilike("phone", `%${phone.slice(-8)}`).eq("status", "enviado").limit(1).maybeSingle();
+  if (!p) return null;
+  if (OPT_OUT.test(text)) {
+    await admin.from("prospects").update({ status: "nao_quer", replied_at: at }).eq("id", p.id);
+    return null;
+  }
+  const lead = await createLead(admin, {
+    name: name || p.name, company: p.name, phone, source: "Prospecção", session,
+    notes: `Campanha: ${p.prospect_campaigns?.name ?? ""}\nPrimeira resposta: ${text.slice(0, 300)}`,
+  });
+  await admin.from("prospects").update({ status: "respondeu", replied_at: at, lead_id: lead.id }).eq("id", p.id);
+  return lead.id as string;
+}
 
 Deno.serve(async (req) => {
   if (req.headers.get("x-api-key") !== Deno.env.get("WA_API_KEY")) return json({ error: "Chave inválida" }, 401);
@@ -39,6 +59,8 @@ Deno.serve(async (req) => {
     if (!leadId) {
       const lead = await findLeadByPhone(admin, phone);
       leadId = lead?.id ?? null;
+      // Empresa da prospecção respondendo: vira lead (ou "não quer", se pediu para parar)
+      if (!leadId && !fromMe) leadId = await prospectReplied(admin, phone, name, session, String(m.text || ""), at);
       // Contato novo escrevendo para um número que captura leads (e que não é cliente): vira lead
       if (!leadId && !fromMe && !patch.client_id && !conv.client_id) {
         const { data: num } = await admin.from("wa_numbers").select("kind, owner_id, capture_leads").eq("id", session).maybeSingle();

@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ProspectCampaigns } from '@/components/prospecting/ProspectCampaigns';
 import { 
   Dialog, 
   DialogContent, 
@@ -343,9 +345,17 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
           Prospecção com IA
         </h1>
         <p className="text-muted-foreground mt-1">
-          Encontre leads no Google Maps, gere mensagens personalizadas e envie via WhatsApp em 1 clique.
+          Encontre empresas no Google, a IA escreve a mensagem e o WhatsApp envia sozinho.
         </p>
       </div>
+
+      <Tabs defaultValue="auto" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="auto">Automática</TabsTrigger>
+          <TabsTrigger value="manual">Manual</TabsTrigger>
+        </TabsList>
+        <TabsContent value="auto"><ProspectCampaigns /></TabsContent>
+        <TabsContent value="manual" className="space-y-8">
 
       {/* Config da Agência */}
       <Card className="border-primary/20 bg-primary/5">
@@ -635,6 +645,8 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
           ))}
         </div>
       )}
+        </TabsContent>
+      </Tabs>
     </motion.div>
   );
 }

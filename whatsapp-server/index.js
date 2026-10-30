@@ -313,6 +313,22 @@ app.post('/send', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Quais telefones têm WhatsApp (prospecção). Devolve o número como o WhatsApp conhece (com ou sem o 9) ou null.
+app.post('/check', auth, async (req, res) => {
+  const s = getSession(req.body?.session);
+  if (!s || s.status !== 'CONNECTED') return res.status(503).json({ error: `Número ${req.body?.session || 'principal'} não conectado` });
+  const phones = (Array.isArray(req.body?.phones) ? req.body.phones : []).map((p) => String(p).replace(/\D/g, '')).filter(Boolean).slice(0, 50);
+  const results = {};
+  for (const phone of phones) {
+    try {
+      const [hit] = (await s.sock.onWhatsApp(phone)) ?? [];
+      results[phone] = hit?.exists ? String(hit.jid).split('@')[0] : null;
+    } catch { results[phone] = null; }
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  res.json({ results });
+});
+
 // Página para escanear (compatível com o link antigo /qr?key=…&session=…)
 app.get('/qr', auth, (req, res) => {
   const s = sessions.get(String(req.query.session || 'default'));

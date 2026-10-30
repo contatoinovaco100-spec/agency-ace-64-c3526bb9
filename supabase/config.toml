@@ -48,3 +48,6 @@ verify_jwt = false
 
 [functions.crm-capture]
 verify_jwt = false
+
+[functions.prospecting]
+verify_jwt = false
