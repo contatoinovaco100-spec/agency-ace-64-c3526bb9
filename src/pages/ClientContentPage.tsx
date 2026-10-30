@@ -365,6 +365,11 @@ function TaskMedia({ task }: { task: TaskData }) {
 }
 
 /** Legenda + detalhes de produção (roteiro, referências…) recolhidos */
+/** Tem roteiro ou algum detalhe para a equipe ler */
+const hasDetails = (t: TaskData) =>
+  [t.full_script, t.recording_notes, t.video_objective, t.video_references, t.creative_direction, t.editing_style, t.observations]
+    .some((v) => hasText(v));
+
 function TaskDetails({ task, openScript }: { task: TaskData; openScript?: boolean }) {
   const details = [
     { label: 'Objetivo', content: task.video_objective },
@@ -545,7 +550,42 @@ function PipelineRow({ task, highlight, expandable, slate = true }: { task: Task
             </p>
           )}
           {phaseOf(task.status) === 'agendado' && <TaskMedia task={task} />}
-          <TaskDetails task={task} openScript={phaseOf(task.status) === 'gravacao'} />
+          <TaskDetails task={task} openScript={phaseOf(task.status) !== 'agendado'} />
+        </div>
+      )}
+    </li>
+  );
+}
+
+/** Entregue: abre o roteiro e os detalhes quando houver */
+function DeliveredRow({ task }: { task: TaskData }) {
+  const [open, setOpen] = useState(false);
+  const expandable = hasDetails(task) || !!task.video_url || isArteTask(task);
+  const head = (
+    <>
+      <DateSlate date={postDateOf(task)} muted />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-foreground/80">{titleOf(task)}</p>
+        <MetaLine task={task} />
+      </div>
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-success"><Check className="h-3.5 w-3.5" /> Entregue</span>
+    </>
+  );
+  return (
+    <li>
+      {expandable ? (
+        <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
+          className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-foreground/[0.03] sm:px-4">
+          {head}
+          <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
+        </button>
+      ) : (
+        <div className="flex items-center gap-3 p-3 sm:px-4">{head}</div>
+      )}
+      {expandable && open && (
+        <div className="space-y-4 px-3 pb-4 sm:pl-[76px] sm:pr-4">
+          <TaskMedia task={task} />
+          <TaskDetails task={task} openScript />
         </div>
       )}
     </li>
@@ -766,10 +806,9 @@ export default function ClientContentPage() {
         </Section>
       )}
 
-      <PhaseList phase="gravacao" tasks={toRecord} taskId={taskId} slate={hasUpcoming(toRecord)}
-        expandable={(t) => hasText(t.full_script) || hasText(t.recording_notes)} />
-      <PhaseList phase="edicao" tasks={editing} taskId={taskId} slate={hasUpcoming(editing)} expandable={() => false} />
-      <PhaseList phase="preparo" tasks={preparing} taskId={taskId} slate={hasUpcoming(preparing)} expandable={() => false} />
+      <PhaseList phase="gravacao" tasks={toRecord} taskId={taskId} slate={hasUpcoming(toRecord)} expandable={hasDetails} />
+      <PhaseList phase="edicao" tasks={editing} taskId={taskId} slate={hasUpcoming(editing)} expandable={hasDetails} />
+      <PhaseList phase="preparo" tasks={preparing} taskId={taskId} slate={hasUpcoming(preparing)} expandable={hasDetails} />
       <PhaseList phase="agendado" tasks={scheduled} taskId={taskId} slate={hasUpcoming(scheduled)} expandable={() => true} />
 
       {published.length > 0 && (
@@ -779,16 +818,7 @@ export default function ClientContentPage() {
             <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
           </summary>
           <ul className="mt-1 divide-y divide-border overflow-hidden rounded-xl border bg-card">
-            {published.map((t) => (
-              <li key={t.id} className="flex items-center gap-3 p-3 sm:px-4">
-                <DateSlate date={postDateOf(t)} muted />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground/80">{titleOf(t)}</p>
-                  <MetaLine task={t} />
-                </div>
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-success"><Check className="h-3.5 w-3.5" /> Entregue</span>
-              </li>
-            ))}
+            {published.map((t) => <DeliveredRow key={t.id} task={t} />)}
           </ul>
         </details>
       )}
