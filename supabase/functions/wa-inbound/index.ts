@@ -4,7 +4,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
-  createLead, findClientByPhone, findLeadByPhone, normalizePhone, recordMessage, upsertConversation,
+  createLead, findClientByPhone, firstContactStage, findLeadByPhone, normalizePhone, recordMessage, upsertConversation,
 } from "../_shared/crm.ts";
 
 const json = (body: unknown, status = 200) =>
@@ -14,7 +14,7 @@ const OPT_OUT = /\b(parar|pare|sair|remover|remova|descadastr\w*|n[aã]o (tenho 
 
 /** Resposta de uma empresa abordada pela prospecção. Devolve o lead criado (ou null se pediu para parar ou não é prospect). */
 async function prospectReplied(admin: any, phone: string, name: string, session: string, text: string, at: string) {
-  const { data: p } = await admin.from("prospects").select("id, name, campaign_id, prospect_campaigns(name)")
+  const { data: p } = await admin.from("prospects").select("id, name, category, campaign_id, prospect_campaigns(name)")
     .ilike("phone", `%${phone.slice(-8)}`).eq("status", "enviado").limit(1).maybeSingle();
   if (!p) return null;
   if (OPT_OUT.test(text)) {
@@ -23,7 +23,8 @@ async function prospectReplied(admin: any, phone: string, name: string, session:
   }
   const lead = await createLead(admin, {
     name: name || p.name, company: p.name, phone, source: "Prospecção", session,
-    notes: `Campanha: ${p.prospect_campaigns?.name ?? ""}\nPrimeira resposta: ${text.slice(0, 300)}`,
+    stage: await firstContactStage(admin), // já houve contato: entra em "Primeiro contato" / "Contato iniciado"
+    notes: `Nicho: ${p.category || "-"}\nCampanha: ${p.prospect_campaigns?.name ?? ""}\nPrimeira resposta: ${text.slice(0, 300)}`,
   });
   await admin.from("prospects").update({ status: "respondeu", replied_at: at, lead_id: lead.id }).eq("id", p.id);
   return lead.id as string;

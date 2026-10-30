@@ -38,15 +38,22 @@ async function firstStage(admin: any) {
   return data?.[0]?.name ?? "Lead novo";
 }
 
+/** Etapa de primeiro contato do CRM ("Primeiro contato" ou "Contato iniciado"; senão a segunda etapa) */
+export async function firstContactStage(admin: any) {
+  const { data } = await admin.from("kanban_stages").select("name").eq("board", "crm").order("position");
+  const stages = (data ?? []) as { name: string }[];
+  return stages.find((s) => /primeiro contato|contato iniciado/i.test(s.name))?.name ?? stages[1]?.name ?? stages[0]?.name ?? "Contato iniciado";
+}
+
 /** Cria o lead, define o dono (o dono do número ou o rodízio) e inscreve nas sequências automáticas */
 export async function createLead(admin: any, input: {
   name: string; phone: string | null; company?: string; email?: string; source: string; notes?: string;
-  owner?: { id: string; full_name: string } | null; session?: string | null;
+  owner?: { id: string; full_name: string } | null; session?: string | null; stage?: string;
 }) {
   const owner = input.owner ?? await pickSeller(admin);
   const { data: lead, error } = await admin.from("leads").insert({
     name: input.name || input.phone || "Lead", company: input.company ?? "", email: input.email ?? "",
-    phone: input.phone ?? "", source: input.source, notes: input.notes ?? "", stage: await firstStage(admin),
+    phone: input.phone ?? "", source: input.source, notes: input.notes ?? "", stage: input.stage ?? await firstStage(admin),
     assignee: owner?.full_name ?? "", closer: "", estimated_value: 0,
     owner_id: owner?.id ?? null, whatsapp_session: input.session ?? null,
   }).select("id, name, company, assignee, owner_id, whatsapp_session").single();
