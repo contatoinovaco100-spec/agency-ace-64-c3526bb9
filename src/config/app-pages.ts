@@ -59,7 +59,8 @@ export const APP_PAGES: AppPage[] = [
   { path: '/redes-sociais',       label: 'Redes Sociais',        icon: Network,         category: 'Postagens' },
   { path: '/portfolio-instagram', label: 'Posts Instagram',      icon: Sparkles,        category: 'Postagens' },
   { path: '/instagram-analytics', label: 'Relatório Cliente',    icon: BarChart3,       category: 'Postagens' },
-  { path: '/instagram-automacao', label: 'Fila Instagram',       icon: Sparkles,        category: 'Postagens', adminOnly: true },
+  // Sem uso (fila vazia): fora do menu, rota mantida
+  { path: '/instagram-automacao', label: 'Fila Instagram',       icon: Sparkles,        category: 'Postagens', adminOnly: true, hidden: true },
 
   // Comercial
   { path: '/crm',                 label: 'CRM',                 icon: Target,          category: 'Comercial' },
@@ -77,6 +78,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/calendario-postagens', label: 'Calendário Posts',   icon: CalendarDays,    category: 'Operacional' },
   { path: '/planner',             label: 'Planner',             icon: CalendarDays,    category: 'Operacional' },
   { path: '/onboarding-clientes', label: 'Onboarding Clientes', icon: Rocket,          category: 'Operacional' },
+  { path: '/briefings',           label: 'Briefings',           icon: FileText,        category: 'Operacional' },
   { path: '/artes',               label: 'Artes Estáticas',     icon: Palette,         category: 'Operacional' },
   { path: '/videos-finalizados',  label: 'Vídeos Finalizados',  icon: Play,            category: 'Operacional' },
   { path: '/agenda-videos',       label: 'Agenda de Vídeos',    icon: CalendarDays,    category: 'Operacional' },
@@ -111,10 +113,12 @@ export const APP_PAGES: AppPage[] = [
   // Administração (só admin)
   { path: '/funcionarios',        label: 'Funcionários',        icon: UserCog,         category: 'Administração', adminOnly: true },
   { path: '/squads',              label: 'Squads',              icon: UsersRound,      category: 'Administração', adminOnly: true },
-  { path: '/ranking-viral',       label: 'Ranking Viral',       icon: Trophy,          category: 'Administração', adminOnly: true },
+  // Sem dados (nenhum post viral importado): fora do menu, rota mantida
+  { path: '/ranking-viral',       label: 'Ranking Viral',       icon: Trophy,          category: 'Administração', adminOnly: true, hidden: true },
   { path: '/etapas-kanban',       label: 'Etapas do Kanban',    icon: Layers,          category: 'Administração', adminOnly: true },
 
-  { path: '/equipe',              label: 'Equipe (legado)',     icon: UserCog,         category: 'Administração', adminOnly: true },
+  // Substituída por Funcionários: fora do menu, rota mantida
+  { path: '/equipe',              label: 'Equipe (legado)',     icon: UserCog,         category: 'Administração', adminOnly: true, hidden: true },
   { path: '/contratos',           label: 'Contratos',           icon: FileText,        category: 'Administração', adminOnly: true },
   { path: '/contratos-prestadores', label: 'Contratos Prestadores', icon: FileText,    category: 'Administração', adminOnly: true },
   { path: '/relatorios',          label: 'Relatórios',          icon: BarChart3,       category: 'Administração', adminOnly: true },
