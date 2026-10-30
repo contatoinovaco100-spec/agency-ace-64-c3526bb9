@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { BarChart3, CalendarDays, CheckCircle2, ChevronRight, Loader2, Receipt } from 'lucide-react';
+import { BarChart3, CalendarDays, CheckCircle2, ChevronRight, FileSignature, Loader2, Receipt } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchClientReviews, type ClientReview } from '@/lib/clientApprovals';
 import { useSeo } from '@/lib/seo';
@@ -9,9 +9,10 @@ import { cn } from '@/lib/utils';
 
 /**
  * Portal do cliente (/portal/:clientId): o único link que o cliente precisa guardar.
- * Reúne aprovações pendentes, relatório do mês, calendário dos próximos dias e faturas.
+ * Reúne aprovações pendentes, relatório do mês, calendário dos próximos dias, faturas e contrato.
  */
 type Task = { id: string; title: string; video_name: string; task_type: string | null; status: string; post_date: string | null; post_time?: string | null; client_id: string };
+type Contract = { id: string; title: string; plan_name: string; status: string; created_at: string; duration_months: number };
 type Invoice = { id: string; description: string; amount: number; due_date: string | null; status: string; paid_at: string | null };
 
 const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -26,19 +27,28 @@ export default function ClientPortalPage() {
   const [name, setName] = useState('');
   const [reviews, setReviews] = useState<Record<string, ClientReview>>({});
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
+  const [resolvedId, setResolvedId] = useState(clientId);
+  const [contracts, setContracts] = useState<Contract[]>([]);
 
   useEffect(() => {
     (async () => {
       const { data } = await (supabase as any).rpc('get_public_client_tasks', { _anchor: clientId });
       const list = (data ?? []) as Task[];
       setTasks(list);
-      const { data: n } = await (supabase as any).rpc('get_public_client_name', { _id: list[0]?.client_id ?? clientId });
+      // O link pode vir com o id de uma tarefa: o cliente de verdade vem das tarefas
+      const cid = list[0]?.client_id ?? clientId;
+      setResolvedId(cid);
+      const [{ data: n }, inv, ct] = await Promise.all([
+        (supabase as any).rpc('get_public_client_name', { _id: cid }),
+        // Faturas e contratos: se a função ainda não existir no banco, o bloco não aparece
+        (supabase as any).rpc('get_public_client_invoices', { _client_id: cid }),
+        (supabase as any).rpc('get_public_client_contracts', { _client_id: cid }),
+      ]);
       if (n) setName(n as string);
+      setInvoices(inv.error ? null : inv.data ?? []);
+      setContracts(ct.error ? [] : ct.data ?? []);
       setReviews(await fetchClientReviews(list.map((t) => t.id)));
     })();
-    // Faturas: a função pode ainda não existir no banco (aí o bloco não aparece)
-    (supabase as any).rpc('get_public_client_invoices', { _client_id: clientId })
-      .then(({ data, error }: { data: Invoice[] | null; error: unknown }) => setInvoices(error ? null : data ?? []));
   }, [clientId]);
 
   const view = useMemo(() => {
@@ -78,7 +88,7 @@ export default function ClientPortalPage() {
         </header>
 
         {/* Ação principal: o que depende do cliente agora */}
-        <Link to={`/conteudo/${clientId}`}
+        <Link to={`/conteudo/${resolvedId}`}
           className={cn('flex items-center gap-4 rounded-xl border p-5 transition-colors',
             v.toApprove ? 'border-brand bg-brand/15 hover:bg-brand/20' : 'bg-card hover:bg-foreground/[0.03]')}>
           <CheckCircle2 className={cn('h-6 w-6 shrink-0', v.toApprove ? 'text-primary' : 'text-muted-foreground')} />
@@ -89,7 +99,7 @@ export default function ClientPortalPage() {
           <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
         </Link>
 
-        <Link to={`/relatorio/${clientId}`} className="flex items-center gap-4 rounded-xl border bg-card p-5 transition-colors hover:bg-foreground/[0.03]">
+        <Link to={`/relatorio/${resolvedId}`} className="flex items-center gap-4 rounded-xl border bg-card p-5 transition-colors hover:bg-foreground/[0.03]">
           <BarChart3 className="h-6 w-6 shrink-0 text-muted-foreground" />
           <div className="min-w-0 flex-1">
             <p className="font-semibold">Relatório do mês</p>
@@ -143,6 +153,31 @@ export default function ClientPortalPage() {
                   </li>
                 );
               })}
+            </ul>
+          </section>
+        )}
+
+        {contracts.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              <FileSignature className="h-3.5 w-3.5" /> Contrato
+              {contracts.some((c) => c.status !== 'assinado') && <span className="text-warning">· aguardando sua assinatura</span>}
+            </h2>
+            <ul className="divide-y overflow-hidden rounded-xl border bg-card">
+              {contracts.map((c) => (
+                <li key={c.id}>
+                  <Link to={`/contrato/${c.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-foreground/[0.03]">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{c.plan_name || c.title || 'Contrato de serviços'}</p>
+                      <p className={cn('text-xs', c.status === 'assinado' ? 'text-muted-foreground' : 'text-warning')}>
+                        {c.status === 'assinado' ? 'Assinado' : 'Assinar agora'}
+                        {c.duration_months > 0 && ` · ${c.duration_months} ${c.duration_months === 1 ? 'mês' : 'meses'}`}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </Link>
+                </li>
+              ))}
             </ul>
           </section>
         )}
