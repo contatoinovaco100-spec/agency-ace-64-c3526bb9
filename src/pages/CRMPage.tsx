@@ -16,6 +16,7 @@ import { CrmInbox } from '@/components/crm/CrmInbox';
 import { CrmFollowUp } from '@/components/crm/CrmFollowUp';
 import { CrmDistribution } from '@/components/crm/CrmDistribution';
 import { LeadExtras } from '@/components/crm/LeadExtras';
+import { WhatsAppNumbers } from '@/components/whatsapp/WhatsAppNumbers';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import { useKanbanStages, colorClasses } from '@/hooks/useKanbanStages';
@@ -102,6 +103,7 @@ export default function CRMPage() {
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
           <TabsTrigger value="conversas">Conversas</TabsTrigger>
           <TabsTrigger value="followup">Follow-up</TabsTrigger>
+          <TabsTrigger value="numeros">Números do WhatsApp</TabsTrigger>
           <TabsTrigger value="distribuicao">Distribuição e captura</TabsTrigger>
         </TabsList>
 
@@ -245,6 +247,9 @@ export default function CRMPage() {
         </TabsContent>
         <TabsContent value="followup">
           <CrmFollowUp />
+        </TabsContent>
+        <TabsContent value="numeros">
+          <WhatsAppNumbers />
         </TabsContent>
         <TabsContent value="distribuicao">
           <CrmDistribution />

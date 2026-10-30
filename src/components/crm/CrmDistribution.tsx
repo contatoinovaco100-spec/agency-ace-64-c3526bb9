@@ -20,11 +20,11 @@ export function CrmDistribution() {
 
   const load = useCallback(async () => {
     const [{ data: p }, { data: s, error }] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, job_title').eq('is_active', true).order('full_name'),
+      supabase.from('profiles').select('id, full_name, job_title').eq('is_active', true).not('username', 'is', null).not('full_name', 'is', null).order('full_name'),
       supabase.from(SELLERS).select('*'),
     ]);
     setMissing(!!error);
-    setProfiles((p ?? []) as Profile[]);
+    setProfiles(((p ?? []) as Profile[]).filter((x) => x.full_name?.trim()));
     setSellers(Object.fromEntries(((s ?? []) as unknown as Seller[]).map((x) => [x.profile_id, x])));
     setLoading(false);
   }, []);

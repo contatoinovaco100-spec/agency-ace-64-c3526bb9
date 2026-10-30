@@ -42,7 +42,7 @@ export function WhatsAppNumbers() {
       const [{ sessions: list }, { data: m }, { data: p }] = await Promise.all([
         wa<{ sessions: Session[] }>({ action: 'sessions' }),
         supabase.from(NUMBERS).select('*'),
-        supabase.from('profiles').select('id, full_name').eq('is_active', true).order('full_name'),
+        supabase.from('profiles').select('id, full_name').eq('is_active', true).not('username', 'is', null).not('full_name', 'is', null).order('full_name'),
       ]);
       setSessions(list); setError(null);
       setMeta(Object.fromEntries(((m ?? []) as unknown as NumberMeta[]).map((x) => [x.id, x])));
