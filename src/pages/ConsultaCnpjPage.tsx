@@ -8,6 +8,7 @@ import {
   CircleCheckBig, Send,
 } from 'lucide-react';
 import { addToManualProspecting } from '@/lib/prospectImport';
+import { enrichCnpj, mapLimited, searchCnpjs } from '@/lib/cnpjBulk';
 
 /** Função consulta-cnpj do projeto da plataforma (o projeto antigo foi desativado e dava "Failed to fetch") */
 async function invokeFunction(name: string, body: Record<string, unknown>) {
@@ -504,6 +505,11 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
   const [total, setTotal] = useState(0);
   const [municipioFound, setMunicipioFound] = useState('');
   const [searched, setSearched] = useState(false);
+  const [quantity, setQuantity] = useState(20);
+  const [progress, setProgress] = useState<{ got: number; target: number } | null>(null);
+  const stopRef = useRef(false);
+  /** Fontes de telefone bloqueadas por um tempo: a busca espera e continua sozinha */
+  const [waiting, setWaiting] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
   const seenCnpjsRef = useRef<Set<string>>(new Set());
 
@@ -588,13 +594,15 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
   async function loadContacted(cnpjs: string[]) {
     if (cnpjs.length === 0) return;
     const clean = cnpjs.map(c => c.replace(/\D/g, ''));
-    const { data } = await supabase
-      .from('leads' as any)
-      .select('cnpj')
-      .in('cnpj', clean)
-      .eq('contacted', true);
-    if (data) {
-      setContactedIds(new Set((data as any[]).map((r: any) => r.cnpj)));
+    for (let i = 0; i < clean.length; i += 100) {
+      const { data } = await supabase
+        .from('leads' as any)
+        .select('cnpj')
+        .in('cnpj', clean.slice(i, i + 100))
+        .eq('contacted', true);
+      if (data?.length) {
+        setContactedIds(prev => new Set([...prev, ...(data as any[]).map((r: any) => r.cnpj)]));
+      }
     }
   }
 
@@ -623,31 +631,78 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
     }
   }
 
+  /** 20 empresas: uma chamada da função consulta-cnpj, como sempre foi */
+  async function searchOne(p: number, append: boolean) {
+    const data = await invokeFunction('consulta-cnpj', {
+      action: 'search', city: city.trim(), uf: uf.trim(),
+      activity: activity.trim(), bairro: bairro.trim(), page: p,
+      excludeCnpjs: append ? Array.from(seenCnpjsRef.current) : [],
+    });
+    if (data?.error) throw new Error(data.error);
+    const newItems: CnpjData[] = data.items || [];
+    newItems.forEach((item) => seenCnpjsRef.current.add(item.cnpj));
+    setResults(append ? [...results, ...newItems] : newItems);
+    setTotal(data.total || 0);
+    setMunicipioFound(`${data.municipio || city} - ${data.uf || uf}`);
+    loadContacted(newItems.map((i) => i.cnpj));
+  }
+
+  /**
+   * 100, 500 ou 1000: busca do navegador, 20 por vez, guardando só quem tem telefone.
+   * Os resultados aparecem enquanto carrega e dá para parar no meio.
+   */
+  async function searchMany(append: boolean) {
+    let acc = append ? results : [];
+    let got = 0, pages = 0, empty = 0;
+    const maxPages = Math.ceil(quantity / 20) * 5; // segurança: cidade com poucas empresas com telefone
+    setProgress({ got: 0, target: quantity });
+    setMunicipioFound(`${city.trim().toUpperCase()} - ${uf}`);
+    while (got < quantity && pages < maxPages && !stopRef.current) {
+      const { items, total } = await searchCnpjs({ city, uf, activity, bairro }, Array.from(seenCnpjsRef.current));
+      const fresh = items.filter((i) => !seenCnpjsRef.current.has(i.cnpj));
+      if (!fresh.length) break; // acabaram as empresas dessa busca
+      fresh.forEach((i) => seenCnpjsRef.current.add(i.cnpj));
+      pages++;
+      const signal = { get stopped() { return stopRef.current; } };
+      const enriched = await mapLimited(fresh, 4, (i) => enrichCnpj(i.cnpj, i, (ms) => setWaiting(ms), signal));
+      setWaiting(0);
+      if (stopRef.current) break;
+      // A busca gratuita da Casa dos Dados, depois de umas 120 empresas, passa a devolver CNPJs que não
+      // existem na Receita: página inteira sem nenhum encontrado = acabou o que dá para puxar nesta busca
+      if (enriched.every((e) => !e)) {
+        setError(`Carregou ${got} com telefone, o máximo que a busca gratuita libera para esses filtros. Para puxar mais, busque de novo trocando o bairro ou a atividade.`);
+        break;
+      }
+      const keep = (enriched.filter((e) => e?.telefone) as CnpjData[]).slice(0, quantity - got);
+      empty = keep.length ? 0 : empty + 1;
+      if (empty >= 4) { setError(`Parou em ${got}: a consulta de telefones está recusando agora. Tente de novo em alguns minutos com "Carregar mais".`); break; }
+      if (keep.length) {
+        acc = [...acc, ...keep];
+        got += keep.length;
+        setResults(acc);
+        loadContacted(keep.map((i) => i.cnpj));
+      }
+      setTotal(total);
+      setSearched(true);
+      setProgress({ got, target: quantity });
+    }
+    if (!got && !stopRef.current) setSearched(true);
+  }
+
   async function doSearch(p: number, append = false) {
     if (!city.trim() || !uf.trim()) { setError('Informe cidade e estado.'); return; }
     setLoading(true); setError(null);
+    stopRef.current = false;
+    if (!append) { setExpandedId(null); setSelectedIds(new Set()); }
     try {
-      const excludeCnpjs = append ? Array.from(seenCnpjsRef.current) : [];
-      const data = await invokeFunction('consulta-cnpj', {
-        action: 'search', city: city.trim(), uf: uf.trim(),
-        activity: activity.trim(), bairro: bairro.trim(), page: p,
-        excludeCnpjs,
-      });
-      if (data?.error) throw new Error(data.error);
-      const newItems = data.items || [];
-      newItems.forEach((item: CnpjData) => seenCnpjsRef.current.add(item.cnpj));
-      setResults(append ? [...results, ...newItems] : newItems);
-      setTotal(data.total || 0);
-      setMunicipioFound(`${data.municipio || city} - ${data.uf || uf}`);
+      if (quantity > 20) await searchMany(append);
+      else await searchOne(p, append);
       setPage(p);
       setSearched(true);
-      setExpandedId(null);
-      if (!append) setSelectedIds(new Set());
-      loadContacted(newItems.map((i: any) => i.cnpj));
-      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      if (!append) setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     } catch (err: any) {
       setError(err?.message || 'Erro ao buscar empresas. Tente novamente.');
-    } finally { setLoading(false); }
+    } finally { setLoading(false); setProgress(null); setWaiting(0); }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -702,11 +757,39 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
           </div>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-zinc-500 mr-1">Quantidade:</span>
+          {[20, 100, 500, 1000].map((q) => (
+            <button key={q} type="button" onClick={() => setQuantity(q)} disabled={loading}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold tabular-nums transition-colors disabled:opacity-50 ${
+                quantity === q ? 'bg-[#BFF720] text-black' : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
+              }`}>
+              {q}
+            </button>
+          ))}
+          {quantity > 20 && <span className="text-[11px] text-zinc-600">só empresas com telefone</span>}
+        </div>
+
         <button type="submit" disabled={loading || !city.trim() || !uf.trim()}
           className="w-full py-3.5 bg-[#BFF720] hover:bg-[#d4ff30] disabled:opacity-40 disabled:cursor-not-allowed text-black font-semibold rounded-xl transition-all flex items-center justify-center gap-2">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-          {loading ? 'Buscando empresas...' : 'Buscar Empresas'}
+          {loading ? 'Buscando empresas...' : quantity > 20 ? `Buscar ${quantity} empresas` : 'Buscar Empresas'}
         </button>
+
+        {progress && (
+          <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800">
+            <div className="flex items-center justify-between text-xs mb-2">
+              <span className="text-zinc-300">
+                Carregando <span className="font-semibold text-white tabular-nums">{progress.got}</span> de <span className="tabular-nums">{progress.target}</span> com telefone…
+                {waiting > 0 && <span className="text-amber-400"> aguardando liberação da consulta ({Math.ceil(waiting / 1000)}s)</span>}
+              </span>
+              <button type="button" onClick={() => { stopRef.current = true; }} className="text-zinc-500 hover:text-white">Parar</button>
+            </div>
+            <div className="h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+              <div className="h-full bg-[#BFF720] transition-[width] duration-300" style={{ width: `${(progress.got / progress.target) * 100}%` }} />
+            </div>
+          </div>
+        )}
       </form>
 
       {error && <ErrorBanner msg={error} onDismiss={() => setError(null)} />}
@@ -798,7 +881,7 @@ function LocationTab({ leadCount, refreshLeadCount }: { leadCount: number; refre
             <div className="flex items-center justify-center gap-3 mt-6">
               <button
                 onClick={() => doSearch(page + 1, true)}
-                disabled={loading || results.length < 20}
+                disabled={loading}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm disabled:opacity-40 hover:border-zinc-700 transition-all"
               >
                 Carregar mais <ChevronRight className="w-4 h-4" />
