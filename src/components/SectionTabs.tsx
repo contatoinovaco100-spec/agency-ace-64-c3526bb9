@@ -11,6 +11,12 @@ export const AGENDA_TABS: SectionTab[] = [
   { path: '/agenda-videos', label: 'Escala semanal' },
 ];
 
+export const TEAM_TABS: SectionTab[] = [
+  { path: '/funcionarios', label: 'Funcionários' },
+  { path: '/squads', label: 'Squads' },
+  { path: '/desempenho', label: 'Desempenho' },
+];
+
 export const PUBLISH_TABS: SectionTab[] = [
   { path: '/publicar', label: 'Nova publicação' },
   { path: '/publicacoes', label: 'Histórico' },

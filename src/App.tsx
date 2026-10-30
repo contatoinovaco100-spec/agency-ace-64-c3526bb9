@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { AGENDA_TABS, PUBLISH_TABS, SectionRedirect, SectionTabs } from "@/components/SectionTabs";
+import { AGENDA_TABS, PUBLISH_TABS, SectionRedirect, SectionTabs, TEAM_TABS } from "@/components/SectionTabs";
 import PublicQuizPage from "./pages/PublicQuizPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
@@ -56,7 +56,6 @@ const PreProducaoPage      = lazy(() => import("./pages/PreProducaoPage"));
 const VideoEditorPage      = lazy(() => import("./pages/VideoEditorPage"));
 const ThreadsPublishPage   = lazy(() => import("./pages/ThreadsPublishPage"));
 const PublicArtesPage      = lazy(() => import("./pages/PublicArtesPage"));
-const TeamPage             = lazy(() => import("./pages/TeamPage"));
 const ClientContentPage    = lazy(() => import("./pages/ClientContentPage"));
 // LoginPage é importada de forma estática (eager) — é a rota mais acessada
 // e evitar o lazy elimina um round-trip de chunk antes do usuário ver o form.
@@ -260,7 +259,7 @@ function AppRoutes() {
                     <Route path="/pre-producao"        element={<PreProducaoPage />} />
                     <Route path="/editor-video"        element={<StudioScope><VideoEditorPage /></StudioScope>} />
                     <Route path="/publicar-threads"     element={<ThreadsPublishPage />} />
-                    <Route path="/equipe"              element={<TeamPage />} />
+                    <Route path="/equipe"              element={<SectionRedirect tabs={TEAM_TABS} />} />
                     <Route path="/planejamento"        element={<ContentPlanningPage />} />
                     <Route path="/planejamento-pdf"    element={<PdfPlanningPage />} />
 
@@ -297,7 +296,7 @@ function AppRoutes() {
                     <Route path="/escopos"             element={<ClientScopesPage />} />
                     <Route path="/nota-cliente"        element={<ClientScoresPage />} />
                     <Route path="/observacoes-semanais" element={<ClientWeeklyNotesPage />} />
-                    <Route path="/desempenho"          element={<DesempenhoPage />} />
+                    <Route path="/desempenho"          element={<SectionTabs tabs={TEAM_TABS}><DesempenhoPage /></SectionTabs>} />
                     <Route path="/metas"               element={<GoalsPage />} />
                     <Route path="/resultados-semanais" element={<WeeklyResultsPage />} />
                     <Route path="/galeria"             element={<GalleryPage />} />
@@ -306,13 +305,13 @@ function AppRoutes() {
                     <Route path="/linktree"            element={<LinktreePage />} />
                     <Route path="/linktree/:id"        element={<LinktreeEditorPage />} />
                     <Route path="/nova"                element={<NovaAssistantPage />} />
-                    <Route path="/funcionarios"        element={<EmployeesPage />} />
+                    <Route path="/funcionarios"        element={<SectionTabs tabs={TEAM_TABS}><EmployeesPage /></SectionTabs>} />
                     <Route path="/minhas-tarefas"      element={<MyTasksPage />} />
                     <Route path="/whatsapp"            element={<WhatsAppPage />} />
                     <Route path="/whatsapp/config"     element={<WhatsAppConfigPage />} />
                     <Route path="/etapas-kanban"       element={<KanbanStagesPage />} />
                     <Route path="/time-comercial"      element={<CommercialTeamPage />} />
-                    <Route path="/squads"              element={<SquadsPage />} />
+                    <Route path="/squads"              element={<SectionTabs tabs={TEAM_TABS}><SquadsPage /></SectionTabs>} />
                     <Route path="/ranking-viral"       element={<ViralRankingPage />} />
                     <Route path="/figma-to-lp"         element={<StudioScope><FigmaToLpPage /></StudioScope>} />
                     <Route path="/financeiro"          element={<FinancePage />} />

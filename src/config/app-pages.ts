@@ -43,7 +43,7 @@ export interface AppPage {
 export const APP_PAGES: AppPage[] = [
   // Geral
   { path: '/',                    label: 'Dashboard',           icon: LayoutDashboard, category: 'Geral' },
-  { path: '/desempenho',          label: 'Desempenho da Equipe', icon: Gauge,          category: 'Administração', adminOnly: true },
+  { path: '/desempenho',          label: 'Desempenho da Equipe', icon: Gauge,          category: 'Administração', adminOnly: true, hidden: true },
   { path: '/minhas-tarefas',      label: 'Minhas Tarefas',      icon: ListChecks,      category: 'Geral' },
   // Agenda reúne Calendário, Gravações e Escala semanal em abas (cada aba mantém o próprio endereço e permissão)
   { path: '/agenda',              label: 'Agenda',              icon: Calendar,        category: 'Geral', includes: ['/calendario', '/gravacoes', '/agenda-videos'] },
@@ -116,14 +116,14 @@ export const APP_PAGES: AppPage[] = [
 
 
   // Administração (só admin)
-  { path: '/funcionarios',        label: 'Funcionários',        icon: UserCog,         category: 'Administração', adminOnly: true },
-  { path: '/squads',              label: 'Squads',              icon: UsersRound,      category: 'Administração', adminOnly: true },
+  // Equipe reúne Funcionários, Squads e Desempenho em abas (cada aba mantém o próprio endereço)
+  { path: '/equipe',              label: 'Equipe',              icon: UsersRound,      category: 'Administração', adminOnly: true, includes: ['/funcionarios', '/squads', '/desempenho'] },
+  { path: '/funcionarios',        label: 'Funcionários',        icon: UserCog,         category: 'Administração', adminOnly: true, hidden: true },
+  { path: '/squads',              label: 'Squads',              icon: UsersRound,      category: 'Administração', adminOnly: true, hidden: true },
   // Sem dados (nenhum post viral importado): fora do menu, rota mantida
   { path: '/ranking-viral',       label: 'Ranking Viral',       icon: Trophy,          category: 'Administração', adminOnly: true, hidden: true },
   { path: '/etapas-kanban',       label: 'Etapas do Kanban',    icon: Layers,          category: 'Administração', adminOnly: true },
 
-  // Substituída por Funcionários: fora do menu, rota mantida
-  { path: '/equipe',              label: 'Equipe (legado)',     icon: UserCog,         category: 'Administração', adminOnly: true, hidden: true },
   { path: '/contratos',           label: 'Contratos',           icon: FileText,        category: 'Administração', adminOnly: true },
   { path: '/contratos-prestadores', label: 'Contratos Prestadores', icon: FileText,    category: 'Administração', adminOnly: true },
   { path: '/relatorios',          label: 'Relatórios',          icon: BarChart3,       category: 'Administração', adminOnly: true },
