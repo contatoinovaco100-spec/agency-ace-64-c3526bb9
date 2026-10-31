@@ -5,7 +5,8 @@ import { Card } from '@/components/ui/card';
 import { CheckCircle2, XCircle, Loader2, Copy, ExternalLink } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-const WEBHOOK_URL = `https://coblfehkclfjofrshlwl.supabase.co/functions/v1/wa-webhook`;
+// Sempre o projeto em uso (o endereço fixo antigo apontava para um projeto desativado)
+const WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/wa-webhook`;
 
 export default function WhatsAppConfigPage() {
   const [testing, setTesting] = useState(false);

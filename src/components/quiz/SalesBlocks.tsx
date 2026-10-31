@@ -882,13 +882,12 @@ export function SpacerBlock({ config, theme }: BlockProps) {
 
 /* ─── HTML EMBED ─── */
 export function HtmlBlock({ config, theme }: BlockProps) {
-  if (!config.code) return null;
   // Sanitize HTML before rendering to prevent stored XSS on public quiz pages.
   // Allow common embed tags (iframe for video players) but strip <script>, event
   // handlers, and other dangerous constructs.
   const sanitized = useMemo(
     () =>
-      DOMPurify.sanitize(String(config.code), {
+      DOMPurify.sanitize(String(config.code ?? ''), {
         ADD_TAGS: ["iframe"],
         ADD_ATTR: [
           "allow",
@@ -904,6 +903,7 @@ export function HtmlBlock({ config, theme }: BlockProps) {
       }),
     [config.code]
   );
+  if (!config.code) return null;
   return (
     <div
       className="w-full relative [&_iframe]:w-full [&_iframe]:max-w-full"

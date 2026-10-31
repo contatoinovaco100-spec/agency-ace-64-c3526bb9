@@ -213,18 +213,17 @@ export default function Dashboard() {
 
   // Menor data de início por nome, a partir dos contratos assinados (fallback
   // de data quando o cadastro do cliente está sem contract_start_date).
-  const startDateByKey = useMemo(() => {
-    const map = new Map<string, Date>();
-    signedContracts.forEach(ct => {
-      const raw = ct.contract_signatures?.[0]?.signed_at || ct.sent_at || ct.created_at;
-      const d = new Date(raw);
-      if (isNaN(d.getTime())) return;
-      const key = norm(ct.client_name);
-      const prev = map.get(key);
-      if (!prev || d < prev) map.set(key, d);
-    });
-    return map;
-  }, [signedContracts]);
+  // Sem useMemo de propósito: este trecho roda depois do retorno do painel simples, e hook aqui
+  // quebrava a tela ("Rendered more hooks") quando a permissão de admin terminava de carregar.
+  const startDateByKey = new Map<string, Date>();
+  signedContracts.forEach(ct => {
+    const raw = ct.contract_signatures?.[0]?.signed_at || ct.sent_at || ct.created_at;
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return;
+    const key = norm(ct.client_name);
+    const prev = startDateByKey.get(key);
+    if (!prev || d < prev) startDateByKey.set(key, d);
+  });
   const effectiveStartDate = (c: Client): Date | null => {
     if (c.contractStartDate) {
       const d = new Date(c.contractStartDate);
