@@ -408,24 +408,26 @@ export default function Dashboard() {
   const mrrDelta = mrr - lastMonthMrr;
   const mrrPct = lastMonthMrr > 0 ? (mrrDelta / lastMonthMrr) * 100 : (mrr > 0 ? 100 : 0);
 
-  const newClientsThisMonth = clients.filter(c => {
+  // Quem entrou no mês conta como conquistado mesmo que depois tenha pausado ou cancelado
+  // (mesma regra da tabela "desde a fundação", para os números baterem)
+  const newClientsThisMonth = uniqueClients.filter(c => {
     const d = effectiveStartDate(c);
     return !!d && d >= startOfThisMonth;
   }).length;
-  const newClientsLastMonth = clients.filter(c => {
+  const newClientsLastMonth = uniqueClients.filter(c => {
     const d = effectiveStartDate(c);
     return !!d && d >= startOfLastMonth && d <= endOfLastMonth;
   }).length;
-  const newMrrOf = (from: Date, to: Date) => clients.reduce((sum, c) => {
+  const newMrrOf = (from: Date, to: Date) => uniqueClients.reduce((sum, c) => {
     const d = effectiveStartDate(c);
-    return c.status === 'Ativo' && d && d >= from && d <= to ? sum + effectiveMonthlyValue(c) : sum;
+    return d && d >= from && d <= to ? sum + effectiveMonthlyValue(c) : sum;
   }, 0);
-  // MRR conquistado: mensalidade de quem entrou no mês (pausado não conta, ainda não está pagando)
+  // MRR conquistado: mensalidade de quem entrou no mês (serviço pontual fica de fora)
   const newMrrThisMonth = newMrrOf(startOfThisMonth, now);
   const newMrrLastMonth = newMrrOf(startOfLastMonth, endOfLastMonth);
 
   // Novos clientes do mês do calendário: zera no dia 1
-  const newClients = clients
+  const newClients = uniqueClients
     .filter(c => { const d = effectiveStartDate(c); return !!d && d >= startOfThisMonth; })
     .sort((a, b) => (effectiveStartDate(b)?.getTime() ?? 0) - (effectiveStartDate(a)?.getTime() ?? 0));
 
@@ -1110,8 +1112,13 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold tabular-nums text-[hsl(var(--success))]">{formatCurrency(effectiveMonthlyValue(c))}</p>
-                          <p className="text-xs text-muted-foreground">/mês</p>
+                          {c.billingType === 'pontual' ? (<>
+                            <p className="font-semibold tabular-nums text-foreground">{formatCurrency(Number(c.monthlyValue) || 0)}</p>
+                            <p className="text-xs text-muted-foreground">pontual · fora do MRR</p>
+                          </>) : (<>
+                            <p className={`font-semibold tabular-nums ${c.status === 'Ativo' ? 'text-[hsl(var(--success))]' : 'text-muted-foreground'}`}>{formatCurrency(effectiveMonthlyValue(c))}</p>
+                            <p className="text-xs text-muted-foreground">/mês</p>
+                          </>)}
                         </div>
                       </div>
                     ))}
