@@ -57,6 +57,8 @@ function rowToClient(row: Tables<'clients'>): Client {
     serviceType: row.service_type as ServiceType[], accountManager: row.account_manager || [],
     status: row.status as Client['status'], notes: row.notes,
     cancelledAt: (row as any).cancelled_at || null,
+    billingStoppedAt: (row as any).billing_stopped_at || null,
+    stoppedPeriods: Array.isArray((row as any).stopped_periods) ? (row as any).stopped_periods : [],
     deletedAt: (row as any).deleted_at || null,
     scopeDetails: {
       monthlyDeliverables: row.scope_monthly_deliverables || [],

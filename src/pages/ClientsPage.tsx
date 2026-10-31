@@ -29,6 +29,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 
 const serviceOptions: ServiceType[] = ['Gestor de trafego', 'Social Media', 'Estrategista digital', 'Editor de Video', 'Copywritter', 'Design'];
 const statusOptions: ClientStatus[] = ['Ativo', 'Pausado', 'Cancelado'];
+const toLocalDay = (iso: string) => new Date(iso).toLocaleDateString('sv-SE');
 
 const statusColors: Record<string, string> = {
   'Ativo': 'bg-success/10 text-success',
@@ -243,10 +244,17 @@ export default function ClientsPage() {
     setExpandedId(c.id);
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.companyName) return;
     if (editing) {
-      updateClient({ ...editing, ...form } as Client);
+      await updateClient({ ...editing, ...form } as Client);
+      // Data em que parou de pagar corrigida à mão (o LTV do Dashboard para de contar nela)
+      const stopped = form.status === 'Pausado' || form.status === 'Cancelado';
+      if (stopped && form.billingStoppedAt && form.billingStoppedAt !== editing.billingStoppedAt) {
+        const { error } = await supabase.from('clients').update({ billing_stopped_at: form.billingStoppedAt } as never).eq('id', editing.id);
+        if (error) toast.error('Não foi possível salvar a data da pausa: ' + error.message);
+        else await refresh();
+      }
     } else {
       addClient({ ...form, id: crypto.randomUUID() } as Client);
     }
@@ -574,6 +582,20 @@ export default function ClientsPage() {
                   <SelectContent>{statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              {editing && (form.status === 'Pausado' || form.status === 'Cancelado') && (
+                <div>
+                  <Label>{form.status === 'Pausado' ? 'Pausado desde' : 'Parou de pagar em'}</Label>
+                  <Input
+                    type="date"
+                    value={form.billingStoppedAt ? toLocalDay(form.billingStoppedAt) : ''}
+                    max={toLocalDay(new Date().toISOString())}
+                    onChange={e => setForm({ ...form, billingStoppedAt: e.target.value ? new Date(`${e.target.value}T12:00:00`).toISOString() : null })}
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {editing.status === form.status ? 'O LTV do Dashboard para de contar nesta data.' : 'Sem data, conta a partir de hoje.'}
+                  </p>
+                </div>
+              )}
             </div>
             <div><Label>Observações</Label><Textarea value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
 

@@ -211,6 +211,21 @@ export default function Dashboard() {
     return months;
   };
 
+  // Cobranças (dia 10) que caíram dentro de um período em que o contrato ficou parado
+  const billingsWithin = (from: Date, to: Date) => {
+    const fromDay = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+    const cur = new Date(from.getFullYear(), from.getMonth(), 10);
+    if (cur < fromDay) cur.setMonth(cur.getMonth() + 1);
+    let n = 0;
+    while (cur < to) { n++; cur.setMonth(cur.getMonth() + 1); }
+    return n;
+  };
+  const validDate = (raw?: string | null) => {
+    if (!raw) return null;
+    const d = new Date(raw);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
   // Menor data de início por nome, a partir dos contratos assinados (fallback
   // de data quando o cadastro do cliente está sem contract_start_date).
   // Sem useMemo de propósito: este trecho roda depois do retorno do painel simples, e hook aqui
@@ -233,7 +248,7 @@ export default function Dashboard() {
   };
 
   // Melhor data e valor de contrato por nome de cliente
-  const contractInfo: Record<string, { date: Date; monthlyValue: number; count: number }> = {};
+  const contractInfo: Record<string, { date: Date; monthlyValue: number; count: number; duration: number }> = {};
   signedContracts.forEach(ct => {
     const raw = ct.contract_signatures?.[0]?.signed_at || ct.sent_at || ct.created_at;
     const d = new Date(raw);
@@ -244,6 +259,7 @@ export default function Dashboard() {
       date: prev && prev.date < d ? prev.date : d,
       monthlyValue: ct.monthly_value || prev?.monthlyValue || 0,
       count: (prev?.count || 0) + 1,
+      duration: Math.max(prev?.duration || 0, Number(ct.duration_months) || 0),
     };
   });
 
@@ -255,6 +271,7 @@ export default function Dashboard() {
     contractsCount: number;
     monthlyValue: number;
     status: string;
+    stoppedAt: Date | null;
   }> = {};
 
   // 1) Clientes cadastrados (incluindo cancelados, com LTV congelado)
@@ -263,13 +280,23 @@ export default function Dashboard() {
     const start = effectiveStartDate(c);
     if (!start) return;
 
-    let limit = todayDate;
-    if (c.status === 'Cancelado' && c.cancelledAt) {
-      const cd = new Date(c.cancelledAt);
-      if (!isNaN(cd.getTime())) limit = cd;
-    }
+    // Pausado ou cancelado: para de contar no dia em que o contrato parou (pausa que virou
+    // cancelamento conta só até a pausa). Antes da migração, cancelado usa a data do cancelamento.
+    const stopped = c.status === 'Pausado' || c.status === 'Cancelado';
+    const stoppedAt = stopped
+      ? validDate(c.billingStoppedAt) ?? (c.status === 'Cancelado' ? validDate(c.cancelledAt) : null)
+      : null;
+    const limit = stoppedAt && stoppedAt < todayDate ? stoppedAt : todayDate;
 
-    const monthsPaid = monthsBetween(start, limit);
+    // Pausas que já acabaram (cliente voltou): os meses parados não entram
+    const pausedMonths = (c.stoppedPeriods ?? []).reduce((sum, p) => {
+      const from = validDate(p.from), to = validDate(p.to);
+      if (!from || !to) return sum;
+      const a = from > start ? from : start, b = to < limit ? to : limit;
+      return a < b ? sum + billingsWithin(a, b) : sum;
+    }, 0);
+
+    const monthsPaid = monthsBetween(start, limit) - pausedMonths;
     if (monthsPaid < 1) return;
 
     const monthlyValue = effectiveMonthlyValue(c) || info?.monthlyValue || 0;
@@ -283,6 +310,7 @@ export default function Dashboard() {
       contractsCount: info?.count || 0,
       monthlyValue,
       status: c.status,
+      stoppedAt,
     };
   });
 
@@ -290,7 +318,8 @@ export default function Dashboard() {
   const registeredNames = new Set(uniqueClients.map(c => norm(c.companyName)));
   Object.entries(contractInfo).forEach(([key, info]) => {
     if (!key || registeredNames.has(key)) return;
-    const monthsPaid = monthsBetween(info.date, todayDate);
+    // Sem cadastro não dá para saber se pausou: conta no máximo a duração do contrato
+    const monthsPaid = Math.min(monthsBetween(info.date, todayDate), info.duration > 0 ? info.duration : Infinity);
     if (monthsPaid < 1 || info.monthlyValue <= 0) return;
     const original = signedContracts.find(ct => norm(ct.client_name) === key);
     ltvMap[`name:${key}`] = {
@@ -301,6 +330,7 @@ export default function Dashboard() {
       contractsCount: info.count,
       monthlyValue: info.monthlyValue,
       status: 'Sem cadastro',
+      stoppedAt: null,
     };
   });
 
@@ -906,6 +936,7 @@ export default function Dashboard() {
                               <div className="text-[10px] text-muted-foreground tabular-nums">
                                 {c.monthsPaid} {c.monthsPaid === 1 ? 'mês pago' : 'meses pagos'}
                                 {c.contractsCount > 1 ? ` · ${c.contractsCount} contratos` : ''}
+                                {c.stoppedAt ? ` · parado desde ${c.stoppedAt.toLocaleDateString('pt-BR')}` : ''}
                               </div>
                             </div>
                           </div>
