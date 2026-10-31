@@ -77,7 +77,12 @@ export function ClientReviewNotifications() {
         const note = approved ? '' : r.content.replace(/^[^\n]*\n?/, '').trim();
         const title = approved ? `✅ ${who} aprovou “${what}”` : `✏️ ${who} pediu ajuste em “${what}”`;
 
-        addNotification(user.id, { title, description: note || (approved ? 'Pronto para agendar no Planner.' : 'Veja o pedido na tarefa.'), kind: 'task' });
+        addNotification(user.id, {
+          title,
+          description: note || (approved ? 'Pronto para agendar no Planner.' : 'Veja o pedido na tarefa.'),
+          kind: 'approval',
+          link: approved ? `/planner?cliente=todos&post=${task.id}&agendar=1` : `${task.task_type === 'Arte' ? '/artes' : '/tarefas'}?taskId=${task.id}`,
+        });
         playSound(approved ? 'sale' : 'overdue');
         toast(title, {
           description: note || (approved ? 'Pronto para agendar no Planner.' : undefined),

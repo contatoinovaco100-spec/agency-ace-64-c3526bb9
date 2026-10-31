@@ -26,6 +26,7 @@ export function RealtimeNotifications() {
               title: 'Venda Confirmada! 💰',
               description: `O contrato "${contract.title}" foi assinado por ${contract.client_name}.`,
               kind: 'sale',
+              link: '/contratos',
             });
             playSound('sale');
           }
@@ -40,6 +41,7 @@ export function RealtimeNotifications() {
             title: 'Nova Assinatura! ✍️',
             description: `${sig.signer_name} acabou de assinar um contrato.`,
             kind: 'signature',
+            link: '/contratos',
           });
           playSound('sale');
         },

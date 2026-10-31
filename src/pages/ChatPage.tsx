@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { MentionText, useMentionInput } from '@/components/ChatMentions';
+import { useUrlAction } from '@/hooks/useUrlAction';
 import { Send, MessageSquare, Hash, Trash2, Loader2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +23,9 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [myProfile, setMyProfile] = useState<Employee | null>(null);
+  const mention = useMentionInput(text, setText, employees, user?.id);
+  // Vindo de uma notificação de menção: abre a conversa certa
+  useUrlAction('canal', (c) => { setChannel(c); });
   const bottomRef = useRef<HTMLDivElement>(null);
   const online = useOnlineUsers();
   // Quem está online aparece primeiro
@@ -270,7 +275,7 @@ export default function ChatPage() {
                             : 'bg-secondary text-foreground rounded-tl-sm'
                         )}
                       >
-                        {m.content}
+                        <MentionText content={m.content} onPrimary={isMe} />
                       </div>
                       {isMe && (
                         <button
@@ -290,11 +295,12 @@ export default function ChatPage() {
           <div ref={bottomRef} />
         </div>
 
-        <div className="p-3 border-t border-border bg-card flex gap-2 flex-shrink-0">
+        <div className="relative p-3 border-t border-border bg-card flex gap-2 flex-shrink-0">
+          {mention.list}
           <Input
             value={text}
             onChange={e => setText(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
+            onKeyDown={e => { if (mention.onKeyDown(e)) return; if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder={
               channel.startsWith('dm_')
                 ? `Mensagem para ${employees.find(e => `dm_${[user?.id || '', e.id].sort().join('_')}` === channel)?.full_name?.split(' ')[0] || 'Usuário'}...`

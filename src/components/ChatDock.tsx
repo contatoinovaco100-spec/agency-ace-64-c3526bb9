@@ -11,6 +11,7 @@ import {
   CHAT_CHANNELS, chatInitials, chatTime, dmChannel, markSeen, readSeen,
   type ChatEmployee, type ChatMessage,
 } from '@/lib/chat';
+import { MentionText, useMentionInput } from '@/components/ChatMentions';
 
 /**
  * Chat Interno estilo Messenger: bolha no canto que acompanha todas as páginas, com contador de
@@ -35,6 +36,7 @@ export function ChatDock() {
 
   const onChatPage = location.pathname.startsWith('/chat');
   const me = employees.find(e => e.id === user?.id);
+  const mention = useMentionInput(text, setText, employees, user?.id);
 
   // Conversas que me dizem respeito: canais + privadas com cada colega
   const channels = useMemo(() => {
@@ -246,20 +248,21 @@ export function ChatDock() {
                         )}
                         title={chatTime(m.created_at)}
                       >
-                        {m.content}
+                        <MentionText content={m.content} onPrimary={mine} />
                       </div>
                     </div>
                   );
                 })}
                 <div ref={bottomRef} />
               </div>
-              <form className="flex shrink-0 items-end gap-2 border-t border-border p-2" onSubmit={(e) => { e.preventDefault(); send(); }}>
+              <form className="relative flex shrink-0 items-end gap-2 border-t border-border p-2" onSubmit={(e) => { e.preventDefault(); send(); }}>
+                {mention.list}
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+                  onKeyDown={(e) => { if (mention.onKeyDown(e)) return; if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
                   rows={1}
-                  placeholder="Escreva uma mensagem"
+                  placeholder="Mensagem (@ para mencionar)"
                   className="max-h-28 min-h-9 flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   autoFocus
                 />

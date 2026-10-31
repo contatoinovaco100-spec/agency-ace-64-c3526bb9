@@ -5,9 +5,11 @@ export interface NotificationHistoryEntry {
   id: string;
   title: string;
   description?: string;
-  kind: 'sale' | 'signature' | 'task' | 'info';
+  kind: 'sale' | 'signature' | 'task' | 'approval' | 'mention' | 'lead' | 'info';
   at: number; // epoch ms
   read?: boolean;
+  /** Para onde a notificação leva ao clicar */
+  link?: string;
 }
 
 const MAX = 500;
@@ -38,6 +40,13 @@ export function addNotification(
   };
   const updated = [next, ...list].slice(0, MAX);
   localStorage.setItem(keyFor(userId), JSON.stringify(updated));
+  window.dispatchEvent(new CustomEvent(EVT));
+}
+
+export function markAllNotificationsRead(userId: string) {
+  const list = getNotifications(userId);
+  if (!list.some((n) => !n.read)) return;
+  localStorage.setItem(keyFor(userId), JSON.stringify(list.map((n) => ({ ...n, read: true }))));
   window.dispatchEvent(new CustomEvent(EVT));
 }
 

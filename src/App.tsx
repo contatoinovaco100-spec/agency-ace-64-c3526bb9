@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { ClientReviewNotifications } from "@/components/ClientReviewNotifications";
+import { TeamNotifications } from "@/components/TeamNotifications";
 import { AGENDA_TABS, MY_DAY_TABS, PLANNING_TABS, PORTFOLIO_TABS, PUBLISH_TABS, SectionRedirect, SectionTabs, TEAM_TABS } from "@/components/SectionTabs";
 import PublicQuizPage from "./pages/PublicQuizPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -411,6 +412,7 @@ function QuizRouter() {
           <RealtimeNotifications />
           <TaskMoveNotifications />
           <ClientReviewNotifications />
+          <TeamNotifications />
           <AgencyProvider>
             <AppRoutes />
           </AgencyProvider>

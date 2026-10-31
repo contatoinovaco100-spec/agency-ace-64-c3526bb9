@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageAccess } from '@/hooks/useUserRole';
 import { usePushNotification } from '@/hooks/usePushNotification';
-import { TaskMoveHistoryBell } from '@/components/TaskMoveHistoryBell';
+import { NotificationBell } from '@/components/NotificationBell';
 import { APP_PAGES, PAGE_CATEGORIES, type AppPage } from '@/config/app-pages';
 import logoInova from '@/assets/logo-inova.png';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -93,7 +93,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <Search className="h-4 w-4" />
           </button>
           <QuickCreateMenu canOpen={canOpen} trigger={<button className={iconButton} aria-label="Criar novo"><Plus className="h-5 w-5" /></button>} />
-          <TaskMoveHistoryBell />
+          <NotificationBell side="bottom" />
           <ThemeToggle />
         </div>
       </header>
@@ -203,7 +203,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Settings className="h-4 w-4" />
             </button>
             <div className={cn('hidden lg:block', !compact && 'ml-auto')} />
-            <span className="hidden lg:contents"><TaskMoveHistoryBell /></span>
+            <span className="hidden lg:contents"><NotificationBell /></span>
             <AudioActivator />
             <span className="hidden lg:contents"><ThemeToggle /></span>
             <button
