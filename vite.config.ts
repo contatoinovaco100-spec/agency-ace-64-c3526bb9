@@ -42,7 +42,11 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (!id.includes("node_modules")) return;
-            if (id.includes("react") || id.includes("react-dom") || id.includes("react-router")) return "react-vendor";
+            // Só o React em si: "includes('react')" puxava também @radix-ui/react-*, react-smooth (dos gráficos)
+            // etc., e o pacote de gráficos acabava baixando em todas as páginas
+            if (/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler)\//.test(id)) return "react-vendor";
+            // Utilitários usados em toda a interface: se ficarem sem dono, vão parar no pacote de gráficos
+            if (/node_modules\/(clsx|tailwind-merge|class-variance-authority)\//.test(id)) return "utils";
             if (id.includes("@supabase")) return "supabase";
             if (id.includes("@radix-ui")) return "ui-components";
             if (id.includes("lucide-react")) return "icons";

@@ -11,8 +11,9 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://coblfehkclfjofrshlwl.supabase.co">
-    <link rel="dns-prefetch" href="https://coblfehkclfjofrshlwl.supabase.co">
+    <link rel="preconnect" href="https://cdzzewovtxotkghzeafr.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://cdzzewovtxotkghzeafr.supabase.co">
+    <link rel="dns-prefetch" href="https://img.youtube.com">
 
     <!-- Carrega a fonte via <link> (não bloqueia o CSS principal como o @import fazia) -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -38,10 +39,10 @@
         try { theme = localStorage.getItem('inova-theme') || 'dark'; } catch (e) {}
         // Páginas públicas são escuras (mesma lista de PUBLIC_DARK_PATHS no App.tsx)
         var path = location.pathname;
-        var publicPaths = ['/bem-vindo', '/contrato', '/vitrine', '/links', '/briefing', '/fatura', '/proposta', '/diagnostico', '/diagnostico-anuncios', '/diagnostico-social', '/negocios', '/rede', '/indicacoes', '/indicar', '/afiliados/cadastro', '/in', '/quiz', '/painel-artes', '/lp', '/roleta', '/teleprompter'];
+        var publicPaths = ['/bem-vindo', '/contrato', '/links', '/briefing', '/fatura', '/proposta', '/diagnostico', '/diagnostico-anuncios', '/diagnostico-social', '/negocios', '/rede', '/indicacoes', '/indicar', '/afiliados/cadastro', '/in', '/quiz', '/painel-artes', '/lp', '/roleta', '/teleprompter'];
         if (path.indexOf('/diagnostico/editar') !== 0 && publicPaths.some(function (p) { return path === p || path.indexOf(p + '/') === 0; })) theme = 'dark';
         // Aprovação de conteúdo do cliente: sempre clara (mesma lista de PUBLIC_LIGHT_PATHS no App.tsx)
-        if (path === '/conteudo' || path.indexOf('/conteudo/') === 0 || path.indexOf('/relatorio/') === 0 || path.indexOf('/portal/') === 0) theme = 'light';
+        if (path === '/vitrine' || path === '/conteudo' || path.indexOf('/conteudo/') === 0 || path.indexOf('/relatorio/') === 0 || path.indexOf('/portal/') === 0) theme = 'light';
         document.documentElement.classList.add(theme === 'light' ? 'light' : 'dark');
       })();
     </script>

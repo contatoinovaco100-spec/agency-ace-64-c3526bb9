@@ -80,9 +80,10 @@ function getVideoEmbed(url: string) {
   return null;
 }
 
-function getVideoThumb(url: string) {
+/** Capa do YouTube: "hq" (480px, ~20 KB) serve nos cards pequenos; "maxres" (1280px, ~70 KB) só em tela grande */
+function getVideoThumb(url: string, size: 'hq' | 'maxres' = 'maxres') {
   const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
-  if (yt) return `https://img.youtube.com/vi/${yt[1]}/maxresdefault.jpg`;
+  if (yt) return `https://img.youtube.com/vi/${yt[1]}/${size === 'hq' ? 'hqdefault' : 'maxresdefault'}.jpg`;
   return null;
 }
 
@@ -291,7 +292,7 @@ const ringCard = 'h-full w-full rounded-[18px] overflow-hidden shadow-[0_18px_40
 function RingProject({ project, thumb }: { project: Project; thumb: string }) {
   return (
     <div className={`${ringCard} relative bg-black cursor-pointer group`}>
-      <img src={thumb} alt={project.title} draggable={false} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+      <img src={thumb} alt={project.title} draggable={false} decoding="async" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
       <span className="absolute top-2.5 right-2.5 h-7 w-7 rounded-full flex items-center justify-center text-black" style={{ background: LIME }}>
         <Play className="h-3.5 w-3.5 ml-0.5" fill="currentColor" />
@@ -405,7 +406,10 @@ function ringInfoCards(): RingItem[] {
 function ProjectCard({ project, index, onClick }: { project: Project; index: number; onClick: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: '-50px' });
-  const thumb = project.thumbnail_url || getVideoThumb(project.video_url);
+  // O lazy do navegador baixa capas até ~2 telas abaixo; aqui só baixa quando o card está chegando
+  const near = useInView(ref, { once: true, margin: '300px' });
+  const thumb = project.thumbnail_url || getVideoThumb(project.video_url, 'hq');
+  const bigThumb = project.thumbnail_url ? null : getVideoThumb(project.video_url);
   const [t, setT] = useState({ x: 0, y: 0, gx: 50, gy: 50 });
 
   return (
@@ -429,9 +433,16 @@ function ProjectCard({ project, index, onClick }: { project: Project; index: num
         onClick={onClick}
       >
         <div className="aspect-[4/5] relative overflow-hidden">
-          {thumb ? (
-            <img src={thumb} alt={project.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-105" />
-          ) : (
+          {thumb && near ? (
+            <img
+              src={thumb}
+              srcSet={bigThumb ? `${thumb} 480w, ${bigThumb} 1280w` : undefined}
+              sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"
+              alt={project.title}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-105" />
+          ) : thumb ? null : (
             <div className="h-full w-full flex items-center justify-center" style={{ background: SKY }}>
               <Film className="h-16 w-16 text-white/40" />
             </div>
@@ -465,6 +476,8 @@ function ProjectCard({ project, index, onClick }: { project: Project; index: num
 function InstagramPostCard({ post, index }: { post: IGPost; index: number }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-50px' });
+  // O script e o iframe do Instagram são pesados: só carregam quando o card chega perto da tela
+  const near = useInView(ref, { once: true, margin: '400px' });
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -476,7 +489,7 @@ function InstagramPostCard({ post, index }: { post: IGPost; index: number }) {
       className="rounded-[22px] bg-white border border-black/[0.06] overflow-hidden hover:-translate-y-1 hover:shadow-[0_24px_50px_-24px_rgba(10,99,222,0.35)] transition-all duration-500"
     >
       <div className="bg-[#f4f6f9] p-2 flex items-center justify-center min-h-[400px]">
-        <InstagramEmbed url={post.post_url} />
+        {near ? <InstagramEmbed url={post.post_url} /> : <Instagram className="h-8 w-8 text-[#c3cad4]" />}
       </div>
 
       <div className="p-6 space-y-4">
@@ -876,7 +889,7 @@ export default function PublicPortfolioPage() {
   // Cards do anel: trabalhos com capa intercalados com os cards de informação
   const infos = ringInfoCards();
   const withThumb = projects
-    .map((p) => ({ p, thumb: p.thumbnail_url || getVideoThumb(p.video_url) }))
+    .map((p) => ({ p, thumb: p.thumbnail_url || getVideoThumb(p.video_url, 'hq') }))
     .filter((x): x is { p: Project; thumb: string } => !!x.thumb)
     .slice(0, 8);
   const ring: RingItem[] = [];
@@ -1054,7 +1067,7 @@ export default function PublicPortfolioPage() {
             className="relative rounded-[24px] overflow-hidden min-h-[360px] lg:row-span-2 group"
             style={{ background: SKY }}
           >
-            <img src={escritorioAsset.url} alt="Recepção da INOVA Co. em Volta Redonda" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-80 mix-blend-luminosity group-hover:scale-105 transition-transform duration-[1.4s]" />
+            <img src={escritorioAsset.url} alt="Recepção da INOVA Co. em Volta Redonda" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-80 mix-blend-luminosity group-hover:scale-105 transition-transform duration-[1.4s]" />
             <div className="absolute inset-0 bg-gradient-to-b from-[#0a63de]/40 to-transparent" />
             <img src={logoInova} alt="" className="absolute top-5 left-5 h-5 brightness-0 invert" />
             <span className="absolute top-4 right-4 h-9 w-9 rounded-xl bg-white flex items-center justify-center"><BarChart3 className="h-4 w-4" /></span>
