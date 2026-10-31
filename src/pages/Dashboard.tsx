@@ -67,6 +67,14 @@ export default function Dashboard() {
 
   const [signedContracts, setSignedContracts] = useState<SignedContract[]>([]);
 
+  // Virada do mês: se a Dashboard ficar aberta, os números do mês zeram sozinhos no dia 1
+  const monthKeyOf = () => { const d = new Date(); return d.getFullYear() * 12 + d.getMonth(); };
+  const [, setMonthKey] = useState(monthKeyOf);
+  useEffect(() => {
+    const id = setInterval(() => setMonthKey(prev => (prev === monthKeyOf() ? prev : monthKeyOf())), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   // ---- Normalização dos clientes ----
   const normName = (s: string) => (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
   const STATUS_RANK: Record<string, number> = { Ativo: 2, Pausado: 1, Cancelado: 0 };
@@ -142,16 +150,9 @@ export default function Dashboard() {
   const pendingTasks = tasks.filter(t => !['Concluído', 'Finalizado'].includes(t.status));
   const completedTasks = tasks.filter(t => ['Concluído', 'Finalizado'].includes(t.status));
 
-// --- Churn (geral e últimos 30 dias) ---
+  // --- Churn geral (o do mês fica junto das métricas do mês) ---
   const totalBase = contextClients.length;
   const churnRateAllTime = totalBase > 0 ? (churnedClients.length / totalBase) * 100 : 0;
-  const churn30 = churnedClients.filter(c => {
-    if (!c.cancelledAt) return false;
-    const d = new Date(c.cancelledAt);
-    return !isNaN(d.getTime()) && (Date.now() - d.getTime()) <= 30 * 86400000;
-  });
-  const baseStart30 = activeClients.length + pausedClients.length + churn30.length;
-  const churnRate30 = baseStart30 > 0 ? (churn30.length / baseStart30) * 100 : 0;
   const churnedMrr = churnedClients.reduce((s, c) => s + effectiveMonthlyValue(c), 0);
 
   // Tarefas efetivamente em produção (não conta backlog/"Ideias").
@@ -213,7 +214,8 @@ export default function Dashboard() {
   };
   const validDate = (raw?: string | null) => {
     if (!raw) return null;
-    const d = new Date(raw);
+    // Data sem horário (2026-10-01) vira meia-noite local; senão o fuso joga para o dia (e o mês) anterior
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(`${raw}T00:00:00`) : new Date(raw);
     return isNaN(d.getTime()) ? null : d;
   };
 
@@ -370,15 +372,6 @@ export default function Dashboard() {
     return { month: label, receita: Math.round(total) };
   });
 
-  // New clients (recent - last 30 days)
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const newClients = clients.filter(c => {
-    const start = effectiveStartDate(c);
-    return !!start && start >= thirtyDaysAgo;
-  });
-  // MRR conquistado: mensalidade de quem entrou (pausado não conta, ainda não está pagando)
-  const newMrr30 = newClients.filter(c => c.status === 'Ativo').reduce((sum, c) => sum + effectiveMonthlyValue(c), 0);
 
   // === MoM (mês atual vs anterior) ===
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -405,8 +398,20 @@ export default function Dashboard() {
     const d = effectiveStartDate(c);
     return c.status === 'Ativo' && d && d >= from && d <= to ? sum + effectiveMonthlyValue(c) : sum;
   }, 0);
+  // MRR conquistado: mensalidade de quem entrou no mês (pausado não conta, ainda não está pagando)
   const newMrrThisMonth = newMrrOf(startOfThisMonth, now);
   const newMrrLastMonth = newMrrOf(startOfLastMonth, endOfLastMonth);
+
+  // Novos clientes do mês do calendário: zera no dia 1
+  const newClients = clients
+    .filter(c => { const d = effectiveStartDate(c); return !!d && d >= startOfThisMonth; })
+    .sort((a, b) => (effectiveStartDate(b)?.getTime() ?? 0) - (effectiveStartDate(a)?.getTime() ?? 0));
+
+  // Nomes dos meses para deixar claro a que período cada número se refere
+  const capital = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+  const monthName = capital(now.toLocaleDateString('pt-BR', { month: 'long' }));
+  const prevMonthName = capital(startOfLastMonth.toLocaleDateString('pt-BR', { month: 'long' }));
+  const signedDiff = (v: number, money = false) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${money ? formatCurrency(Math.abs(v)) : Math.abs(v)}`;
 
   // === Churn (clientes e MRR perdidos) ===
   const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -583,13 +588,19 @@ export default function Dashboard() {
 
         {/* ==================== FINANCIAL TAB ==================== */}
         <TabsContent value="financeiro" className="space-y-5">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            <span className="rounded-full border border-border bg-card px-2.5 py-0.5 font-semibold text-foreground">
+              Mês de referência: {monthName} de {now.getFullYear()}
+            </span>
+            Os números do mês zeram sozinhos no dia 1º e sempre comparam com {prevMonthName.toLowerCase()}.
+          </p>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
             {[
-              { label: 'MRR', value: formatCurrency(mrr), icon: DollarSign, accent: 'text-primary', highlight: true, hint: '' },
+              { label: 'MRR', value: formatCurrency(mrr), icon: DollarSign, accent: 'text-primary', highlight: true, hint: `${monthName}: ${signedDiff(mrrDelta, true)} · ${prevMonthName.toLowerCase()}: ${formatCurrency(lastMonthMrr)}` },
               { label: 'Receita Anual Projetada', value: formatCurrency(mrr * 12), icon: TrendingUp, accent: 'text-muted-foreground', highlight: false, hint: '' },
-              { label: 'Clientes Ativos', value: activeClients.length.toString(), icon: Users, accent: 'text-muted-foreground', highlight: false, hint: `${pausedClients.length} pausado(s)` },
+              { label: 'Clientes Ativos', value: activeClients.length.toString(), icon: Users, accent: 'text-muted-foreground', highlight: false, hint: `${pausedClients.length} pausado(s) · ${newClientsThisMonth} novo(s) em ${monthName.toLowerCase()} (${prevMonthName.toLowerCase()}: ${newClientsLastMonth})` },
               { label: 'Ticket Médio', value: formatCurrency(activeClients.length > 0 ? mrr / activeClients.length : 0), icon: BarChart3, accent: 'text-muted-foreground', highlight: false, hint: '' },
-              { label: 'Churn', value: `${churnRate.toFixed(1)}%`, icon: TrendingDown, accent: 'text-destructive', highlight: false, hint: `${churnedClients.length} cancelados · ${churnRate30.toFixed(1)}% em 30 dias · ${formatCurrency(churnedMrr)}/mês perdidos` },
+              { label: 'Churn', value: `${churnRate.toFixed(1)}%`, icon: TrendingDown, accent: 'text-destructive', highlight: false, hint: `${churnedThisMonth.length} ${churnedThisMonth.length === 1 ? 'saiu' : 'saíram'} em ${monthName.toLowerCase()} · ${prevMonthName.toLowerCase()}: ${churnRateLastMonth.toFixed(1)}% · ${churnedClients.length} cancelados no total` },
             ].map((kpi, i) => (
               <motion.div key={kpi.label} {...anim(i)} className={i === 0 ? 'col-span-2 lg:col-span-1' : undefined}>
                 <div className="group relative h-full rounded-xl border border-border bg-card p-3.5 transition-colors hover:border-primary/40 sm:min-h-[138px] sm:p-4">
@@ -650,7 +661,7 @@ export default function Dashboard() {
               <Card className="bg-card h-full">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <TrendingUp className="h-4 w-4 text-primary" /> Mês atual vs anterior
+                    <TrendingUp className="h-4 w-4 text-primary" /> {monthName} vs {prevMonthName}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -658,13 +669,15 @@ export default function Dashboard() {
                     { label: 'MRR', current: mrr, previous: lastMonthMrr, delta: mrrDelta, pct: mrrPct, currency: true },
                     { label: 'Novos clientes', current: newClientsThisMonth, previous: newClientsLastMonth, delta: newClientsThisMonth - newClientsLastMonth, pct: newClientsLastMonth > 0 ? ((newClientsThisMonth - newClientsLastMonth) / newClientsLastMonth) * 100 : (newClientsThisMonth > 0 ? 100 : 0), currency: false },
                     { label: 'Contratos assinados', current: contractsSignedThisMonth, previous: contractsSignedLastMonth, delta: contractsSignedThisMonth - contractsSignedLastMonth, pct: contractsSignedLastMonth > 0 ? ((contractsSignedThisMonth - contractsSignedLastMonth) / contractsSignedLastMonth) * 100 : (contractsSignedThisMonth > 0 ? 100 : 0), currency: false },
-                    { label: 'Clientes perdidos', current: churnedThisMonth.length, previous: churnedLastMonth.length, delta: churnedThisMonth.length - churnedLastMonth.length, pct: churnedLastMonth.length > 0 ? ((churnedThisMonth.length - churnedLastMonth.length) / churnedLastMonth.length) * 100 : (churnedThisMonth.length > 0 ? 100 : 0), currency: false },
-                  ].map(row => {
+                    { label: 'Clientes perdidos', invert: true, current: churnedThisMonth.length, previous: churnedLastMonth.length, delta: churnedThisMonth.length - churnedLastMonth.length, pct: churnedLastMonth.length > 0 ? ((churnedThisMonth.length - churnedLastMonth.length) / churnedLastMonth.length) * 100 : (churnedThisMonth.length > 0 ? 100 : 0), currency: false },
+                  ].map((row: { label: string; current: number; previous: number; delta: number; pct: number; currency: boolean; invert?: boolean }) => {
                     const up = row.delta > 0;
                     const flat = row.delta === 0;
+                    // Clientes perdidos: subir é ruim
+                    const good = row.invert ? !up : up;
                     const Icon = flat ? Minus : up ? ArrowUpRight : ArrowDownRight;
-                    const color = flat ? 'text-muted-foreground' : up ? 'text-[hsl(var(--success))]' : 'text-destructive';
-                    const bg = flat ? 'bg-muted/50' : up ? 'bg-[hsl(var(--success))]/10' : 'bg-destructive/10';
+                    const color = flat ? 'text-muted-foreground' : good ? 'text-[hsl(var(--success))]' : 'text-destructive';
+                    const bg = flat ? 'bg-muted/50' : good ? 'bg-[hsl(var(--success))]/10' : 'bg-destructive/10';
                     return (
                       <div key={row.label} className="flex items-center justify-between gap-3 rounded-xl bg-secondary/30 p-3">
                         <div className="min-w-0">
@@ -673,7 +686,7 @@ export default function Dashboard() {
                             {row.currency ? formatCurrency(row.current) : row.current}
                           </p>
                           <p className="text-[10px] text-muted-foreground tabular-nums">
-                            anterior: {row.currency ? formatCurrency(row.previous) : row.previous}
+                            {prevMonthName.toLowerCase()}: {row.currency ? formatCurrency(row.previous) : row.previous}
                           </p>
                         </div>
                         <div className={`flex flex-col items-end gap-0.5 px-2.5 py-1.5 rounded-lg ${bg} ${color} shrink-0`}>
@@ -989,26 +1002,30 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {newClients.length > 0 && (
+          {(newClients.length > 0 || newMrrLastMonth > 0) && (
             <motion.div {...anim(8)}>
               <Card className="bg-card">
                 <CardHeader className="pb-2">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <CardTitle className="flex items-center gap-2 text-base">
-                      <ArrowUpRight className="h-4 w-4 text-[hsl(var(--success))]" /> Novos Clientes (últimos 30 dias)
+                      <ArrowUpRight className="h-4 w-4 text-[hsl(var(--success))]" /> Novos Clientes de {monthName}
                     </CardTitle>
                     {/* MRR conquistado: o número que mostra quanto o comercial trouxe */}
                     <div className="sm:text-right">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">MRR conquistado</p>
-                      <p className="font-display text-2xl font-semibold tabular-nums text-[hsl(var(--success))]">+{formatCurrency(newMrr30)}<span className="text-sm font-medium text-muted-foreground">/mês</span></p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">MRR conquistado em {monthName.toLowerCase()}</p>
+                      <p className="font-display text-2xl font-semibold tabular-nums text-[hsl(var(--success))]">+{formatCurrency(newMrrThisMonth)}<span className="text-sm font-medium text-muted-foreground">/mês</span></p>
                       <p className="text-xs text-muted-foreground">
-                        {newClients.length} {newClients.length === 1 ? 'cliente' : 'clientes'} em 30 dias · {now.toLocaleDateString('pt-BR', { month: 'long' })}: {formatCurrency(newMrrThisMonth)}
-                        {newMrrLastMonth > 0 && ` (mês passado: ${formatCurrency(newMrrLastMonth)})`}
+                        {newClients.length} {newClients.length === 1 ? 'cliente' : 'clientes'} em {monthName.toLowerCase()} · {monthName.toLowerCase()}: {formatCurrency(newMrrThisMonth)} (mês passado: {formatCurrency(newMrrLastMonth)})
                       </p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {newClients.length === 0 && (
+                    <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+                      Nenhum cliente novo em {monthName.toLowerCase()} ainda. A lista zera todo dia 1º.
+                    </p>
+                  )}
                   <div className="space-y-3">
                     {newClients.map(c => (
                       <div key={c.id} className="flex items-center justify-between rounded-lg bg-secondary/30 p-3">
@@ -1018,7 +1035,9 @@ export default function Dashboard() {
                           </div>
                           <div>
                             <p className="font-medium text-foreground">{c.companyName}</p>
-                            <p className="text-xs text-muted-foreground">{c.scope || c.serviceType.join(', ')}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {[effectiveStartDate(c) && `desde ${effectiveStartDate(c)!.toLocaleDateString('pt-BR')}`, c.status !== 'Ativo' && c.status, c.scope || c.serviceType.join(', ')].filter(Boolean).join(' · ')}
+                            </p>
                           </div>
                         </div>
                         <div className="text-right">
