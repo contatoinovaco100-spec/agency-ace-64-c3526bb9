@@ -13,6 +13,7 @@ import {
   TrendingUp, PieChart, BarChart3, ArrowUpRight, ArrowDownRight,
   Clock, AlertTriangle, CheckCircle2, Briefcase, FileText, BellRing,
   EyeOff, Eye, ArrowUpDown, ArrowUp, ArrowDown, Trophy, CalendarClock, Rocket, Minus, Medal, TrendingDown,
+  Building2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePushNotification } from '@/hooks/usePushNotification';
@@ -42,6 +43,8 @@ const CHART_COLORS = [
   'hsl(180, 60%, 45%)',   // teal
 ];
 
+// Fundação da INOVA: base das médias da empresa na Dashboard
+const FOUNDED_AT = new Date(2026, 2, 11);
 const anim = (i: number) => ({ initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { delay: i * 0.04, duration: 0.35 } });
 
 function formatCurrency(v: number) {
@@ -66,6 +69,8 @@ export default function Dashboard() {
   const { triggerNotification, requestPermission } = usePushNotification();
 
   const [signedContracts, setSignedContracts] = useState<SignedContract[]>([]);
+  // O LTV depende das datas de assinatura: sem esperar os contratos, a lista aparecia com um valor e logo trocava
+  const [contractsLoaded, setContractsLoaded] = useState(false);
 
   // Virada do mês: se a Dashboard ficar aberta, os números do mês zeram sozinhos no dia 1
   const monthKeyOf = () => { const d = new Date(); return d.getFullYear() * 12 + d.getMonth(); };
@@ -96,7 +101,10 @@ export default function Dashboard() {
     return [...clientGroups.values()].map(group => group.reduce<Client>((best, c) => {
       const score = (cc: Client) =>
         (STATUS_RANK[cc.status] ?? -1) * 1e9 + (Number(cc.monthlyValue) || 0) * 1e3 + (cc.contractStartDate ? 1 : 0);
-      return score(c) > score(best) ? c : best;
+      if (score(c) !== score(best)) return score(c) > score(best) ? c : best;
+      // Empate: sempre o mesmo representante (o cadastro mais antigo), senão o LTV mudava a cada atualização
+      const key = (cc: Client) => `${cc.createdAt ?? ''}|${cc.id}`;
+      return key(c) < key(best) ? c : best;
     }, group[0]));
   }, [clientGroups]);
 
@@ -118,6 +126,7 @@ export default function Dashboard() {
       .select('id, client_id, client_name, monthly_value, duration_months, sent_at, created_at, status, contract_signatures(signed_at)')
       .eq('status', 'assinado');
     if (data) setSignedContracts(data as SignedContract[]);
+    setContractsLoaded(true);
   }, []);
 
   // Mantém o LTV sempre sincronizado com a lista de clientes:
@@ -242,12 +251,21 @@ export default function Dashboard() {
     if (ct.client_name) keepEarliest(signedByName, normName(ct.client_name), d);
   });
   // Último recurso: o dia em que o cliente foi cadastrado na plataforma (marcado como "início estimado")
+  // Olha todos os cadastros da mesma empresa (duplicados), não só o representante, para a data não depender de qual foi escolhido
+  const earliest = (dates: (Date | null | undefined)[]) =>
+    dates.filter((d): d is Date => !!d).reduce<Date | null>((a, b) => (!a || b < a ? b : a), null);
+  const startCache = new Map<string, { date: Date | null; estimated: boolean }>();
   const startOf = (c: Client): { date: Date | null; estimated: boolean } => {
-    const signed = [signedById.get(c.id), signedByName.get(normName(c.companyName))].filter((d): d is Date => !!d);
-    if (signed.length) return { date: signed.reduce((a, b) => (b < a ? b : a)), estimated: false };
-    const registered = validDate(c.contractStartDate || null);
-    if (registered) return { date: registered, estimated: false };
-    return { date: validDate(c.createdAt ?? null), estimated: true };
+    const cached = startCache.get(c.id);
+    if (cached) return cached;
+    const group = clientGroups.get(normName(c.companyName)) ?? [c];
+    const signed = earliest([...group.map(g => signedById.get(g.id)), signedByName.get(normName(c.companyName))]);
+    const registered = earliest(group.map(g => validDate(g.contractStartDate || null)));
+    const result = signed ? { date: signed, estimated: false }
+      : registered ? { date: registered, estimated: false }
+      : { date: earliest(group.map(g => validDate(g.createdAt ?? null))), estimated: true };
+    startCache.set(c.id, result);
+    return result;
   };
   // Novos clientes, MRR conquistado e comparação do mês usam só datas reais (a estimada vale só no LTV)
   const effectiveStartDate = (c: Client): Date | null => (startOf(c).estimated ? null : startOf(c).date);
@@ -314,7 +332,7 @@ export default function Dashboard() {
 
   const allLtv = Object.entries(ltvMap)
     .map(([id, v]) => ({ id, ...v }))
-    .sort((a, b) => b.ltv - a.ltv);
+    .sort((a, b) => b.ltv - a.ltv || a.name.localeCompare(b.name, 'pt-BR'));
   // A lista mostra só clientes ativos; pausados e cancelados entram só no histórico
   const ltvByClient = allLtv.filter(c => c.status === 'Ativo');
   // Arredonda nos centavos (média de R$ 19.000 por 3 dava R$ 6.333,333)
@@ -454,6 +472,53 @@ export default function Dashboard() {
   const mrrChurnRate = mrrAtStartOfMonth > 0 ? (lostMrrThisMonth / mrrAtStartOfMonth) * 100 : 0;
 
   const receitaPerdidaTotal = churnedClients.reduce((s, c) => s + effectiveMonthlyValue(c), 0);
+
+  // === Desde a fundação da INOVA (11/03/2026): médias da empresa mês a mês ===
+  const cancelDate = (c: Client) => { const d = c.cancelledAt ? new Date(c.cancelledAt) : null; return d && !isNaN(d.getTime()) ? d : null; };
+  const foundingMonths = (() => {
+    const list: { label: string; start: Date; end: Date; closed: boolean; base: number; novos: number; sairam: number; mrrNovo: number; churn: number | null }[] = [];
+    for (let m = new Date(FOUNDED_AT.getFullYear(), FOUNDED_AT.getMonth(), 1); m <= now; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
+      const start = m < FOUNDED_AT ? FOUNDED_AT : m;
+      const end = new Date(m.getFullYear(), m.getMonth() + 1, 1);
+      // Base: já era cliente no início do mês (inclui início estimado) e não tinha cancelado antes
+      const base = uniqueClients.filter(c => {
+        const d = startOf(c).date; const cd = cancelDate(c);
+        return !!d && d < start && !(c.status === 'Cancelado' && cd && cd < start);
+      }).length;
+      const entrou = uniqueClients.filter(c => { const d = effectiveStartDate(c); return !!d && d >= start && d < end; });
+      const sairam = churnedClients.filter(c => { const cd = cancelDate(c); return !!cd && cd >= start && cd < end; }).length;
+      list.push({
+        label: capital(m.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', '')),
+        start, end, closed: end <= now, base, novos: entrou.length, sairam,
+        mrrNovo: entrou.reduce((sum, c) => sum + effectiveMonthlyValue(c), 0),
+        churn: base > 0 ? (sairam / base) * 100 : null,
+      });
+    }
+    return list;
+  })();
+  const foundingDays = Math.max(1, (now.getTime() - FOUNDED_AT.getTime()) / 86400000);
+  const foundingMonthsElapsed = foundingDays / 30.44;
+  const ageFull = Math.floor(foundingMonthsElapsed);
+  const ageDays = Math.round(foundingDays - ageFull * 30.44);
+  // Churn médio só com meses fechados (o mês atual ainda está em andamento)
+  const closedWithBase = foundingMonths.filter(m => m.closed && m.churn !== null);
+  const churnSample = closedWithBase.length > 0 ? closedWithBase : foundingMonths.filter(m => m.churn !== null);
+  const avgMonthlyChurn = churnSample.length > 0 ? churnSample.reduce((s, m) => s + (m.churn ?? 0), 0) / churnSample.length : 0;
+  const worstChurnMonth = churnSample.reduce<(typeof foundingMonths)[number] | null>((w, m) => (!w || (m.churn ?? 0) > (w.churn ?? 0) ? m : w), null);
+  const totalNovosFundacao = foundingMonths.reduce((s, m) => s + m.novos, 0);
+  const totalSairamFundacao = foundingMonths.reduce((s, m) => s + m.sairam, 0);
+  const mrrConquistadoFundacao = foundingMonths.reduce((s, m) => s + m.mrrNovo, 0);
+  const cancelados = churnedClients.map(c => ({ d: startOf(c).date, cd: cancelDate(c) })).filter(x => x.d && x.cd && x.cd > x.d!);
+  const avgMonthsToCancel = cancelados.length > 0
+    ? cancelados.reduce((s, x) => s + (x.cd!.getTime() - x.d!.getTime()) / (30.44 * 86400000), 0) / cancelados.length : null;
+  const foundingStats = [
+    { label: 'Churn médio mensal', value: `${avgMonthlyChurn.toFixed(1)}%`, hint: `${churnSample.length} ${churnSample.length === 1 ? 'mês fechado' : 'meses fechados'}${worstChurnMonth && (worstChurnMonth.churn ?? 0) > 0 ? ` · pior: ${worstChurnMonth.label} ${worstChurnMonth.churn!.toFixed(1)}%` : ''}`, tone: 'text-destructive' },
+    { label: 'Retenção média mensal', value: `${(100 - avgMonthlyChurn).toFixed(1)}%`, hint: 'clientes que ficam de um mês para o outro', tone: 'text-[hsl(var(--success))]' },
+    { label: 'Novos clientes por mês', value: (totalNovosFundacao / foundingMonthsElapsed).toFixed(1).replace('.', ','), hint: `${totalNovosFundacao} desde a fundação`, tone: 'text-foreground' },
+    { label: 'MRR conquistado por mês', value: formatCurrency(Math.round(mrrConquistadoFundacao / foundingMonthsElapsed)), hint: `${formatCurrency(mrrConquistadoFundacao)} no total`, tone: 'text-foreground' },
+    { label: 'Crescimento do MRR por mês', value: formatCurrency(Math.round(mrr / foundingMonthsElapsed)), hint: `de R$ 0 a ${formatCurrency(mrr)}`, tone: 'text-primary' },
+    { label: 'Saídas por mês', value: (totalSairamFundacao / foundingMonthsElapsed).toFixed(1).replace('.', ','), hint: `${totalSairamFundacao} cancelamentos${avgMonthsToCancel !== null ? ` · ficam ${avgMonthsToCancel.toFixed(1).replace('.', ',')} meses antes de sair` : ''}`, tone: 'text-foreground' },
+  ];
 
   // Evolução mensal da taxa de churn (12 meses) para o gráfico
   const churnHistory = Array.from({ length: 12 }, (_, idx) => {
@@ -892,8 +957,8 @@ export default function Dashboard() {
             </motion.div>
           </div>
 
-          {/* LTV por Cliente — quem mais gerou receita histórica */}
-          {ltvByClient.length > 0 && (
+          {/* LTV por Cliente — quem mais gerou receita histórica (só depois dos contratos, para não trocar os números na tela) */}
+          {contractsLoaded && ltvByClient.length > 0 && (
             <motion.div {...anim(8)}>
               <Card className="bg-card overflow-hidden">
                 <CardHeader className="pb-2">
@@ -1112,6 +1177,60 @@ export default function Dashboard() {
                     </tfoot>
                   </table>
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Médias da empresa desde a fundação */}
+          <motion.div {...anim(9)}>
+            <Card className="bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-base">
+                  <span className="flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /> INOVA desde a fundação</span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    11/03/2026 · {ageFull} {ageFull === 1 ? 'mês' : 'meses'}{ageDays > 0 ? ` e ${ageDays} ${ageDays === 1 ? 'dia' : 'dias'}` : ''} de empresa
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-4 lg:grid-cols-3">
+                  {foundingStats.map(s => (
+                    <div key={s.label}>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{s.label}</p>
+                      <p className={`font-display text-2xl font-semibold tabular-nums ${s.tone}`}>{s.value}</p>
+                      <p className="text-xs text-muted-foreground">{s.hint}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full text-sm tabular-nums">
+                    <thead className="bg-muted/40 text-left text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 font-semibold">Mês</th>
+                        <th className="px-3 py-2 text-right font-semibold">Base no início</th>
+                        <th className="px-3 py-2 text-right font-semibold">Entraram</th>
+                        <th className="px-3 py-2 text-right font-semibold">MRR conquistado</th>
+                        <th className="px-3 py-2 text-right font-semibold">Saíram</th>
+                        <th className="px-3 py-2 text-right font-semibold">Churn</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {foundingMonths.map(m => (
+                        <tr key={m.label}>
+                          <td className="px-3 py-2 font-medium">{m.label}{!m.closed && <span className="ml-1.5 text-xs font-normal text-muted-foreground">em andamento</span>}</td>
+                          <td className="px-3 py-2 text-right text-muted-foreground">{m.base}</td>
+                          <td className="px-3 py-2 text-right">{m.novos}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(m.mrrNovo)}</td>
+                          <td className="px-3 py-2 text-right">{m.sairam}</td>
+                          <td className={`px-3 py-2 text-right font-semibold ${m.churn ? 'text-destructive' : 'text-muted-foreground'}`}>{m.churn === null ? '—' : `${m.churn.toFixed(1)}%`}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Churn do mês = clientes que saíram ÷ clientes no início do mês. A média usa só meses fechados; o mês atual entra quando virar.
+                </p>
               </CardContent>
             </Card>
           </motion.div>
