@@ -204,7 +204,7 @@ export default function ClientsPage() {
       if (bulkAction === 'pause') {
         for (const id of selectedIds) {
           const client = clients.find(c => c.id === id);
-          if (client) updateClient({ ...client, status: 'Pausado' } as Client);
+          if (client) await updateClient({ ...client, status: 'Pausado' } as Client);
         }
         toast.success(`${selectedIds.size} cliente(s) pausado(s).`);
       } else if (bulkAction === 'delete') {
@@ -247,7 +247,8 @@ export default function ClientsPage() {
   const handleSave = async () => {
     if (!form.companyName) return;
     if (editing) {
-      await updateClient({ ...editing, ...form } as Client);
+      // Se falhar, o aviso já aparece e o formulário fica aberto para não perder o que foi digitado
+      try { await updateClient({ ...editing, ...form } as Client); } catch { return; }
       // Data em que parou de pagar corrigida à mão (o LTV do Dashboard para de contar nela)
       const stopped = form.status === 'Pausado' || form.status === 'Cancelado';
       if (stopped && form.billingStoppedAt && form.billingStoppedAt !== editing.billingStoppedAt) {
@@ -256,7 +257,7 @@ export default function ClientsPage() {
         else await refresh();
       }
     } else {
-      addClient({ ...form, id: crypto.randomUUID() } as Client);
+      try { await addClient({ ...form, id: crypto.randomUUID() } as Client); } catch { return; }
     }
     setDialogOpen(false);
   };

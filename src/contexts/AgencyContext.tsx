@@ -313,13 +313,27 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
     cuts_url: t.cutsUrl || null,
   });
 
+  // Salva o cliente e avisa se falhar. Se o banco ainda não tem a coluna do tipo de cobrança
+  // (migração não publicada), salva o resto e explica que o "Pontual" precisa da atualização.
+  const saveClientRow = async (row: Record<string, unknown>, run: (r: Record<string, unknown>) => PromiseLike<{ error: { message: string } | null }>) => {
+    let { error } = await run(row);
+    if (error && /billing_type/.test(error.message) && 'billing_type' in row) {
+      const { billing_type: _skip, ...withoutType } = row;
+      ({ error } = await run(withoutType));
+      if (!error) toast.warning('Cliente salvo, mas o tipo "Pontual" só passa a valer depois de publicar a atualização no Lovable.');
+    }
+    if (error) {
+      toast.error(`Não foi possível salvar o cliente: ${error.message}`);
+      throw new Error(error.message);
+    }
+  };
   const addClient = async (c: Client) => {
-    await supabase.from('clients').insert(clientToRow(c));
+    await saveClientRow(clientToRow(c) as Record<string, unknown>, r => supabase.from('clients').insert(r as never));
     setAllClients(prev => [...prev, c]);
   };
   const updateClient = async (c: Client) => {
     const { id, ...rest } = clientToRow(c);
-    await supabase.from('clients').update(rest).eq('id', c.id);
+    await saveClientRow(rest, r => supabase.from('clients').update(r as never).eq('id', c.id));
     setAllClients(prev => prev.map(x => x.id === c.id ? c : x));
   };
   // Exclusão reversível: o cliente vai para a lixeira em vez de sumir do banco.
