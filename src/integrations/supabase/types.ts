@@ -352,6 +352,45 @@ export type Database = {
         }
         Relationships: []
       }
+      app_errors: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          message: string
+          path: string | null
+          release: string | null
+          stack: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          message: string
+          path?: string | null
+          release?: string | null
+          stack?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          message?: string
+          path?: string | null
+          release?: string | null
+          stack?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       approval_reminders: {
         Row: {
           client_id: string | null
@@ -953,6 +992,7 @@ export type Database = {
       clients: {
         Row: {
           account_manager: string[]
+          billing_stopped_at: string | null
           billing_type: string
           cancelled_at: string | null
           company_name: string
@@ -973,12 +1013,14 @@ export type Database = {
           scope_strategic_notes: string
           service_type: string[]
           status: string
+          stopped_periods: Json
           updated_at: string
           whatsapp_group_id: string | null
           whatsapp_group_name: string | null
         }
         Insert: {
           account_manager?: string[]
+          billing_stopped_at?: string | null
           billing_type?: string
           cancelled_at?: string | null
           company_name: string
@@ -999,12 +1041,14 @@ export type Database = {
           scope_strategic_notes?: string
           service_type?: string[]
           status?: string
+          stopped_periods?: Json
           updated_at?: string
           whatsapp_group_id?: string | null
           whatsapp_group_name?: string | null
         }
         Update: {
           account_manager?: string[]
+          billing_stopped_at?: string | null
           billing_type?: string
           cancelled_at?: string | null
           company_name?: string
@@ -1025,6 +1069,7 @@ export type Database = {
           scope_strategic_notes?: string
           service_type?: string[]
           status?: string
+          stopped_periods?: Json
           updated_at?: string
           whatsapp_group_id?: string | null
           whatsapp_group_name?: string | null
@@ -4988,6 +5033,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_public_report: {
+        Args: { _kind: string; _slug: string }
+        Returns: Json
+      }
       get_public_task_reviews: {
         Args: { _ids: string[] }
         Returns: {
@@ -5011,6 +5060,7 @@ export type Database = {
         Args: { _field: string; _quiz_id: string }
         Returns: undefined
       }
+      is_team_member: { Args: { _user_id: string }; Returns: boolean }
       mark_contract_signed: { Args: { _id: string }; Returns: undefined }
       rename_kanban_stage: {
         Args: { _board: string; _new_name: string; _old_name: string }

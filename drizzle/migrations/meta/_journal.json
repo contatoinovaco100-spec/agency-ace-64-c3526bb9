@@ -113,6 +113,41 @@
       "when": 1793420331668,
       "tag": "0015_client_billing_type",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793476669624,
+      "tag": "0016_app_errors",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793476691498,
+      "tag": "0017_app_errors_access_grants",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793476717434,
+      "tag": "0018_client_billing_stops",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793476735351,
+      "tag": "0019_client_billing_type_refresh",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793476769057,
+      "tag": "0020_security_team_only",
+      "breakpoints": true
     }
   ]
 }
