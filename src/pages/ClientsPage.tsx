@@ -3,6 +3,7 @@ import { ClientPublicLinks, ClientWhatsAppGroup } from '@/components/clients/Cli
 import { useClientHealth, type ClientHealth, type HealthLevel } from '@/lib/clientHealth';
 
 import { useAgency } from '@/contexts/AgencyContext';
+import { useUrlAction } from '@/hooks/useUrlAction';
 import { PageHeader } from '@/components/PageHeader';
 import { Client, ServiceType, ClientStatus, ScopeDetails } from '@/types/agency';
 import { Plus, Search, X, ChevronDown, ChevronUp, BarChart3, Pause, Trash2, Square, CheckSquare } from 'lucide-react';
@@ -232,6 +233,15 @@ export default function ClientsPage() {
 
   const openNew = () => { setEditing(null); setForm({ serviceType: [], accountManager: [], scopeDetails: emptyScope }); setDialogOpen(true); };
   const openEdit = (c: Client) => { setEditing(c); setForm(c); setDialogOpen(true); };
+  useUrlAction('novo', () => openNew());
+  // Vindo da busca rápida: mostra só esse cliente, já aberto
+  useUrlAction('cliente', (id) => {
+    const c = clients.find((x) => x.id === id);
+    if (!c) return false;
+    setSearch(c.companyName);
+    setOnlyAtRisk(false);
+    setExpandedId(c.id);
+  });
 
   const handleSave = () => {
     if (!form.companyName) return;

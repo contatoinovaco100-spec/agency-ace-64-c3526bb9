@@ -51,7 +51,8 @@ export const APP_PAGES: AppPage[] = [
   { path: '/agenda',              label: 'Agenda',              icon: Calendar,        category: 'Geral', includes: ['/calendario', '/gravacoes', '/agenda-videos'] },
   { path: '/calendario',          label: 'Calendário',          icon: Calendar,        category: 'Geral', hidden: true },
   { path: '/notificacoes',        label: 'Notificações',        icon: Bell,            category: 'Geral' },
-  { path: '/alterar-senha',       label: 'Alterar Senha',       icon: KeyRound,        category: 'Geral', alwaysAllowed: true },
+  // A troca de senha agora fica em Meu perfil (rodapé do menu); a página continua no endereço antigo
+  { path: '/alterar-senha',       label: 'Alterar Senha',       icon: KeyRound,        category: 'Geral', alwaysAllowed: true, hidden: true },
   { path: '/historico-kanban',    label: 'Histórico Kanban',    icon: Bell,            category: 'Geral', alwaysAllowed: true, hidden: true },
   { path: '/chat',                label: 'Chat Interno',        icon: MessageSquare,   category: 'Geral' },
 

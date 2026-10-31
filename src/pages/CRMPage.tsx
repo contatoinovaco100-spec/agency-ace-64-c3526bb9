@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
 import { useAgency } from '@/contexts/AgencyContext';
+import { useUrlAction } from '@/hooks/useUrlAction';
 import { Lead, LeadStage } from '@/types/agency';
 import { Plus, Settings2 } from 'lucide-react';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
@@ -47,6 +48,7 @@ export default function CRMPage() {
     setDialogOpen(true);
   };
   const openEdit = (l: Lead) => { setEditing(l); setForm(l); setDialogOpen(true); };
+  useUrlAction('novo', () => openNew());
 
   const handleSave = () => {
     if (!form.name) return;

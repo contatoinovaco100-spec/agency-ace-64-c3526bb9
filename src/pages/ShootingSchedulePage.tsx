@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAgency } from '@/contexts/AgencyContext';
+import { useUrlAction } from '@/hooks/useUrlAction';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -46,6 +47,7 @@ export default function ShootingSchedulePage() {
     setLoading(false);
   };
   useEffect(() => { fetchData(); }, []);
+  useUrlAction('novo', () => setOpen(true));
 
   const handleSave = async () => {
     if (!form.title || !form.shooting_date) { toast.error('Título e data são obrigatórios'); return; }

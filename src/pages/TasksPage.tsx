@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useClientReviews } from '@/lib/clientApprovals';
 import { useSearchParams } from 'react-router-dom';
+import { useUrlAction } from '@/hooks/useUrlAction';
 
 import { useAgency } from '@/contexts/AgencyContext';
 import { Task } from '@/types/agency';
@@ -1030,6 +1031,8 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     setCreating(true);
     setDialogOpen(true);
   };
+
+  useUrlAction('novo', () => openNew());
 
   const openNewForGroup = (group: DateGroup) => {
     setOpenDraftId(null);
