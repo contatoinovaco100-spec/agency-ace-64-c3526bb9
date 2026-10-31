@@ -2,7 +2,7 @@
 export type TriggerKey =
   | 'approval_pending' | 'monthly_report' | 'invoice_due_soon' | 'invoice_due_today' | 'invoice_overdue'
   | 'shooting_tomorrow' | 'post_today' | 'team_daily_summary' | 'manual'
-  | 'welcome_contract' | 'onboarding_stalled' | 'change_received' | 'approved_ack' | 'partnership_anniversary' | 'satisfaction_survey'
+  | 'welcome_contract' | 'onboarding_stalled' | 'content_ready' | 'change_received' | 'approved_ack' | 'partnership_anniversary' | 'satisfaction_survey'
   | 'payment_confirmed' | 'invoice_created' | 'contract_ending' | 'post_published' | 'next_week'
   | 'task_assigned' | 'deadline_tomorrow' | 'client_at_risk' | 'instagram_disconnected' | 'sale_closed' | 'lead_stalled'
   | 'script_missing' | 'change_request_team' | 'shooting_team' | 'manager_report'
@@ -122,6 +122,16 @@ export const TRIGGERS: Record<TriggerKey, {
     description: 'Onboarding sem avanço há alguns dias (inclui materiais pendentes), com o link para continuar.',
     params: [{ key: 'days_after', label: 'Parado há pelo menos', suffix: 'dias', default: 3 }, { key: 'gap_days', label: 'Intervalo entre lembretes', suffix: 'dias', default: 3 }],
     vars: [{ key: 'link_onboarding', label: 'Link do onboarding', sample: 'https://inovamarketing.online/bem-vindo/…' }],
+  },
+  content_ready: {
+    label: 'Conteúdo novo para aprovar', group: 'Cliente', audience: 'client', schedule: 'event',
+    description: 'Avisa o cliente assim que um vídeo ou arte fica pronto para aprovação, com o link do portal.',
+    params: [{ key: 'start_hour', label: 'Enviar a partir das', suffix: 'h', default: 9 }, { key: 'end_hour', label: 'Até as', suffix: 'h', default: 19 }],
+    vars: [
+      { key: 'qtd', label: 'Quantidade', sample: '2' },
+      { key: 'qtd_texto', label: '"Tem 2 conteúdos novos"', sample: 'Tem 2 conteúdos novos' },
+      { key: 'lista_conteudos', label: 'Lista dos títulos', sample: '• Dicas de verão\n• Promoção de novembro' },
+    ],
   },
   change_received: {
     label: 'Pedido de ajuste recebido', group: 'Cliente', audience: 'client', schedule: 'event',

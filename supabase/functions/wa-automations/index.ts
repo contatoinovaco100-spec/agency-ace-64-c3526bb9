@@ -75,7 +75,7 @@ function clientVars(c: Client): Record<string, string> {
 
 /** Gatilhos de evento: rodam a cada 15 min dentro da janela de horário e pegam só o que aconteceu desde que a automação foi ligada */
 const EVENT_TRIGGERS = new Set([
-  "welcome_contract", "change_received", "approved_ack", "payment_confirmed", "invoice_created", "post_published",
+  "welcome_contract", "content_ready", "change_received", "approved_ack", "payment_confirmed", "invoice_created", "post_published",
   "task_assigned", "sale_closed", "change_request_team", "instagram_disconnected",
 ]);
 /** Gatilhos que mandam para o WhatsApp de cada pessoa da equipe (Equipe → Funcionários) */
@@ -254,6 +254,27 @@ async function buildJobs(admin: SupabaseClient, a: Automation): Promise<Job[]> {
       const recent = new Set((logs ?? []).map((l) => l.client_id));
       return (rows ?? []).filter((o) => byId.has(o.client_id) && !recent.has(o.client_id) && Date.now() - new Date(o.updated_at).getTime() >= stalled * DAY)
         .map((o) => job(byId.get(o.client_id)!, { link_onboarding: `${APP_URL}/bem-vindo/${o.token}` }, `onb:${o.client_id}:${spDay(0)}`));
+    }
+
+    case "content_ready": {
+      // Conteúdo que entrou em aprovação desde que a automação foi ligada e ainda está esperando o cliente
+      const { data: hist } = await admin.from("task_stage_history").select("task_id, to_stage").gte("created_at", since);
+      const ids = [...new Set((hist ?? []).filter((h) => /revis/i.test(h.to_stage) || h.to_stage === "Finalizado").map((h) => h.task_id))];
+      if (!ids.length) return [];
+      const { data: tasks } = await admin.from("tasks").select("id, title, video_name, client_id, status").in("id", ids).is("deleted_at", null);
+      const waiting = (tasks ?? []).filter((t) => t.client_id && byId.has(t.client_id) && (/revis/i.test(t.status) || t.status === "Finalizado"));
+      if (!waiting.length) return [];
+      // Cada conteúdo é avisado uma vez só, mesmo que chegue outro do mesmo cliente depois
+      const { data: logs } = await admin.from("wa_automation_logs").select("ref").eq("automation_id", a.id).eq("status", "enviado")
+        .gte("created_at", new Date(Date.now() - 30 * DAY).toISOString());
+      const notified = new Set((logs ?? []).flatMap((l) => l.ref.split(",")));
+      const group = new Map<string, typeof waiting>();
+      waiting.filter((t) => !notified.has(`ready:${t.id}`)).forEach((t) => group.set(t.client_id, [...(group.get(t.client_id) ?? []), t]));
+      return [...group].map(([clientId, list]) => job(byId.get(clientId)!, {
+        qtd: String(list.length),
+        qtd_texto: list.length === 1 ? "Tem 1 conteúdo novo" : `Tem ${list.length} conteúdos novos`,
+        lista_conteudos: list.slice(0, 5).map((t) => `• ${cleanTitle(t)}`).join("\n") + (list.length > 5 ? `\n• e mais ${list.length - 5}` : ""),
+      }, list.map((t) => `ready:${t.id}`).join(",")));
     }
 
     case "change_received":
