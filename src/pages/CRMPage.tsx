@@ -49,6 +49,12 @@ export default function CRMPage() {
   };
   const openEdit = (l: Lead) => { setEditing(l); setForm(l); setDialogOpen(true); };
   useUrlAction('novo', () => openNew());
+  // Vindo do Meu dia (follow-up): abre o lead
+  useUrlAction('lead', (id) => {
+    const l = leads.find((x) => x.id === id);
+    if (!l) return false;
+    openEdit(l);
+  });
 
   const handleSave = () => {
     if (!form.name) return;

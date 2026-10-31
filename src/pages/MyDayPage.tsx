@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, BadgeCheck, CalendarClock, Camera, ChevronRight, Clock, MessageCircle, MessageSquareWarning, PenLine, Sun } from 'lucide-react';
+import { AlertTriangle, AtSign, BadgeCheck, CalendarClock, Camera, ChevronRight, Clock, MessageCircle, MessageSquareWarning, PenLine, PhoneForwarded, Sun } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgency } from '@/contexts/AgencyContext';
@@ -8,6 +8,7 @@ import { usePageAccess } from '@/hooks/useUserRole';
 import { useClientReviews } from '@/lib/clientApprovals';
 import { PageHeader } from '@/components/PageHeader';
 import { cn } from '@/lib/utils';
+import { timeAgo, useNotificationFeed } from '@/lib/notificationFeed';
 import type { Task } from '@/types/agency';
 
 /**
@@ -28,6 +29,9 @@ const dateOf = (t: Task) => t.postDate || t.dueDate || '';
 
 type ReminderRow = { client_id: string; status: 'enviado' | 'sem_contato' | 'erro' | 'teste'; created_at: string };
 
+type FollowUp = { id: string; name: string; company: string; stage: string; assignee: string; closer: string; next_step: string | null; next_step_at: string };
+const CLOSED_LEAD = /fechad|ganh|perdid|descart/i;
+
 type Shooting = { id: string; title: string; shooting_date: string; start_time: string | null; location: string; client_id: string | null };
 
 export default function MyDayPage() {
@@ -39,7 +43,10 @@ export default function MyDayPage() {
   const [shootings, setShootings] = useState<Shooting[]>([]);
   const [brokenAccounts, setBrokenAccounts] = useState<string[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
+  const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+  const { items: feed } = useNotificationFeed();
   const social = isAdmin || hasPageAccess('/planner');
+  const sales = isAdmin || hasPageAccess('/crm');
 
   useEffect(() => {
     if (!user) return;
@@ -49,6 +56,16 @@ export default function MyDayPage() {
       .gte('shooting_date', addDays(0)).lte('shooting_date', addDays(7)).order('shooting_date')
       .then(({ data }) => setShootings((data ?? []) as Shooting[]));
   }, [user]);
+
+  // Follow-ups do CRM com data até o fim de hoje (inclui os que ficaram para trás)
+  useEffect(() => {
+    if (!sales) return;
+    const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999);
+    supabase.from('leads').select('id, name, company, stage, assignee, closer, next_step, next_step_at')
+      .not('next_step_at', 'is', null).lte('next_step_at', endOfToday.toISOString())
+      .order('next_step_at').limit(100)
+      .then(({ data, error }) => { if (!error) setFollowUps(((data ?? []) as FollowUp[]).filter((l) => !CLOSED_LEAD.test(l.stage))); });
+  }, [sales]);
 
   useEffect(() => {
     if (!social) return;
@@ -76,14 +93,19 @@ export default function MyDayPage() {
       late: mine.filter((t) => dateOf(t) && dateOf(t) < today && dateOf(t) >= addDays(-30)).sort(sortByDate),
       next: mine.filter((t) => dateOf(t) > today && dateOf(t) <= addDays(7)).sort(sortByDate),
       noCaption: social ? open.filter((t) => t.postDate && t.postDate >= today && t.postDate <= addDays(3) && !hasCaption(t)).sort(sortByDate) : [],
+      // Vendedor vê os próprios follow-ups; admin vê os de todo mundo
+      followUps: isAdmin ? followUps : followUps.filter((l) => [l.assignee, l.closer].some((v) => (v || '').trim().toLowerCase() === me && !!me)),
+      shootToday: shootings.filter((s) => s.shooting_date === today),
+      shootNext: shootings.filter((s) => s.shooting_date > today),
+      mentions: feed.filter((n) => n.kind === 'mention' && !n.read),
     };
-  }, [tasks, name, reviews, social, today]);
+  }, [tasks, name, reviews, social, today, isAdmin, followUps, shootings, feed]);
 
   const firstName = name.split(/\s+/)[0];
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
   const nothing = !data.changes.length && !data.approved.length && !data.todayList.length && !data.late.length
-    && !data.noCaption.length && !brokenAccounts.length;
+    && !data.noCaption.length && !brokenAccounts.length && !data.followUps.length && !data.shootToday.length && !data.mentions.length;
 
   const row = (t: Task, meta?: string) => (
     <li key={t.id}>
@@ -99,6 +121,18 @@ export default function MyDayPage() {
     </li>
   );
 
+  const shootRow = (s: Shooting, withDate = false) => (
+    <li key={s.id} className="flex items-center gap-3 px-4 py-3">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{s.title}</p>
+        <p className="truncate text-xs text-muted-foreground">
+          {[withDate ? shortDate(s.shooting_date) : null, s.start_time?.slice(0, 5), s.client_id ? clientName[s.client_id] : null, s.location]
+            .filter(Boolean).join(' · ') || 'Sem horário definido'}
+        </p>
+      </div>
+    </li>
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -108,13 +142,14 @@ export default function MyDayPage() {
       />
 
       {/* Placar do dia: o número grande é o que pede ação agora */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className={cn('grid grid-cols-2 gap-3', sales ? 'sm:grid-cols-3 lg:grid-cols-5' : 'lg:grid-cols-4')}>
         <Stat label="Para hoje" value={data.todayList.length} icon={Sun} />
         <Stat label="Atrasadas" value={data.late.length} icon={Clock} tone={data.late.length ? 'warning' : undefined} />
         <Stat label="Ajustes do cliente" value={data.changes.length} icon={MessageSquareWarning} tone={data.changes.length ? 'warning' : undefined} />
         {social
           ? <Stat label="Aprovados para agendar" value={data.approved.length} icon={BadgeCheck} tone={data.approved.length ? 'success' : undefined} to="/planner?cliente=todos" />
           : <Stat label="Próximos 7 dias" value={data.next.length} icon={CalendarClock} />}
+        {sales && <Stat label="Follow-ups hoje" value={data.followUps.length} icon={PhoneForwarded} tone={data.followUps.length ? 'warning' : undefined} to="/crm" />}
       </div>
 
       {!name && (
@@ -128,6 +163,53 @@ export default function MyDayPage() {
           <p className="font-display text-lg font-semibold">Dia tranquilo ☀️</p>
           <p className="mt-1 text-sm text-muted-foreground">Nada pendente para hoje. Veja o que vem nos próximos dias abaixo.</p>
         </div>
+      )}
+
+      {data.shootToday.length > 0 && (
+        <Block title={data.shootToday.length === 1 ? 'Gravação hoje' : `${data.shootToday.length} gravações hoje`} icon={Camera} tone="success" action={{ label: 'Agenda', to: '/gravacoes' }}>
+          {data.shootToday.map((s) => shootRow(s))}
+        </Block>
+      )}
+
+      {data.mentions.length > 0 && (
+        <Block title="Te mencionaram no chat" icon={AtSign} action={{ label: 'Abrir chat', to: '/chat' }}>
+          {data.mentions.slice(0, 5).map((n) => (
+            <li key={n.id}>
+              <Link to={n.link ?? '/chat'} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-foreground/[0.03]">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{n.title}</p>
+                  {n.description && <p className="truncate text-xs text-muted-foreground">{n.description}</p>}
+                </div>
+                <span className="shrink-0 text-xs text-muted-foreground">{timeAgo(n.at)}</span>
+              </Link>
+            </li>
+          ))}
+        </Block>
+      )}
+
+      {data.followUps.length > 0 && (
+        <Block title="Follow-ups para hoje" hint="Próximo passo marcado no CRM até hoje" tone="warning" icon={PhoneForwarded} action={{ label: 'CRM', to: '/crm' }}>
+          {data.followUps.slice(0, 8).map((l) => {
+            const at = new Date(l.next_step_at);
+            const late = isoDay(at) < today;
+            return (
+              <li key={l.id}>
+                <Link to={`/crm?lead=${l.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-foreground/[0.03]">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{l.company || l.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {l.next_step || 'Retomar contato'} · {l.stage}{isAdmin && (l.closer || l.assignee) ? ` · ${l.closer || l.assignee}` : ''}
+                    </p>
+                  </div>
+                  <span className={cn('shrink-0 text-xs tabular-nums', late ? 'font-medium text-warning' : 'text-muted-foreground')}>
+                    {late ? `desde ${shortDate(isoDay(at))}` : at.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </Link>
+              </li>
+            );
+          })}
+        </Block>
       )}
 
       {data.changes.length > 0 && (
@@ -187,19 +269,9 @@ export default function MyDayPage() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {shootings.length > 0 && (
+        {data.shootNext.length > 0 && (
           <Block title="Gravações nos próximos 7 dias" icon={Camera} action={{ label: 'Agenda', to: '/gravacoes' }}>
-            {shootings.slice(0, 6).map((s) => (
-              <li key={s.id} className="flex items-center gap-3 px-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{s.title}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {shortDate(s.shooting_date)}{s.start_time ? ` · ${s.start_time.slice(0, 5)}` : ''}
-                    {s.client_id && clientName[s.client_id] ? ` · ${clientName[s.client_id]}` : ''}{s.location ? ` · ${s.location}` : ''}
-                  </p>
-                </div>
-              </li>
-            ))}
+            {data.shootNext.slice(0, 6).map((s) => shootRow(s, true))}
           </Block>
         )}
         {data.next.length > 0 && (
