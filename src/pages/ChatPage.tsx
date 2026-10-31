@@ -6,32 +6,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { CHAT_CHANNELS, markSeen, type ChatEmployee, type ChatMessage } from '@/lib/chat';
 
-interface ChatMessage {
-  id: string;
-  channel: string;
-  author_id: string;
-  author_name: string;
-  author_avatar: string | null;
-  content: string;
-  created_at: string;
-}
-
-interface Employee {
-  id: string;
-  full_name: string;
-  username: string | null;
-  job_title: string | null;
-  avatar_url: string | null;
-  is_active: boolean;
-}
-
-const CHANNELS = [
-  { id: 'geral', name: 'geral' },
-  { id: 'producao', name: 'produção' },
-  { id: 'comercial', name: 'comercial' },
-  { id: 'avisos', name: 'avisos' },
-];
+type Employee = ChatEmployee;
+const CHANNELS = CHAT_CHANNELS;
 
 export default function ChatPage() {
   const { user } = useAuth();
@@ -109,6 +87,9 @@ export default function ChatPage() {
   }, [channel, user]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, channel]);
+
+  // Conversa aberta aqui conta como lida também na janelinha flutuante
+  useEffect(() => { if (!loading) markSeen(channel); }, [messages, channel, loading]);
 
   const send = async () => {
     if (!text.trim() || !user || sending) return;

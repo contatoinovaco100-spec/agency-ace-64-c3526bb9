@@ -12,6 +12,7 @@ import { APP_PAGES, PAGE_CATEGORIES, type AppPage } from '@/config/app-pages';
 import logoInova from '@/assets/logo-inova.png';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ProfileSettingsDialog, initialsOf, useMyProfile } from '@/components/ProfileSettingsDialog';
+import { ChatDock } from '@/components/ChatDock';
 
 /** Destinos fixos da barra inferior no celular (os demais ficam em "Mais") */
 const MOBILE_TABS = ['/', '/tarefas', '/planner', '/clientes'];
@@ -148,6 +149,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
+      <ChatDock />
       <ProfileSettingsDialog open={profileOpen} onOpenChange={setProfileOpen} profile={profile} onProfileChange={setProfile} />
 
       <main ref={mainRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-background">
