@@ -181,31 +181,31 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center">
+    <div className="flex flex-col items-center py-2 text-center">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-2xl"
       >
         <div className="mb-8">
-          <div className="inline-flex p-3 bg-primary/10 rounded-2xl mb-4">
-            <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+          <div className="inline-flex p-2.5 bg-primary/10 rounded-lg mb-3">
+            <Sparkles className="w-6 h-6 text-primary" />
           </div>
-          <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter italic">Upload do Print de Análise</h2>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-[28px] mb-1">Enviar print da análise</h1>
           <p className="text-muted-foreground">Envie um print da análise manual para que a IA transforme em um diagnóstico profissional.</p>
         </div>
 
         <div className="relative group">
           {!image ? (
-            <label className="flex flex-col items-center justify-center w-full h-80 border-2 border-dashed border-white/10 rounded-3xl bg-white/5 hover:bg-white/[0.08] hover:border-primary/50 transition-all cursor-pointer group">
+            <label className="flex flex-col items-center justify-center w-full h-80 border-2 border-dashed border-border rounded-xl bg-card hover:bg-accent hover:border-primary/50 transition-all cursor-pointer group">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <div className="p-4 bg-black/40 rounded-full mb-4 group-hover:scale-110 transition-transform">
-                  <Upload className="w-10 h-10 text-primary" />
+                <div className="p-3 bg-primary/10 rounded-full mb-4">
+                  <Upload className="w-7 h-7 text-primary" />
                 </div>
-                <p className="mb-2 text-sm text-zinc-400 font-bold uppercase tracking-widest">
+                <p className="mb-1 text-sm font-medium text-foreground">
                   Arraste ou clique para enviar
                 </p>
-                <p className="text-xs text-zinc-500">PNG, JPG (Máx 10MB)</p>
+                <p className="text-xs text-muted-foreground">PNG, JPG (máx. 10MB)</p>
               </div>
               <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
             </label>
@@ -214,10 +214,10 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
               <motion.div 
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="relative h-80 w-full rounded-3xl overflow-hidden border border-white/20 shadow-2xl"
+                className="relative h-80 w-full rounded-xl overflow-hidden border border-border"
               >
                 <img src={image} alt="Preview" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                   <Button variant="destructive" size="icon" onClick={removeImage} className="rounded-full shadow-lg">
                     <X className="w-5 h-5" />
                   </Button>
@@ -248,36 +248,35 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
               </ToggleGroup>
            </div>
            <div>
-              <label className="text-[10px] font-black uppercase text-primary tracking-widest mb-2 block ml-1">Observações Adicionais</label>
+              <label className="mb-2 block text-sm font-semibold text-foreground">Observações adicionais</label>
               <textarea 
                 value={notes} 
                 onChange={e => setNotes(e.target.value)}
                 placeholder="Ex: Focar em branding..."
-                className="w-full h-24 bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white outline-none focus:border-primary/50 transition-all resize-none"
+                className="w-full h-24 rounded-md border border-input bg-background p-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
               />
            </div>
            <div>
-              <label className="text-[10px] font-black uppercase text-primary tracking-widest mb-2 block ml-1">Total de Vídeos (Mês)</label>
+              <label className="mb-2 block text-sm font-semibold text-foreground">Total de vídeos (mês)</label>
               <div className="grid grid-cols-3 gap-2">
                 {[4, 6, 8, 12, 16, 20].map(num => (
                   <button 
                     key={num} 
                     onClick={() => setVideoCount(num)}
-                    className={`h-11 rounded-xl font-black transition-all border ${videoCount === num ? 'bg-primary text-black border-primary' : 'bg-white/5 text-zinc-400 border-white/5 hover:bg-white/10'}`}
+                    className={`h-10 rounded-md text-sm font-semibold tabular-nums transition-colors border ${videoCount === num ? 'bg-primary/10 text-primary border-primary' : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground'}`}
                   >
                     {num}
                   </button>
                 ))}
               </div>
-              <p className="mt-3 text-[10px] text-zinc-500 font-medium italic">* A IA distribuirá os {videoCount} vídeos ao longo das 4 semanas.</p>
+              <p className="mt-2 text-xs text-muted-foreground">A IA distribuirá os {videoCount} vídeos ao longo das 4 semanas.</p>
            </div>
         </div>
 
-        <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="mt-8 flex flex-col-reverse sm:flex-row gap-2 justify-center">
           <Button 
-            variant="ghost" 
             onClick={onBack}
-            className="text-zinc-500 hover:text-white font-bold uppercase tracking-widest text-[10px]"
+            variant="outline"
           >
             Voltar
           </Button>
@@ -285,40 +284,40 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
           <Button 
             onClick={processImage}
             disabled={!image || isProcessing}
-            className="bg-primary text-black font-black px-12 h-14 rounded-2xl hover:scale-105 transition-all shadow-[0_0_20px_rgba(var(--primary),0.3)] disabled:opacity-50 disabled:scale-100"
+            className="px-6 active:scale-[0.97]"
           >
             {isProcessing ? (
               <>
-                <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                PROCESSANDO...
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processando…
               </>
             ) : (
               <>
-                <Wand2 className="w-5 h-5 mr-3" />
-                TRANSFORMAR EM DIAGNÓSTICO
+                <Wand2 className="w-4 h-4 mr-2" />
+                Transformar em diagnóstico
               </>
             )}
           </Button>
         </div>
 
         {/* Tips */}
-        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-          <div className="flex gap-3 items-start p-4 bg-white/5 rounded-2xl border border-white/5">
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+          <div className="flex gap-3 items-start p-4 bg-card rounded-xl border border-border">
             <div className="p-2 bg-primary/10 rounded-lg shrink-0">
                <ImageIcon className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase text-primary tracking-widest mb-1">Dica de Imagem</p>
-              <p className="text-xs text-zinc-500 leading-relaxed">Prints nítidos do perfil do Instagram ou notas escritas funcionam melhor.</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1">Dica de Imagem</p>
+              <p className="text-sm text-foreground/80 leading-relaxed">Prints nítidos do perfil do Instagram ou notas escritas funcionam melhor.</p>
             </div>
           </div>
-          <div className="flex gap-3 items-start p-4 bg-white/5 rounded-2xl border border-white/5">
+          <div className="flex gap-3 items-start p-4 bg-card rounded-xl border border-border">
             <div className="p-2 bg-primary/10 rounded-lg shrink-0">
                <AlertCircle className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase text-primary tracking-widest mb-1">IA Inteligente</p>
-              <p className="text-xs text-zinc-500 leading-relaxed">A IA não apenas lê, mas interpreta as falhas e sugere o cronograma completo.</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1">IA Inteligente</p>
+              <p className="text-sm text-foreground/80 leading-relaxed">A IA não apenas lê, mas interpreta as falhas e sugere o cronograma completo.</p>
             </div>
           </div>
         </div>

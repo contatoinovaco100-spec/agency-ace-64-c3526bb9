@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 export default {
   darkMode: ["class"],
@@ -111,5 +112,15 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    // Breakpoints pela largura do contêiner (`container-type: inline-size`), não da janela:
+    // usados no relatório do diagnóstico, que também roda dentro da moldura de celular do editor.
+    plugin(({ addVariant }) => {
+      addVariant("cq-sm", "@container (min-width: 640px)");
+      addVariant("cq-md", "@container (min-width: 768px)");
+      addVariant("cq-lg", "@container (min-width: 1024px)");
+      addVariant("cq-xl", "@container (min-width: 1280px)");
+    }),
+  ],
 } satisfies Config;
