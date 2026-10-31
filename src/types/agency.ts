@@ -38,6 +38,8 @@ export interface Client {
   status: ClientStatus;
   notes: string;
   cancelledAt?: string | null;
+  /** Quando o cliente foi cadastrado na plataforma */
+  createdAt?: string;
   /** Desde quando o contrato está parado (pausa ou cancelamento): o LTV para de contar aqui */
   billingStoppedAt?: string | null;
   /** Pausas que já terminaram: esses meses não entram no LTV */

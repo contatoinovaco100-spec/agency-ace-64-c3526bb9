@@ -239,12 +239,17 @@ export default function Dashboard() {
     // Pelo nome também: cliente duplicado no cadastro tem outro id, mas é a mesma empresa
     if (ct.client_name) keepEarliest(signedByName, normName(ct.client_name), d);
   });
-  const effectiveStartDate = (c: Client): Date | null => {
+  // Último recurso: o dia em que o cliente foi cadastrado na plataforma (marcado como "início estimado")
+  const startOf = (c: Client): { date: Date | null; estimated: boolean } => {
     const signed = [signedById.get(c.id), signedByName.get(normName(c.companyName))].filter((d): d is Date => !!d);
-    if (signed.length) return signed.reduce((a, b) => (b < a ? b : a));
-    return validDate(c.contractStartDate || null);
+    if (signed.length) return { date: signed.reduce((a, b) => (b < a ? b : a)), estimated: false };
+    const registered = validDate(c.contractStartDate || null);
+    if (registered) return { date: registered, estimated: false };
+    return { date: validDate(c.createdAt ?? null), estimated: true };
   };
-  const missingStart = uniqueClients.filter(c => c.status === 'Ativo' && effectiveMonthlyValue(c) > 0 && !effectiveStartDate(c));
+  // Novos clientes, MRR conquistado e comparação do mês usam só datas reais (a estimada vale só no LTV)
+  const effectiveStartDate = (c: Client): Date | null => (startOf(c).estimated ? null : startOf(c).date);
+  const estimatedStart = uniqueClients.filter(c => c.status === 'Ativo' && effectiveMonthlyValue(c) > 0 && startOf(c).estimated);
 
   // Contratos assinados por cliente: só informativo na tabela, não entra no cálculo
   const contractsCountByKey = new Map<string, number>();
@@ -262,11 +267,12 @@ export default function Dashboard() {
     monthlyValue: number;
     status: string;
     stoppedAt: Date | null;
+    startEstimated: boolean;
   }> = {};
 
   // Clientes cadastrados (incluindo cancelados, com LTV congelado)
   uniqueClients.forEach(c => {
-    const start = effectiveStartDate(c);
+    const start = startOf(c).date;
     if (!start) return;
 
     // Pausado ou cancelado: para de contar no dia em que o contrato parou (pausa que virou
@@ -300,6 +306,7 @@ export default function Dashboard() {
       monthlyValue,
       status: c.status,
       stoppedAt,
+      startEstimated: startOf(c).estimated,
     };
   });
 
@@ -873,7 +880,7 @@ export default function Dashboard() {
           </div>
 
           {/* LTV por Cliente — quem mais gerou receita histórica */}
-          {(ltvByClient.length > 0 || missingStart.length > 0) && (
+          {ltvByClient.length > 0 && (
             <motion.div {...anim(8)}>
               <Card className="bg-card overflow-hidden">
                 <CardHeader className="pb-2">
@@ -903,13 +910,14 @@ export default function Dashboard() {
                       </div>
                     ))}
                   </div>
-                  {missingStart.length > 0 && (
+                  {estimatedStart.length > 0 && (
                     <div className="mb-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
                       <span className="font-semibold">
-                        {missingStart.length === 1 ? '1 cliente sem data de início' : `${missingStart.length} clientes sem data de início`}
+                        {estimatedStart.length === 1 ? '1 cliente sem data de início' : `${estimatedStart.length} clientes sem data de início`}
                       </span>{' '}
-                      (nem contrato assinado) não {missingStart.length === 1 ? 'entra' : 'entram'} no LTV. Complete em Clientes:{' '}
-                      {missingStart.map((c, i) => (
+                      nem contrato assinado: o LTV conta a partir do dia em que {estimatedStart.length === 1 ? 'foi cadastrado' : 'foram cadastrados'} na plataforma.
+                      Para ficar exato, preencha a data de início em Clientes:{' '}
+                      {estimatedStart.map((c, i) => (
                         <span key={c.id}>
                           {i > 0 && ', '}
                           <Link to={`/clientes?cliente=${c.id}`} className="font-medium underline underline-offset-2 hover:text-primary">{c.companyName}</Link>
@@ -936,6 +944,11 @@ export default function Dashboard() {
                               </span>
                               <span className="font-medium text-sm text-foreground truncate">{c.name}</span>
                               <Badge variant="secondary" className={`text-[9px] px-1.5 py-0 ${statusColor}`}>{c.status}</Badge>
+                              {c.startEstimated && (
+                                <Badge variant="outline" className="shrink-0 border-warning/50 px-1.5 py-0 text-[9px] text-warning" title="Sem data de início nem contrato assinado: conta desde o cadastro na plataforma">
+                                  início estimado
+                                </Badge>
+                              )}
                             </div>
                             <div className="text-right shrink-0">
                               <div className="font-bold text-sm text-foreground tabular-nums">{formatCurrency(c.ltv)}</div>
