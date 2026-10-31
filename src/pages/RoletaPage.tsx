@@ -27,9 +27,20 @@ const DEFAULT_ITEMS = [
   '🚀 Projeto Especial'
 ];
 
+const STORAGE_KEY = 'roleta-premios';
+
+/** Prêmios configurados ficam salvos neste navegador (antes sumiam ao recarregar a página) */
+function loadItems() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
+    if (Array.isArray(saved) && saved.every((x) => typeof x === 'string')) return saved as string[];
+  } catch { /* usa o padrão */ }
+  return DEFAULT_ITEMS;
+}
+
 export default function RoletaPage() {
   const { toast } = useToast();
-  const [items, setItems] = useState(DEFAULT_ITEMS);
+  const [items, setItems] = useState(loadItems);
   const [newItem, setNewItem] = useState('');
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
@@ -37,6 +48,14 @@ export default function RoletaPage() {
   const [countdown, setCountdown] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const spinRef = useRef(0);
+  const timers = useRef<number[]>([]);
+
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch { /* sem armazenamento */ }
+  }, [items]);
+
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  const later = (fn: () => void, ms: number) => { timers.current.push(window.setTimeout(fn, ms)); };
 
   // Monitora mudança de tela cheia
   useEffect(() => {
@@ -85,10 +104,10 @@ export default function RoletaPage() {
     setWinner(null);
     setCountdown('3');
     
-    setTimeout(() => setCountdown('2'), 1000);
-    setTimeout(() => setCountdown('1'), 2000);
-    setTimeout(() => setCountdown('GO!'), 3000);
-    setTimeout(() => {
+    later(() => setCountdown('2'), 1000);
+    later(() => setCountdown('1'), 2000);
+    later(() => setCountdown('GO!'), 3000);
+    later(() => {
       setCountdown(null);
       executeSpin();
     }, 4000);
@@ -102,7 +121,7 @@ export default function RoletaPage() {
     spinRef.current = newRot;
     setRotation(newRot);
 
-    setTimeout(() => {
+    later(() => {
       setSpinning(false);
       const sliceAngle = 360 / items.length;
       const normalized = ((newRot % 360) + 360) % 360;
@@ -171,7 +190,7 @@ export default function RoletaPage() {
     <div className="min-h-screen flex flex-col space-y-6 pb-12 w-full mx-auto px-4 sm:px-6 lg:px-8 relative selection:bg-[#c9f31d] selection:text-black bg-[#050505]">
       {/* Background ambiente super escuro e clean */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#050505]">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[700px] w-[700px] rounded-full bg-[#c9f31d]/[0.03] blur-[150px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[900px] w-[900px]" style={{ background: 'radial-gradient(closest-side, rgba(201,243,29,0.05), transparent)' }} />
       </div>
 
       {/* Cabeçalho Superior Minimalista */}
@@ -255,7 +274,7 @@ export default function RoletaPage() {
           <Button
             variant="outline"
             onClick={toggleFullscreen}
-            className="border-white/10 hover:bg-white/5 text-zinc-400 hover:text-white h-12 px-5 rounded-2xl gap-2 text-sm font-semibold transition-all"
+            className="border-white/10 bg-transparent hover:bg-white/5 text-zinc-400 hover:text-white h-12 px-5 rounded-2xl gap-2 text-sm font-semibold transition-all"
             title={isFullscreen ? 'Sair da tela cheia' : 'Entrar em tela cheia'}
           >
             {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
@@ -279,12 +298,12 @@ export default function RoletaPage() {
           </div>
 
           {/* Sombra e Brilho atrás da Roleta */}
-          <div className="absolute inset-0 rounded-full bg-[#c9f31d]/5 blur-[120px] -z-10" />
+          <div className="absolute -inset-16 -z-10" style={{ background: 'radial-gradient(closest-side, rgba(201,243,29,0.08), transparent)' }} />
 
           {/* Estrutura SVG da Roleta Gigante */}
           <svg
             viewBox={`0 0 ${size} ${size}`}
-            className="w-full h-auto aspect-square rounded-full filter drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] select-none"
+            className="w-full h-auto aspect-square rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.8)] select-none will-change-transform"
             style={{
               transform: `rotate(${rotation}deg)`,
               transition: spinning ? 'transform 5s cubic-bezier(0.2, 0.8, 0.1, 1)' : 'none',
@@ -318,7 +337,6 @@ export default function RoletaPage() {
                       fontSize={items.length > 24 ? 14 : items.length > 16 ? 18 : 22}
                       fontWeight="800"
                       letterSpacing="1"
-                      className="drop-shadow-sm"
                       style={{ userSelect: 'none', pointerEvents: 'none' }}
                     >
                       {item.length > 25 ? item.slice(0, 23) + '…' : item}
@@ -340,13 +358,13 @@ export default function RoletaPage() {
             ))}
 
             {/* Centro da Roleta (Miolo) Minimalista */}
-            <circle cx={cx} cy={cy} r={40} fill="#09090b" stroke="#18181b" strokeWidth="8" filter="drop-shadow(0 0 10px rgba(0,0,0,1))" />
+            <circle cx={cx} cy={cy} r={40} fill="#09090b" stroke="#18181b" strokeWidth="8" />
             <circle cx={cx} cy={cy} r={12} fill="#c9f31d" opacity="0.8" />
           </svg>
 
           {/* OVERLAY DE CONTAGEM REGRESSIVA (3, 2, 1, GO!) */}
           {countdown && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm rounded-full animate-in fade-in duration-300">
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/85 rounded-full animate-in fade-in duration-300">
               <div key={countdown} className="animate-in zoom-in-50 spin-in-12 fade-in duration-500 flex flex-col items-center justify-center">
                 <span className="text-[12rem] sm:text-[18rem] font-black text-[#c9f31d] tracking-tighter filter drop-shadow-[0_0_80px_rgba(201,243,29,0.9)] leading-none select-none">
                   {countdown}
@@ -362,10 +380,9 @@ export default function RoletaPage() {
 
           {/* OVERLAY DE CELEBRAÇÃO DO VENCEDOR */}
           {winner && !spinning && !countdown && (
-            <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-md rounded-full animate-in fade-in zoom-in duration-500 p-6">
+            <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/85 rounded-full animate-in fade-in zoom-in duration-500 p-6">
               <div className="relative max-w-xl w-full overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#09090b]/90 p-8 sm:p-12 backdrop-blur-3xl shadow-[0_0_80px_rgba(201,243,29,0.3)] text-center space-y-8 animate-bounce-short">
-                <div className="absolute -top-32 -left-32 w-64 h-64 bg-[#c9f31d]/20 rounded-full blur-[80px] pointer-events-none" />
-                <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-purple-500/20 rounded-full blur-[80px] pointer-events-none" />
+                <div className="absolute -top-32 -left-32 w-64 h-64 pointer-events-none" style={{ background: 'radial-gradient(closest-side, rgba(201,243,29,0.2), transparent)' }} />
                 
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-[#c9f31d]/10 ring-1 ring-[#c9f31d]/30 text-[#c9f31d] shadow-[0_0_30px_rgba(201,243,29,0.2)] animate-pulse">
                   <Trophy className="h-10 w-10" />
