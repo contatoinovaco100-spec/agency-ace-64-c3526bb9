@@ -218,7 +218,32 @@ export default function Dashboard() {
   };
 
   // Data de início só do cadastro do cliente (sem data, o cliente aparece no aviso do card de LTV)
-  const effectiveStartDate = (c: Client): Date | null => validDate(c.contractStartDate || null);
+  // Data de início = dia em que o cliente assinou o contrato (o primeiro, se tiver vários).
+  // Contrato achado pelo vínculo com o cliente ou pelo nome. Sem contrato assinado, vale a data do cadastro.
+  const signedAtOf = (ct: SignedContract) => {
+    const sigs = (ct.contract_signatures ?? []).map(sg => validDate(sg.signed_at)).filter((d): d is Date => !!d);
+    // Contrato fica assinado quando a última parte assina
+    if (sigs.length) return sigs.reduce((a, b) => (b > a ? b : a));
+    return validDate(ct.sent_at) ?? validDate(ct.created_at);
+  };
+  const signedById = new Map<string, Date>();
+  const signedByName = new Map<string, Date>();
+  const keepEarliest = (map: Map<string, Date>, key: string, d: Date) => {
+    const prev = map.get(key);
+    if (!prev || d < prev) map.set(key, d);
+  };
+  signedContracts.forEach(ct => {
+    const d = signedAtOf(ct);
+    if (!d) return;
+    if (ct.client_id) keepEarliest(signedById, ct.client_id, d);
+    // Pelo nome também: cliente duplicado no cadastro tem outro id, mas é a mesma empresa
+    if (ct.client_name) keepEarliest(signedByName, normName(ct.client_name), d);
+  });
+  const effectiveStartDate = (c: Client): Date | null => {
+    const signed = [signedById.get(c.id), signedByName.get(normName(c.companyName))].filter((d): d is Date => !!d);
+    if (signed.length) return signed.reduce((a, b) => (b < a ? b : a));
+    return validDate(c.contractStartDate || null);
+  };
   const missingStart = uniqueClients.filter(c => c.status === 'Ativo' && effectiveMonthlyValue(c) > 0 && !effectiveStartDate(c));
 
   // Contratos assinados por cliente: só informativo na tabela, não entra no cálculo
@@ -856,7 +881,7 @@ export default function Dashboard() {
                     <CardTitle className="flex items-center gap-2 text-base">
                       <DollarSign className="h-4 w-4 text-[hsl(var(--success))]" /> LTV por Cliente
                       <Badge variant="secondary" className="ml-1 text-[10px] font-normal">
-                        Baseado no cadastro dos clientes
+                        Valor do cadastro · início na assinatura do contrato
                       </Badge>
                     </CardTitle>
                   </div>
@@ -883,7 +908,7 @@ export default function Dashboard() {
                       <span className="font-semibold">
                         {missingStart.length === 1 ? '1 cliente sem data de início' : `${missingStart.length} clientes sem data de início`}
                       </span>{' '}
-                      não {missingStart.length === 1 ? 'entra' : 'entram'} no LTV. Complete em Clientes:{' '}
+                      (nem contrato assinado) não {missingStart.length === 1 ? 'entra' : 'entram'} no LTV. Complete em Clientes:{' '}
                       {missingStart.map((c, i) => (
                         <span key={c.id}>
                           {i > 0 && ', '}
