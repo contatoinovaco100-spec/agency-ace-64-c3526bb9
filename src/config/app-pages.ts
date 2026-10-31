@@ -3,7 +3,7 @@ import {
   Shield, FileText, BarChart3,   Film, Clapperboard, Palette, Play,
   LayoutList, Bot, Sparkles, Settings, Bell, Calendar, CalendarDays,
   MessageSquare, TrendingUp, Images, BookOpen, CalculatorIcon,
-  Gift, Link2, Video, Rocket, NotebookPen, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy, Scissors, AtSign, Gauge,
+  Gift, Link2, Video, Rocket, NotebookPen, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy, Scissors, Gauge,
 } from 'lucide-react';
 
 export type PageCategory =
@@ -60,7 +60,6 @@ export const APP_PAGES: AppPage[] = [
 
   // Postagens (publicar + relatórios de cliente)
   { path: '/publicar',            label: 'Publicar Conteúdo',    icon: Sparkles,        category: 'Postagens', highlight: true, includes: ['/publicacoes'] },
-  { path: '/publicar-threads',    label: 'Publicar Threads',     icon: AtSign,          category: 'Postagens' },
   { path: '/publicacoes',         label: 'Histórico de Posts',   icon: ListChecks,      category: 'Postagens', hidden: true },
   { path: '/automacoes',          label: 'Automações WhatsApp', icon: MessageSquare,   category: 'Postagens' },
   { path: '/redes-sociais',       label: 'Redes Sociais',        icon: Network,         category: 'Postagens' },

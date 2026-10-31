@@ -55,7 +55,6 @@ const VideosFinalizadosPage = lazy(() => import("./pages/VideosFinalizadosPage")
 const VideoSchedulePage    = lazy(() => import("./pages/VideoSchedulePage"));
 const PreProducaoPage      = lazy(() => import("./pages/PreProducaoPage"));
 const VideoEditorPage      = lazy(() => import("./pages/VideoEditorPage"));
-const ThreadsPublishPage   = lazy(() => import("./pages/ThreadsPublishPage"));
 const PublicArtesPage      = lazy(() => import("./pages/PublicArtesPage"));
 const ClientContentPage    = lazy(() => import("./pages/ClientContentPage"));
 const ClientReportPage     = lazy(() => import("./pages/ClientReportPage"));
@@ -264,7 +263,6 @@ function AppRoutes() {
                     <Route path="/agenda-videos"       element={<SectionTabs tabs={AGENDA_TABS}><VideoSchedulePage /></SectionTabs>} />
                     <Route path="/pre-producao"        element={<PreProducaoPage />} />
                     <Route path="/editor-video"        element={<StudioScope><VideoEditorPage /></StudioScope>} />
-                    <Route path="/publicar-threads"     element={<ThreadsPublishPage />} />
                     <Route path="/equipe"              element={<SectionRedirect tabs={TEAM_TABS} />} />
                     <Route path="/planejamento"        element={<SectionTabs tabs={PLANNING_TABS}><ContentPlanningPage /></SectionTabs>} />
                     <Route path="/planejamento-pdf"    element={<SectionTabs tabs={PLANNING_TABS}><PdfPlanningPage /></SectionTabs>} />
