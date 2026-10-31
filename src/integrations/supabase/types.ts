@@ -953,6 +953,7 @@ export type Database = {
       clients: {
         Row: {
           account_manager: string[]
+          billing_type: string
           cancelled_at: string | null
           company_name: string
           contact_name: string
@@ -978,6 +979,7 @@ export type Database = {
         }
         Insert: {
           account_manager?: string[]
+          billing_type?: string
           cancelled_at?: string | null
           company_name: string
           contact_name?: string
@@ -1003,6 +1005,7 @@ export type Database = {
         }
         Update: {
           account_manager?: string[]
+          billing_type?: string
           cancelled_at?: string | null
           company_name?: string
           contact_name?: string
