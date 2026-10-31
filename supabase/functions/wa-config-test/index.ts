@@ -1,3 +1,4 @@
+import { teamUserId, forbidden } from "../_shared/team.ts";
 // Testa a conexão com o WhatsApp Cloud API da Meta
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +9,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  // Só a equipe da INOVA (conta criada pelo "Cadastrar", afiliado ou cliente não usa)
+  if (!(await teamUserId(req))) return forbidden(corsHeaders);
 
   try {
     const token = Deno.env.get('META_WA_TOKEN');

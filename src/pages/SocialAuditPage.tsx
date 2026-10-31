@@ -291,8 +291,10 @@ export default function SocialAuditPage() {
       return;
     }
     setIsLoadingSlug(true);
-    supabase.from('social_audits').select('*').eq('slug', routeSlug).maybeSingle()
-      .then(({ data, error }) => {
+    // Relatório público abre só pelo link (a função não deixa listar os outros)
+    supabase.rpc('get_public_report' as never, { _kind: 'social', _slug: routeSlug } as never)
+      .then(({ data: raw, error }) => {
+        const data = raw as { diagnosis: unknown; slug: string; client_name: string | null } | null;
         if (error || !data) {
           toast.error('Relatório não encontrado.');
           setIsLoadingSlug(false);

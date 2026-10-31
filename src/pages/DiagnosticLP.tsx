@@ -76,11 +76,9 @@ export default function DiagnosticLP() {
     const fetchDiagnostic = async () => {
       try {
         if (slug) {
-          const { data, error } = await supabase
-            .from('diagnostics')
-            .select('*')
-            .eq('slug', slug)
-            .maybeSingle();
+          // Visitante abre só pelo link: a função devolve um diagnóstico, sem dar para listar os outros
+          const { data: raw, error } = await supabase.rpc('get_public_report' as never, { _kind: 'diagnostic', _slug: slug } as never);
+          const data = raw as { config?: any } | null;
           
           if (error) {
             console.error('Erro da API:', error);

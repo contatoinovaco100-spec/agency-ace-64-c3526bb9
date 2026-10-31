@@ -1,3 +1,4 @@
+import { teamUserId, forbidden } from "../_shared/team.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -15,6 +16,8 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  // Só a equipe da INOVA (conta criada pelo "Cadastrar", afiliado ou cliente não usa)
+  if (!(await teamUserId(req))) return forbidden(corsHeaders);
 
   try {
     const body = await req.json().catch(() => ({}));

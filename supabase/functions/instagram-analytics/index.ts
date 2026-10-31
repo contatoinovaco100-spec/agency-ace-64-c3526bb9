@@ -1,3 +1,4 @@
+import { teamUserId, forbidden } from "../_shared/team.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
@@ -29,6 +30,8 @@ async function safe<T>(fn: () => Promise<T>, fallback: T, label = ""): Promise<T
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // Só a equipe da INOVA (conta criada pelo "Cadastrar", afiliado ou cliente não usa)
+  if (!(await teamUserId(req))) return forbidden(corsHeaders);
 
   errLog = [];
 

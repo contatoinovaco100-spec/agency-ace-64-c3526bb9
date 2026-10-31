@@ -42,3 +42,9 @@ dist-ssr
 
 # Supabase
 supabase/.temp
+
+# Segredos e sessões: nunca no repositório
+.env
+.env.*
+**/.env
+**/auth_info_baileys/

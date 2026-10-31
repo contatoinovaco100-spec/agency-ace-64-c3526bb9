@@ -1,3 +1,4 @@
+import { teamUserId, forbidden } from "../_shared/team.ts";
 // Envia mensagem via WhatsApp Cloud API e salva no banco
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
@@ -8,6 +9,8 @@ const corsHeaders = {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  // Só a equipe da INOVA (conta criada pelo "Cadastrar", afiliado ou cliente não usa)
+  if (!(await teamUserId(req))) return forbidden(corsHeaders);
 
   try {
     // Require a valid Supabase JWT — sending WhatsApp messages is a privileged
