@@ -16,6 +16,8 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(supabaseUrl),
       "import.meta.env.VITE_SUPABASE_PROJECT_ID": JSON.stringify(supabaseProjectId),
       "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(supabasePublishableKey),
+      // Data da publicação: o registro de erros diz de qual versão veio cada falha
+      __APP_BUILD__: JSON.stringify(new Date().toISOString().slice(0, 16)),
     },
     server: {
       host: "::",

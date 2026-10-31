@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AtSign, Bell, CheckCircle2, Columns3, DollarSign, Info, PenLine, Target, type LucideIcon } from 'lucide-react';
+import { AtSign, Bell, Bug, CheckCircle2, Columns3, DollarSign, Info, PenLine, Target, type LucideIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAuth } from '@/contexts/AuthContext';
 import { FEED_FILTERS, timeAgo, useNotificationFeed, type FeedItem, type FeedKind } from '@/lib/notificationFeed';
@@ -14,6 +14,7 @@ const KIND_ICON: Record<FeedKind, { icon: LucideIcon; tone: string }> = {
   lead: { icon: Target, tone: 'text-warning' },
   sale: { icon: DollarSign, tone: 'text-success' },
   signature: { icon: PenLine, tone: 'text-success' },
+  error: { icon: Bug, tone: 'text-destructive' },
   info: { icon: Info, tone: 'text-muted-foreground' },
 };
 

@@ -5,7 +5,7 @@ export interface NotificationHistoryEntry {
   id: string;
   title: string;
   description?: string;
-  kind: 'sale' | 'signature' | 'task' | 'approval' | 'mention' | 'lead' | 'info';
+  kind: 'sale' | 'signature' | 'task' | 'approval' | 'mention' | 'lead' | 'error' | 'info';
   at: number; // epoch ms
   read?: boolean;
   /** Para onde a notificação leva ao clicar */

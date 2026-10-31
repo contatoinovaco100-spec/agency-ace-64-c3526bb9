@@ -13,6 +13,7 @@ import logoInova from '@/assets/logo-inova.png';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ProfileSettingsDialog, initialsOf, useMyProfile } from '@/components/ProfileSettingsDialog';
 import { ChatDock } from '@/components/ChatDock';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { CommandPalette, QUICK_CREATE, SEARCH_SHORTCUT } from '@/components/CommandPalette';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
@@ -224,7 +225,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       <main ref={mainRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-background">
         <div className="mx-auto w-full max-w-[1720px] px-4 pb-24 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pb-8">
-          {children}
+          {/* Erro numa tela não derruba o menu; trocar de página tenta de novo */}
+          <ErrorBoundary compact key={location.pathname}>{children}</ErrorBoundary>
         </div>
       </main>
 

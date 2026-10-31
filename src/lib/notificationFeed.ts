@@ -26,6 +26,7 @@ export const FEED_FILTERS: { id: string; label: string; kinds: FeedKind[] | null
   { id: 'chat', label: 'Menções', kinds: ['mention'] },
   { id: 'leads', label: 'Leads', kinds: ['lead'] },
   { id: 'vendas', label: 'Vendas', kinds: ['sale', 'signature'] },
+  { id: 'erros', label: 'Erros', kinds: ['error'] },
 ];
 
 /**

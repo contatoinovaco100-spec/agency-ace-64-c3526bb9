@@ -13,10 +13,11 @@ import { mentionsUser } from '@/components/ChatMentions';
  * Avisos da equipe que entram na central de notificações:
  * - alguém te mencionou no chat (@usuario ou @todos)
  * - chegou um lead novo no CRM (para quem tem acesso ao CRM)
+ * - alguma tela quebrou no navegador de alguém (só admin; sem som, uma vez por mensagem)
  */
 export function TeamNotifications() {
   const { user } = useAuth();
-  const { hasPageAccess, loading } = usePageAccess();
+  const { hasPageAccess, isAdmin, loading } = usePageAccess();
   const { playSound } = usePushNotification();
   const navigate = useNavigate();
   const usernameRef = useRef<string | null>(null);
@@ -72,9 +73,24 @@ export function TeamNotifications() {
       });
     }
 
+    if (isAdmin) {
+      const seenErrors = new Set<string>();
+      ch = ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'app_errors' }, (payload) => {
+        const err = payload.new as { message: string; path: string | null; user_email: string | null; kind: string };
+        if (err.kind === 'chunk' || seenErrors.has(err.message)) return;
+        seenErrors.add(err.message);
+        addNotification(user.id, {
+          kind: 'error',
+          title: `Erro em ${(err.path ?? '').split('?')[0] || 'uma tela'}`,
+          description: `${err.message.slice(0, 120)}${err.user_email ? ` · ${err.user_email}` : ''}`,
+          link: '/erros',
+        });
+      });
+    }
+
     ch.subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, seesLeads]);
+  }, [user, seesLeads, isAdmin]);
 
   return null;
 }

@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { ClientReviewNotifications } from "@/components/ClientReviewNotifications";
 import { TeamNotifications } from "@/components/TeamNotifications";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { installErrorReporter } from "@/lib/errorReporter";
 import { AGENDA_TABS, MY_DAY_TABS, PLANNING_TABS, PORTFOLIO_TABS, PUBLISH_TABS, SectionRedirect, SectionTabs, TEAM_TABS } from "@/components/SectionTabs";
 import PublicQuizPage from "./pages/PublicQuizPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -136,6 +138,7 @@ const ClientOnboardingsPage     = lazy(() => import("./pages/ClientOnboardingsPa
 const CommercialTeamPage        = lazy(() => import("./pages/CommercialTeamPage"));
 const SquadsPage                = lazy(() => import("./pages/SquadsPage"));
 const ViralRankingPage          = lazy(() => import("./pages/ViralRankingPage"));
+const AppErrorsPage             = lazy(() => import("./pages/AppErrorsPage"));
 const FigmaToLpPage             = lazy(() => import("./pages/FigmaToLpPage"));
 const PublicLandingPage         = lazy(() => import("./pages/PublicLandingPage"));
 const ConsultaCnpjPage          = lazy(() => import("./pages/ConsultaCnpjPage"));
@@ -320,6 +323,7 @@ function AppRoutes() {
                     <Route path="/time-comercial"      element={<CommercialTeamPage />} />
                     <Route path="/squads"              element={<SectionTabs tabs={TEAM_TABS}><SquadsPage /></SectionTabs>} />
                     <Route path="/ranking-viral"       element={<ViralRankingPage />} />
+                    <Route path="/erros"               element={<AppErrorsPage />} />
                     <Route path="/figma-to-lp"         element={<StudioScope><FigmaToLpPage /></StudioScope>} />
                     <Route path="/financeiro"          element={<FinancePage />} />
                     <Route path="/financeiro-base"     element={<FinancialPage />} />
@@ -368,6 +372,9 @@ const isPublicDarkPath = (pathname: string) =>
   !pathname.startsWith('/diagnostico/editar') &&
   PUBLIC_DARK_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`));
 
+// Registra erros do navegador para os admins (Administração → Erros)
+installErrorReporter();
+
 const App = () => {
   return (
     <BrowserRouter>
@@ -387,7 +394,9 @@ function ThemedApp() {
       forcedTheme={isPublicLightPath(pathname) ? 'light' : isPublicDarkPath(pathname) ? 'dark' : undefined}
       disableTransitionOnChange
     >
-      <QuizRouter />
+      <ErrorBoundary>
+        <QuizRouter />
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }
