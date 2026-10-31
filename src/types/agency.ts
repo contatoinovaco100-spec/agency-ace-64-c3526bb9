@@ -32,6 +32,8 @@ export interface Client {
   phone: string;
   contractStartDate: string;
   monthlyValue: number;
+  /** 'pontual' = serviço avulso: o valor é do projeto e não entra no MRR nem no LTV */
+  billingType?: 'mensal' | 'pontual';
   scope: string;
   serviceType: ServiceType[];
   accountManager: string[];

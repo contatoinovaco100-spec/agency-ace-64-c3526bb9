@@ -27,6 +27,7 @@ import {
   PieChart as RechartsPie, Pie, Cell, Legend, AreaChart, Area,
 } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
+import { recurringValue } from '@/lib/clientBilling';
 
 const statusColors: Record<string, string> = {
   'Ativo': 'bg-[hsl(var(--success))]/10 text-[hsl(var(--success))]',
@@ -151,9 +152,12 @@ export default function Dashboard() {
 
   // Valor mensal vem só do cadastro do cliente: o que for corrigido em Clientes vale aqui
   // (antes pegava o maior entre cadastro e contrato, e mensalidade reduzida continuava inflando MRR e LTV)
-  const effectiveMonthlyValue = (c: Client) => Number(c.monthlyValue) || 0;
+  const effectiveMonthlyValue = (c: Client) => recurringValue(c);
 
   const activeClients = clients.filter(c => c.status === 'Ativo');
+  // Serviço pontual: cliente ativo, mas o valor é do projeto e fica fora do MRR e do ticket
+  const oneOffActive = activeClients.filter(c => c.billingType === 'pontual');
+  const recurringActive = activeClients.filter(c => c.billingType !== 'pontual');
   const pausedClients = clients.filter(c => c.status === 'Pausado');
   const mrr = activeClients.reduce((acc, c) => acc + effectiveMonthlyValue(c), 0);
   const pendingTasks = tasks.filter(t => !['Concluído', 'Finalizado'].includes(t.status));
@@ -664,7 +668,7 @@ export default function Dashboard() {
               { label: 'MRR', value: formatCurrency(mrr), icon: DollarSign, accent: 'text-primary', highlight: true, hint: `${monthName}: ${signedDiff(mrrDelta, true)} · ${prevMonthName.toLowerCase()}: ${formatCurrency(lastMonthMrr)}` },
               { label: 'Receita Anual Projetada', value: formatCurrency(mrr * 12), icon: TrendingUp, accent: 'text-muted-foreground', highlight: false, hint: '' },
               { label: 'Clientes Ativos', value: activeClients.length.toString(), icon: Users, accent: 'text-muted-foreground', highlight: false, hint: `${pausedClients.length} pausado(s) · ${newClientsThisMonth} novo(s) em ${monthName.toLowerCase()} (${prevMonthName.toLowerCase()}: ${newClientsLastMonth})` },
-              { label: 'Ticket Médio', value: formatCurrency(activeClients.length > 0 ? mrr / activeClients.length : 0), icon: BarChart3, accent: 'text-muted-foreground', highlight: false, hint: '' },
+              { label: 'Ticket Médio', value: formatCurrency(recurringActive.length > 0 ? Math.round((mrr / recurringActive.length) * 100) / 100 : 0), icon: BarChart3, accent: 'text-muted-foreground', highlight: false, hint: oneOffActive.length > 0 ? `${oneOffActive.length} pontual(is) fora do MRR · ${formatCurrency(oneOffActive.reduce((s, c) => s + (Number(c.monthlyValue) || 0), 0))}` : '' },
               { label: 'Churn', value: `${churnRate.toFixed(1)}%`, icon: TrendingDown, accent: 'text-destructive', highlight: false, hint: `${churnedThisMonth.length} ${churnedThisMonth.length === 1 ? 'saiu' : 'saíram'} em ${monthName.toLowerCase()} · ${prevMonthName.toLowerCase()}: ${churnRateLastMonth.toFixed(1)}% · ${churnedClients.length} cancelados no total` },
             ].map((kpi, i) => (
               <motion.div key={kpi.label} {...anim(i)} className={i === 0 ? 'col-span-2 lg:col-span-1' : undefined}>

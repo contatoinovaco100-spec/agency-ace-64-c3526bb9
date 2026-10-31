@@ -8,6 +8,7 @@ import {
   AlertTriangle, Clock, TrendingDown, UserX, Bell,
   ChevronRight, CalendarClock, DollarSign, X
 } from 'lucide-react';
+import { recurringValue } from '@/lib/clientBilling';
 
 interface Alert {
   id: string;
@@ -150,7 +151,7 @@ export function SmartAlerts({ hideFinancial = false }: { hideFinancial?: boolean
       const pausedClients = clients.filter(c => c.status === 'Pausado');
       const cancelledClients = clients.filter(c => c.status === 'Cancelado');
       if (pausedClients.length > 0) {
-        const lostRevenue = pausedClients.reduce((s, c) => s + c.monthlyValue, 0);
+        const lostRevenue = pausedClients.reduce((s, c) => s + recurringValue(c), 0);
         result.push({
           id: 'paused-revenue',
           type: 'warning',
@@ -161,7 +162,7 @@ export function SmartAlerts({ hideFinancial = false }: { hideFinancial?: boolean
         });
       }
       if (cancelledClients.length > 0) {
-        const lostRevenue = cancelledClients.reduce((s, c) => s + c.monthlyValue, 0);
+        const lostRevenue = cancelledClients.reduce((s, c) => s + recurringValue(c), 0);
         result.push({
           id: 'cancelled-revenue',
           type: 'danger',

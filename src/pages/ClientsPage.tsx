@@ -406,6 +406,7 @@ export default function ClientsPage() {
                 {isAdmin && (
                   <p className="tabular-nums text-sm font-medium text-foreground sm:text-body">
                     R$ {client.monthlyValue.toLocaleString('pt-BR')}
+                    {client.billingType === 'pontual' && <span className="ml-1 text-xs font-normal text-muted-foreground">pontual</span>}
                   </p>
                 )}
                 <p className={`inline-block rounded px-1.5 py-0.5 text-[10px] sm:text-caption font-medium ${statusColors[client.status]}`}>
@@ -446,7 +447,7 @@ export default function ClientsPage() {
                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                            <div><p className="text-caption text-muted-foreground">Email</p><p className="text-body text-foreground break-all">{client.email}</p></div>
                            <div><p className="text-caption text-muted-foreground">Telefone</p><p className="text-body text-foreground">{client.phone}</p></div>
-                           <div><p className="text-caption text-muted-foreground">Início do contrato</p><p className="text-body text-foreground">{new Date(client.contractStartDate).toLocaleDateString('pt-BR')}</p></div>
+                           <div><p className="text-caption text-muted-foreground">Início do contrato</p><p className="text-body text-foreground">{client.contractStartDate.split('-').reverse().join('/')}</p></div>
                            <div><p className="text-caption text-muted-foreground">Responsável</p><p className="text-body text-foreground">{(client.accountManager || []).join(', ') || '—'}</p></div>
                            <ClientWhatsAppGroup clientId={client.id} />
                            <ClientPublicLinks clientId={client.id} />
@@ -547,7 +548,22 @@ export default function ClientsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div><Label>Data início contrato</Label><Input type="date" value={form.contractStartDate || ''} onChange={e => setForm({ ...form, contractStartDate: e.target.value })} /></div>
               {isAdmin && (
-                <div><Label>Valor mensal (R$)</Label><Input type="number" value={form.monthlyValue || ''} onChange={e => setForm({ ...form, monthlyValue: Number(e.target.value) })} /></div>
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <Label>{form.billingType === 'pontual' ? 'Valor do serviço (R$)' : 'Valor mensal (R$)'}</Label>
+                    <div className="flex rounded-md border border-border p-0.5" role="radiogroup" aria-label="Tipo de cobrança">
+                      {(['mensal', 'pontual'] as const).map(t => (
+                        <button key={t} type="button" role="radio" aria-checked={(form.billingType ?? 'mensal') === t}
+                          onClick={() => setForm({ ...form, billingType: t })}
+                          className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${(form.billingType ?? 'mensal') === t ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>
+                          {t === 'mensal' ? 'Mensal' : 'Pontual'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <Input className="mt-1" type="number" value={form.monthlyValue || ''} onChange={e => setForm({ ...form, monthlyValue: Number(e.target.value) })} />
+                  {form.billingType === 'pontual' && <p className="mt-1 text-xs text-muted-foreground">Serviço avulso: não entra no MRR nem no LTV.</p>}
+                </div>
               )}
             </div>
             <div><Label>Escopo</Label><Input value={form.scope || ''} onChange={e => setForm({ ...form, scope: e.target.value })} /></div>

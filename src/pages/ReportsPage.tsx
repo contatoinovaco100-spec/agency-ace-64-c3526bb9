@@ -12,6 +12,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPie, Pie, Cell, Legend,
 } from 'recharts';
+import { recurringValue } from '@/lib/clientBilling';
 
 const COLORS = [
   'hsl(73, 93%, 55%)', 'hsl(174, 98%, 19%)', 'hsl(217, 91%, 60%)',
@@ -25,7 +26,7 @@ export default function ReportsPage() {
   const { clients, tasks, leads } = useAgency();
 
   const activeClients = clients.filter(c => c.status === 'Ativo');
-  const mrr = activeClients.reduce((a, c) => a + c.monthlyValue, 0);
+  const mrr = activeClients.reduce((a, c) => a + recurringValue(c), 0);
   const completedTasks = tasks.filter(t => ['Concluído', 'Finalizado'].includes(t.status));
   const completionRate = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
 
@@ -33,7 +34,7 @@ export default function ReportsPage() {
   const managerRevenue: Record<string, number> = {};
   activeClients.forEach(c => {
     const managers = (c.accountManager || []).length > 0 ? c.accountManager : ['Sem responsável'];
-    managers.forEach(mgr => { managerRevenue[mgr] = (managerRevenue[mgr] || 0) + c.monthlyValue; });
+    managers.forEach(mgr => { managerRevenue[mgr] = (managerRevenue[mgr] || 0) + recurringValue(c); });
   });
   const managerData = Object.entries(managerRevenue).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value }));
 

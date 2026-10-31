@@ -19,6 +19,7 @@ import {
 } from 'recharts';
 import { toast } from 'sonner';
 import { Client } from '@/types/agency';
+import { recurringValue } from '@/lib/clientBilling';
 
 interface Expense {
   id: string;
@@ -136,7 +137,7 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
           if (c.status === 'Cancelado') return sum;
           const start = new Date(c.contractStartDate);
           if (isNaN(start.getTime())) return sum;
-          if (start <= endOfPrevMonth) return sum + (c.monthlyValue || 0);
+          if (start <= endOfPrevMonth) return sum + recurringValue(c);
           return sum;
         }, 0);
 
@@ -275,7 +276,7 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
             if (c.status === 'Cancelado') return sum;
             const start = new Date(c.contractStartDate);
             if (isNaN(start.getTime())) return sum;
-            if (start <= endOfMonth) return sum + (c.monthlyValue || 0);
+            if (start <= endOfMonth) return sum + recurringValue(c);
             return sum;
           }, 0);
           cur.faturamento = faturamento;

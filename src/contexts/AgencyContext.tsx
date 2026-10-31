@@ -54,6 +54,7 @@ function rowToClient(row: Tables<'clients'>): Client {
     id: row.id, companyName: row.company_name, contactName: row.contact_name,
     email: row.email, phone: row.phone, contractStartDate: row.contract_start_date || '',
     monthlyValue: Number(row.monthly_value), scope: row.scope,
+    billingType: (row as any).billing_type === 'pontual' ? 'pontual' : (row as any).billing_type ? 'mensal' : undefined,
     serviceType: row.service_type as ServiceType[], accountManager: row.account_manager || [],
     status: row.status as Client['status'], notes: row.notes,
     cancelledAt: (row as any).cancelled_at || null,
@@ -76,6 +77,8 @@ function clientToRow(c: Client): TablesInsert<'clients'> {
     id: c.id, company_name: c.companyName, contact_name: c.contactName,
     email: c.email, phone: c.phone, contract_start_date: c.contractStartDate || null,
     monthly_value: c.monthlyValue, scope: c.scope, service_type: c.serviceType,
+    // Só manda o tipo quando ele existe no cliente (antes da migração a coluna ainda não existe no banco)
+    ...(c.billingType ? { billing_type: c.billingType } as any : {}),
     account_manager: c.accountManager || [], status: c.status, notes: c.notes,
     scope_monthly_deliverables: c.scopeDetails?.monthlyDeliverables || [],
     scope_included_services: c.scopeDetails?.includedServices || [],
