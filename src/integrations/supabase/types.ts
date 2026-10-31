@@ -992,6 +992,7 @@ export type Database = {
       clients: {
         Row: {
           account_manager: string[]
+          billing_stopped_at: string | null
           billing_type: string
           cancelled_at: string | null
           company_name: string
@@ -1012,12 +1013,14 @@ export type Database = {
           scope_strategic_notes: string
           service_type: string[]
           status: string
+          stopped_periods: Json
           updated_at: string
           whatsapp_group_id: string | null
           whatsapp_group_name: string | null
         }
         Insert: {
           account_manager?: string[]
+          billing_stopped_at?: string | null
           billing_type?: string
           cancelled_at?: string | null
           company_name: string
@@ -1038,12 +1041,14 @@ export type Database = {
           scope_strategic_notes?: string
           service_type?: string[]
           status?: string
+          stopped_periods?: Json
           updated_at?: string
           whatsapp_group_id?: string | null
           whatsapp_group_name?: string | null
         }
         Update: {
           account_manager?: string[]
+          billing_stopped_at?: string | null
           billing_type?: string
           cancelled_at?: string | null
           company_name?: string
@@ -1064,6 +1069,7 @@ export type Database = {
           scope_strategic_notes?: string
           service_type?: string[]
           status?: string
+          stopped_periods?: Json
           updated_at?: string
           whatsapp_group_id?: string | null
           whatsapp_group_name?: string | null
