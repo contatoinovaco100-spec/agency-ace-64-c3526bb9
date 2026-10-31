@@ -272,6 +272,13 @@ a[href*="lovable.dev"] {
     max-width: 100% !important;
   }
 }
+/* Nuvens da vitrine */
+@keyframes cloud-drift {
+  to { transform: translateX(var(--dx)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="cloud-drift"] { animation: none !important; }
+}
 /* Marquee da vitrine */
 @keyframes marquee {
   from { transform: translateX(0); }
