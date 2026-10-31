@@ -134,6 +134,13 @@
       "when": 1793476717434,
       "tag": "0018_client_billing_stops",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793476735351,
+      "tag": "0019_client_billing_type_refresh",
+      "breakpoints": true
     }
   ]
 }
