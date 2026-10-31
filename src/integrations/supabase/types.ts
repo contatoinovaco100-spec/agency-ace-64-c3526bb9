@@ -4787,6 +4787,17 @@ export type Database = {
           title: string
         }[]
       }
+      get_public_client_contracts: {
+        Args: { _client_id: string }
+        Returns: {
+          created_at: string
+          duration_months: number
+          id: string
+          plan_name: string
+          status: string
+          title: string
+        }[]
+      }
       get_public_client_invoices: {
         Args: { _client_id: string }
         Returns: {
