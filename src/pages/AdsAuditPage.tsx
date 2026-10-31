@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import LogoInova from '@/assets/logo-inova.png';
 import { useSeo } from '@/lib/seo';
 import { PAGE_THUMBS } from '@/lib/pageThumbs';
+import { fetchPublicReport } from '@/lib/publicReport';
 
 type Status = 'good' | 'warning' | 'bad';
 
@@ -138,9 +139,8 @@ export default function AdsAuditPage() {
     if (!routeSlug) return;
     setIsLoadingSlug(true);
     // Relatório público abre só pelo link (a função não deixa listar os outros)
-    supabase.rpc('get_public_report' as never, { _kind: 'ads', _slug: routeSlug } as never)
-      .then(({ data: raw, error }) => {
-        const data = raw as { diagnosis: unknown; slug: string; client_name: string | null } | null;
+    fetchPublicReport<{ diagnosis: unknown; slug: string; client_name: string | null }>('ads', routeSlug)
+      .then(({ data, error }) => {
         if (error || !data) {
           toast.error('Relatório não encontrado.');
           setIsLoadingSlug(false);

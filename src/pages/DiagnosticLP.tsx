@@ -6,6 +6,7 @@ import { Loader2 as Spinner, Download, Share2 } from 'lucide-react';
 import { DiagnosticReport } from '@/components/diagnostic/DiagnosticReport';
 import { useSeo } from '@/lib/seo';
 import { PAGE_THUMBS } from '@/lib/pageThumbs';
+import { fetchPublicReport } from '@/lib/publicReport';
 
 const DEMO_CONFIG = {
   cliente: { nome: '@sua_empresa' },
@@ -77,8 +78,7 @@ export default function DiagnosticLP() {
       try {
         if (slug) {
           // Visitante abre só pelo link: a função devolve um diagnóstico, sem dar para listar os outros
-          const { data: raw, error } = await supabase.rpc('get_public_report' as never, { _kind: 'diagnostic', _slug: slug } as never);
-          const data = raw as { config?: any } | null;
+          const { data, error } = await fetchPublicReport<{ config?: any }>('diagnostic', slug);
           
           if (error) {
             console.error('Erro da API:', error);
