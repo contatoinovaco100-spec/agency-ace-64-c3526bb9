@@ -111,17 +111,17 @@ export default function DateComparison({ daily, onEarliestDateChange }: Props) {
           <div className="rounded-lg border border-primary/40 p-3">
             <p className="mb-2 text-xs font-semibold text-primary">Período A ({lenA} dias)</p>
             <div className="flex items-center gap-2">
-              <Input type="date" value={aStart} max={aEnd} onChange={e => setAStart(e.target.value)} className="h-9" />
+              <Input type="date" value={aStart} max={aEnd} onChange={e => setAStart(e.target.value)} className="h-9 min-w-0 px-2 text-sm" />
               <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <Input type="date" value={aEnd} min={aStart} max={today} onChange={e => setAEnd(e.target.value)} className="h-9" />
+              <Input type="date" value={aEnd} min={aStart} max={today} onChange={e => setAEnd(e.target.value)} className="h-9 min-w-0 px-2 text-sm" />
             </div>
           </div>
           <div className="rounded-lg border border-border p-3">
             <p className="mb-2 text-xs font-semibold text-muted-foreground">Período B ({lenB} dias)</p>
             <div className="flex items-center gap-2">
-              <Input type="date" value={bStart} max={bEnd} onChange={e => setBStart(e.target.value)} className="h-9" />
+              <Input type="date" value={bStart} max={bEnd} onChange={e => setBStart(e.target.value)} className="h-9 min-w-0 px-2 text-sm" />
               <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <Input type="date" value={bEnd} min={bStart} max={today} onChange={e => setBEnd(e.target.value)} className="h-9" />
+              <Input type="date" value={bEnd} min={bStart} max={today} onChange={e => setBEnd(e.target.value)} className="h-9 min-w-0 px-2 text-sm" />
             </div>
           </div>
         </div>

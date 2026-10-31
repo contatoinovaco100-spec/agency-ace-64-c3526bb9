@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSocialAccounts } from '@/hooks/useSocialAccounts';
@@ -7,14 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { BarChart3, Flame, Heart, MessageCircle, RefreshCw, Users, Eye, TrendingUp, Wand2, Loader2, AlertTriangle } from 'lucide-react';
+import { BarChart3, Bookmark, ExternalLink, Flame, Heart, MessageCircle, RefreshCw, Users, Eye, TrendingUp, Wand2, Loader2, AlertTriangle, Share2, Play, Instagram } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import DateComparison from '@/components/analytics/DateComparison';
+import { PageHeader } from '@/components/PageHeader';
 
 interface AnalyticsData {
   profile: { username: string; name: string; picture: string; followers: number; following: number; media_count: number };
@@ -47,6 +47,8 @@ export default function InstagramAnalyticsPage() {
   const [comparisonDays, setComparisonDays] = useState(0);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'recentes' | 'alcance' | 'engajamento'>('recentes');
 
   // Audit states
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
@@ -63,6 +65,7 @@ export default function InstagramAnalyticsPage() {
   const load = useCallback(async () => {
     if (!accountId) return;
     setLoading(true);
+    setLoadError(null);
     try {
       const { data: res, error } = await supabase.functions.invoke('instagram-analytics', {
         body: { account_id: accountId, days: fetchDays },
@@ -71,6 +74,7 @@ export default function InstagramAnalyticsPage() {
       if ((res as any)?.error) throw new Error((res as any).error);
       setData(res as AnalyticsData);
     } catch (e: any) {
+      setLoadError(e?.message || 'Não foi possível carregar as métricas.');
       toast.error('Erro ao carregar métricas', { description: e?.message });
     } finally {
       setLoading(false);
@@ -78,6 +82,14 @@ export default function InstagramAnalyticsPage() {
   }, [accountId, fetchDays]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Trocar de conta não pode mostrar os números da conta anterior enquanto carrega
+  useEffect(() => { setData(null); }, [accountId]);
+
+  // O diagnóstico já abre com o nome do perfil
+  useEffect(() => {
+    if (isAuditModalOpen && !clientName && data?.profile) setClientName(data.profile.name || data.profile.username);
+  }, [isAuditModalOpen, clientName, data?.profile]);
 
   const handleEarliestDate = useCallback((date: string) => {
     const needed = Math.ceil((Date.now() - Date.parse(`${date}T00:00:00Z`)) / 86400000) + 1;
@@ -226,235 +238,349 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
     }));
 
   const hasChartData = chartData.some(d => d.Alcance > 0 || d['Novos seguidores'] > 0);
+  const account = igAccounts.find(a => a.id === accountId);
 
-  const kpis = [
-    { label: 'Seguidores', value: nf(data?.profile.followers ?? 0), icon: Users, hint: 'Total atual' },
-    { label: 'Alcance', value: nf(data?.summary.reach ?? 0), icon: Eye, hint: `Últimos ${days} dias` },
-    { label: 'Visualizações', value: nf(data?.summary.views ?? 0), icon: BarChart3, hint: 'Views do período' },
-    { label: 'Visitas ao perfil', value: nf(data?.summary.profile_views ?? 0), icon: TrendingUp, hint: 'Período' },
-    { label: 'Novos seguidores', value: nf(data?.summary.gained_followers ?? 0), icon: Users, hint: 'Saldo do período' },
-    { label: 'Engaj. médio', value: `${(data?.summary.avg_engagement_rate ?? 0).toString().replace('.', ',')}%`, icon: Heart, hint: 'Por publicação' },
+  const secondary = [
+    { label: 'Visualizações', value: data?.summary.views ?? 0, icon: Play },
+    { label: 'Visitas ao perfil', value: data?.summary.profile_views ?? 0, icon: TrendingUp },
+    { label: 'Novos seguidores', value: data?.summary.gained_followers ?? 0, icon: Users, signed: true },
+    { label: 'Engajamento médio', value: data?.summary.avg_engagement_rate ?? 0, icon: Heart, pct: true },
   ];
 
+  const media = useMemo(() => {
+    const list = [...(data?.media ?? [])];
+    if (sortBy === 'alcance') list.sort((a, b) => b.reach - a.reach);
+    else if (sortBy === 'engajamento') list.sort((a, b) => b.engagement_rate - a.engagement_rate);
+    else list.sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
+    return list;
+  }, [data?.media, sortBy]);
+
+  const best = useMemo(
+    () => [...(data?.media ?? [])].sort((a, b) => b.engagement - a.engagement).slice(0, 3),
+    [data?.media],
+  );
+  const viralIds = new Set((data?.viral ?? []).map(m => m.id));
+
+  const fmtValue = (k: (typeof secondary)[number]) =>
+    k.pct ? `${String(k.value).replace('.', ',')}%` : `${k.signed && k.value > 0 ? '+' : ''}${nf(k.value)}`;
+
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Analytics do Instagram</h1>
-          <p className="text-sm text-muted-foreground">Crescimento, alcance e desempenho de cada publicação</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={accountId} onValueChange={setAccountId}>
-            <SelectTrigger className="w-56"><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
-            <SelectContent>
-              {igAccounts.map(a => (
-                <SelectItem key={a.id} value={a.id}>@{a.username}</SelectItem>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Instagram"
+        title="Relatório do cliente"
+        description="Crescimento, alcance e desempenho de cada publicação."
+        actions={
+          <>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger className="w-52"><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
+              <SelectContent>
+                {igAccounts.map(a => (
+                  <SelectItem key={a.id} value={a.id}>@{a.username}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex rounded-md border border-border p-0.5" role="group" aria-label="Período">
+              {['7', '30', '90'].map(d => (
+                <button
+                  key={d}
+                  onClick={() => setDays(d)}
+                  className={cn(
+                    'h-8 rounded px-3 text-xs font-medium transition-colors',
+                    days === d ? 'bg-foreground/10 text-foreground' : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {d} dias
+                </button>
               ))}
-            </SelectContent>
-          </Select>
-          <Select value={days} onValueChange={setDays}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">7 dias</SelectItem>
-              <SelectItem value="30">30 dias</SelectItem>
-              <SelectItem value="90">90 dias</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" onClick={load} disabled={loading || !accountId}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar
-          </Button>
-          <Button onClick={() => setIsAuditModalOpen(true)} disabled={loading || !data} className="bg-primary hover:bg-primary/90">
-            <Wand2 className="mr-2 h-4 w-4" /> Gerar Diagnóstico
-          </Button>
-        </div>
-      </div>
+            </div>
+            <Button variant="outline" size="icon" onClick={load} disabled={loading || !accountId} title="Atualizar" aria-label="Atualizar">
+              <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+            </Button>
+            <Button onClick={() => setIsAuditModalOpen(true)} disabled={loading || !data}>
+              <Wand2 className="h-4 w-4" /> Gerar diagnóstico
+            </Button>
+          </>
+        }
+      />
 
       {!loadingAccounts && !igAccounts.length && (
-        <Card><CardContent className="p-6 text-sm text-muted-foreground">
-          Nenhuma conta do Instagram conectada. Conecte em <strong>Redes Sociais</strong> para ver as métricas.
-        </CardContent></Card>
-      )}
-
-      {data?.profile && (
         <Card>
-          <CardContent className="flex flex-wrap items-center gap-4 p-4">
-            {data.profile.picture
-              ? <img src={data.profile.picture} alt={`Foto do perfil @${data.profile.username}`} className="h-14 w-14 rounded-full object-cover ring-2 ring-primary/40" />
-              : <div className="h-14 w-14 rounded-full bg-muted" />}
-            <div className="min-w-0">
-              <p className="truncate text-lg font-semibold leading-tight">{data.profile.name || data.profile.username}</p>
-              <p className="text-sm text-muted-foreground">@{data.profile.username}</p>
+          <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
+            <Instagram className="h-8 w-8 text-muted-foreground" />
+            <div>
+              <p className="font-medium">Nenhuma conta do Instagram conectada</p>
+              <p className="text-sm text-muted-foreground">Conecte o perfil do cliente para ver as métricas aqui.</p>
             </div>
-            <div className="ml-auto flex gap-6 text-sm">
-              <div className="text-center">
-                <p className="font-bold">{nf(data.profile.media_count)}</p>
-                <p className="text-xs text-muted-foreground">Publicações</p>
-              </div>
-              <div className="text-center">
-                <p className="font-bold">{nf(data.profile.followers)}</p>
-                <p className="text-xs text-muted-foreground">Seguidores</p>
-              </div>
-              <div className="text-center">
-                <p className="font-bold">{nf(data.profile.following)}</p>
-                <p className="text-xs text-muted-foreground">Seguindo</p>
-              </div>
-            </div>
+            <Button asChild variant="outline"><Link to="/redes-sociais">Conectar em Redes Sociais</Link></Button>
           </CardContent>
         </Card>
       )}
 
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {kpis.map(k => (
-          <Card key={k.label} className="transition-colors hover:border-primary/40">
-            <CardContent className="p-4">
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <p className="text-xs text-muted-foreground">{k.label}</p>
-                <k.icon className="h-4 w-4 shrink-0 text-primary" />
+      {loadError && !loading && (
+        <Card className="border-destructive/40">
+          <CardContent className="flex flex-wrap items-center gap-3 p-4 text-sm">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
+            <span className="flex-1">Não foi possível carregar as métricas: {loadError}</span>
+            <Button size="sm" variant="outline" onClick={load}>Tentar de novo</Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!!igAccounts.length && (
+        <>
+          {/* Perfil + números principais */}
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+            <Card>
+              <CardContent className="flex h-full flex-col gap-5 p-5">
+                <div className="flex items-center gap-4">
+                  {data?.profile.picture
+                    ? <img src={data.profile.picture} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-primary/30" />
+                    : <div className="h-16 w-16 rounded-full bg-muted" />}
+                  <div className="min-w-0 flex-1">
+                    {loading && !data ? <Skeleton className="h-6 w-40" /> : (
+                      <p className="truncate font-display text-lg font-semibold leading-tight">
+                        {data?.profile.name || data?.profile.username || (account ? `@${account.username}` : '')}
+                      </p>
+                    )}
+                    <p className="text-sm text-muted-foreground">@{data?.profile.username ?? account?.username}</p>
+                  </div>
+                  {data?.profile.username && (
+                    <Button asChild variant="ghost" size="icon" title="Abrir no Instagram">
+                      <a href={`https://www.instagram.com/${data.profile.username}/`} target="_blank" rel="noreferrer" aria-label="Abrir no Instagram">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                </div>
+                <div className="mt-auto grid grid-cols-3 divide-x divide-border rounded-lg bg-muted/50 py-3 text-center">
+                  {[
+                    ['Seguidores', data?.profile.followers],
+                    ['Publicações', data?.profile.media_count],
+                    ['Seguindo', data?.profile.following],
+                  ].map(([label, v]) => (
+                    <div key={label as string}>
+                      {loading && !data ? <Skeleton className="mx-auto h-6 w-14" /> : <p className="text-lg font-semibold tabular-nums">{nf(Number(v ?? 0))}</p>}
+                      <p className="text-[11px] text-muted-foreground">{label}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="flex h-full flex-col justify-between gap-4 p-5">
+                <div>
+                  <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                    <Eye className="h-3.5 w-3.5" /> Alcance · últimos {days} dias
+                  </p>
+                  {loading ? <Skeleton className="mt-2 h-10 w-32" /> : (
+                    <p className="mt-1 font-display text-4xl font-semibold tabular-nums tracking-tight">{nf(data?.summary.reach ?? 0)}</p>
+                  )}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Média de {nf(data?.summary.avg_reach ?? 0)} contas alcançadas por publicação
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  {secondary.map(k => (
+                    <div key={k.label} className="min-w-0">
+                      <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><k.icon className="h-3.5 w-3.5" />{k.label}</p>
+                      {loading ? <Skeleton className="mt-1 h-6 w-16" /> : (
+                        <p className={cn(
+                          'text-xl font-semibold tabular-nums',
+                          k.signed && k.value > 0 && 'text-success',
+                          k.signed && k.value < 0 && 'text-destructive',
+                        )}>{fmtValue(k)}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {!loading && data?.warning && (
+            <Card className="border-warning/40">
+              <CardContent className="flex items-start gap-2 p-4 text-sm">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                <span>{data.warning}</span>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Diagnóstico técnico — só quando há erro real da API */}
+          {!loading && !!data?._debug?.errLog?.length && (
+            <details className="rounded-lg border border-warning/30 p-4 text-xs">
+              <summary className="cursor-pointer text-sm font-medium text-warning">
+                {data._debug.errLog.length} avisos da API do Instagram
+              </summary>
+              <div className="mt-2 space-y-1 text-muted-foreground">
+                <p>Posts analisados: {data._debug.mediaCount} · Dias com dados: {data._debug.dailyCount}</p>
+                <ul className="list-inside list-disc">
+                  {data._debug.errLog.map((err, i) => <li key={i}>{err}</li>)}
+                </ul>
               </div>
-              {loading
-                ? <Skeleton className="h-7 w-20" />
-                : <p className="text-2xl font-bold leading-tight">{k.value}</p>}
-              <p className="mt-1 text-[11px] text-muted-foreground">{k.hint}</p>
+            </details>
+          )}
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Evolução diária</CardTitle>
+              <p className="text-xs text-muted-foreground">Alcance e saldo de seguidores por dia</p>
+            </CardHeader>
+            <CardContent className="h-72 md:h-80">
+              {loading ? <Skeleton className="h-full w-full" /> : !hasChartData ? (
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                  Sem dados diários no período selecionado.
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gReach" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--chart-1))" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="hsl(var(--chart-1))" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis dataKey="date" fontSize={11} tickLine={false} axisLine={false} minTickGap={16} stroke="hsl(var(--muted-foreground))" />
+                    <YAxis yAxisId="left" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => nf(Number(v))} stroke="hsl(var(--muted-foreground))" />
+                    <YAxis yAxisId="right" orientation="right" fontSize={11} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip
+                      formatter={(v: any) => nf(Number(v))}
+                      contentStyle={{
+                        background: 'hsl(var(--popover))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: 8,
+                        fontSize: 12,
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Area yAxisId="left" type="monotone" dataKey="Alcance" stroke="hsl(var(--chart-1))" strokeWidth={2} fill="url(#gReach)" />
+                    <Area yAxisId="right" type="monotone" dataKey="Novos seguidores" stroke="hsl(var(--chart-2))" strokeWidth={2} fillOpacity={0} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
-        ))}
-      </div>
 
-      {!loading && data?.warning && (
-        <Card className="border-destructive/40 bg-destructive/5">
-          <CardContent className="p-4 flex items-start gap-2 text-sm">
-            <AlertTriangle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
-            <span>{data.warning}</span>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Diagnóstico técnico — só quando há erro real da API */}
-      {!loading && !!data?._debug?.errLog?.length && (
-        <details className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-xs">
-          <summary className="cursor-pointer text-sm font-semibold text-amber-600">
-            Diagnóstico de dados ({data._debug.errLog.length} avisos da API)
-          </summary>
-          <div className="mt-2 space-y-1 text-muted-foreground">
-            <p>Posts analisados: {data._debug.mediaCount} · Dias com dados: {data._debug.dailyCount}</p>
-            <ul className="list-inside list-disc text-destructive/80">
-              {data._debug.errLog.map((err, i) => <li key={i}>{err}</li>)}
-            </ul>
-          </div>
-        </details>
-      )}
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Evolução diária</CardTitle>
-          <p className="text-xs text-muted-foreground">Alcance e saldo de seguidores por dia</p>
-        </CardHeader>
-        <CardContent className="h-80">
-          {loading ? <Skeleton className="h-full w-full" /> : !hasChartData ? (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              Sem dados diários no período selecionado.
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gReach" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.45} />
-                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
-                <XAxis dataKey="date" fontSize={11} tickLine={false} axisLine={false} minTickGap={16} />
-                <YAxis yAxisId="left" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => nf(Number(v))} />
-                <YAxis yAxisId="right" orientation="right" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip
-                  formatter={(v: any) => nf(Number(v))}
-                  contentStyle={{
-                    background: 'hsl(var(--popover))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Area yAxisId="left" type="monotone" dataKey="Alcance" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#gReach)" />
-                <Area yAxisId="right" type="monotone" dataKey="Novos seguidores" stroke="hsl(var(--muted-foreground))" strokeWidth={2} fillOpacity={0} />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
-
-      <DateComparison daily={data?.daily ?? []} onEarliestDateChange={handleEarliestDate} />
-
-
-
-
-      {!!data?.viral?.length && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Flame className="h-4 w-4 text-primary" /> Conteúdos virais (2x acima da média)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {data.viral.map(m => (
-              <a key={m.id} href={m.permalink} target="_blank" rel="noreferrer"
-                 className="flex gap-3 rounded-lg border border-border p-2 transition-colors hover:border-primary/50">
-                {m.thumbnail && <img src={m.thumbnail} alt="Publicação viral" className="h-16 w-16 rounded object-cover" />}
-                <div className="min-w-0 text-xs">
-                  <p className="line-clamp-2 font-medium">{m.caption || 'Sem legenda'}</p>
-                  <p className="mt-1 text-muted-foreground">{nf(m.reach)} de alcance · {m.engagement_rate}% eng.</p>
-                </div>
-              </a>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Publicações recentes</CardTitle></CardHeader>
-        <CardContent className="space-y-2">
-          {loading && <Skeleton className="h-40 w-full" />}
-          {!loading && !data?.media?.length && (
-            <p className="text-sm text-muted-foreground">Nenhuma publicação encontrada.</p>
-          )}
-          {(data?.media ?? []).map(m => (
-            <a key={m.id} href={m.permalink} target="_blank" rel="noreferrer"
-               className="flex items-center gap-3 rounded-lg border border-border p-2 transition-colors hover:border-primary/50">
-              {m.thumbnail
-                ? <img src={m.thumbnail} alt="Miniatura da publicação" className="h-12 w-12 rounded object-cover" />
-                : <div className="h-12 w-12 rounded bg-muted" />}
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{m.caption || 'Sem legenda'}</p>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(m.timestamp).toLocaleDateString('pt-BR')} · {m.is_reel ? 'Reels' : 'Feed'}
-                </p>
+          {/* Melhores publicações */}
+          {!!best.length && (
+            <section className="space-y-3">
+              <h2 className="flex items-center gap-2 font-display text-base font-semibold">
+                <Flame className="h-4 w-4 text-primary" /> Melhores publicações do período
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {best.map((m, i) => (
+                  <a key={m.id} href={m.permalink} target="_blank" rel="noreferrer"
+                     className="group overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/50">
+                    <div className="relative aspect-[4/3] bg-muted">
+                      {m.thumbnail && <img src={m.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />}
+                      <span className="absolute left-2 top-2 rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold text-white">#{i + 1}</span>
+                      {viralIds.has(m.id) && (
+                        <span className="absolute right-2 top-2 flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                          <Flame className="h-3 w-3" /> Viral
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-2 p-3">
+                      <p className="line-clamp-2 text-sm">{m.caption || 'Sem legenda'}</p>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
+                        <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5" />{nf(m.reach)}</span>
+                        <span className="flex items-center gap-1"><Heart className="h-3.5 w-3.5" />{nf(m.likes)}</span>
+                        <span className="flex items-center gap-1"><MessageCircle className="h-3.5 w-3.5" />{nf(m.comments)}</span>
+                        <span className="ml-auto font-semibold text-foreground">{m.engagement_rate}%</span>
+                      </div>
+                    </div>
+                  </a>
+                ))}
               </div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5" />{nf(m.reach)}</span>
-                <span className="flex items-center gap-1"><Heart className="h-3.5 w-3.5" />{nf(m.likes)}</span>
-                <span className="hidden items-center gap-1 sm:flex"><MessageCircle className="h-3.5 w-3.5" />{nf(m.comments)}</span>
-                <span className="hidden items-center gap-1 md:flex" title="Salvos">🔖 {nf(m.saved)}</span>
-                <span className="hidden items-center gap-1 lg:flex" title="Compartilhamentos">↗ {nf(m.shares)}</span>
-                <Badge variant="secondary">{m.engagement_rate}%</Badge>
+            </section>
+          )}
+
+          <DateComparison daily={data?.daily ?? []} onEarliestDateChange={handleEarliestDate} />
+
+          {/* Todas as publicações */}
+          <Card>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-2">
+              <CardTitle className="text-base">Publicações ({data?.media?.length ?? 0})</CardTitle>
+              <div className="flex rounded-md border border-border p-0.5" role="group" aria-label="Ordenar publicações">
+                {([['recentes', 'Recentes'], ['alcance', 'Alcance'], ['engajamento', 'Engajamento']] as const).map(([v, l]) => (
+                  <button
+                    key={v}
+                    onClick={() => setSortBy(v)}
+                    className={cn('h-7 rounded px-2.5 text-xs font-medium transition-colors',
+                      sortBy === v ? 'bg-foreground/10 text-foreground' : 'text-muted-foreground hover:text-foreground')}
+                  >
+                    {l}
+                  </button>
+                ))}
               </div>
-            </a>
-          ))}
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loading && <div className="p-4"><Skeleton className="h-40 w-full" /></div>}
+              {!loading && !media.length && (
+                <p className="p-6 text-center text-sm text-muted-foreground">Nenhuma publicação encontrada.</p>
+              )}
+              {!loading && !!media.length && (
+                <>
+                  <div className="hidden grid-cols-[1fr_repeat(5,72px)_64px] gap-2 border-b border-border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground md:grid">
+                    <span>Publicação</span>
+                    <span className="text-right">Alcance</span>
+                    <span className="text-right">Curtidas</span>
+                    <span className="text-right">Coment.</span>
+                    <span className="text-right">Salvos</span>
+                    <span className="text-right">Compart.</span>
+                    <span className="text-right">Engaj.</span>
+                  </div>
+                  <ul className="divide-y divide-border">
+                    {media.map(m => (
+                      <li key={m.id}>
+                        <a href={m.permalink} target="_blank" rel="noreferrer"
+                           className="grid grid-cols-[1fr_auto] items-center gap-2 px-4 py-2.5 transition-colors hover:bg-muted/50 md:grid-cols-[1fr_repeat(5,72px)_64px]">
+                          <div className="flex min-w-0 items-center gap-3">
+                            {m.thumbnail
+                              ? <img src={m.thumbnail} alt="" loading="lazy" className="h-11 w-11 shrink-0 rounded object-cover" />
+                              : <div className="h-11 w-11 shrink-0 rounded bg-muted" />}
+                            <div className="min-w-0">
+                              <p className="truncate text-sm">{m.caption || 'Sem legenda'}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(m.timestamp).toLocaleDateString('pt-BR')} · {m.is_reel ? 'Reels' : 'Feed'}
+                                {viralIds.has(m.id) && <span className="ml-1.5 text-primary">· viral</span>}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="hidden text-right text-sm tabular-nums md:block">{nf(m.reach)}</span>
+                          <span className="hidden text-right text-sm tabular-nums md:block">{nf(m.likes)}</span>
+                          <span className="hidden text-right text-sm tabular-nums md:block">{nf(m.comments)}</span>
+                          <span className="hidden text-right text-sm tabular-nums md:block"><Bookmark className="mr-1 inline h-3 w-3 text-muted-foreground" />{nf(m.saved)}</span>
+                          <span className="hidden text-right text-sm tabular-nums md:block"><Share2 className="mr-1 inline h-3 w-3 text-muted-foreground" />{nf(m.shares)}</span>
+                          <span className="text-right text-sm font-semibold tabular-nums">
+                            <span className="mr-2 text-xs font-normal text-muted-foreground md:hidden">{nf(m.reach)} alc.</span>
+                            {m.engagement_rate}%
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       <Dialog open={isAuditModalOpen} onOpenChange={setIsAuditModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Gerar Diagnóstico Estratégico</DialogTitle>
+            <DialogTitle>Gerar diagnóstico estratégico</DialogTitle>
             <DialogDescription>
-              A IA vai analisar todas as métricas do período selecionado e criar um relatório completo compartilhável.
+              A IA analisa as métricas dos últimos {days} dias e cria um relatório completo para compartilhar com o cliente.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-2">
             <div className="grid gap-2">
-              <label htmlFor="name" className="text-sm font-medium">Nome do Cliente</label>
+              <label htmlFor="name" className="text-sm font-medium">Nome do cliente</label>
               <Input
                 id="name"
                 value={clientName}
@@ -463,35 +589,35 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
               />
             </div>
             <div className="grid gap-2">
-              <label className="text-sm font-medium">Tom da Mensagem</label>
+              <span className="text-sm font-medium">Tom da mensagem</span>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setTone('positiva')}
                   className={cn(
-                    'p-3 rounded-lg border-2 text-left transition-all',
-                    tone === 'positiva' ? 'border-emerald-500 bg-emerald-500/10' : 'border-border hover:border-border/80'
+                    'rounded-lg border-2 p-3 text-left transition-colors',
+                    tone === 'positiva' ? 'border-success bg-success/10' : 'border-border hover:border-foreground/20'
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-emerald-500" />
-                    <span className="text-sm font-semibold">Positiva</span>
+                    <TrendingUp className="h-4 w-4 text-success" />
+                    <span className="text-sm font-semibold">Positivo</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">Foco em oportunidades.</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Foco em oportunidades.</p>
                 </button>
                 <button
                   type="button"
                   onClick={() => setTone('negativa')}
                   className={cn(
-                    'p-3 rounded-lg border-2 text-left transition-all',
-                    tone === 'negativa' ? 'border-red-500 bg-red-500/10' : 'border-border hover:border-border/80'
+                    'rounded-lg border-2 p-3 text-left transition-colors',
+                    tone === 'negativa' ? 'border-destructive bg-destructive/10' : 'border-border hover:border-foreground/20'
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
                     <span className="text-sm font-semibold">Alerta</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">Foco em riscos reais.</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Foco em riscos reais.</p>
                 </button>
               </div>
             </div>
@@ -499,7 +625,7 @@ IMPORTANTE: Retorne SOMENTE o JSON válido, sem marcação markdown.`;
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAuditModalOpen(false)}>Cancelar</Button>
             <Button onClick={handleGenerateAudit} disabled={isGeneratingAudit || !clientName.trim()}>
-              {isGeneratingAudit ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...</> : 'Gerar Relatório'}
+              {isGeneratingAudit ? <><Loader2 className="h-4 w-4 animate-spin" /> Gerando...</> : 'Gerar relatório'}
             </Button>
           </DialogFooter>
         </DialogContent>
