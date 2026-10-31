@@ -219,7 +219,7 @@ export default function Dashboard() {
 
   // Data de início só do cadastro do cliente (sem data, o cliente aparece no aviso do card de LTV)
   const effectiveStartDate = (c: Client): Date | null => validDate(c.contractStartDate || null);
-  const missingStart = uniqueClients.filter(c => effectiveMonthlyValue(c) > 0 && !effectiveStartDate(c));
+  const missingStart = uniqueClients.filter(c => c.status !== 'Cancelado' && effectiveMonthlyValue(c) > 0 && !effectiveStartDate(c));
 
   // Contratos assinados por cliente: só informativo na tabela, não entra no cálculo
   const contractsCountByKey = new Map<string, number>();
@@ -278,11 +278,20 @@ export default function Dashboard() {
     };
   });
 
-  const ltvByClient = Object.entries(ltvMap)
+  const allLtv = Object.entries(ltvMap)
     .map(([id, v]) => ({ id, ...v }))
     .sort((a, b) => b.ltv - a.ltv);
+  // A lista mostra só quem ainda é cliente (ativo ou pausado); cancelados entram só no histórico
+  const ltvByClient = allLtv.filter(c => c.status !== 'Cancelado');
+  // Arredonda nos centavos (média de R$ 19.000 por 3 dava R$ 6.333,333)
+  const avg = (list: number[]) => (list.length ? Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 100) / 100 : 0);
   const totalLtv = ltvByClient.reduce((sum, c) => sum + c.ltv, 0);
-  const avgLtv = ltvByClient.length > 0 ? totalLtv / ltvByClient.length : 0;
+  const avgLtv = avg(ltvByClient.map(c => c.ltv));
+  // LTV médio histórico: quanto um cliente costuma render do começo ao fim (inclui quem já saiu)
+  const avgLtvHistoric = avg(allLtv.map(c => c.ltv));
+  const avgMonthsHistoric = avg(allLtv.map(c => c.monthsPaid));
+  const avgTicket = avg(ltvByClient.map(c => c.monthlyValue));
+  const cancelledInLtv = allLtv.length - ltvByClient.length;
 
 
   // Client status distribution (cancelled clients live in the Churn section)
@@ -842,19 +851,25 @@ export default function Dashboard() {
                         Baseado no cadastro dos clientes
                       </Badge>
                     </CardTitle>
-                    <div className="flex items-center gap-4 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">LTV total: </span>
-                        <span className="font-semibold text-foreground tabular-nums">{formatCurrency(totalLtv)}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Médio: </span>
-                        <span className="font-semibold text-primary tabular-nums">{formatCurrency(avgLtv)}</span>
-                      </div>
-                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {/* Médias do LTV: o histórico (com quem já saiu) é o número para decidir quanto vale um cliente novo */}
+                  <div className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border lg:grid-cols-5">
+                    {[
+                      { label: 'LTV médio', value: formatCurrency(avgLtv), hint: `${ltvByClient.length} ${ltvByClient.length === 1 ? 'cliente atual' : 'clientes atuais'}`, strong: true },
+                      { label: 'LTV médio histórico', value: formatCurrency(avgLtvHistoric), hint: cancelledInLtv ? `inclui ${cancelledInLtv} ${cancelledInLtv === 1 ? 'que já saiu' : 'que já saíram'}` : 'nenhum cancelado ainda' },
+                      { label: 'Permanência média', value: `${avgMonthsHistoric.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} meses`, hint: 'tempo pagando, do início ao fim' },
+                      { label: 'Ticket médio', value: formatCurrency(avgTicket), hint: 'mensalidade dos atuais' },
+                      { label: 'LTV total', value: formatCurrency(totalLtv), hint: 'soma dos clientes atuais' },
+                    ].map((m, i) => (
+                      <div key={m.label} className={`bg-card px-3 py-2.5 ${i === 4 ? 'col-span-2 lg:col-span-1' : ''}`}>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{m.label}</p>
+                        <p className={`mt-0.5 font-display tabular-nums ${m.strong ? 'text-xl font-semibold text-primary' : 'text-base font-semibold text-foreground'}`}>{m.value}</p>
+                        <p className="text-[11px] text-muted-foreground">{m.hint}</p>
+                      </div>
+                    ))}
+                  </div>
                   {missingStart.length > 0 && (
                     <div className="mb-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
                       <span className="font-semibold">
