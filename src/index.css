@@ -284,3 +284,18 @@ a[href*="lovable.dev"] {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
+
+/*
+ * Celular: o iPhone dá zoom sozinho ao tocar num campo com letra menor que 16px
+ * (o Kanban usa text-sm) e a tela fica ampliada depois de digitar.
+ * Com 16px nos campos o zoom não acontece, e o zoom de pinça continua livre.
+ */
+@media (hover: none) and (pointer: coarse) {
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea,
+  select,
+  [contenteditable="true"] {
+    font-size: 16px !important;
+  }
+}
