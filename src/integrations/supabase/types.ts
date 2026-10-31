@@ -352,6 +352,45 @@ export type Database = {
         }
         Relationships: []
       }
+      app_errors: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          message: string
+          path: string | null
+          release: string | null
+          stack: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          message: string
+          path?: string | null
+          release?: string | null
+          stack?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          message?: string
+          path?: string | null
+          release?: string | null
+          stack?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       approval_reminders: {
         Row: {
           client_id: string | null
