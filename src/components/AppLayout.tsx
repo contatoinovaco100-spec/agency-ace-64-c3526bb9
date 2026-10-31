@@ -1,6 +1,6 @@
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
-import { BellOff, BellRing, ChevronLeft, LogOut, Menu, Moon, Sun, X } from 'lucide-react';
+import { BellOff, BellRing, ChevronLeft, LogOut, Menu, Moon, Settings, Sun, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
@@ -10,6 +10,8 @@ import { usePushNotification } from '@/hooks/usePushNotification';
 import { TaskMoveHistoryBell } from '@/components/TaskMoveHistoryBell';
 import { APP_PAGES, PAGE_CATEGORIES, type AppPage } from '@/config/app-pages';
 import logoInova from '@/assets/logo-inova.png';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ProfileSettingsDialog, initialsOf, useMyProfile } from '@/components/ProfileSettingsDialog';
 
 /** Destinos fixos da barra inferior no celular (os demais ficam em "Mais") */
 const MOBILE_TABS = ['/', '/tarefas', '/planner', '/clientes'];
@@ -28,6 +30,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const { hasPageAccess, isAdmin } = usePageAccess();
+  const [profile, setProfile] = useMyProfile();
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Build nav from registry filtered by permissions, grouped by category
   const visiblePages = APP_PAGES.filter(p => {
@@ -104,16 +108,29 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
         <div className="flex-shrink-0 border-t border-sidebar-border p-2">
           {!compact && user && (
-            <div className="flex items-center gap-2.5 px-2 py-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold uppercase text-foreground">
-                {user.email?.[0] ?? '?'}
-              </div>
-              <span className="truncate text-xs font-medium text-muted-foreground">{user.email}</span>
-            </div>
+            <button
+              onClick={() => setProfileOpen(true)}
+              className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-sidebar-accent"
+              title="Meu perfil"
+            >
+              <Avatar className="h-8 w-8 shrink-0">
+                {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt="" className="object-cover" />}
+                <AvatarFallback className="bg-secondary text-xs font-semibold text-foreground">
+                  {initialsOf(profile?.full_name, user.email)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="min-w-0">
+                {profile?.full_name && <span className="block truncate text-xs font-semibold text-foreground">{profile.full_name}</span>}
+                <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
+              </span>
+            </button>
           )}
           <div className={cn('flex items-center gap-0.5', compact && 'lg:flex-col')}>
             <button onClick={signOut} className={cn(iconButton, 'hover:text-destructive')} title="Sair" aria-label="Sair">
               <LogOut className="h-4 w-4" />
+            </button>
+            <button onClick={() => setProfileOpen(true)} className={iconButton} title="Configurações do perfil" aria-label="Configurações do perfil">
+              <Settings className="h-4 w-4" />
             </button>
             <div className={cn('hidden lg:block', !compact && 'ml-auto')} />
             <span className="hidden lg:contents"><TaskMoveHistoryBell /></span>
@@ -130,6 +147,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </aside>
+
+      <ProfileSettingsDialog open={profileOpen} onOpenChange={setProfileOpen} profile={profile} onProfileChange={setProfile} />
 
       <main ref={mainRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-background">
         <div className="mx-auto w-full max-w-[1720px] px-4 pb-24 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pb-8">
