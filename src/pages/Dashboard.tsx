@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useAgency } from '@/contexts/AgencyContext';
 import { SocialSyncAlert } from '@/components/SocialSyncStatus';
 import { useModuleAccess } from '@/hooks/useUserRole';
@@ -131,19 +132,9 @@ export default function Dashboard() {
 
 
 
-  // Valor mensal confiável: usa o contrato assinado quando o cadastro
-  // do cliente está zerado/errado (fallback) e também evita duplicidade.
-  const contractValueByKey = useMemo(() => {
-    const map = new Map<string, number>();
-    signedContracts.forEach(ct => {
-      const v = Number(ct.monthly_value) || 0;
-      const key = normName(ct.client_name);
-      if (v > (map.get(key) || 0)) map.set(key, v);
-    });
-    return map;
-  }, [signedContracts]);
-  const effectiveMonthlyValue = (c: Client) =>
-    Math.max(Number(c.monthlyValue) || 0, contractValueByKey.get(normName(c.companyName)) || 0);
+  // Valor mensal vem só do cadastro do cliente: o que for corrigido em Clientes vale aqui
+  // (antes pegava o maior entre cadastro e contrato, e mensalidade reduzida continuava inflando MRR e LTV)
+  const effectiveMonthlyValue = (c: Client) => Number(c.monthlyValue) || 0;
 
   const activeClients = clients.filter(c => c.status === 'Ativo');
   const pausedClients = clients.filter(c => c.status === 'Pausado');
@@ -226,41 +217,15 @@ export default function Dashboard() {
     return isNaN(d.getTime()) ? null : d;
   };
 
-  // Menor data de início por nome, a partir dos contratos assinados (fallback
-  // de data quando o cadastro do cliente está sem contract_start_date).
-  // Sem useMemo de propósito: este trecho roda depois do retorno do painel simples, e hook aqui
-  // quebrava a tela ("Rendered more hooks") quando a permissão de admin terminava de carregar.
-  const startDateByKey = new Map<string, Date>();
-  signedContracts.forEach(ct => {
-    const raw = ct.contract_signatures?.[0]?.signed_at || ct.sent_at || ct.created_at;
-    const d = new Date(raw);
-    if (isNaN(d.getTime())) return;
-    const key = norm(ct.client_name);
-    const prev = startDateByKey.get(key);
-    if (!prev || d < prev) startDateByKey.set(key, d);
-  });
-  const effectiveStartDate = (c: Client): Date | null => {
-    if (c.contractStartDate) {
-      const d = new Date(c.contractStartDate);
-      if (!isNaN(d.getTime())) return d;
-    }
-    return startDateByKey.get(norm(c.companyName)) || null;
-  };
+  // Data de início só do cadastro do cliente (sem data, o cliente aparece no aviso do card de LTV)
+  const effectiveStartDate = (c: Client): Date | null => validDate(c.contractStartDate || null);
+  const missingStart = uniqueClients.filter(c => effectiveMonthlyValue(c) > 0 && !effectiveStartDate(c));
 
-  // Melhor data e valor de contrato por nome de cliente
-  const contractInfo: Record<string, { date: Date; monthlyValue: number; count: number; duration: number }> = {};
+  // Contratos assinados por cliente: só informativo na tabela, não entra no cálculo
+  const contractsCountByKey = new Map<string, number>();
   signedContracts.forEach(ct => {
-    const raw = ct.contract_signatures?.[0]?.signed_at || ct.sent_at || ct.created_at;
-    const d = new Date(raw);
-    if (isNaN(d.getTime())) return;
     const key = norm(ct.client_name);
-    const prev = contractInfo[key];
-    contractInfo[key] = {
-      date: prev && prev.date < d ? prev.date : d,
-      monthlyValue: ct.monthly_value || prev?.monthlyValue || 0,
-      count: (prev?.count || 0) + 1,
-      duration: Math.max(prev?.duration || 0, Number(ct.duration_months) || 0),
-    };
+    contractsCountByKey.set(key, (contractsCountByKey.get(key) || 0) + 1);
   });
 
   const ltvMap: Record<string, {
@@ -274,9 +239,8 @@ export default function Dashboard() {
     stoppedAt: Date | null;
   }> = {};
 
-  // 1) Clientes cadastrados (incluindo cancelados, com LTV congelado)
+  // Clientes cadastrados (incluindo cancelados, com LTV congelado)
   uniqueClients.forEach(c => {
-    const info = contractInfo[norm(c.companyName)];
     const start = effectiveStartDate(c);
     if (!start) return;
 
@@ -299,7 +263,7 @@ export default function Dashboard() {
     const monthsPaid = monthsBetween(start, limit) - pausedMonths;
     if (monthsPaid < 1) return;
 
-    const monthlyValue = effectiveMonthlyValue(c) || info?.monthlyValue || 0;
+    const monthlyValue = effectiveMonthlyValue(c);
     if (monthlyValue <= 0) return;
 
     ltvMap[c.id] = {
@@ -307,30 +271,10 @@ export default function Dashboard() {
       clientId: c.id,
       ltv: monthsPaid * monthlyValue,
       monthsPaid,
-      contractsCount: info?.count || 0,
+      contractsCount: contractsCountByKey.get(norm(c.companyName)) || 0,
       monthlyValue,
       status: c.status,
       stoppedAt,
-    };
-  });
-
-  // 2) Contratos assinados de quem ainda não tem cadastro de cliente
-  const registeredNames = new Set(uniqueClients.map(c => norm(c.companyName)));
-  Object.entries(contractInfo).forEach(([key, info]) => {
-    if (!key || registeredNames.has(key)) return;
-    // Sem cadastro não dá para saber se pausou: conta no máximo a duração do contrato
-    const monthsPaid = Math.min(monthsBetween(info.date, todayDate), info.duration > 0 ? info.duration : Infinity);
-    if (monthsPaid < 1 || info.monthlyValue <= 0) return;
-    const original = signedContracts.find(ct => norm(ct.client_name) === key);
-    ltvMap[`name:${key}`] = {
-      name: original?.client_name?.trim() || key,
-      clientId: null,
-      ltv: monthsPaid * info.monthlyValue,
-      monthsPaid,
-      contractsCount: info.count,
-      monthlyValue: info.monthlyValue,
-      status: 'Sem cadastro',
-      stoppedAt: null,
     };
   });
 
@@ -887,7 +831,7 @@ export default function Dashboard() {
           </div>
 
           {/* LTV por Cliente — quem mais gerou receita histórica */}
-          {ltvByClient.length > 0 && (
+          {(ltvByClient.length > 0 || missingStart.length > 0) && (
             <motion.div {...anim(8)}>
               <Card className="bg-card overflow-hidden">
                 <CardHeader className="pb-2">
@@ -895,7 +839,7 @@ export default function Dashboard() {
                     <CardTitle className="flex items-center gap-2 text-base">
                       <DollarSign className="h-4 w-4 text-[hsl(var(--success))]" /> LTV por Cliente
                       <Badge variant="secondary" className="ml-1 text-[10px] font-normal">
-                        Baseado em contratos assinados
+                        Baseado no cadastro dos clientes
                       </Badge>
                     </CardTitle>
                     <div className="flex items-center gap-4 text-xs">
@@ -911,6 +855,20 @@ export default function Dashboard() {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {missingStart.length > 0 && (
+                    <div className="mb-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
+                      <span className="font-semibold">
+                        {missingStart.length === 1 ? '1 cliente sem data de início' : `${missingStart.length} clientes sem data de início`}
+                      </span>{' '}
+                      não {missingStart.length === 1 ? 'entra' : 'entram'} no LTV. Complete em Clientes:{' '}
+                      {missingStart.map((c, i) => (
+                        <span key={c.id}>
+                          {i > 0 && ', '}
+                          <Link to={`/clientes?cliente=${c.id}`} className="font-medium underline underline-offset-2 hover:text-primary">{c.companyName}</Link>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
                     {ltvByClient.map((c, i) => {
                       const pct = ltvByClient[0].ltv > 0 ? (c.ltv / ltvByClient[0].ltv) * 100 : 0;
