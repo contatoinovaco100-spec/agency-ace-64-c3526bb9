@@ -142,6 +142,7 @@ const AppErrorsPage             = lazy(() => import("./pages/AppErrorsPage"));
 const FigmaToLpPage             = lazy(() => import("./pages/FigmaToLpPage"));
 const PublicLandingPage         = lazy(() => import("./pages/PublicLandingPage"));
 const ConsultaCnpjPage          = lazy(() => import("./pages/ConsultaCnpjPage"));
+const MentoriaLP                = lazy(() => import("./pages/MentoriaLP"));
 
 // Finance & Rede
 const FinancePage               = lazy(() => import("./pages/FinancePage"));
@@ -193,6 +194,7 @@ function AppRoutes() {
     location.pathname === '/painel-artes' ||
     location.pathname.startsWith('/lp/') ||
     location.pathname === '/consulta-cnpj' ||
+    location.pathname === '/lp-mentoria' ||
     (location.pathname.startsWith('/diagnostico') && !location.pathname.startsWith('/diagnostico/editar')) ||
     location.pathname.startsWith('/diagnostico-social');
 
@@ -230,6 +232,7 @@ function AppRoutes() {
           <Route path="/painel-artes"        element={<PublicArtesPage />} />
           <Route path="/lp/:slug"            element={<PublicLandingPage />} />
           <Route path="/consulta-cnpj"       element={<ConsultaCnpjPage />} />
+          <Route path="/lp-mentoria"         element={<MentoriaLP />} />
         </Routes>
       ) : (
         <Routes>

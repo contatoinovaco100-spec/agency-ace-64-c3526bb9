@@ -1,0 +1,1004 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mentoria Escala Produtora | Inova Co.</title>
+<meta name="description" content="Escale sua produtora em 12 meses. O passo a passo, as ferramentas e o sistema de aquisição que a Inova usa para crescer com contrato recorrente e churn baixo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0c0c;
+  --card:#121414;
+  --card-2:#161919;
+  --line:rgba(255,255,255,.07);
+  --line-2:rgba(255,255,255,.12);
+  --text:#f3f5f4;
+  --muted:#9ba3a0;
+  --dim:#666e6b;
+  --green:#22c55e;
+  --green-2:#16a34a;
+  --green-3:#0c5c2c;
+  --lime:#c1f920;
+  --red:#ef6b6b;
+  --r-xl:32px;
+  --r-lg:22px;
+  --r-md:16px;
+  --wrap:1180px;
+  --font:'Plus Jakarta Sans',system-ui,sans-serif;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+h1,h2,h3,h4{line-height:1.08;letter-spacing:-.035em;font-weight:700}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 32px}
+section{padding:120px 0}
+.eyebrow{display:block;color:var(--green);font-size:14px;font-weight:600;margin-bottom:16px}
+.h2{font-size:clamp(32px,4.2vw,52px)}
+.head{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start;margin-bottom:56px}
+.head p{color:#d3d8d6;font-size:18px;line-height:1.55;padding-top:34px}
+.center{text-align:center}
+.check{flex:none;width:18px;height:18px;color:var(--green);margin-top:3px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:14px;padding:6px 6px 6px 22px;border-radius:999px;font-weight:700;font-size:14.5px;white-space:nowrap;transition:transform .3s var(--ease),box-shadow .3s}
+.btn .arr{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;transition:transform .35s var(--ease)}
+.btn:hover{transform:translateY(-2px)}
+.btn:hover .arr{transform:rotate(-45deg)}
+.btn-white{background:#fff;color:#0b0c0c}
+.btn-white .arr{background:var(--green);color:#fff}
+.btn-green{background:var(--green);color:#04150a;box-shadow:0 10px 36px -10px rgba(34,197,94,.6)}
+.btn-green .arr{background:#fff;color:var(--green-2)}
+
+/* ===== HERO ===== */
+.hero-shell{max-width:1240px;margin:0 auto;padding:16px 16px 0}
+.hero{position:relative;border-radius:var(--r-xl) var(--r-xl) 0 0;overflow:hidden;isolation:isolate;min-height:640px;
+  background:radial-gradient(60% 70% at 0% 0%,#1fd16a 0%,rgba(31,209,106,0) 60%),linear-gradient(170deg,#0f8a43 0%,#0a4f27 45%,#071b10 100%)}
+.hero-photo{position:absolute;z-index:0;top:0;bottom:0;left:38%;width:52%;background:url(assets/socio-1.jpg) center 20%/cover no-repeat;
+  filter:grayscale(1) contrast(1.2) brightness(.8);mix-blend-mode:luminosity;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 25%,#000 70%,transparent 100%),linear-gradient(180deg,#000 60%,transparent 100%);
+  -webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent 0%,#000 25%,#000 70%,transparent 100%),linear-gradient(180deg,#000 60%,transparent 100%);mask-composite:intersect}
+.hero::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(6,18,11,.85) 100%),linear-gradient(90deg,rgba(0,0,0,0) 60%,rgba(5,22,12,.55) 85%)}
+.hero > .wrap{position:relative;z-index:2}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:26px 0}
+.logo{display:block;width:84px;height:30px;overflow:hidden;flex:none}
+.logo img{height:47px;width:auto;max-width:none;margin:-8.5px 0 0 -16.5px}
+.nav ul{display:flex;list-style:none;align-items:center;gap:40px}
+.nav ul a:not(.btn){font-size:14.5px;font-weight:500;opacity:.9;transition:opacity .2s}
+.nav ul a:not(.btn):hover{opacity:1}
+.hero-grid{display:grid;grid-template-columns:1fr 290px;gap:40px;align-items:end;padding-top:60px}
+.hero-kicker{font-size:18px;font-weight:500;opacity:.9;margin-bottom:16px}
+.hero h1{font-size:clamp(46px,6.4vw,84px);letter-spacing:-.045em;line-height:1;max-width:620px}
+.hero-side h3{font-size:22px;letter-spacing:-.02em;line-height:1.3;margin-bottom:14px}
+.hero-side p{font-size:14px;color:rgba(255,255,255,.75);margin-bottom:24px}
+.pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;padding:90px 0 40px}
+.pillars b{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+.pillars b i{font-style:normal;color:var(--lime)}
+.pillars p{font-size:14px;color:rgba(255,255,255,.8)}
+.tools{background:var(--card);border-radius:0 0 var(--r-xl) var(--r-xl);padding:30px 0}
+.tools .wrap{display:flex;align-items:center;justify-content:space-between;gap:30px}
+.tools small{font-size:12.5px;font-weight:600;line-height:1.35;max-width:130px}
+.tools ul{display:flex;list-style:none;gap:44px;flex-wrap:wrap;justify-content:flex-end}
+.tools li{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:600;color:#c6ccc9}
+.tools li svg{width:18px;height:18px;opacity:.8}
+
+/* ===== PROBLEM ===== */
+.pain-list{list-style:none;display:grid;gap:16px;margin-top:28px}
+.pain-list li{display:flex;gap:14px;font-size:15px;color:#c1c8c5;line-height:1.55}
+.pain-list li::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--red);margin-top:9px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:28px 26px;min-height:150px}
+.stat strong{display:block;font-size:clamp(34px,3.6vw,46px);letter-spacing:-.045em;line-height:1;color:var(--green);margin-bottom:12px}
+.stat span{font-size:13.5px;color:var(--muted);display:block;max-width:200px;line-height:1.45}
+.stat.hi{background:linear-gradient(150deg,#22c55e 0%,#15803d 60%,#0d5c2c 100%);border:none}
+.stat.hi strong{color:#fff}
+.stat.hi span{color:rgba(255,255,255,.85)}
+.note{font-size:12.5px;color:var(--dim);margin-top:16px}
+
+/* ===== METHOD ===== */
+.head-cta{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:30px}
+.head-cta small{font-size:12.5px;color:var(--dim);line-height:1.45}
+.phases{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.phase{border-radius:var(--r-lg);padding:26px 24px 30px;border:1px solid rgba(34,197,94,.14);background:linear-gradient(180deg,#0f2418 0%,var(--card) 55%)}
+.phase-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:34px}
+.ico{width:44px;height:44px;border-radius:14px;background:rgba(34,197,94,.14);color:var(--green);display:grid;place-items:center}
+.ico svg{width:20px;height:20px}
+.phase-top small{font-size:12px;color:var(--dim);font-weight:600}
+.phase em{font-style:normal;font-size:12.5px;color:var(--green);font-weight:600}
+.phase h3{font-size:21px;margin:6px 0 22px;line-height:1.25}
+.phase ul{list-style:none;display:grid;gap:12px}
+.phase li{display:flex;gap:10px;font-size:13.5px;color:#c1c8c5;line-height:1.5}
+
+/* ===== FUNNEL ===== */
+.funnel{border-radius:var(--r-xl);padding:64px 40px 40px;border:1px solid var(--line);
+  background:radial-gradient(60% 90% at 100% 0%,rgba(34,197,94,.75) 0%,rgba(22,163,74,.25) 40%,rgba(18,20,20,0) 75%),var(--card)}
+.funnel .eyebrow{color:var(--lime)}
+.funnel h2{max-width:560px}
+.funnel > p{color:var(--muted);font-size:15px;max-width:560px;margin-top:20px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:56px}
+.step{background:rgba(10,14,12,.72);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:var(--r-md);padding:24px 22px 28px}
+.step b{display:block;font-size:12px;color:var(--lime);margin-bottom:18px}
+.step h4{font-size:17px;letter-spacing:-.02em;margin-bottom:10px;line-height:1.3}
+.step p{font-size:13.5px;color:var(--muted);line-height:1.5}
+
+/* ===== TOOLS GRID ===== */
+.sys{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.sys a{position:relative;display:block;background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:22px 20px 24px;transition:border-color .3s,transform .3s var(--ease)}
+.sys a:hover{border-color:rgba(34,197,94,.4);transform:translateY(-3px)}
+.sys .si{width:20px;height:20px;color:var(--green);margin-bottom:26px}
+.sys .go{position:absolute;top:20px;right:18px;width:14px;height:14px;color:var(--dim);transition:color .3s}
+.sys a:hover .go{color:var(--green)}
+.sys h4{font-size:15px;letter-spacing:-.015em;margin-bottom:8px;line-height:1.3}
+.sys p{font-size:13px;color:var(--muted);line-height:1.5}
+
+/* ===== MENTORS ===== */
+.mentors{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.mentors p{color:#c1c8c5;font-size:15px;margin-bottom:16px;max-width:460px}
+.ig{display:inline-flex;align-items:center;gap:8px;color:var(--green);font-size:14px;font-weight:600;margin-top:8px}
+.photos{position:relative;display:grid;grid-template-columns:1fr .78fr;gap:14px;align-items:start}
+.ph{position:relative;border-radius:var(--r-lg);overflow:hidden;isolation:isolate;background:#0d3a20}
+.ph img{width:100%;height:100%;object-fit:cover;filter:grayscale(.55) contrast(1.05);mix-blend-mode:luminosity;opacity:.95}
+.ph::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 50%,rgba(5,30,15,.92) 100%)}
+.ph figcaption{position:absolute;left:18px;bottom:16px;z-index:2}
+.ph figcaption b{display:block;font-size:15px}
+.ph figcaption span{font-size:12.5px;color:rgba(255,255,255,.75)}
+.ph-a{aspect-ratio:4/5}
+.ph-b{aspect-ratio:3/4.4;margin-top:56px}
+.ph-b img{object-position:50% 30%}
+
+/* ===== COMPARE ===== */
+.cmp{display:grid;grid-template-columns:1fr 1fr;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line)}
+.cmp-col{background:var(--card)}
+.cmp-col.on{background:linear-gradient(180deg,rgba(34,197,94,.14),rgba(34,197,94,.04));border-left:1px solid rgba(34,197,94,.25)}
+.cmp-col > div{padding:18px 24px;border-top:1px solid var(--line);font-size:14px;color:var(--dim);display:flex;gap:10px;align-items:center}
+.cmp-col.on > div{color:#e3e8e5;font-weight:600}
+.cmp-col > div:first-child{border-top:0;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:rgba(255,255,255,.02)}
+.cmp-col.on > div:first-child{color:var(--green);background:rgba(34,197,94,.08)}
+
+/* ===== PRICING ===== */
+.price{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;margin-top:56px}
+.inc{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:34px 30px}
+.inc > small{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-bottom:20px}
+.inc ul{list-style:none;display:grid;gap:12px}
+.inc li{display:flex;gap:12px;font-size:14.5px;color:#d3d8d6}
+.bonus-t{display:flex;align-items:center;gap:8px;color:var(--lime);font-size:12.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin:30px 0 16px}
+.bonus{border:1px solid rgba(193,249,32,.16);background:rgba(193,249,32,.025);border-radius:var(--r-md);padding:16px 18px;margin-top:10px}
+.bonus b{display:block;font-size:14px;margin-bottom:4px}
+.bonus p{font-size:13px;color:var(--muted);line-height:1.5}
+.offer{border-radius:var(--r-lg);padding:30px;display:flex;flex-direction:column;
+  background:radial-gradient(80% 60% at 30% 0%,#2be071 0%,rgba(34,197,94,0) 70%),linear-gradient(170deg,#16a34a 0%,#0d5c2c 50%,#093d1e 100%)}
+.chip{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:999px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.14)}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 0 rgba(193,249,32,.7);animation:pulse 1.8s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(193,249,32,0)}100%{box-shadow:0 0 0 0 rgba(193,249,32,0)}}
+.offer .lbl{font-size:13px;color:rgba(255,255,255,.75);margin-top:30px}
+.offer .val{font-size:clamp(46px,5vw,64px);font-weight:800;letter-spacing:-.05em;line-height:1;margin:6px 0 8px}
+.offer .inst{font-size:14px;color:rgba(255,255,255,.8)}
+.offer > p{font-size:14px;color:rgba(255,255,255,.85);margin-top:24px;line-height:1.55}
+.offer .btn{margin-top:auto;justify-content:space-between;width:100%}
+.guar{display:flex;gap:12px;margin-top:22px;font-size:13px;color:rgba(255,255,255,.85);line-height:1.5}
+.guar svg{flex:none;width:22px;height:22px;color:var(--lime)}
+.guar b{color:#fff}
+
+/* ===== FIT ===== */
+.fit{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fit > div{border-radius:var(--r-lg);padding:30px;border:1px solid var(--line)}
+.fit .yes{background:var(--card)}
+.fit h3{font-size:18px;margin-bottom:20px;letter-spacing:-.02em}
+.fit ul{list-style:none;display:grid;gap:12px}
+.fit li{display:flex;gap:12px;font-size:14.5px;color:#d3d8d6}
+.fit .no li{color:var(--muted)}
+.fit .no .check{color:var(--dim)}
+
+/* ===== FAQ ===== */
+.faq-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:64px}
+details{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:22px 0;font-size:16.5px;font-weight:600;letter-spacing:-.015em}
+summary::-webkit-details-marker{display:none}
+summary .pm{flex:none;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.06);display:grid;place-items:center;transition:background .3s,transform .4s var(--ease)}
+summary .pm svg{width:14px;height:14px}
+details[open] summary .pm{background:var(--green);color:#04150a;transform:rotate(45deg)}
+details p{color:var(--muted);font-size:14.5px;padding:0 50px 22px 0;line-height:1.6}
+
+/* ===== FINAL ===== */
+.final{border-radius:var(--r-xl);padding:100px 32px;text-align:center;
+  background:radial-gradient(60% 70% at 50% 0%,#2be071 0%,rgba(34,197,94,0) 70%),linear-gradient(180deg,#14913f 0%,#0b4a24 60%,#082f18 100%)}
+.final h2{font-size:clamp(34px,4.6vw,56px);max-width:760px;margin:0 auto}
+.final p{max-width:520px;margin:22px auto 32px;color:rgba(255,255,255,.85);font-size:15px}
+footer{padding:36px 0 48px}
+footer .wrap{display:flex;justify-content:space-between;align-items:center;gap:20px}
+footer small{font-size:13px;color:var(--dim)}
+
+
+/* ===== PLATAFORMA (lançamento) ===== */
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+.pl{position:relative;padding:120px 0 40px;overflow:hidden;isolation:isolate}
+.pl-top{position:relative;z-index:3;text-align:center;max-width:820px;margin:0 auto}
+.pl-pill{display:inline-flex;align-items:center;gap:10px;padding:5px 14px 5px 5px;border-radius:999px;border:1px solid rgba(34,197,94,.3);background:rgba(34,197,94,.08);font-size:13px;font-weight:600;color:#d7f5e1;margin-bottom:26px}
+.pl-pill b{background:var(--green);color:#04150a;font-size:11.5px;padding:4px 10px;border-radius:999px}
+.pl-top h2{font-size:clamp(36px,5.2vw,66px);letter-spacing:-.045em;line-height:1.02}
+.pl-top h2 .g{background:linear-gradient(92deg,#fff 0%,#c1f920 45%,#22c55e 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.pl-top p{color:var(--muted);font-size:18px;max-width:620px;margin:24px auto 34px}
+.pl-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-ghost{border:1px solid var(--line-2);background:rgba(255,255,255,.03);padding:12px 22px}
+
+/* palavras entrando com blur */
+.blur-in .w{display:inline-block;opacity:0;filter:blur(12px);transform:translateY(18px);transition:opacity .9s var(--ease),filter .9s var(--ease),transform .9s var(--ease);transition-delay:calc(var(--i) * 55ms)}
+.blur-in.in .w{opacity:1;filter:none;transform:none}
+
+/* palco: arco + dashboard */
+.pl-stage{position:relative;height:clamp(520px,62vw,780px);margin-top:40px;perspective:1600px}
+.pl-arc{position:absolute;left:50%;top:60px;width:min(1500px,150vw);aspect-ratio:1;transform:translateX(-50%);border-radius:50%;z-index:0;will-change:transform}
+.pl-arc::before{content:"";position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(closest-side,#04150b 92%,rgba(4,21,11,0) 100%);
+  box-shadow:0 -2px 0 0 rgba(193,249,32,.85),0 -30px 120px 10px rgba(34,197,94,.55),0 -80px 260px 40px rgba(34,197,94,.25)}
+.pl-arc::after{content:"";position:absolute;inset:-2px;border-radius:50%;
+  background:conic-gradient(from var(--a),transparent 0deg 300deg,rgba(193,249,32,.0) 310deg,#c1f920 340deg,#fff 350deg,transparent 360deg);
+  -webkit-mask:radial-gradient(closest-side,transparent 98.6%,#000 99%);mask:radial-gradient(closest-side,transparent 98.6%,#000 99%);
+  animation:sweep 6s linear infinite;filter:drop-shadow(0 0 10px #c1f920)}
+@keyframes sweep{to{--a:360deg}}
+.pl-glow{position:absolute;left:50%;top:0;width:900px;height:420px;transform:translateX(-50%);background:radial-gradient(50% 60% at 50% 70%,rgba(34,197,94,.35),transparent 70%);filter:blur(20px);z-index:0;animation:breathe 5s ease-in-out infinite}
+@keyframes breathe{50%{opacity:.6;transform:translateX(-50%) scale(1.06)}}
+.pl-dash{position:absolute;left:50%;top:150px;width:min(1040px,92%);z-index:2;transform-origin:50% 0;transform:translateX(-50%);will-change:transform}
+
+/* mock do dashboard */
+.dash{border-radius:20px;background:rgba(10,14,12,.92);border:1px solid rgba(255,255,255,.1);box-shadow:0 -1px 0 rgba(193,249,32,.25) inset,0 50px 120px -30px rgba(0,0,0,.9),0 0 80px -20px rgba(34,197,94,.35);overflow:hidden;backdrop-filter:blur(10px)}
+.dash-top{display:flex;align-items:center;gap:20px;padding:14px 20px;border-bottom:1px solid var(--line)}
+.dash-top .logo{width:70px;height:25px}
+.dash-top .logo img{height:39px;margin:-7px 0 0 -14px}
+.dash-tabs{display:flex;gap:18px;font-size:12px;color:var(--dim);font-weight:600}
+.dash-tabs span.on{color:#fff}
+.dash-top .av{margin-left:auto;display:flex;gap:8px;align-items:center}
+.dash-top .av i{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#0b5c2c);display:block}
+.dash-top .av em{width:8px;height:8px;border-radius:50%;background:var(--lime);font-style:normal}
+.dash-body{padding:22px}
+.dash-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.dash-h b{font-size:20px;letter-spacing:-.02em}
+.dash-h span{font-size:11.5px;font-weight:700;padding:6px 12px;border-radius:999px;background:rgba(34,197,94,.12);color:var(--green)}
+.kp{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kp > div{border-radius:14px;background:var(--card-2);border:1px solid var(--line);padding:14px 16px;display:flex;justify-content:space-between;align-items:end}
+.kp small{display:block;font-size:11px;color:var(--dim);font-weight:600}
+.kp b{display:block;font-size:22px;letter-spacing:-.03em;margin-top:4px}
+.kp svg{width:60px;height:26px}
+.kp path{fill:none;stroke:var(--green);stroke-width:2;stroke-dasharray:120;stroke-dashoffset:120;transition:stroke-dashoffset 1.6s var(--ease) .4s}
+.dash.in .kp path{stroke-dashoffset:0}
+.dash-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:12px;margin-top:12px}
+.dash-card{border-radius:14px;background:var(--card-2);border:1px solid var(--line);padding:16px}
+.dash-card > small{display:block;font-size:12px;font-weight:700;margin-bottom:12px}
+.row{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:12px}
+.row:first-of-type{border-top:0}
+.row i{width:26px;height:26px;border-radius:8px;flex:none}
+.row b{font-weight:700;display:block}
+.row em{font-style:normal;color:var(--dim);font-size:11px}
+.row .st{margin-left:auto;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(34,197,94,.12);color:var(--green)}
+.row .st.y{background:rgba(193,249,32,.1);color:var(--lime)}
+.bars{display:flex;align-items:end;gap:8px;height:150px;padding-top:6px}
+.bars i{flex:1;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#c1f920,#22c55e 40%,rgba(34,197,94,.15));height:0;transition:height 1.2s var(--ease)}
+.dash.in .bars i{height:var(--h)}
+.bars i:nth-child(1){transition-delay:.1s}.bars i:nth-child(2){transition-delay:.18s}.bars i:nth-child(3){transition-delay:.26s}.bars i:nth-child(4){transition-delay:.34s}.bars i:nth-child(5){transition-delay:.42s}.bars i:nth-child(6){transition-delay:.5s}.bars i:nth-child(7){transition-delay:.58s}.bars i:nth-child(8){transition-delay:.66s}
+
+/* marquee de módulos */
+.pl-marq{position:relative;z-index:3;margin-top:30px;text-align:center}
+.pl-marq small{font-size:13px;color:var(--dim);font-weight:600}
+.marq{overflow:hidden;margin-top:22px;-webkit-mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.marq-t{display:flex;gap:54px;width:max-content;animation:marq 32s linear infinite}
+.marq-t span{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;color:#7d8682;letter-spacing:-.02em;white-space:nowrap}
+.marq-t svg{width:20px;height:20px;color:var(--green)}
+@keyframes marq{to{transform:translateX(-50%)}}
+
+/* bento */
+.pl-bento-h{text-align:center;max-width:700px;margin:110px auto 50px}
+.pl-bento-h p{color:var(--muted);margin-top:16px;font-size:17px}
+.bento{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:minmax(250px,auto);gap:14px}
+.bx{position:relative;border-radius:var(--r-lg);background:linear-gradient(180deg,#121615,#0e1110);border:1px solid var(--line);padding:24px;overflow:hidden;transform-style:preserve-3d;transition:border-color .4s}
+.bx::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(380px circle at var(--mx,50%) var(--my,0%),rgba(34,197,94,.16),transparent 45%);opacity:0;transition:opacity .4s}
+.bx:hover{border-color:rgba(34,197,94,.3)}
+.bx:hover::before{opacity:1}
+.bx h4{font-size:17px;letter-spacing:-.02em;margin-bottom:6px;position:relative}
+.bx p{font-size:13.5px;color:var(--muted);line-height:1.5;max-width:300px;position:relative}
+.bx-a{grid-column:span 2}
+.bx-c{grid-row:span 2;display:flex;flex-direction:column;justify-content:flex-end}
+.mini-k{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}
+.mini-k div{border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--line);padding:12px}
+.mini-k small{font-size:10.5px;color:var(--dim);font-weight:700}
+.mini-k b{display:block;font-size:22px;letter-spacing:-.03em}
+.mini-bars{display:flex;gap:6px;align-items:end;height:90px;margin-top:14px}
+.mini-bars i{flex:1;border-radius:4px;background:rgba(34,197,94,.22);height:0;transition:height 1s var(--ease)}
+.mini-bars i:nth-child(odd){background:linear-gradient(180deg,#c1f920,#22c55e)}
+.bx.in .mini-bars i{height:var(--h)}
+.mk{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:20px}
+.mk > div{background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:10px;padding:8px;min-height:120px;display:grid;gap:6px;align-content:start}
+.mk small{font-size:10px;font-weight:700;color:var(--dim)}
+.mk i{display:block;height:24px;border-radius:7px;background:var(--card-2);border:1px solid var(--line)}
+.mk i.mv{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.45);animation:hop 5s var(--ease) infinite}
+@keyframes hop{0%,20%{transform:none}40%,70%{transform:translateX(calc(100% + 17px))}90%,100%{transform:translateX(calc(200% + 34px))}}
+.beam{position:absolute;left:50%;top:-10px;width:70%;height:62%;transform:translateX(-50%);
+  background:linear-gradient(180deg,rgba(193,249,32,.95),rgba(34,197,94,.55) 55%,rgba(34,197,94,0));
+  clip-path:polygon(0 0,100% 0,62% 100%,38% 100%);filter:blur(1px);animation:beam 4s ease-in-out infinite}
+.beam::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.18) 0 2px,transparent 2px 14px);mix-blend-mode:overlay}
+@keyframes beam{50%{opacity:.75}}
+.beam-badge{position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);width:76px;height:76px;border-radius:22px;background:linear-gradient(160deg,#1a2a20,#0b100e);border:1px solid rgba(193,249,32,.35);display:grid;place-items:center;box-shadow:0 0 50px rgba(34,197,94,.6);font-size:34px;font-weight:800;color:var(--lime);animation:float 5s ease-in-out infinite}
+@keyframes float{50%{transform:translate(-50%,-58%)}}
+.pipe{display:grid;gap:10px;margin-top:20px}
+.pipe div{display:grid;grid-template-columns:70px 1fr 34px;align-items:center;gap:10px;font-size:11.5px;color:var(--muted);font-weight:600}
+.pipe span{height:8px;border-radius:8px;background:rgba(255,255,255,.06);overflow:hidden}
+.pipe span i{display:block;height:100%;width:0;border-radius:8px;background:linear-gradient(90deg,#22c55e,#c1f920);transition:width 1.4s var(--ease)}
+.bx.in .pipe span i{width:var(--w)}
+.pipe b{color:#fff;text-align:right}
+.ia{display:grid;grid-template-columns:1.1fr .8fr 1.1fr;gap:24px;align-items:center;height:100%}
+.ia .spark{margin:0}
+.ia-out{display:grid;gap:10px}
+.ia-out span{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--line);font-size:13px;color:var(--muted);opacity:0;transform:translateY(10px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+.ia-out span i{width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime);flex:none}
+.bx.in .ia-out span{opacity:1;transform:none}
+.bx.in .ia-out span:nth-child(2){transition-delay:.5s}.bx.in .ia-out span:nth-child(3){transition-delay:1s}
+.spark{position:relative;height:120px;margin-top:10px}
+.spark svg{position:absolute;color:#fff;filter:drop-shadow(0 0 12px rgba(193,249,32,.8));animation:twinkle 3s ease-in-out infinite}
+.spark svg:nth-child(1){width:54px;left:30%;top:20px}
+.spark svg:nth-child(2){width:26px;left:58%;top:6px;animation-delay:-1s;color:var(--lime)}
+.spark svg:nth-child(3){width:20px;left:20%;top:70px;animation-delay:-2s}
+@keyframes twinkle{50%{transform:scale(.7) rotate(20deg);opacity:.6}}
+
+/* organização */
+.org{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center;margin-top:120px}
+.org.rev .org-art{order:-1}
+.org h3{font-size:clamp(28px,3.2vw,40px);letter-spacing:-.035em;margin-bottom:18px}
+.org > div > p{color:var(--muted);font-size:16px;margin-bottom:24px;max-width:460px}
+.org ul{list-style:none;display:grid;gap:12px}
+.org li{display:flex;gap:12px;font-size:14.5px;color:#d3d8d6}
+.org li .check{color:#04150a;background:var(--green);border-radius:6px;padding:2px;width:20px;height:20px}
+.org-art{position:relative;aspect-ratio:1.15;border-radius:var(--r-xl);border:1px solid var(--line);background:radial-gradient(70% 70% at 70% 80%,rgba(34,197,94,.18),transparent 70%),#0e1110;overflow:hidden;display:grid;place-items:center}
+.rings{position:absolute;right:-18%;bottom:-30%;width:90%;aspect-ratio:1}
+.rings i{position:absolute;inset:calc(var(--k) * 11%);border-radius:50%;border:1px solid rgba(34,197,94,calc(.5 - var(--k) * .1))}
+.rings i:first-child{border:0;background:conic-gradient(from var(--a),transparent 0 65%,rgba(193,249,32,.9) 85%,transparent 100%);-webkit-mask:radial-gradient(closest-side,transparent 96%,#000 97%);mask:radial-gradient(closest-side,transparent 96%,#000 97%);animation:sweep 5s linear infinite;filter:drop-shadow(0 0 8px #c1f920)}
+.ochart{position:relative;z-index:2;width:78%;border-radius:18px;background:rgba(12,17,14,.85);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(10px);padding:18px;box-shadow:0 30px 60px -20px rgba(0,0,0,.8);animation:floaty 7s ease-in-out infinite}
+@keyframes floaty{50%{transform:translateY(-12px)}}
+.ochart > small{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;margin-bottom:16px}
+.ochart > small i{width:24px;height:24px;border-radius:8px;background:var(--green);display:grid;place-items:center;color:#04150a}
+.node{border-radius:10px;border:1px solid var(--line-2);background:var(--card-2);padding:8px 10px;font-size:11px;font-weight:700;text-align:center}
+.node em{display:block;font-style:normal;color:var(--dim);font-weight:600;font-size:10px}
+.node.top{width:46%;margin:0 auto;border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1)}
+.lines{height:22px;position:relative}
+.lines::before{content:"";position:absolute;left:50%;top:0;height:11px;border-left:1px solid rgba(34,197,94,.5)}
+.lines::after{content:"";position:absolute;left:16.6%;right:16.6%;top:11px;height:11px;border:1px solid rgba(34,197,94,.5);border-bottom:0;border-radius:6px 6px 0 0}
+.nodes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ochart .node{opacity:0;transform:translateY(8px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+.org-art.in .node{opacity:1;transform:none}
+.org-art.in .nodes .node:nth-child(1){transition-delay:.3s}.org-art.in .nodes .node:nth-child(2){transition-delay:.45s}.org-art.in .nodes .node:nth-child(3){transition-delay:.6s}
+.sop{display:grid;gap:6px;margin-top:12px}
+.sop span{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);padding:7px 9px;border-radius:8px;background:rgba(255,255,255,.025)}
+.sop span::before{content:"";width:12px;height:12px;border-radius:4px;border:1.5px solid var(--green);flex:none}
+.sop span.ok::before{background:var(--green)}
+.report{position:relative;z-index:2;width:70%;aspect-ratio:1.55;border-radius:20px;padding:20px;
+  background:linear-gradient(150deg,#22c55e 0%,#13843f 55%,#0b4f26 100%);box-shadow:0 40px 80px -20px rgba(34,197,94,.55),0 0 0 1px rgba(255,255,255,.12) inset;
+  transform:rotateX(52deg) rotateZ(-28deg);transform-style:preserve-3d;animation:tilt 8s ease-in-out infinite}
+@keyframes tilt{50%{transform:rotateX(46deg) rotateZ(-22deg) translateZ(20px)}}
+.report small{font-size:12px;font-weight:700;opacity:.85}
+.report b{display:block;font-size:30px;letter-spacing:-.04em;margin-top:2px}
+.report svg{position:absolute;left:20px;right:20px;bottom:18px;width:calc(100% - 40px);height:44%}
+.report path{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round}
+.chip-f{position:absolute;z-index:3;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;background:rgba(12,17,14,.85);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(10px);font-size:12px;font-weight:700;box-shadow:0 20px 40px -15px rgba(0,0,0,.8);animation:floaty 6s ease-in-out infinite}
+.chip-f i{width:28px;height:28px;border-radius:9px;background:var(--green);color:#04150a;display:grid;place-items:center}
+.chip-f em{display:block;font-style:normal;color:var(--dim);font-weight:600;font-size:11px}
+.chip-f.a{left:7%;top:12%}
+.chip-f.b{right:7%;bottom:12%;animation-delay:-3s}
+.chip-f.b i{background:var(--lime)}
+
+@media (max-width:1024px){
+  .bento{grid-template-columns:1fr 1fr}
+  .bx-a{grid-column:span 2}
+  .bx-c{grid-row:auto;min-height:320px}
+  .org{grid-template-columns:1fr;gap:40px;margin-top:90px}
+  .org.rev .org-art{order:0}
+  .org-art:has(.ochart){aspect-ratio:auto;padding:28px 0}
+  .ochart{width:88%}
+  .kp{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:680px){
+  .pl{padding-top:90px}
+  .pl-top p{font-size:16px}
+  .pl-stage{height:auto;padding-bottom:30px}
+  .pl-arc{width:220vw;top:30px}
+  .pl-dash{position:relative;top:auto;left:auto;width:100%;transform:none!important;margin-top:90px}
+  .dash-tabs,.dash-grid > .dash-card:last-child{display:none}
+  .dash-grid{grid-template-columns:1fr}
+  .dash-body{padding:14px}
+  .kp b{font-size:18px}
+  .kp svg{display:none}
+  .bento{grid-template-columns:1fr}
+  .bx-a{grid-column:auto}
+  .ia{grid-template-columns:1fr}
+  .marq-t span{font-size:17px}
+  .chip-f{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .pl-arc::after,.rings i:first-child,.marq-t,.beam,.beam-badge,.ochart,.report,.chip-f,.mk i.mv,.spark svg,.pl-glow{animation:none}
+  .blur-in .w{opacity:1;filter:none;transform:none;transition:none}
+}
+
+/* reveal */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+.rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}.chip i{animation:none}}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width:1024px){
+  .head,.mentors,.faq-grid,.price{grid-template-columns:1fr;gap:28px}
+  .head p{padding-top:0}
+  .stats,.phases,.steps{grid-template-columns:repeat(2,1fr)}
+  .sys{grid-template-columns:repeat(3,1fr)}
+  .hero-photo{left:30%;width:70%}
+  .hero-grid{grid-template-columns:1fr}
+  .hero-side{max-width:360px}
+  .tools .wrap{flex-direction:column;align-items:flex-start}
+  .tools ul{justify-content:flex-start;gap:28px}
+}
+@media (max-width:680px){
+  .wrap{padding:0 16px}
+  .hero-shell{padding:8px 8px 0}
+  section{padding:84px 0}
+  .nav ul li:not(:last-child){display:none}
+  .hero{min-height:0}
+  .hero-photo{left:18%;width:100%;opacity:.55}
+  .hero-grid{padding-top:40px}
+  .pillars{grid-template-columns:repeat(2,1fr);padding:56px 0 32px}
+  .tools ul{gap:18px 26px}
+  .tools li{font-size:15px}
+  .stats,.phases,.steps,.fit,.cmp{grid-template-columns:1fr}
+  .sys{grid-template-columns:1fr 1fr}
+  .funnel{padding:44px 20px 20px}
+  .head-cta{flex-direction:column;align-items:flex-start}
+  .cmp-col.on{border-left:0;border-top:1px solid rgba(34,197,94,.25)}
+  .photos{grid-template-columns:1fr 1fr}
+  .ph-b{margin-top:36px}
+  .inc,.offer,.fit > div{padding:26px 20px}
+  .offer .btn{margin-top:28px}
+  details p{padding-right:0}
+  .final{padding:72px 20px}
+  footer .wrap{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== HERO ===================== -->
+<div class="hero-shell">
+  <header class="hero" id="topo">
+    <div class="hero-photo" aria-hidden="true"></div>
+    <div class="wrap">
+      <nav class="nav">
+        <a class="logo" href="#topo" aria-label="Inova Co."><img src="assets/logo-inova.png" alt="Inova Co."></a>
+        <ul>
+          <li><a href="#metodo">Método</a></li>
+          <li><a href="#plataforma">Plataforma</a></li>
+          <li><a href="#investimento">Investimento</a></li>
+          <li><a class="btn btn-white" href="#investimento">Quero entrar <span class="arr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a></li>
+        </ul>
+      </nav>
+
+      <div class="hero-grid">
+        <div>
+          <p class="hero-kicker">Mentoria Escala Produtora</p>
+          <h1>Escale sua<br>produtora em<br>12 meses</h1>
+        </div>
+        <div class="hero-side">
+          <h3>Pare de vender vídeo. Comece a vender operação.</h3>
+          <p>O passo a passo, as ferramentas e o sistema de aquisição que a Inova usa para crescer com contrato recorrente e churn baixo.</p>
+          <a class="btn btn-green" href="#investimento">Quero escalar minha produtora <span class="arr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+        </div>
+      </div>
+
+      <div class="pillars">
+        <div><b><i>#</i>01</b><p>Aquisição previsível</p></div>
+        <div><b><i>#</i>02</b><p>Oferta e precificação</p></div>
+        <div><b><i>#</i>03</b><p>Operação que roda sem você</p></div>
+        <div><b><i>#</i>04</b><p>Retenção e churn baixo</p></div>
+      </div>
+    </div>
+  </header>
+  <div class="tools">
+    <div class="wrap">
+      <small>Ferramentas que você vai dominar</small>
+      <ul>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM16 9a4 4 0 0 1 0 6"/></svg>Meta Ads</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor"/></svg>Instagram</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 1-13.5 7.8L3 21l1.2-4.4A9 9 0 1 1 21 12z"/></svg>WhatsApp</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>CRM</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"/></svg>IA para roteiro</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<main>
+
+<!-- ===================== PROBLEMA ===================== -->
+<section>
+  <div class="wrap">
+    <div class="head rv" style="margin-bottom:70px">
+      <div>
+        <span class="eyebrow">O problema</span>
+        <h2 class="h2">Você não tem uma produtora. Tem um freela com CNPJ.</h2>
+      </div>
+      <div>
+        <p>Talento para filmar e editar você já tem. O que trava o crescimento é o que ninguém ensina:</p>
+        <ul class="pain-list">
+          <li>Você fecha cliente por indicação e não sabe de onde vem o próximo.</li>
+          <li>Cobra por vídeo, entrega por vídeo e vive refém de quem pede “só mais um ajuste”.</li>
+          <li>Se você para, a empresa para de faturar.</li>
+          <li>O cliente entra animado, fica 3 meses e cancela. E você recomeça do zero.</li>
+          <li>Tudo está no WhatsApp, no Drive e na sua cabeça. Nada está num sistema.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="stats rv">
+      <div class="stat"><strong>+50</strong><span>marcas atendidas pela Inova</span></div>
+      <div class="stat hi"><strong>&lt; 5%</strong><span>churn mensal da carteira</span></div>
+      <div class="stat"><strong>11 meses</strong><span>tempo médio de permanência do cliente</span></div>
+      <div class="stat"><strong>3x</strong><span>crescimento da receita recorrente em 12 meses</span></div>
+    </div>
+    <p class="note rv">Dados da operação da Inova Co. Resultados de cada produtora dependem da execução do método.</p>
+  </div>
+</section>
+
+<!-- ===================== MÉTODO ===================== -->
+<section id="metodo" style="padding-top:20px">
+  <div class="wrap">
+    <div class="head rv">
+      <div>
+        <span class="eyebrow">O método</span>
+        <h2 class="h2">4 fases.<br>12 meses.<br>Uma produtora que escala.</h2>
+      </div>
+      <div>
+        <p>Cada trimestre resolve um gargalo. Você só avança quando a fase anterior está rodando. Sem pular etapa, sem crescer bagunçado.</p>
+        <div class="head-cta">
+          <small>Encontros ao vivo e<br>plano de ação por fase</small>
+          <a class="btn btn-green" href="#investimento">Quero o plano de 12 meses <span class="arr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="phases">
+      <article class="phase rv">
+        <div class="phase-top"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></span><small>Meses 1 a 3</small></div>
+        <em>Fase 01</em>
+        <h3>Fundação</h3>
+        <ul>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Nicho e oferta mensal definidos</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Oferta recorrente em pacotes (fim do “orçamento por vídeo”)</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Precificação com margem real</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Contrato padrão e escopo blindado</li>
+        </ul>
+      </article>
+      <article class="phase rv">
+        <div class="phase-top"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg></span><small>Meses 4 a 6</small></div>
+        <em>Fase 02</em>
+        <h3>Aquisição previsível</h3>
+        <ul>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Rotina de prospecção ativa com scripts</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Funil: diagnóstico gratuito, proposta e fechamento</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Conteúdo da própria produtora que atrai cliente</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Tráfego pago para gerar reuniões</li>
+        </ul>
+      </article>
+      <article class="phase rv">
+        <div class="phase-top"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg></span><small>Meses 7 a 9</small></div>
+        <em>Fase 03</em>
+        <h3>Operação que roda sem você</h3>
+        <ul>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Processos de briefing, roteiro, captação e edição</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Agenda de gravações e planejamento mensal</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Contratação e treinamento do time</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Indicadores de produção por pessoa</li>
+        </ul>
+      </article>
+      <article class="phase rv">
+        <div class="phase-top"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19c4-1 6-3 7-7m0 0c1-4 4-7 8-8-1 4-4 7-8 8zm-3 3-3-3"/></svg></span><small>Meses 10 a 12</small></div>
+        <em>Fase 04</em>
+        <h3>Escala e retenção</h3>
+        <ul>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Onboarding com portal do cliente</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Relatórios mensais que justificam a renovação</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Rotina anti-churn e upgrade de planos</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Gestão financeira e metas do ano 2</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FUNIL ===================== -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="funnel rv">
+      <span class="eyebrow">Aquisição</span>
+      <h2 class="h2">O funil que transforma conversa em contrato recorrente</h2>
+      <p>Sem depender de indicação. É o mesmo caminho que um lead percorre até virar cliente da Inova. E você sai da mentoria com ele montado.</p>
+      <div class="steps">
+        <div class="step"><b>#01</b><h4>Prospecção ativa</h4><p>Lista de empresas do seu nicho, abordagem no direct e no WhatsApp com scripts testados.</p></div>
+        <div class="step"><b>#02</b><h4>Diagnóstico gratuito</h4><p>Uma landing page de diagnóstico que mostra ao cliente o que está travando o digital dele.</p></div>
+        <div class="step"><b>#03</b><h4>Proposta que vende sozinha</h4><p>Proposta em página, com escopo, planos e prova social. Nada de PDF genérico.</p></div>
+        <div class="step"><b>#04</b><h4>Contrato e onboarding</h4><p>Assinatura digital, briefing estruturado e primeira gravação agendada em poucos dias.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PLATAFORMA (lançamento) ===================== -->
+<section class="pl" id="plataforma">
+  <div class="wrap pl-top">
+    <span class="pl-pill rv"><b>Novidade</b>Liberação exclusiva para mentorados</span>
+    <h2 class="blur-in">Vamos abrir a nossa plataforma de gestão.<br> <span class="g">E a nossa organização inteira.</span></h2>
+    <p class="rv">A mesma plataforma que roda a Inova, do primeiro lead ao relatório mensal, vai ser liberada para a sua produtora. Junto com ela, os processos, os rituais e o organograma que usamos todo dia.</p>
+    <div class="pl-cta rv">
+      <a class="btn btn-green" href="#investimento">Quero acesso à plataforma <span class="arr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+      <a class="btn btn-ghost" href="#modulos">Ver o que vem dentro</a>
+    </div>
+  </div>
+
+  <div class="pl-stage" id="plStage">
+    <div class="pl-glow" aria-hidden="true"></div>
+    <div class="pl-arc" id="plArc" aria-hidden="true"></div>
+    <div class="pl-dash" id="plDash" aria-hidden="true">
+      <div class="dash" id="dash">
+        <div class="dash-top">
+          <span class="logo"><img src="assets/logo-inova.png" alt=""></span>
+          <div class="dash-tabs"><span class="on">Visão geral</span><span>Clientes</span><span>Produção</span><span>Comercial</span><span>Contratos</span><span>Relatórios</span></div>
+          <div class="av"><em></em><i></i></div>
+        </div>
+        <div class="dash-body">
+          <div class="dash-h"><b>Dashboard</b><span>Prévia da plataforma</span></div>
+          <div class="kp">
+            <div><div><small>Clientes ativos</small><b>50</b></div><svg viewBox="0 0 60 26"><path d="M1 22 C10 20 14 16 22 15 S36 8 44 9 54 3 59 2"/></svg></div>
+            <div><div><small>Tarefas da semana</small><b>128</b></div><svg viewBox="0 0 60 26"><path d="M1 18 C8 12 14 20 22 14 S34 10 42 12 52 5 59 4"/></svg></div>
+            <div><div><small>Propostas abertas</small><b>14</b></div><svg viewBox="0 0 60 26"><path d="M1 20 C10 18 16 12 24 14 S38 6 46 8 54 6 59 3"/></svg></div>
+            <div><div><small>Contratos assinados</small><b>81</b></div><svg viewBox="0 0 60 26"><path d="M1 23 C12 22 18 18 26 16 S40 10 48 7 56 4 59 2"/></svg></div>
+          </div>
+          <div class="dash-grid">
+            <div class="dash-card">
+              <small>Entregas da semana</small>
+              <div class="row"><i style="background:linear-gradient(135deg,#22c55e,#0b5c2c)"></i><div><b>Reels de lançamento</b><em>Vídeo · Produção</em></div><span class="st y">Em edição</span></div>
+              <div class="row"><i style="background:linear-gradient(135deg,#c1f920,#4d7c0f)"></i><div><b>Calendário de novembro</b><em>Social media · Planejamento</em></div><span class="st">Aprovado</span></div>
+              <div class="row"><i style="background:linear-gradient(135deg,#60a5fa,#1e3a8a)"></i><div><b>Campanha de leads</b><em>Tráfego · Comercial</em></div><span class="st">No ar</span></div>
+              <div class="row"><i style="background:linear-gradient(135deg,#f472b6,#831843)"></i><div><b>Relatório mensal</b><em>Atendimento · Resultado</em></div><span class="st y">Revisão</span></div>
+            </div>
+            <div class="dash-card">
+              <small>Contratos por mês</small>
+              <div class="bars"><i style="--h:30%"></i><i style="--h:42%"></i><i style="--h:38%"></i><i style="--h:55%"></i><i style="--h:62%"></i><i style="--h:58%"></i><i style="--h:78%"></i><i style="--h:96%"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pl-marq" id="modulos">
+    <small>Tudo o que vem dentro</small>
+    <div class="marq">
+      <div class="marq-t">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/></svg>CRM</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Prospecção</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8"/></svg>Propostas</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M9 15l2 2 4-4"/></svg>Contratos</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6"/></svg>Briefings</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Kanban</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>Portal do cliente</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7"/></svg>Relatórios</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v5M5 16.5V14h14v2.5"/></svg>Organograma</span>
+        <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</span>
+        <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/></svg>CRM</span>
+        <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Prospecção</span>
+        <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8"/></svg>Propostas</span>
+        <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M9 15l2 2 4-4"/></svg>Contratos</span>
+        <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6"/></svg>Briefings</span>
+        <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Kanban</span>
+        <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>Portal do cliente</span>
+        <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7"/></svg>Relatórios</span>
+        <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v5M5 16.5V14h14v2.5"/></svg>Organograma</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="pl-bento-h">
+      <span class="eyebrow rv">A plataforma</span>
+      <h2 class="h2 blur-in">Toda a operação da produtora em uma tela.</h2>
+      <p class="rv">Chega de briefing no áudio, aprovação no direct e arquivo perdido no Drive.</p>
+    </div>
+
+    <div class="bento">
+      <div class="bx bx-a rv">
+        <h4>Dashboard em tempo real</h4>
+        <p>Clientes, entregas e contratos da produtora atualizados sozinhos.</p>
+        <div class="mini-k"><div><small>Clientes ativos</small><b>50</b></div><div><small>Entregas na semana</small><b>32</b></div><div><small>Propostas abertas</small><b>14</b></div></div>
+        <div class="mini-bars"><i style="--h:35%"></i><i style="--h:50%"></i><i style="--h:42%"></i><i style="--h:60%"></i><i style="--h:55%"></i><i style="--h:70%"></i><i style="--h:66%"></i><i style="--h:82%"></i><i style="--h:76%"></i><i style="--h:92%"></i><i style="--h:88%"></i><i style="--h:100%"></i></div>
+      </div>
+      <div class="bx bx-c rv">
+        <span class="beam" aria-hidden="true"></span>
+        <span class="beam-badge" aria-hidden="true">Ø</span>
+        <h4>Portal do cliente</h4>
+        <p>O cliente aprova, comenta e acompanha as entregas sem passar pelo seu WhatsApp.</p>
+      </div>
+      <div class="bx rv">
+        <h4>Kanban de produção</h4>
+        <p>Cada vídeo com dono, prazo e etapa visível.</p>
+        <div class="mk"><div><small>Briefing</small><i class="mv"></i><i></i></div><div><small>Edição</small><i></i><i></i><i></i></div><div><small>Aprovado</small><i></i></div></div>
+      </div>
+      <div class="bx rv">
+        <h4>CRM e propostas</h4>
+        <p>Do primeiro contato ao contrato assinado.</p>
+        <div class="pipe">
+          <div>Leads<span><i style="--w:92%"></i></span><b>46</b></div>
+          <div>Diagnóstico<span><i style="--w:58%"></i></span><b>21</b></div>
+          <div>Proposta<span><i style="--w:38%"></i></span><b>14</b></div>
+          <div>Contrato<span><i style="--w:22%"></i></span><b>8</b></div>
+        </div>
+      </div>
+      <div class="bx bx-a rv" style="grid-column:1/-1">
+        <div class="ia">
+          <div><h4>IA no dia a dia</h4><p>Roteiros, legendas e briefings gerados com IA dentro da própria plataforma.</p></div>
+          <div class="spark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c1 7 5 11 12 12-7 1-11 5-12 12-1-7-5-11-12-12 7-1 11-5 12-12z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c1 7 5 11 12 12-7 1-11 5-12 12-1-7-5-11-12-12 7-1 11-5 12-12z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c1 7 5 11 12 12-7 1-11 5-12 12-1-7-5-11-12-12 7-1 11-5 12-12z"/></svg>
+          </div>
+          <div class="ia-out" aria-hidden="true"><span><i></i>Roteiro de 30s gerado</span><span><i></i>Legenda pronta para aprovação</span><span><i></i>Briefing resumido em 5 tópicos</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="org">
+      <div class="rv">
+        <span class="eyebrow">Nossa organização</span>
+        <h3>O organograma e os processos que fazem a Inova rodar sem os sócios.</h3>
+        <p>Não é só software. Abrimos a forma como a Inova se organiza: quem faz o quê, em que ordem e com qual padrão.</p>
+        <ul>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>Organograma com as funções e responsabilidades de cada cargo</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>Processos de briefing, captação, edição e aprovação</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>Rituais semanais: pauta, status e reunião de resultado</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>Checklists de onboarding e de entrega</li>
+        </ul>
+      </div>
+      <div class="org-art rv" aria-hidden="true">
+        <div class="rings"><i style="--k:0"></i><i style="--k:0"></i><i style="--k:1"></i><i style="--k:2"></i><i style="--k:3"></i></div>
+        <div class="ochart">
+          <small><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v5M5 16.5V14h14v2.5"/></svg></i>Organograma Inova</small>
+          <div class="node top">Sócios<em>Estratégia e gestão</em></div>
+          <div class="lines"></div>
+          <div class="nodes"><div class="node">Comercial<em>Prospecção</em></div><div class="node">Produção<em>Vídeo e design</em></div><div class="node">Atendimento<em>Relatórios</em></div></div>
+          <div class="sop"><span class="ok">Briefing aprovado em até 48h</span><span class="ok">Roteiro revisado antes da captação</span><span>Relatório enviado até o dia 5</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="org rev">
+      <div class="rv">
+        <span class="eyebrow">Rotina de retenção</span>
+        <h3>Relatórios e rituais que seguram o cliente por meses.</h3>
+        <p>O cliente renova quando enxerga resultado. A plataforma transforma o seu trabalho em número que ele entende.</p>
+        <ul>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>Relatório mensal gerado direto da plataforma</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>Sinais de cliente em risco antes do cancelamento</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>Reunião de resultado com roteiro pronto</li>
+        </ul>
+      </div>
+      <div class="org-art rv" aria-hidden="true" style="perspective:900px">
+        <div class="rings" style="left:-18%;right:auto;top:-30%;bottom:auto"><i style="--k:0"></i><i style="--k:0"></i><i style="--k:1"></i><i style="--k:2"></i><i style="--k:3"></i></div>
+        <div class="report"><small>Relatório mensal</small><b>+38% alcance</b><svg viewBox="0 0 200 60" preserveAspectRatio="none"><path d="M2 54 C30 50 44 40 70 38 S120 22 140 20 180 6 198 4"/></svg></div>
+        <div class="chip-f a"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></i><div>Contrato renovado<em>Plano anual</em></div></div>
+        <div class="chip-f b"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg></i><div>Cliente em risco<em>Sem aprovação há 9 dias</em></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== MENTORES ===================== -->
+<section style="padding-top:20px">
+  <div class="wrap mentors">
+    <div class="rv">
+      <span class="eyebrow">Quem vai te mentorar</span>
+      <h2 class="h2" style="margin-bottom:24px">Quem ensina ainda está no campo.</h2>
+      <p>Somos os sócios da Inova Co. Não somos “gurus do digital”: gravamos, editamos, vendemos e gerimos clientes toda semana.</p>
+      <p>Tudo o que está nesta mentoria foi testado na nossa própria carteira, inclusive os erros que custaram caro para a gente e que você não precisa repetir.</p>
+      <a class="ig" href="#" target="_blank" rel="noopener" data-instagram><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor"/></svg>Siga a Inova no Instagram</a>
+    </div>
+    <div class="photos rv">
+      <figure class="ph ph-a"><img src="assets/socio-1.jpg" alt="Sócio-fundador da Inova Co."><figcaption><b>Sócio-fundador</b><span>Estratégia, conteúdo e produção</span></figcaption></figure>
+      <figure class="ph ph-b"><img src="assets/socio-2.jpg" alt="Sócio-fundador da Inova Co."><figcaption><b>Sócio-fundador</b><span>Comercial, aquisição e operação</span></figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ANTES x DEPOIS ===================== -->
+<section style="padding-top:20px">
+  <div class="wrap">
+    <div class="rv" style="margin-bottom:48px">
+      <span class="eyebrow">Daqui a 12 meses</span>
+      <h2 class="h2" style="max-width:760px">Imagine abrir o dashboard e ver a receita do mês que vem já contratada.</h2>
+    </div>
+    <div class="cmp rv">
+      <div class="cmp-col">
+        <div>Hoje</div>
+        <div>Cliente vem de indicação, quando vem</div>
+        <div>Preço por vídeo, negociado no grito</div>
+        <div>Você grava, edita, atende e cobra</div>
+        <div>Cliente cancela em 3 meses</div>
+        <div>Planilha, Drive e WhatsApp</div>
+      </div>
+      <div class="cmp-col on">
+        <div>Com o método</div>
+        <div><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Agenda de reuniões alimentada toda semana</div>
+        <div><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Planos mensais com margem definida</div>
+        <div><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Equipe com processo e você na gestão</div>
+        <div><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Carteira que renova e faz upgrade</div>
+        <div><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Uma plataforma com toda a operação</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== INVESTIMENTO ===================== -->
+<section id="investimento" style="padding-top:20px">
+  <div class="wrap">
+    <div class="center rv">
+      <span class="eyebrow">Investimento</span>
+      <h2 class="h2">Tudo o que você recebe</h2>
+    </div>
+    <div class="price">
+      <div class="inc rv">
+        <small>Mentoria Escala Produtora</small>
+        <ul>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>12 meses de acompanhamento com os sócios da Inova</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Encontros ao vivo quinzenais em grupo (gravados)</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Trilha de aulas passo a passo das 4 fases</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Scripts de prospecção, proposta e objeções</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Modelos de contrato, briefing e planos</li>
+          <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Grupo de networking com as produtoras da turma</li>
+        </ul>
+        <div class="bonus-t"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18M12 8S10 3 7.5 4 9 8 12 8zm0 0s2-5 4.5-4S15 8 12 8z"/></svg>Bônus exclusivos</div>
+        <div class="bonus"><b>Acesso à plataforma de gestão da Inova</b><p>O mesmo sistema que usamos para gerir clientes: CRM, contratos, tarefas, portal do cliente e relatórios.</p></div>
+        <div class="bonus"><b>Templates de landing page de diagnóstico e proposta</b><p>As páginas que usamos para transformar conversa em contrato.</p></div>
+        <div class="bonus"><b>Análise individual da sua produtora</b><p>Um diagnóstico 1:1 com os sócios para montar o seu plano de 12 meses.</p></div>
+      </div>
+      <div class="offer rv">
+        <span class="chip"><i></i>Turma 01 · vagas limitadas</span>
+        <span class="lbl">Investimento único</span>
+        <div class="val">R$ 6.997</div>
+        <span class="inst">ou em até 12x no cartão</span>
+        <p>Menos do que você fatura com um cliente em poucos meses. Se o método trouxer um cliente recorrente a mais, a mentoria se paga.</p>
+        <a class="btn btn-white" href="#" data-checkout>Garantir minha vaga <span class="arr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+        <div class="guar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg><span><b>Garantia incondicional de 7 dias.</b> Entrou e não fez sentido? Devolvemos 100% do valor.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PARA QUEM É ===================== -->
+<section style="padding-top:0">
+  <div class="wrap fit">
+    <div class="yes rv">
+      <h3>É para você se…</h3>
+      <ul>
+        <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Já tem produtora ou vende vídeo para empresas</li>
+        <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Fatura, mas o crescimento depende só de você</li>
+        <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Quer contrato recorrente em vez de job avulso</li>
+        <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Está disposto a implementar, não só assistir</li>
+      </ul>
+    </div>
+    <div class="no rv">
+      <h3>Não é para você se…</h3>
+      <ul>
+        <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>Procura fórmula mágica sem trabalho</li>
+        <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>Quer aprender a filmar ou editar. Isso você já sabe</li>
+        <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>Não pode dedicar algumas horas por semana</li>
+        <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>Não pretende ter equipe nunca</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FAQ ===================== -->
+<section style="padding-top:20px">
+  <div class="wrap faq-grid">
+    <div class="rv">
+      <span class="eyebrow">Dúvidas</span>
+      <h2 class="h2">Perguntas frequentes</h2>
+    </div>
+    <div class="rv">
+      <details open><summary>Preciso já ter uma produtora? <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Sim. A mentoria é para quem já vende vídeo ou conteúdo e quer transformar isso em empresa. Se você ainda está começando do zero, fale com a gente antes de entrar.</p></details>
+      <details><summary>Funciona para produtoras de outras cidades? <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Sim. Os encontros são online e o método não depende de mercado local. Prospecção, oferta e operação funcionam em qualquer cidade.</p></details>
+      <details><summary>Quanto tempo por semana preciso dedicar? <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Algumas horas por semana: os encontros ao vivo, as aulas da fase e a implementação na sua produtora. É ali que o resultado aparece.</p></details>
+      <details><summary>Eu tenho só eu e um editor. Faz sentido? <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Faz. A fase de Operação mostra quem contratar primeiro e como delegar sem perder qualidade. O método foi pensado para quem está saindo do “faz-tudo”.</p></details>
+      <details><summary>E se eu não gostar? <span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Você tem 7 dias de garantia incondicional. Se não fizer sentido, devolvemos 100% do valor, sem perguntas.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CTA FINAL ===================== -->
+<section style="padding-top:0;padding-bottom:0">
+  <div class="wrap">
+    <div class="final rv">
+      <h2>Daqui a 12 meses você vai ter uma produtora ou um emprego.</h2>
+      <p>A diferença é o método. As vagas da turma são limitadas para conseguirmos acompanhar cada produtora de perto.</p>
+      <a class="btn btn-white" href="#investimento">Quero escalar minha produtora <span class="arr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="logo"><img src="assets/logo-inova.png" alt="Inova Co."></span>
+    <small>© 2026 Inova Co. · Mentoria Escala Produtora</small>
+  </div>
+</footer>
+
+<script>
+// Links de checkout e do Instagram (troque pelos reais)
+const CHECKOUT_URL = 'https://wa.me/5500000000000?text=' + encodeURIComponent('Olá, Inova! Quero garantir minha vaga na Mentoria Escala Produtora.');
+const INSTAGRAM_URL = 'https://instagram.com/';
+
+document.querySelectorAll('[data-checkout]').forEach(a => { a.href = CHECKOUT_URL; a.target = '_blank'; a.rel = 'noopener'; });
+document.querySelectorAll('[data-instagram]').forEach(a => { a.href = INSTAGRAM_URL; });
+
+// FAQ: só uma pergunta aberta por vez
+const items = document.querySelectorAll('details');
+items.forEach(d => d.addEventListener('toggle', () => { if (d.open) items.forEach(o => o !== d && (o.open = false)); }));
+
+const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .12 });
+document.querySelectorAll('.rv').forEach((el, i) => { el.style.transitionDelay = (i % 4) * 60 + 'ms'; io.observe(el); });
+
+// Plataforma: títulos entram palavra por palavra
+document.querySelectorAll('.blur-in').forEach(el => {
+  let i = 0;
+  const wrap = node => [...node.childNodes].forEach(n => {
+    if (n.nodeType === 3) {
+      const frag = document.createDocumentFragment();
+      n.textContent.split(/(\s+)/).forEach(part => {
+        if (!part.trim()) { frag.append(part); return; }
+        const s = document.createElement('span');
+        s.className = 'w'; s.style.setProperty('--i', i++); s.textContent = part;
+        frag.append(s);
+      });
+      n.replaceWith(frag);
+    } else if (n.nodeType === 1) wrap(n);
+  });
+  wrap(el);
+  io.observe(el);
+});
+document.querySelectorAll('.bx, .org-art, #dash').forEach(el => io.observe(el));
+
+// Plataforma: dashboard sai inclinado de trás do arco e endireita com a rolagem
+const stage = document.getElementById('plStage'), dashEl = document.getElementById('plDash'), arc = document.getElementById('plArc');
+const still = matchMedia('(prefers-reduced-motion: reduce)');
+let ticking = false;
+function stageMotion() {
+  ticking = false;
+  if (still.matches || innerWidth <= 680) { dashEl.style.transform = ''; arc.style.transform = ''; return; }
+  const r = stage.getBoundingClientRect();
+  const p = Math.min(Math.max((innerHeight - r.top) / (innerHeight * 1.05), 0), 1);
+  const e = 1 - Math.pow(1 - p, 3);
+  dashEl.style.transform = `translateX(-50%) translateY(${(1 - e) * 140}px) rotateX(${(1 - e) * 38}deg) scale(${.84 + e * .16})`;
+  arc.style.transform = `translateX(-50%) translateY(${(1 - e) * -60}px) scale(${.92 + e * .08})`;
+}
+addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(stageMotion); } }, { passive: true });
+addEventListener('resize', stageMotion);
+stageMotion();
+
+// Plataforma: brilho do bento segue o mouse
+document.querySelectorAll('.bx').forEach(b => b.addEventListener('pointermove', e => {
+  const r = b.getBoundingClientRect();
+  b.style.setProperty('--mx', e.clientX - r.left + 'px');
+  b.style.setProperty('--my', e.clientY - r.top + 'px');
+}));
+</script>
+</body>
+</html>
