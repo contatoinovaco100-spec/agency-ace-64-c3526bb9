@@ -4,6 +4,7 @@ import { ArrowLeft, Hash, Loader2, Maximize2, MessageCircle, Send, X } from 'luc
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { NavLink } from '@/components/NavLink';
+import { useOnlineUsers } from '@/hooks/useOnlineUsers';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import {
@@ -27,6 +28,7 @@ export function ChatDock() {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [seen, setSeen] = useState(readSeen);
+  const online = useOnlineUsers();
   const bottomRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef(active);
   activeRef.current = active;
@@ -116,8 +118,10 @@ export function ChatDock() {
   const list = useMemo(() => [...channels].sort((a, b) => {
     const la = lastByChannel.get(a.id)?.created_at ?? '';
     const lb = lastByChannel.get(b.id)?.created_at ?? '';
-    return lb.localeCompare(la);
-  }), [channels, lastByChannel]);
+    if (la || lb) return lb.localeCompare(la);
+    return Number(!!b.emp && online.has(b.emp.id)) - Number(!!a.emp && online.has(a.emp.id));
+  }), [channels, lastByChannel, online]);
+  const onlineCount = employees.filter(e => e.id !== user?.id && online.has(e.id)).length;
 
   if (!user || onChatPage) return null;
 
@@ -145,12 +149,17 @@ export function ChatDock() {
   };
 
   const face = (emp: ChatEmployee | null, name: string, size = 'h-9 w-9') => (
-    <Avatar className={cn(size, 'shrink-0')}>
-      {emp?.avatar_url && <AvatarImage src={emp.avatar_url} alt="" className="object-cover" />}
-      <AvatarFallback className="bg-secondary text-[11px] font-semibold">
-        {emp ? chatInitials(name) : <Hash className="h-4 w-4 text-muted-foreground" />}
-      </AvatarFallback>
-    </Avatar>
+    <span className="relative shrink-0">
+      <Avatar className={size}>
+        {emp?.avatar_url && <AvatarImage src={emp.avatar_url} alt="" className="object-cover" />}
+        <AvatarFallback className="bg-secondary text-[11px] font-semibold">
+          {emp ? chatInitials(name) : <Hash className="h-4 w-4 text-muted-foreground" />}
+        </AvatarFallback>
+      </Avatar>
+      {emp && online.has(emp.id) && (
+        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card bg-success" aria-label="Online" />
+      )}
+    </span>
   );
 
   return (
@@ -165,10 +174,21 @@ export function ChatDock() {
                   <ArrowLeft className="h-4 w-4" />
                 </button>
                 {face(current.emp, current.name, 'h-7 w-7')}
-                <span className="min-w-0 flex-1 truncate text-sm font-semibold">{current.name}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold leading-tight">{current.name}</span>
+                  {current.emp && (
+                    <span className="block text-[11px] leading-tight text-muted-foreground">{online.has(current.emp.id) ? 'Online agora' : 'Offline'}</span>
+                  )}
+                </span>
               </>
             ) : (
-              <span className="flex-1 pl-2 font-display text-sm font-semibold">Chat interno</span>
+              <span className="flex-1 pl-2">
+                <span className="block font-display text-sm font-semibold leading-tight">Chat interno</span>
+                <span className="flex items-center gap-1.5 text-[11px] leading-tight text-muted-foreground">
+                  <span className={cn('h-1.5 w-1.5 rounded-full', onlineCount ? 'bg-success' : 'bg-muted-foreground/50')} />
+                  {onlineCount === 1 ? '1 colega online' : `${onlineCount} colegas online`}
+                </span>
+              </span>
             )}
             <NavLink to="/chat" className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground" title="Abrir em tela cheia" aria-label="Abrir em tela cheia">
               <Maximize2 className="h-4 w-4" />
@@ -195,7 +215,7 @@ export function ChatDock() {
                         <span className={cn('block truncate text-xs', unread ? 'text-foreground' : 'text-muted-foreground')}>
                           {last
                             ? `${last.author_id === user.id ? 'Você: ' : c.emp ? '' : `${last.author_name.split(' ')[0]}: `}${last.content}`
-                            : c.emp?.job_title || 'Nenhuma mensagem ainda'}
+                            : c.emp ? (online.has(c.emp.id) ? 'Online agora' : c.emp.job_title || 'Offline') : 'Nenhuma mensagem ainda'}
                         </span>
                       </span>
                       {!!unread && (

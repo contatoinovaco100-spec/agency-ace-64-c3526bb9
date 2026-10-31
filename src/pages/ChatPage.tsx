@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useOnlineUsers } from '@/hooks/useOnlineUsers';
 import { CHAT_CHANNELS, markSeen, type ChatEmployee, type ChatMessage } from '@/lib/chat';
 
 type Employee = ChatEmployee;
@@ -21,6 +22,9 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
   const [myProfile, setMyProfile] = useState<Employee | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const online = useOnlineUsers();
+  // Quem está online aparece primeiro
+  const sortedEmployees = [...employees].sort((a, b) => Number(online.has(b.id)) - Number(online.has(a.id)));
 
   // Carregar funcionários (online list) e perfil próprio
   useEffect(() => {
@@ -151,10 +155,10 @@ export default function ChatPage() {
         </nav>
 
         <div className="px-3 pt-4 pb-1 text-xs uppercase tracking-wider text-muted-foreground">
-          Funcionários ({employees.length})
+          Equipe · {employees.filter(e => online.has(e.id)).length} online
         </div>
         <div className="flex-1 px-2 space-y-1 overflow-y-auto pb-2">
-          {employees.map(emp => {
+          {sortedEmployees.map(emp => {
             const dmId = user ? `dm_${[user.id, emp.id].sort().join('_')}` : '';
             const isSelected = channel === dmId;
             return (
@@ -178,7 +182,10 @@ export default function ChatPage() {
                   ) : (
                     getInitials(emp.full_name)
                   )}
-                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary border-2 border-sidebar" />
+                  <span
+                    className={cn('absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-sidebar', online.has(emp.id) ? 'bg-success' : 'bg-muted-foreground/40')}
+                    title={online.has(emp.id) ? 'Online' : 'Offline'}
+                  />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className={cn('truncate text-xs font-medium', isSelected && 'text-primary')}>
