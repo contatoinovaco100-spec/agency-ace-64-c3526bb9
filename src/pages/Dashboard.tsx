@@ -219,7 +219,7 @@ export default function Dashboard() {
 
   // Data de início só do cadastro do cliente (sem data, o cliente aparece no aviso do card de LTV)
   const effectiveStartDate = (c: Client): Date | null => validDate(c.contractStartDate || null);
-  const missingStart = uniqueClients.filter(c => c.status !== 'Cancelado' && effectiveMonthlyValue(c) > 0 && !effectiveStartDate(c));
+  const missingStart = uniqueClients.filter(c => c.status === 'Ativo' && effectiveMonthlyValue(c) > 0 && !effectiveStartDate(c));
 
   // Contratos assinados por cliente: só informativo na tabela, não entra no cálculo
   const contractsCountByKey = new Map<string, number>();
@@ -281,8 +281,8 @@ export default function Dashboard() {
   const allLtv = Object.entries(ltvMap)
     .map(([id, v]) => ({ id, ...v }))
     .sort((a, b) => b.ltv - a.ltv);
-  // A lista mostra só quem ainda é cliente (ativo ou pausado); cancelados entram só no histórico
-  const ltvByClient = allLtv.filter(c => c.status !== 'Cancelado');
+  // A lista mostra só clientes ativos; pausados e cancelados entram só no histórico
+  const ltvByClient = allLtv.filter(c => c.status === 'Ativo');
   // Arredonda nos centavos (média de R$ 19.000 por 3 dava R$ 6.333,333)
   const avg = (list: number[]) => (list.length ? Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 100) / 100 : 0);
   const totalLtv = ltvByClient.reduce((sum, c) => sum + c.ltv, 0);
@@ -345,6 +345,8 @@ export default function Dashboard() {
     const start = effectiveStartDate(c);
     return !!start && start >= thirtyDaysAgo;
   });
+  // MRR conquistado: mensalidade de quem entrou (pausado não conta, ainda não está pagando)
+  const newMrr30 = newClients.filter(c => c.status === 'Ativo').reduce((sum, c) => sum + effectiveMonthlyValue(c), 0);
 
   // === MoM (mês atual vs anterior) ===
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -367,6 +369,12 @@ export default function Dashboard() {
     const d = effectiveStartDate(c);
     return !!d && d >= startOfLastMonth && d <= endOfLastMonth;
   }).length;
+  const newMrrOf = (from: Date, to: Date) => clients.reduce((sum, c) => {
+    const d = effectiveStartDate(c);
+    return c.status === 'Ativo' && d && d >= from && d <= to ? sum + effectiveMonthlyValue(c) : sum;
+  }, 0);
+  const newMrrThisMonth = newMrrOf(startOfThisMonth, now);
+  const newMrrLastMonth = newMrrOf(startOfLastMonth, endOfLastMonth);
 
   // === Churn (clientes e MRR perdidos) ===
   const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -858,7 +866,7 @@ export default function Dashboard() {
                   <div className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border lg:grid-cols-5">
                     {[
                       { label: 'LTV médio', value: formatCurrency(avgLtv), hint: `${ltvByClient.length} ${ltvByClient.length === 1 ? 'cliente atual' : 'clientes atuais'}`, strong: true },
-                      { label: 'LTV médio histórico', value: formatCurrency(avgLtvHistoric), hint: cancelledInLtv ? `inclui ${cancelledInLtv} ${cancelledInLtv === 1 ? 'que já saiu' : 'que já saíram'}` : 'nenhum cancelado ainda' },
+                      { label: 'LTV médio histórico', value: formatCurrency(avgLtvHistoric), hint: cancelledInLtv ? `inclui ${cancelledInLtv} ${cancelledInLtv === 1 ? 'pausado ou cancelado' : 'pausados ou cancelados'}` : 'nenhum pausado ou cancelado' },
                       { label: 'Permanência média', value: `${avgMonthsHistoric.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} meses`, hint: 'tempo pagando, do início ao fim' },
                       { label: 'Ticket médio', value: formatCurrency(avgTicket), hint: 'mensalidade dos atuais' },
                       { label: 'LTV total', value: formatCurrency(totalLtv), hint: 'soma dos clientes atuais' },
@@ -947,9 +955,20 @@ export default function Dashboard() {
             <motion.div {...anim(8)}>
               <Card className="bg-card">
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <ArrowUpRight className="h-4 w-4 text-[hsl(var(--success))]" /> Novos Clientes (últimos 30 dias)
-                  </CardTitle>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <ArrowUpRight className="h-4 w-4 text-[hsl(var(--success))]" /> Novos Clientes (últimos 30 dias)
+                    </CardTitle>
+                    {/* MRR conquistado: o número que mostra quanto o comercial trouxe */}
+                    <div className="sm:text-right">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">MRR conquistado</p>
+                      <p className="font-display text-2xl font-semibold tabular-nums text-[hsl(var(--success))]">+{formatCurrency(newMrr30)}<span className="text-sm font-medium text-muted-foreground">/mês</span></p>
+                      <p className="text-xs text-muted-foreground">
+                        {newClients.length} {newClients.length === 1 ? 'cliente' : 'clientes'} em 30 dias · {now.toLocaleDateString('pt-BR', { month: 'long' })}: {formatCurrency(newMrrThisMonth)}
+                        {newMrrLastMonth > 0 && ` (mês passado: ${formatCurrency(newMrrLastMonth)})`}
+                      </p>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
