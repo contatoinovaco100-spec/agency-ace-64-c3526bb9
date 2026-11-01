@@ -299,6 +299,25 @@ app.get('/groups', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Membros de um grupo: telefone e nome conhecido. Quem o WhatsApp esconde (@lid sem telefone) só entra na contagem.
+app.get('/groups/:id/participants', auth, async (req, res) => {
+  const s = getSession(req.query.session);
+  if (!s || s.status !== 'CONNECTED') return res.status(503).json({ error: 'WhatsApp não conectado' });
+  try {
+    const meta = await s.sock.groupMetadata(req.params.id);
+    await loadNames(s.id);
+    const participants = [];
+    let hidden = 0;
+    for (const p of meta.participants || []) {
+      const phone = await phoneOfContact(s.id, p);
+      if (!phone) { hidden++; continue; }
+      if (phone === s.number) continue;
+      participants.push({ phone, name: nameOf(s.id, phone), admin: !!p.admin });
+    }
+    res.json({ id: meta.id, name: meta.subject, participants, hidden });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Envia texto: { to, message, session? } (sem session usa o principal)
 app.post('/send', auth, async (req, res) => {
   if (process.env.SEND_PAUSED === '1') return res.status(423).json({ error: 'Envios pausados no servidor' });

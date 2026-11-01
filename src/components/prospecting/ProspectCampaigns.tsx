@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Download, ExternalLink, Eye, Loader2, MapPin, Pencil, Plus, Search, Shuffle, Star, Trash2, X } from 'lucide-react';
+import { Download, ExternalLink, Eye, Loader2, MapPin, Pencil, Plus, Search, Shuffle, Star, Trash2, Users, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -341,6 +341,7 @@ function CampaignDetail({ campaign: c, numbers, sequences, prospects, stats, onT
             {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Buscar empresas no Google
           </Button>
           <PullFromManual campaign={c} numbers={numbers} onDone={onChanged} />
+          <PullFromGroup campaign={c} onDone={onChanged} />
           <SampleButton campaign={c} next={prospects.find((p) => p.status === 'novo')} />
           <Button variant="ghost" className="gap-1.5" onClick={onEdit}><Pencil className="h-4 w-4" /> Editar</Button>
           <Button variant="ghost" size="icon" className="ml-auto" onClick={remove} aria-label="Apagar campanha"><Trash2 className="h-4 w-4" /></Button>
@@ -358,7 +359,7 @@ function CampaignDetail({ campaign: c, numbers, sequences, prospects, stats, onT
 
       {shown.length === 0 ? (
         <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          {prospects.length === 0 ? 'Encha a fila com "Buscar empresas no Google" ou "Puxar da Manual".' : 'Nenhuma empresa neste filtro.'}
+          {prospects.length === 0 ? 'Encha a fila com "Buscar empresas no Google", "Puxar da Manual" ou "Puxar de grupo".' : 'Nenhuma empresa neste filtro.'}
         </p>
       ) : (
         <ul className="divide-y overflow-hidden rounded-xl border bg-card">
@@ -406,6 +407,79 @@ function CampaignDetail({ campaign: c, numbers, sequences, prospects, stats, onT
         </Dialog>
       )}
     </section>
+  );
+}
+
+/** Coloca na fila desta campanha os membros de um grupo do WhatsApp do número que envia a campanha */
+function PullFromGroup({ campaign: c, onDone }: { campaign: Campaign; onDone: () => void }) {
+  const [groups, setGroups] = useState<{ id: string; name: string }[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+
+  const openDialog = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.functions.invoke('wa-server', { body: { action: 'groups', session: c.session_id ?? undefined } });
+    setLoading(false);
+    if (error || data?.error) {
+      toast.error('Não foi possível listar os grupos', { description: data?.error || 'Confira se o número da campanha está conectado.' });
+      return;
+    }
+    setQ('');
+    setGroups((data?.groups ?? []) as { id: string; name: string }[]);
+  };
+
+  const pull = async (g: { id: string; name: string }) => {
+    setImporting(g.id);
+    try {
+      const r = await invoke<{ members: number; added: number; repeated: number; hidden: number }>({ action: 'import_group', campaign_id: c.id, group: g.id, group_name: g.name });
+      toast.success(`${r.added} contatos na fila`, {
+        description: `${r.members} membros com telefone · ${r.repeated} já estavam na lista${r.hidden ? ` · ${r.hidden} com número oculto pelo WhatsApp` : ''}`,
+      });
+      setGroups(null);
+      onDone();
+    } catch (e) { toast.error('Não foi possível puxar o grupo', { description: e instanceof Error ? e.message : '' }); }
+    setImporting(null);
+  };
+
+  const shown = (groups ?? []).filter((g) => g.name.toLowerCase().includes(q.trim().toLowerCase()));
+
+  return (
+    <>
+      <Button variant="outline" onClick={openDialog} disabled={loading} className="gap-1.5">
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />} Puxar de grupo
+      </Button>
+      {groups && (
+        <Dialog open onOpenChange={(o) => !o && !importing && setGroups(null)}>
+          <DialogContent className="max-w-md">
+            <DialogTitle>Puxar membros de um grupo</DialogTitle>
+            <DialogDescription>
+              Grupos do número desta campanha. Os membros entram na fila com o nome salvo no WhatsApp; quem já está em alguma lista não entra de novo.
+            </DialogDescription>
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Procurar grupo" />
+            {shown.length === 0 ? (
+              <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Nenhum grupo encontrado.</p>
+            ) : (
+              <ul className="max-h-80 space-y-1.5 overflow-y-auto">
+                {shown.map((g) => (
+                  <li key={g.id}>
+                    <button disabled={!!importing} onClick={() => pull(g)}
+                      className="flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors hover:border-primary/40 disabled:opacity-50">
+                      <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{g.name}</span>
+                      {importing === g.id && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Na mensagem, {'{empresa}'} vira o nome da pessoa (ou o número, se não tiver nome). Membros com número oculto pelo WhatsApp ficam de fora.
+            </p>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }
 

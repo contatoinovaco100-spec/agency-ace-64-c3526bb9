@@ -1,7 +1,7 @@
 // Ponte entre a plataforma e o servidor WhatsApp (QR Code) da INOVA na Oracle Cloud.
 // Só para usuários logados (verify_jwt): a chave do servidor (WA_API_KEY) nunca vai para o navegador.
 // Ações:
-//   status | groups {session?} | send {to, message, session?, lead_id?}
+//   status | groups {session?} | participants {group, session?} | send {to, message, session?, lead_id?}
 //   sessions | create {name, id?} | rename {session, name} | qr {session} | logout {session} | remove {session}
 // "send" também registra a mensagem na conversa do CRM.
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -33,6 +33,7 @@ Deno.serve(async (req) => {
     switch (action) {
       case 'status': res = await call('/status'); break;
       case 'groups': res = await call(`/groups${session ? `?session=${session}` : ''}`); break;
+      case 'participants': res = await call(`/groups/${encodeURIComponent(String(body.group ?? ''))}/participants${session ? `?session=${session}` : ''}`); break;
       case 'sessions': res = await call('/sessions'); break;
       case 'create': res = await call('/sessions', { method: 'POST', body: JSON.stringify({ name: body.name, id: body.id }) }); break;
       case 'rename': res = await call(`/sessions/${session}`, { method: 'PATCH', body: JSON.stringify({ name: body.name }) }); break;

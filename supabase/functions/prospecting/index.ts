@@ -1,5 +1,6 @@
 // Prospecção automática pelo WhatsApp.
 // - action "search" (login): busca empresas da campanha no Google (Places API oficial) e coloca na fila.
+// - action "import_group" (login): coloca na fila os membros de um grupo do WhatsApp do número da campanha.
 // - action "sample" (login): mostra como fica a mensagem da campanha para uma empresa, sem enviar.
 // - action "start" (login): liga a campanha e envia a primeira mensagem na hora.
 // - action "run" (cron a cada minuto, sem login): para cada campanha ligada, no horário e dentro do limite do dia,
@@ -299,6 +300,32 @@ Deno.serve(async (req) => {
       }
       await admin.from("prospect_campaigns").update({ last_search_at: new Date().toISOString() }).eq("id", c.id);
       return json({ found: places.length, added, no_phone: noPhone, closed, repeated });
+    }
+
+    // Membros de um grupo do WhatsApp (do número da campanha) entram na fila; telefone repetido não entra de novo
+    if (action === "import_group") {
+      if (!campaign) return json({ error: "Salve a campanha antes de importar" }, 400);
+      const url = Deno.env.get("WA_SERVER_URL");
+      if (!url) throw new Error("WA_SERVER_URL não configurado");
+      const qs = c.session_id ? `?session=${encodeURIComponent(c.session_id)}` : "";
+      const res = await fetch(`${url}/groups/${encodeURIComponent(String(body.group ?? ""))}/participants${qs}`, {
+        headers: { "x-api-key": Deno.env.get("WA_API_KEY") ?? "" },
+      });
+      const g = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(g?.error ?? `Servidor do WhatsApp: ${res.status}`);
+      const group = String(g.name || body.group_name || "grupo");
+      const rows = [];
+      for (const m of (g.participants ?? []) as { phone: string; name: string }[]) {
+        const phone = normalizePhone(m.phone);
+        if (phone) rows.push({ campaign_id: c.id, phone, name: m.name || `+${phone}`, category: c.niche || "", address: `Grupo ${group}`, website: "" });
+      }
+      let added = 0;
+      for (let i = 0; i < rows.length; i += 500) {
+        const { data, error } = await admin.from("prospects").upsert(rows.slice(i, i + 500), { onConflict: "phone", ignoreDuplicates: true }).select("id");
+        if (error) throw new Error(error.message);
+        added += data?.length ?? 0;
+      }
+      return json({ group, members: rows.length, added, repeated: rows.length - added, hidden: g.hidden ?? 0 });
     }
 
     return json({ error: "Ação desconhecida" }, 400);
