@@ -138,23 +138,45 @@ async function phoneJidOf(sessionId, m) {
   return null;
 }
 
+// Nome dos grupos (assunto), por sessão; busca no WhatsApp na primeira mensagem de cada grupo
+const groupNames = new Map();
+async function groupName(sessionId, jid) {
+  const key = `${sessionId}|${jid}`;
+  if (!groupNames.has(key)) {
+    try { groupNames.set(key, (await sessions.get(sessionId)?.sock?.groupMetadata(jid))?.subject || ''); } catch { return ''; }
+  }
+  return groupNames.get(key);
+}
+
+/** Mensagem de grupo: a conversa é o grupo; o remetente vai junto para aparecer na mensagem */
+async function groupPayload(sessionId, m) {
+  const jid = m.key.remoteJid;
+  const sender = m.key.participantAlt || m.key.participantPn || m.key.participant || '';
+  const phone = await phoneOfContact(sessionId, { id: sender, lid: m.key.participant });
+  if (!m.key.fromMe && phone && m.pushName) rememberName(sessionId, phone, m.pushName);
+  return { group: jid, groupName: await groupName(sessionId, jid), phone: phone || '', name: m.pushName || (phone ? nameOf(sessionId, phone) : '') };
+}
+
 async function forward(sessionId, m) {
   if (!INBOUND_URL) return;
-  const phoneJid = await phoneJidOf(sessionId, m);
-  // Só conversas individuais com telefone conhecido (grupos e status ficam de fora do CRM)
-  if (!phoneJid) {
-    if ((m.key?.remoteJid || '').endsWith('@lid')) console.warn(`⚠️ [${sessionId}] contato @lid sem telefone conhecido`);
-    return;
-  }
   const content = textOf(m);
   if (!content) return;
-  const phone = phoneJid.split('@')[0].split(':')[0];
-  if (!m.key.fromMe && m.pushName) rememberName(sessionId, phone, m.pushName);
-  const contactName = nameOf(sessionId, phone);
-  const body = JSON.stringify({
-    session: sessionId, phone, name: (!m.key.fromMe && m.pushName) || contactName, contactName,
-    fromMe: !!m.key.fromMe, id: m.key.id, timestamp: Number(m.messageTimestamp || Date.now() / 1000), ...content,
-  });
+  const base = { session: sessionId, fromMe: !!m.key.fromMe, id: m.key.id, timestamp: Number(m.messageTimestamp || Date.now() / 1000), ...content };
+  let body;
+  if ((m.key?.remoteJid || '').endsWith('@g.us')) {
+    body = JSON.stringify({ ...base, ...(await groupPayload(sessionId, m)) });
+  } else {
+    const phoneJid = await phoneJidOf(sessionId, m);
+    // Conversa individual sem telefone conhecido, status e canais ficam de fora do CRM
+    if (!phoneJid) {
+      if ((m.key?.remoteJid || '').endsWith('@lid')) console.warn(`⚠️ [${sessionId}] contato @lid sem telefone conhecido`);
+      return;
+    }
+    const phone = phoneJid.split('@')[0].split(':')[0];
+    if (!m.key.fromMe && m.pushName) rememberName(sessionId, phone, m.pushName);
+    const contactName = nameOf(sessionId, phone);
+    body = JSON.stringify({ ...base, phone, name: (!m.key.fromMe && m.pushName) || contactName, contactName });
+  }
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const res = await fetch(INBOUND_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY }, body });
@@ -204,6 +226,7 @@ async function startSession(id, name) {
   });
 
   // Histórico que o celular manda ao conectar por QR: importa as conversas individuais dos últimos dias
+  sock.ev.on('groups.update', (list) => { for (const g of list || []) if (g.id && g.subject) groupNames.set(`${id}|${g.id}`, g.subject); });
   sock.ev.on('contacts.upsert', (list) => rememberContacts(id, list));
   sock.ev.on('contacts.update', (list) => rememberContacts(id, list));
 

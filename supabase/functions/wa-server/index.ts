@@ -43,7 +43,15 @@ Deno.serve(async (req) => {
       case 'send': {
         res = await call('/send', { method: 'POST', body: JSON.stringify({ to: body.to, message: body.message, session: body.session }) });
         const data = await res.json().catch(() => ({}));
-        // Mensagem para pessoa (não grupo): registra na conversa do CRM
+        // Mensagem para grupo que já tem conversa no CRM: registra nela
+        if (res.ok && String(body.to ?? '').endsWith('@g.us')) {
+          const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+          const { data: conv } = await admin.from('wa_conversations').select('*')
+            .eq('session_id', String(data.session ?? body.session ?? 'default')).eq('contact_phone', body.to).maybeSingle();
+          if (conv) await recordMessage(admin, conv, { direction: 'out', content: String(body.message), wa_message_id: data.messageId ?? null });
+          return json(data, res.status);
+        }
+        // Mensagem para pessoa: registra na conversa do CRM
         const phone = String(body.to ?? '').includes('@') ? null : normalizePhone(body.to);
         if (res.ok && phone) {
           const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

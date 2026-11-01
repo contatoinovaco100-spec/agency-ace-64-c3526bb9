@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2, Search, Send, UserPlus } from 'lucide-react';
+import { ArrowLeft, Loader2, Search, Send, UserPlus, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,8 @@ const timeLabel = (iso: string) => {
     : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 };
 const fmtPhone = (p: string) => p.replace(/^55(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
+/** Conversa de grupo: o "telefone" é o id do grupo (…@g.us) */
+const isGroup = (c: Pick<Conversation, 'contact_phone'>) => c.contact_phone.endsWith('@g.us');
 
 /** Caixa de conversas do WhatsApp: todas as conversas dos números conectados, ligadas aos leads */
 export function CrmInbox({ openConversationFor }: { openConversationFor?: string | null }) {
@@ -33,7 +35,7 @@ export function CrmInbox({ openConversationFor }: { openConversationFor?: string
   const [numbers, setNumbers] = useState<NumberRow[]>([]);
   const [leads, setLeads] = useState<Record<string, { name: string; company: string; stage: string }>>({});
   const [filterNumber, setFilterNumber] = useState('todos');
-  const [onlyLeads, setOnlyLeads] = useState(false);
+  const [kind, setKind] = useState<'todas' | 'leads' | 'grupos'>('todas');
   const [search, setSearch] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
   const [missing, setMissing] = useState(false);
@@ -74,7 +76,7 @@ export function CrmInbox({ openConversationFor }: { openConversationFor?: string
   const numberName = (id: string) => numbers.find((n) => n.id === id)?.name ?? id;
   const visible = (convs ?? []).filter((c) =>
     (filterNumber === 'todos' || c.session_id === filterNumber)
-    && (!onlyLeads || !!c.lead_id)
+    && (kind === 'todas' || (kind === 'leads' ? !!c.lead_id : isGroup(c)))
     && (!search.trim() || `${c.contact_name} ${c.contact_phone} ${c.lead_id ? leads[c.lead_id]?.company ?? '' : ''}`.toLowerCase().includes(search.toLowerCase())));
   const open = convs?.find((c) => c.id === openId) ?? null;
 
@@ -103,10 +105,12 @@ export function CrmInbox({ openConversationFor }: { openConversationFor?: string
                 </button>
               );
             })}
-            <button onClick={() => setOnlyLeads((v) => !v)}
-              className={cn('ml-auto h-8 shrink-0 rounded-md border px-2.5 text-xs font-medium', onlyLeads ? 'border-primary bg-primary/10 text-foreground' : 'text-muted-foreground')}>
-              Só leads
-            </button>
+            {(['leads', 'grupos'] as const).map((k, i) => (
+              <button key={k} onClick={() => setKind((v) => (v === k ? 'todas' : k))}
+                className={cn('h-8 shrink-0 rounded-md border px-2.5 text-xs font-medium', i === 0 && 'ml-auto', kind === k ? 'border-primary bg-primary/10 text-foreground' : 'text-muted-foreground')}>
+                {k === 'leads' ? 'Só leads' : 'Grupos'}
+              </button>
+            ))}
           </div>
         </div>
         <ul className="min-h-0 flex-1 divide-y overflow-y-auto">
@@ -121,7 +125,7 @@ export function CrmInbox({ openConversationFor }: { openConversationFor?: string
               <li key={c.id}>
                 <button onClick={() => setOpenId(c.id)} className={cn('flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-foreground/[0.03]', openId === c.id && 'bg-primary/[0.07]')}>
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
-                    {(c.contact_name || '?').charAt(0).toUpperCase()}
+                    {isGroup(c) ? <Users className="h-4 w-4 text-muted-foreground" /> : (c.contact_name || '?').charAt(0).toUpperCase()}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-2">
@@ -135,6 +139,7 @@ export function CrmInbox({ openConversationFor }: { openConversationFor?: string
                     <span className="mt-1 flex flex-wrap gap-1">
                       {filterNumber === 'todos' && numbers.length > 1 && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{numberName(c.session_id)}</span>}
                       {lead && <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">{lead.stage}</span>}
+                      {isGroup(c) && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">Grupo</span>}
                       {c.client_id && <span className="rounded bg-success/15 px-1.5 py-0.5 text-[10px] font-medium text-success">Cliente</span>}
                     </span>
                   </span>
@@ -236,12 +241,12 @@ function Thread({ conv, numberName, lead, onBack, onChanged }: {
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">{lead?.company || conv.contact_name || fmtPhone(conv.contact_phone)}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {lead ? `${lead.name} · ${lead.stage}` : fmtPhone(conv.contact_phone)} · pelo número {numberName}
+            {isGroup(conv) ? 'Grupo' : lead ? `${lead.name} · ${lead.stage}` : fmtPhone(conv.contact_phone)} · pelo número {numberName}
           </p>
         </div>
         {conv.lead_id
           ? <EnrollButton leadId={conv.lead_id} session={conv.session_id} small />
-          : !conv.client_id && <Button size="sm" variant="outline" className="gap-1.5" onClick={createLead}><UserPlus className="h-3.5 w-3.5" /> Virar lead</Button>}
+          : !conv.client_id && !isGroup(conv) && <Button size="sm" variant="outline" className="gap-1.5" onClick={createLead}><UserPlus className="h-3.5 w-3.5" /> Virar lead</Button>}
       </div>
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-muted/30 p-4">
@@ -250,7 +255,7 @@ function Thread({ conv, numberName, lead, onBack, onChanged }: {
             <div key={m.id} className={cn('flex', m.direction === 'out' ? 'justify-end' : 'justify-start')}>
               <div className={cn('max-w-[78%] rounded-xl px-3 py-2 text-sm shadow-sm',
                 m.direction === 'out' ? 'bg-[#d9fdd3] text-[#111b21] dark:bg-[#005c4b] dark:text-[#e9edef]' : 'bg-card')}>
-                <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                <MessageText content={m.content} group={isGroup(conv) && m.direction === 'in'} />
                 <p className="mt-0.5 text-right text-[10px] opacity-60">{new Date(m.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
               </div>
             </div>
@@ -282,3 +287,14 @@ function Thread({ conv, numberName, lead, onBack, onChanged }: {
   );
 }
 
+
+/** Texto da mensagem; no grupo, o nome de quem escreveu ("Nome: texto") vai em destaque */
+function MessageText({ content, group }: { content: string; group: boolean }) {
+  const sender = group ? /^([^:\n]{1,60}): /.exec(content) : null;
+  return (
+    <p className="whitespace-pre-wrap break-words">
+      {sender && <span className="block text-xs font-semibold text-primary">{sender[1]}</span>}
+      {sender ? content.slice(sender[0].length) : content}
+    </p>
+  );
+}

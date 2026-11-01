@@ -1,5 +1,5 @@
-// Recebe do servidor WhatsApp cada mensagem individual (recebida ou enviada pelo celular) e grava no CRM:
-// conversa do número + contato, vínculo com lead/cliente, captura de lead novo e parada do follow-up
+// Recebe do servidor WhatsApp cada mensagem (recebida ou enviada pelo celular) e grava no CRM. Grupo vira uma conversa só do grupo.
+// Conversa individual: conversa do número + contato, vínculo com lead/cliente, captura de lead novo e parada do follow-up
 // quando o lead responde; resposta de empresa da prospecção vira lead. Autenticado pela mesma chave do servidor (WA_API_KEY).
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -50,6 +50,30 @@ async function prospectReplied(admin: any, phone: string, name: string, session:
   return { leadId: id, sequenceId: (p.prospect_campaigns?.followup_sequence_id ?? null) as string | null };
 }
 
+/** Mensagem de grupo: a conversa é o grupo (contact_phone = id …@g.us) e a mensagem leva o nome de quem escreveu.
+ *  Não cria lead; o grupo vinculado a um cliente (Clientes → Grupo do WhatsApp) aparece como cliente. */
+async function groupMessage(admin: any, session: string, m: any) {
+  const jid = String(m.group);
+  const groupName = String(m.groupName || "");
+  const conv = await upsertConversation(admin, session, jid, groupName || "Grupo");
+  if (!conv) return { error: "Não foi possível abrir a conversa do grupo" };
+  const sender = String(m.name || (m.phone ? `+${m.phone}` : "") || "Alguém");
+  const text = String(m.text || "");
+  const isNew = await recordMessage(admin, conv, {
+    direction: m.fromMe ? "out" : "in", content: m.fromMe ? text : `${sender}: ${text}`, type: m.type, wa_message_id: m.id,
+    at: new Date((Number(m.timestamp) || Date.now() / 1000) * 1000).toISOString(),
+  });
+  if (!isNew) return { ok: true, duplicate: true };
+  const patch: Record<string, unknown> = {};
+  if (groupName && conv.contact_name !== groupName) patch.contact_name = groupName;
+  if (!conv.client_id) {
+    const { data: client } = await admin.from("clients").select("id").eq("whatsapp_group_id", jid).is("deleted_at", null).limit(1).maybeSingle();
+    if (client) patch.client_id = client.id;
+  }
+  if (Object.keys(patch).length) await admin.from("wa_conversations").update(patch).eq("id", conv.id);
+  return { ok: true };
+}
+
 Deno.serve(async (req) => {
   if (req.headers.get("x-api-key") !== Deno.env.get("WA_API_KEY")) return json({ error: "Chave inválida" }, 401);
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -57,6 +81,7 @@ Deno.serve(async (req) => {
   try {
     const m = await req.json();
     const session = String(m.session || "default");
+    if (m.group) return json(await groupMessage(admin, session, m));
     const phone = normalizePhone(m.phone);
     if (!phone) return json({ ok: true, skipped: "telefone inválido" });
     const fromMe = !!m.fromMe;
