@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 // LP da Mentoria Escala Produtora. Depois de trazida para Minhas LPs, a versão editada vem do banco (slug lp-mentoria);
-// até lá, vale o arquivo estático em public/lp-mentoria. O iframe mantém o endereço limpo e o CSS isolado do app.
+// até lá, vale o arquivo estático em public/static-lps/mentoria (fora do caminho /lp-mentoria, senão o servidor entrega o arquivo direto e pula esta rota). O iframe mantém o endereço limpo e o CSS isolado do app.
 export default function MentoriaLP() {
   const [html, setHtml] = useState<string | null | undefined>(undefined);
 
@@ -21,7 +21,7 @@ export default function MentoriaLP() {
       title="Mentoria Escala Produtora"
       {...(html
         ? { srcDoc: html, sandbox: "allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms" }
-        : { src: "/lp-mentoria/index.html" })}
+        : { src: "/static-lps/mentoria/index.html" })}
       className="fixed inset-0 h-full w-full border-0"
     />
   );

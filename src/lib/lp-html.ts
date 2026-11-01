@@ -6,7 +6,7 @@ export type LpLinkField = { name: string; value: string };
 
 // LPs que nasceram como arquivo em /public e têm endereço próprio. Ao importar, passam a vir do banco e ficam editáveis.
 export const STATIC_LPS = [
-  { slug: "lp-mentoria", title: "Mentoria Escala Produtora", file: "/lp-mentoria/index.html", path: "/lp-mentoria" },
+  { slug: "lp-mentoria", title: "Mentoria Escala Produtora", file: "/static-lps/mentoria/index.html", path: "/lp-mentoria" },
 ];
 
 export function lpPublicPath(slug: string) {
@@ -147,7 +147,7 @@ export async function fetchStaticLp(file: string): Promise<string> {
   const base = new URL(file, window.location.origin);
   let html = await (await fetch(base)).text();
   const refs = new Set<string>();
-  for (const m of html.matchAll(/(?:src=["']|url\()(assets\/[^"')]+)/g)) refs.add(m[1]);
+  for (const m of html.matchAll(/(?:src=["']|url\()((?:\/[\w-]+)*\/?assets\/[^"')]+)/g)) refs.add(m[1]);
   for (const ref of refs) {
     const blob = await (await fetch(new URL(ref, base))).blob();
     const dataUrl = await new Promise<string>(ok => {
