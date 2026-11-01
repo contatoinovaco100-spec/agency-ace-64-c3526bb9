@@ -11,6 +11,7 @@ import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
+  fetchLatestWaWebVersion,
 } from '@whiskeysockets/baileys';
 
 const PORT = process.env.PORT || 8080;
@@ -35,6 +36,15 @@ const logger = pino({ level: 'warn' });
 /** @type {Map<string, {id:string,name:string,sock:any,status:string,qr:string|null,number:string|null,stopped:boolean}>} */
 const sessions = new Map();
 let versionCache = null;
+let versionAt = 0;
+/** Versão atual do WhatsApp Web (com versão velha o celular recusa o QR com "verifique sua conexão"). Renova a cada 6 h. */
+async function waVersion() {
+  if (versionCache && Date.now() - versionAt < 6 * 3_600_000) return versionCache;
+  for (const get of [fetchLatestWaWebVersion, fetchLatestBaileysVersion]) {
+    try { const r = await get({}); if (r?.version) { versionCache = r.version; versionAt = Date.now(); break; } } catch { /* tenta a próxima */ }
+  }
+  return versionCache;
+}
 
 const authDir = (id) => (id === 'default' ? LEGACY_AUTH_DIR : path.join(AUTH_ROOT, id));
 
@@ -164,9 +174,9 @@ async function startSession(id, name) {
 
   await loadNames(id);
   const { state, saveCreds } = await useMultiFileAuthState(authDir(id));
-  versionCache ??= (await fetchLatestBaileysVersion()).version;
+  const version = await waVersion();
   // syncFullHistory: ao conectar por QR o celular manda a agenda (nomes) e o histórico; o histórico só é importado se HISTORY_DAYS > 0
-  const sock = makeWASocket({ version: versionCache, logger, auth: state, syncFullHistory: true });
+  const sock = makeWASocket({ version, logger, auth: state, syncFullHistory: true });
   s.sock = sock;
   sock.ev.on('creds.update', saveCreds);
 
