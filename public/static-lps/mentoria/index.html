@@ -284,6 +284,8 @@ footer small{font-size:13px;color:var(--dim)}
 
 /* marquee de módulos */
 .pl-marq{position:relative;z-index:3;margin-top:30px;text-align:center}
+/* o arco passa da altura do palco; o conteúdo depois dele fica por cima para não ser coberto */
+.pl-stage ~ .wrap{position:relative;z-index:3}
 .pl-marq small{font-size:13px;color:var(--dim);font-weight:600}
 .marq{overflow:hidden;margin-top:22px;-webkit-mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
 .marq-t{display:flex;gap:54px;width:max-content;animation:marq 32s linear infinite}
