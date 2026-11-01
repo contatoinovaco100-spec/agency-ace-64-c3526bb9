@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProspectCampaigns } from '@/components/prospecting/ProspectCampaigns';
 import { nicheKey, nicheLabel, phoneKey } from '@/lib/prospectNiche';
+import { mapsBookmarklet, type MapsPayload } from '@/lib/mapsBookmarklet';
 import { 
   Dialog, 
   DialogContent, 
@@ -277,6 +278,42 @@ export default function ProspectionPage() {
     isGenerating: false, status: 'novo', ...extra,
   });
 
+  /** Empresas que vieram do botão "Enviar para INOVA" do Google Maps (sem IA: já vêm com telefone) */
+  const importFromMaps = async (payload: MapsPayload) => {
+    // "lanchonete em Volta Redonda" → nicho "lanchonete"
+    const niche = searchNiche.trim() || payload.query.split(/\s+(?:em|in|perto de|near)\s+/i)[0].trim() || 'Google Maps';
+    const list = payload.places.filter((p) => onlyPhone(p.phone)).map((p) => placeToLead(
+      { name: p.name, phone: p.phone, address: p.address, category: p.category, rating: p.rating, website: p.website },
+      { category: nicheLabel(niche) },
+    ));
+    const fresh = await dropKnown(list);
+    setLeads((prev) => [...prev, ...fresh]);
+    toast.success(`${fresh.length} empresas do Google Maps na lista`, { description: `${list.length} com telefone · nicho ${nicheLabel(niche)}` });
+  };
+
+  // Aberta pelo botão do Google Maps (/prospeccao#maps): avisa que está pronta e recebe a lista
+  const [mapsPayload, setMapsPayload] = useState<MapsPayload | null>(null);
+  useEffect(() => {
+    if (window.location.hash !== '#maps' || !window.opener) return;
+    const onMsg = (e: MessageEvent) => {
+      if ((e.data as MapsPayload)?.type !== 'inova-maps') return;
+      setMapsPayload(e.data as MapsPayload);
+      (e.source as Window | null)?.postMessage('inova-maps-ok', e.origin);
+    };
+    window.addEventListener('message', onMsg);
+    const ping = setInterval(() => window.opener?.postMessage('inova-maps-ready', '*'), 800);
+    const give = setTimeout(() => clearInterval(ping), 20000);
+    return () => { window.removeEventListener('message', onMsg); clearInterval(ping); clearTimeout(give); };
+  }, []);
+  // Importa depois que a lista salva carregou (para não repetir quem já está nela)
+  useEffect(() => {
+    if (!mapsPayload || !leadsLoaded) return;
+    setMapsPayload(null);
+    history.replaceState(null, '', window.location.pathname);
+    importFromMaps(mapsPayload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapsPayload, leadsLoaded]);
+
   // Busca no Google pela função prospecting (a chave fica no servidor). Traz o telefone mesmo nos nichos em que
   // a lista do Maps não mostra (lanchonete, restaurante).
   const searchGooglePlaces = async () => {
@@ -305,6 +342,16 @@ export default function ProspectionPage() {
       toast.error('Cole o texto do Google Maps primeiro.');
       return;
     }
+    // Colou o resultado do botão do Google Maps: importa direto, sem IA
+    try {
+      const pasted = JSON.parse(magicText.trim());
+      if (pasted?.type === 'inova-maps') {
+        await importFromMaps(pasted as MapsPayload);
+        setMagicText('');
+        setShowMagicModal(false);
+        return;
+      }
+    } catch { /* texto comum do Maps */ }
     if (!searchNiche.trim()) {
       toast.error('Informe o nicho dessas empresas para salvar organizado.');
       return;
@@ -644,6 +691,8 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
                 Buscar Leads
               </Button>
 
+              <MapsButtonDialog />
+
               <Dialog open={showMagicModal} onOpenChange={setShowMagicModal}>
                 <DialogTrigger asChild>
                   <Button variant="outline" className="h-12 border-primary/20 text-primary hover:bg-primary/10">
@@ -901,5 +950,45 @@ Retorne SOMENTE o texto da mensagem, sem aspas, sem explicações.`;
         </TabsContent>
       </Tabs>
     </motion.div>
+  );
+}
+
+/** Botão de favoritos "Enviar para INOVA": arrasta para a barra de favoritos e usa no Google Maps */
+function MapsButtonDialog() {
+  // href por atributo: o React avisa sobre links javascript: no JSX
+  const setLink = (el: HTMLAnchorElement | null) => el?.setAttribute('href', mapsBookmarklet(window.location.origin));
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="h-12 gap-2">
+          <MapPin className="h-4 w-4" /> Botão do Maps
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle>Puxar empresas direto do Google Maps</DialogTitle>
+          <DialogDescription>
+            Um botão nos favoritos do navegador que lê a pesquisa do Maps, abre cada empresa para pegar o telefone e manda a lista para cá. Funciona no computador.
+          </DialogDescription>
+        </DialogHeader>
+        <ol className="list-decimal space-y-3 pl-5 text-sm">
+          <li>
+            Mostre a barra de favoritos (Ctrl+Shift+B, ou Cmd+Shift+B no Mac) e <strong>arraste este botão</strong> para ela:
+            <div className="mt-2">
+              <a ref={setLink} onClick={(e) => { e.preventDefault(); toast.info('Arraste o botão para a barra de favoritos; ele funciona dentro do Google Maps.'); }}
+                className="inline-flex cursor-grab items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground shadow-sm active:cursor-grabbing">
+                <MapPin className="h-4 w-4" /> Enviar para INOVA
+              </a>
+            </div>
+          </li>
+          <li>No Google Maps, pesquise como sempre, por exemplo <em>lanchonete em Volta Redonda</em>.</li>
+          <li>Clique em <strong>Enviar para INOVA</strong> nos favoritos. Ele rola a lista e abre empresa por empresa, até 60 por vez (de 3 a 10 minutos: é mais rápido com a janela do navegador bem larga). Deixe a aba do Maps na tela: se trocar de aba, ele pausa e continua quando você voltar.</li>
+          <li>No fim, clique em <strong>Enviar para a INOVA</strong> no quadro preto: esta página abre com as empresas na lista.</li>
+        </ol>
+        <p className="text-xs text-muted-foreground">
+          Se a lista não aparecer, o resultado já fica copiado: abra o Importador Mágico, cole (Ctrl+V) e clique em Extrair. Se o Google pedir para confirmar que você não é um robô, confirme e clique no botão de novo.
+        </p>
+      </DialogContent>
+    </Dialog>
   );
 }
