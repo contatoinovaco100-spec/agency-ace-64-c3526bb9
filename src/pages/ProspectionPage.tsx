@@ -57,6 +57,19 @@ const onlyPhone = (raw: string | null | undefined) => {
 
 const MANUAL_STATUS = ['novo', 'contatado', 'interessado', 'fechado'];
 
+/** Empresa do Google devolvida pela função prospecting */
+type PlaceRow = { name: string; phone: string; address: string; category: string; rating: number | null; website: string };
+
+async function prospecting<T>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('prospecting', { body });
+  if (error || data?.error) {
+    let msg = data?.error as string | undefined;
+    if (!msg) { try { msg = (await (error as { context?: Response }).context?.json())?.error; } catch { /* sem corpo */ } }
+    throw new Error(msg || 'Função de prospecção indisponível');
+  }
+  return data as T;
+}
+
 
 
 const toRow = (l: Lead) => ({
@@ -256,8 +269,16 @@ export default function ProspectionPage() {
   const [magicText, setMagicText] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
 
-  // Google Places API key removed from client bundle. Search now falls back to opening Google Maps.
+  /** Empresa do Google (função prospecting) → lead da lista manual */
+  const placeToLead = (p: PlaceRow, extra: Partial<Lead> = {}): Lead => ({
+    id: crypto.randomUUID(), name: p.name, address: p.address, phone: p.phone, rating: Number(p.rating) || 0,
+    website: p.website, instagram: '', category: nicheLabel(searchNiche),
+    aiMessage: messageTemplate.replace(/{empresa}/gi, p.name).replace(/{agencia}/gi, agencyName),
+    isGenerating: false, status: 'novo', ...extra,
+  });
 
+  // Busca no Google pela função prospecting (a chave fica no servidor). Traz o telefone mesmo nos nichos em que
+  // a lista do Maps não mostra (lanchonete, restaurante).
   const searchGooglePlaces = async () => {
     if (!searchNiche.trim() || !searchCity.trim()) {
       toast.error('Preencha o nicho e a cidade.');
@@ -265,13 +286,17 @@ export default function ProspectionPage() {
     }
 
     setSearching(true);
-    const query = `${searchNiche} em ${searchCity}`;
-
-    // Direct Places API calls were removed because the API key was exposed in the client bundle.
-    // Open Google Maps so the user can copy results into "Magic Import" (which uses the secure edge function).
-    window.open(`https://www.google.com/maps/search/${encodeURIComponent(query)}`, '_blank');
-    toast.info('Google Maps aberto — use o ➕ ou "Magic Import" para adicionar leads.');
-    setShowManualAdd(true);
+    try {
+      const { places } = await prospecting<{ places: PlaceRow[] }>({ action: 'places', query: `${searchNiche} em ${searchCity}` });
+      const withPhone = places.filter((p) => p.phone);
+      const fresh = await dropKnown(withPhone.map((p) => placeToLead(p)));
+      setLeads((prev) => [...prev, ...fresh]);
+      toast.success(`${fresh.length} empresas novas na lista`, {
+        description: `${places.length} encontradas no Google · ${places.length - withPhone.length} sem telefone · ${withPhone.length - fresh.length} já estavam na lista`,
+      });
+    } catch (e) {
+      toast.error('Não foi possível buscar no Google', { description: e instanceof Error ? e.message : '' });
+    }
     setSearching(false);
   };
 
@@ -290,7 +315,7 @@ export default function ProspectionPage() {
       const prompt = `Você é um extrator de dados de leads do Google Maps. 
       Sua tarefa é extrair o Nome da Empresa, Telefone, Website e Instagram de cada lead contido no texto abaixo.
       Retorne APENAS um array JSON puro, no formato: [{"name": "Nome", "phone": "Telefone", "website": "URL", "instagram": "@perfil"}].
-      Se não houver telefone no lead, ignore-o. Se não houver website ou instagram, deixe como string vazia "".
+      Inclua também as empresas sem telefone, com "phone": "". Se não houver website ou instagram, deixe como string vazia "".
       Texto: ${magicText}`;
 
       const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-copywriter', {
@@ -324,8 +349,19 @@ export default function ProspectionPage() {
         return;
       }
 
+      // Sem telefone no texto (a lista do Maps não mostra em lanchonete, restaurante…): procura pelo nome no Google
+      const missing = extractedLeads.filter((item: any) => item?.name && !onlyPhone(item.phone)).map((item: any) => String(item.name));
+      if (missing.length) {
+        const { found } = await prospecting<{ found: Record<string, PlaceRow | null> }>({ action: 'phones', names: missing, city: searchCity })
+          .catch(() => ({ found: {} as Record<string, PlaceRow | null> }));
+        for (const item of extractedLeads) {
+          const p = item?.name ? found[String(item.name)] : null;
+          if (p?.phone && !onlyPhone(item.phone)) Object.assign(item, { phone: p.phone, website: item.website || p.website, address: p.address });
+        }
+      }
+
       const newLeads: Lead[] = extractedLeads
-        .filter((item: any) => item && item.name && item.phone)
+        .filter((item: any) => item && item.name && onlyPhone(item.phone))
         .map((item: any) => {
           const filledMessage = messageTemplate
             .replace(/{empresa}/gi, item.name)
@@ -333,7 +369,7 @@ export default function ProspectionPage() {
           return {
             id: crypto.randomUUID(),
             name: String(item.name),
-            address: '',
+            address: String(item.address || ''),
             phone: String(item.phone),
             rating: 0,
             website: item.website || '',

@@ -1,5 +1,6 @@
 // Prospecção automática pelo WhatsApp.
 // - action "search" (login): busca empresas da campanha no Google (Places API oficial) e coloca na fila.
+// - action "places" / "phones" (login): busca no Google para a prospecção manual (lista com telefone / telefone pelo nome).
 // - action "import_group" (login): coloca na fila os membros de um grupo do WhatsApp do número da campanha.
 // - action "sample" (login): mostra como fica a mensagem da campanha para uma empresa, sem enviar.
 // - action "start" (login): liga a campanha e envia a primeira mensagem na hora.
@@ -61,6 +62,13 @@ async function searchPlaces(query: string, pages = 3) {
 
 // ─── Mensagem da campanha (escrita por você) ─────────────────────────────────
 /** Troca {empresa}, {nicho} e {cidade} e sorteia variações {Oi|Olá|Bom dia} (cada empresa recebe uma combinação) */
+/** Empresa do Google no formato da prospecção (telefone só com dígitos e 55) */
+const placeRow = (pl: any) => ({
+  name: pl.displayName?.text ?? "Empresa", phone: normalizePhone(pl.internationalPhoneNumber || pl.nationalPhoneNumber) ?? "",
+  address: pl.formattedAddress ?? "", category: pl.primaryTypeDisplayName?.text ?? "", rating: pl.rating ?? null,
+  reviews: pl.userRatingCount ?? null, website: pl.websiteUri ?? "", maps_url: pl.googleMapsUri ?? "",
+});
+
 function renderMessage(c: Campaign, p: Pick<Prospect, "name" | "category">) {
   const text = String(c.example_message ?? "").trim();
   if (!text) throw new Error("Escreva a mensagem da campanha em Editar");
@@ -263,6 +271,26 @@ Deno.serve(async (req) => {
     const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     const { data: user } = await admin.auth.getUser(token);
     if (!user?.user) return json({ error: "Faça login na plataforma" }, 401);
+
+    // Prospecção manual: busca no Google pela chave do servidor (lanchonete/restaurante não mostra telefone na lista do Maps)
+    if (action === "places") {
+      const query = String(body.query ?? "").trim();
+      if (!query) return json({ error: "Informe o nicho e a cidade" }, 400);
+      const places = (await searchPlaces(query)).filter((pl) => !pl.businessStatus || pl.businessStatus === "OPERATIONAL");
+      return json({ places: places.map(placeRow) });
+    }
+    // Telefone de empresas que vieram sem número (Importador Mágico): o primeiro resultado de "nome + cidade"
+    if (action === "phones") {
+      const names = ((body.names ?? []) as string[]).map(String).filter(Boolean).slice(0, 60);
+      const out: Record<string, ReturnType<typeof placeRow> | null> = {};
+      for (let i = 0; i < names.length; i += 6) {
+        await Promise.all(names.slice(i, i + 6).map(async (n) => {
+          const first = (await searchPlaces(`${n} ${String(body.city ?? "")}`.trim(), 1).catch(() => []))[0];
+          out[n] = first ? placeRow(first) : null;
+        }));
+      }
+      return json({ found: out });
+    }
 
     const { data: campaign } = await admin.from("prospect_campaigns").select("*").eq("id", body.campaign_id).maybeSingle();
     const c = { ...(campaign ?? {}), ...(body.draft ?? {}) } as Campaign;
