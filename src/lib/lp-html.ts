@@ -84,6 +84,13 @@ export function setLpLink(doc: Document, name: string, value: string) {
   });
 }
 
+/** Copia os links configuráveis (WhatsApp, Instagram…) de uma versão da LP para outra. */
+export function carryLpLinks(fromHtml: string, toHtml: string): string {
+  const to = parseLp(toHtml);
+  lpLinkFields(parseLp(fromHtml)).forEach(l => setLpLink(to, l.name, l.value));
+  return serializeLp(to);
+}
+
 /** Imagens usadas na página: <img src> e url(...) do CSS. */
 export function lpImages(html: string): string[] {
   const found = new Set<string>();

@@ -316,7 +316,7 @@ footer small{font-size:13px;color:var(--dim)}
 .mk small{font-size:10px;font-weight:700;color:var(--dim)}
 .mk i{display:block;height:24px;border-radius:7px;background:var(--card-2);border:1px solid var(--line)}
 .mk i.mv{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.45);animation:hop 5s var(--ease) infinite}
-@keyframes hop{0%,20%{transform:none}40%,70%{transform:translateX(calc(100% + 17px))}90%,100%{transform:translateX(calc(200% + 34px))}}
+@keyframes hop{0%,20%{transform:none}40%,70%{transform:translateX(calc(100% + 26px))}90%,100%{transform:translateX(calc(200% + 52px))}}
 .beam{position:absolute;left:50%;top:-10px;width:70%;height:62%;transform:translateX(-50%);
   background:linear-gradient(180deg,rgba(193,249,32,.95),rgba(34,197,94,.55) 55%,rgba(34,197,94,0));
   clip-path:polygon(0 0,100% 0,62% 100%,38% 100%);filter:blur(1px);animation:beam 4s ease-in-out infinite}
@@ -343,6 +343,119 @@ footer small{font-size:13px;color:var(--dim)}
 .spark svg:nth-child(2){width:26px;left:58%;top:6px;animation-delay:-1s;color:var(--lime)}
 .spark svg:nth-child(3){width:20px;left:20%;top:70px;animation-delay:-2s}
 @keyframes twinkle{50%{transform:scale(.7) rotate(20deg);opacity:.6}}
+/* bento: segunda leva de cards interativos */
+.bento.b2{margin-top:14px}
+.bx-t{grid-row:span 2;display:flex;flex-direction:column}
+.mk i:not(.mv){cursor:pointer;transition:border-color .25s,background .25s}
+.mk i:not(.mv):hover{border-color:rgba(193,249,32,.5);background:rgba(193,249,32,.08)}
+.mk-hint{display:block;margin-top:10px;font-size:11px;color:var(--dim);position:relative}
+.pipe div{border-radius:8px;transition:color .25s}
+.pipe div:hover{color:#fff}
+.pipe div:hover span i{filter:brightness(1.25) saturate(1.2)}
+.mini-bars i{transition:height 1s var(--ease),filter .25s,transform .25s;transform-origin:bottom}
+.mini-bars i:hover{filter:brightness(1.35);transform:scaleY(1.06)}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+
+/* aprovação de vídeo */
+.ap{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;margin-top:20px;position:relative}
+.ap-v{position:relative;border-radius:14px;overflow:hidden;aspect-ratio:16/10;background:radial-gradient(120% 90% at 30% 20%,#245a37,#0b120e 70%);border:1px solid var(--line)}
+.ap-v::before{content:"";position:absolute;inset:0;background:radial-gradient(40% 60% at 72% 62%,rgba(193,249,32,.22),transparent 70%);animation:breatheS 5s ease-in-out infinite}
+@keyframes breatheS{50%{opacity:.4}}
+.ap-play{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);display:grid;place-items:center;backdrop-filter:blur(6px)}
+.ap-tag{position:absolute;left:12px;top:12px;font-size:10px;font-weight:800;letter-spacing:.06em;padding:4px 8px;border-radius:6px;background:rgba(0,0,0,.45);color:#fff}
+.ap-bar{position:absolute;left:12px;right:12px;bottom:14px;height:4px;border-radius:4px;background:rgba(255,255,255,.18)}
+.ap-bar i{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:4px;background:var(--lime);animation:playbar 9s linear infinite}
+.ap-bar em{position:absolute;top:50%;left:var(--x);width:9px;height:9px;border-radius:50%;background:#facc15;border:2px solid #0b120e;transform:translate(-50%,-50%)}
+@keyframes playbar{to{width:100%}}
+.ap-side{display:flex;flex-direction:column;gap:8px}
+.ap-c{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border-radius:11px;background:rgba(255,255,255,.03);border:1px solid var(--line);font-size:11.5px;line-height:1.4;color:var(--muted);opacity:0;transform:translateY(8px);transition:opacity .5s var(--ease),transform .5s var(--ease)}
+.ap-c b{display:block;color:#fff;font-size:11px}
+.ap-c i{flex:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#c1f920,#16a34a)}
+.ap-c:nth-child(2) i{background:linear-gradient(135deg,#60a5fa,#1e3a8a)}
+.bx.in .ap-c{opacity:1;transform:none}
+.bx.in .ap-c:nth-child(2){transition-delay:.6s}
+.ap-btn{margin-top:auto;height:40px;border-radius:999px;border:1px solid rgba(34,197,94,.5);background:rgba(34,197,94,.12);color:#fff;font:700 13px var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;position:relative;transition:background .3s,color .3s,transform .2s}
+.ap-btn:hover{background:rgba(34,197,94,.24)}
+.ap-btn:active{transform:scale(.97)}
+.ap-btn.ok{background:var(--green);border-color:var(--green);color:#04140a}
+.ap-btn.ok::after{content:"";position:absolute;inset:-2px;border-radius:inherit;border:2px solid var(--lime);animation:ring .7s var(--ease) forwards}
+@keyframes ring{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(1.25,1.6)}}
+
+/* whatsapp automático */
+.wa{margin-top:18px;flex:1;display:flex;flex-direction:column;border-radius:16px;background:#0a0f0c;border:1px solid var(--line);overflow:hidden;min-height:330px;position:relative}
+.wa-h{display:flex;align-items:center;gap:9px;padding:11px 12px;border-bottom:1px solid var(--line);font-size:12px;font-weight:700}
+.wa-h i{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#f472b6,#831843)}
+.wa-h em{display:block;font-style:normal;font-size:10px;color:var(--green);font-weight:600}
+.wa-b{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;padding:12px}
+.wa-m{max-width:86%;padding:8px 11px;border-radius:13px;font-size:12px;line-height:1.4;animation:msgIn .45s var(--ease) both}
+.wa-m.me{align-self:flex-end;background:#14532d;color:#e7ffe9;border-bottom-right-radius:4px}
+.wa-m.them{align-self:flex-start;background:#1b211e;color:#d6dcd9;border-bottom-left-radius:4px}
+.wa-m small{display:block;margin-top:3px;font-size:9.5px;opacity:.6;text-align:right}
+.wa-typing{display:flex;gap:4px;padding:11px 13px}
+.wa-typing span{width:6px;height:6px;border-radius:50%;background:#8b9490;animation:dot 1s infinite}
+.wa-typing span:nth-child(2){animation-delay:.15s}.wa-typing span:nth-child(3){animation-delay:.3s}
+@keyframes dot{30%{transform:translateY(-4px);opacity:1}0%,60%,100%{opacity:.4;transform:none}}
+
+/* agenda de gravações */
+.ag{margin-top:18px;position:relative}
+.ag-days{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.ag-days button{cursor:pointer;text-align:center;padding:8px 0 7px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.02);font:700 10.5px var(--font);color:var(--dim);transition:background .25s,border-color .25s,color .25s}
+.ag-days button b{display:block;font-size:16px;color:#fff;margin-top:2px}
+.ag-days button i{display:block;width:5px;height:5px;border-radius:50%;margin:5px auto 0;background:var(--green)}
+.ag-days button.free i{background:transparent}
+.ag-days button:hover{border-color:rgba(255,255,255,.18)}
+.ag-days button.on{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.55);color:var(--green)}
+.ag-card{margin-top:10px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--line);display:flex;gap:12px;align-items:center;animation:msgIn .4s var(--ease)}
+.ag-card .t{flex:none;font-size:12px;font-weight:800;color:#04140a;background:var(--lime);border-radius:8px;padding:6px 8px}
+.ag-card b{display:block;font-size:12.5px}
+.ag-card em{font-style:normal;font-size:11px;color:var(--muted)}
+
+/* contrato com assinatura */
+.ct{position:relative;margin-top:18px;border-radius:12px;background:#eef1ef;padding:14px 16px;height:150px;overflow:hidden;cursor:pointer;box-shadow:0 18px 40px -18px rgba(0,0,0,.8);transform:rotate(-1.5deg);transition:transform .4s var(--ease)}
+.ct:hover{transform:rotate(0) translateY(-3px)}
+.ct small{display:block;font-size:9.5px;font-weight:800;letter-spacing:.08em;color:#1f2a24;margin-bottom:10px}
+.ct > i{display:block;height:5px;border-radius:3px;background:#d3d9d6;margin-bottom:7px}
+.ct svg{position:absolute;left:16px;bottom:22px;width:120px;height:42px;fill:none;stroke:#13241a;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.ct svg path{stroke-dasharray:260;stroke-dashoffset:260}
+.ct .ln{position:absolute;left:16px;bottom:20px;width:130px;height:1px;background:#9aa49f}
+.ct-st{position:absolute;right:14px;bottom:16px;padding:6px 10px;border:2px solid #16a34a;border-radius:8px;color:#16a34a;font-size:11px;font-weight:800;letter-spacing:.08em;opacity:0;transform:rotate(-12deg) scale(1.7)}
+.bx.in .ct svg path{animation:draw 1.6s .4s var(--ease) forwards}
+.bx.in .ct-st{animation:stamp .45s 1.9s cubic-bezier(.3,1.6,.5,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes stamp{to{opacity:1;transform:rotate(-12deg) scale(1)}}
+
+/* radar de prospecção */
+.rd-w{display:flex;align-items:center;gap:16px;margin-top:16px;position:relative}
+.rd{position:relative;flex:none;width:132px;aspect-ratio:1;border-radius:50%;border:1px solid rgba(34,197,94,.3);background:repeating-radial-gradient(circle,transparent 0 21px,rgba(34,197,94,.14) 21px 22px)}
+.rd-sw{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(34,197,94,.55),transparent 24%);animation:spin 3s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.rd b{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 12px var(--lime);opacity:0;animation:blip 3s var(--d) infinite}
+@keyframes blip{0%,100%{opacity:0;transform:scale(.4)}8%,45%{opacity:1;transform:scale(1)}}
+.rd-l{display:grid;gap:7px;flex:1;min-width:0}
+.rd-l span{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--line);font-size:11.5px;color:var(--muted);white-space:nowrap;animation:leadIn 6s var(--d) infinite both}
+.rd-l span em{font-style:normal;color:var(--lime);font-weight:700}
+@keyframes leadIn{0%{opacity:0;transform:translateX(10px)}8%,85%{opacity:1;transform:none}100%{opacity:0}}
+
+/* desempenho da equipe */
+.tm-w{display:grid;grid-template-columns:150px 1fr;gap:26px;align-items:center;margin-top:18px;position:relative}
+.gauge{position:relative;width:150px;aspect-ratio:1}
+.gauge svg{width:100%;height:100%;transform:rotate(-90deg)}
+.gauge circle{fill:none;stroke-width:12}
+.gauge .bg{stroke:rgba(255,255,255,.07)}
+.gauge .fg{stroke:url(#gaugeG);stroke-linecap:round;stroke-dasharray:377;stroke-dashoffset:377;transition:stroke-dashoffset 1.8s var(--ease)}
+.bx.in .gauge .fg{stroke-dashoffset:calc(377 - 377 * var(--p) / 100)}
+.gauge div{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.gauge b{font-size:32px;letter-spacing:-.04em}
+.gauge small{font-size:10.5px;color:var(--dim);font-weight:700}
+.tm{display:grid;gap:11px}
+.tm div{display:grid;grid-template-columns:20px 92px 1fr 28px;align-items:center;gap:10px;font-size:11.5px;color:var(--muted);font-weight:600;transition:color .25s}
+.tm div:hover{color:#fff}
+.tm div > i{width:20px;height:20px;border-radius:50%;background:var(--c)}
+.tm span{height:8px;border-radius:8px;background:rgba(255,255,255,.06);overflow:hidden}
+.tm span em{display:block;height:100%;width:0;border-radius:8px;background:linear-gradient(90deg,#22c55e,#c1f920);transition:width 1.4s var(--ease)}
+.bx.in .tm span em{width:var(--w)}
+.tm div:hover span em{filter:brightness(1.25)}
+.tm b{color:#fff;text-align:right}
 
 /* organização */
 .org{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center;margin-top:120px}
@@ -393,6 +506,7 @@ footer small{font-size:13px;color:var(--dim)}
   .bento{grid-template-columns:1fr 1fr}
   .bx-a{grid-column:span 2}
   .bx-c{grid-row:auto;min-height:320px}
+  .bx-t{grid-row:auto}
   .org{grid-template-columns:1fr;gap:40px;margin-top:90px}
   .org.rev .org-art{order:0}
   .org-art:has(.ochart){aspect-ratio:auto;padding:28px 0}
@@ -413,11 +527,18 @@ footer small{font-size:13px;color:var(--dim)}
   .bento{grid-template-columns:1fr}
   .bx-a{grid-column:auto}
   .ia{grid-template-columns:1fr}
+  .ap{grid-template-columns:1fr}
+  .tm-w{grid-template-columns:1fr;justify-items:center}
+  .tm{width:100%}
+  .rd-w{flex-direction:column;align-items:stretch}
+  .rd{margin:0 auto}
   .marq-t span{font-size:17px}
   .chip-f{display:none}
 }
 @media (prefers-reduced-motion:reduce){
-  .pl-arc::after,.rings i:first-child,.marq-t,.beam,.beam-badge,.ochart,.report,.chip-f,.mk i.mv,.spark svg,.pl-glow{animation:none}
+  .pl-arc::after,.rings i:first-child,.marq-t,.beam,.beam-badge,.ochart,.report,.chip-f,.mk i.mv,.spark svg,.pl-glow,.ap-v::before,.ap-bar i,.rd-sw,.rd b,.rd-l span,.wa-typing span{animation:none}
+  .rd b{opacity:1}
+  .ap-bar i{width:40%}
   .blur-in .w{opacity:1;filter:none;transform:none;transition:none}
 }
 
@@ -730,6 +851,7 @@ footer small{font-size:13px;color:var(--dim)}
         <h4>Kanban de produção</h4>
         <p>Cada vídeo com dono, prazo e etapa visível.</p>
         <div class="mk"><div><small>Briefing</small><i class="mv"></i><i></i></div><div><small>Edição</small><i></i><i></i><i></i></div><div><small>Aprovado</small><i></i></div></div>
+        <span class="mk-hint">Clique num card para mudar de etapa.</span>
       </div>
       <div class="bx rv">
         <h4>CRM e propostas</h4>
@@ -750,6 +872,87 @@ footer small{font-size:13px;color:var(--dim)}
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c1 7 5 11 12 12-7 1-11 5-12 12-1-7-5-11-12-12 7-1 11-5 12-12z"/></svg>
           </div>
           <div class="ia-out" aria-hidden="true"><span><i></i>Roteiro de 30s gerado</span><span><i></i>Legenda pronta para aprovação</span><span><i></i>Briefing resumido em 5 tópicos</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bento b2">
+      <div class="bx bx-a rv">
+        <h4>Aprovação de vídeo</h4>
+        <p>O cliente assiste, comenta no minuto certo e aprova com um clique.</p>
+        <div class="ap">
+          <div class="ap-v" aria-hidden="true">
+            <span class="ap-tag">REELS · V2</span>
+            <span class="ap-play"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M7 4v16l13-8z"/></svg></span>
+            <span class="ap-bar"><i></i><em style="--x:28%"></em><em style="--x:64%"></em></span>
+          </div>
+          <div class="ap-side">
+            <div class="ap-c"><i></i><div><b>Cliente · 0:08</b>Amei essa abertura, mantém!</div></div>
+            <div class="ap-c"><i></i><div><b>Editor · 0:19</b>Troquei a trilha do final como pediu.</div></div>
+            <button class="ap-btn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg><span>Aprovar vídeo</span></button>
+          </div>
+        </div>
+      </div>
+      <div class="bx bx-t rv">
+        <h4>WhatsApp no automático</h4>
+        <p>Aviso de entrega, aprovação e relatório saem sozinhos para o cliente.</p>
+        <div class="wa">
+          <div class="wa-h"><i></i><div>Clínica Bem Estar<em>online</em></div></div>
+          <div class="wa-b">
+            <div class="wa-m me">Oi! Seu vídeo da semana está pronto para aprovação 🎬<small>09:02</small></div>
+            <div class="wa-m them">Amei! Só troca a música do final?<small>09:15</small></div>
+            <div class="wa-m me">Ajuste anotado. A nova versão chega hoje ✅<small>09:16</small></div>
+            <div class="wa-m them">Aprovado! Pode postar 🔥<small>14:40</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="bx rv">
+        <h4>Agenda de gravações</h4>
+        <p>Toda captação da semana com horário, cliente e equipe.</p>
+        <div class="ag">
+          <div class="ag-days">
+            <button type="button" class="on" data-ev="09h|Gravação de Reels|Clínica · estúdio">Seg<b>3</b><i></i></button>
+            <button type="button" class="free" data-ev="Livre|Dia de edição|Sem captação">Ter<b>4</b><i></i></button>
+            <button type="button" data-ev="14h|Captação de evento|Academia · externa">Qua<b>5</b><i></i></button>
+            <button type="button" data-ev="10h|Podcast · 2 episódios|Restaurante · estúdio">Qui<b>6</b><i></i></button>
+            <button type="button" data-ev="16h|Reunião de resultado|Todos os clientes">Sex<b>7</b><i></i></button>
+          </div>
+          <div class="ag-card"><span class="t">09h</span><div><b>Gravação de Reels</b><em>Clínica · estúdio</em></div></div>
+        </div>
+      </div>
+      <div class="bx rv">
+        <h4>Contrato com assinatura digital</h4>
+        <p>O cliente assina pelo celular e o contrato já entra na carteira.</p>
+        <div class="ct" title="Clique para assinar de novo">
+          <small>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</small>
+          <i style="width:92%"></i><i style="width:78%"></i><i style="width:85%"></i><i style="width:40%"></i>
+          <span class="ln"></span>
+          <svg viewBox="0 0 120 42" aria-hidden="true"><path d="M4 30c8-14 14-22 18-20s-6 24-2 24 10-22 16-22-2 18 3 18 8-12 12-12 0 10 4 10 10-8 16-9 14 3 22-2 14-6 20-8"/></svg>
+          <span class="ct-st">ASSINADO</span>
+        </div>
+      </div>
+      <div class="bx rv">
+        <h4>Prospecção com IA</h4>
+        <p>Encontra empresas da sua região e entrega o lead pronto para abordar.</p>
+        <div class="rd-w" aria-hidden="true">
+          <div class="rd"><span class="rd-sw"></span><b style="left:64%;top:22%;--d:0s"></b><b style="left:26%;top:58%;--d:1s"></b><b style="left:70%;top:68%;--d:2s"></b></div>
+          <div class="rd-l"><span style="--d:0s">Clínica <em>4,8★</em></span><span style="--d:1s">Academia <em>novo</em></span><span style="--d:2s">Restaurante <em>4,6★</em></span></div>
+        </div>
+      </div>
+      <div class="bx bx-a rv">
+        <h4>Desempenho da equipe</h4>
+        <p>Quem entregou, quanto e no prazo, sem precisar perguntar.</p>
+        <div class="tm-w">
+          <div class="gauge" style="--p:92">
+            <svg viewBox="0 0 140 140" aria-hidden="true"><defs><linearGradient id="gaugeG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22c55e"/><stop offset="1" stop-color="#c1f920"/></linearGradient></defs><circle class="bg" cx="70" cy="70" r="60"/><circle class="fg" cx="70" cy="70" r="60"/></svg>
+            <div><b data-count="92" data-suffix="%">92%</b><small>no prazo</small></div>
+          </div>
+          <div class="tm">
+            <div><i style="--c:linear-gradient(135deg,#c1f920,#16a34a)"></i>Editor<span><em style="--w:88%"></em></span><b data-count="34">34</b></div>
+            <div><i style="--c:linear-gradient(135deg,#60a5fa,#1e3a8a)"></i>Social media<span><em style="--w:72%"></em></span><b data-count="28">28</b></div>
+            <div><i style="--c:linear-gradient(135deg,#f472b6,#831843)"></i>Videomaker<span><em style="--w:58%"></em></span><b data-count="19">19</b></div>
+            <div><i style="--c:linear-gradient(135deg,#facc15,#a16207)"></i>Designer<span><em style="--w:46%"></em></span><b data-count="15">15</b></div>
+          </div>
         </div>
       </div>
     </div>
@@ -999,6 +1202,91 @@ document.querySelectorAll('.bx').forEach(b => b.addEventListener('pointermove', 
   b.style.setProperty('--mx', e.clientX - r.left + 'px');
   b.style.setProperty('--my', e.clientY - r.top + 'px');
 }));
+
+// Bento: números contam ao aparecer
+const countIO = new IntersectionObserver(entries => entries.forEach(e => {
+  if (!e.isIntersecting) return;
+  countIO.unobserve(e.target);
+  if (still.matches) return;
+  const el = e.target, end = +el.dataset.count, suf = el.dataset.suffix || '', t0 = performance.now();
+  const step = t => {
+    const p = Math.min((t - t0) / 1400, 1);
+    el.textContent = Math.round(end * (1 - Math.pow(1 - p, 3))) + suf;
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}), { threshold: .6 });
+document.querySelectorAll('[data-count]').forEach(el => countIO.observe(el));
+document.querySelectorAll('.pipe b').forEach(el => { el.dataset.count = el.textContent; countIO.observe(el); });
+
+// Kanban: clique num card para passar para a próxima etapa
+document.querySelectorAll('.mk').forEach(mk => mk.addEventListener('click', e => {
+  const card = e.target.closest('i:not(.mv)');
+  if (!card) return;
+  const cols = [...mk.children];
+  cols[(cols.indexOf(card.parentElement) + 1) % cols.length].appendChild(card);
+  card.animate([{ transform: 'scale(.8)', opacity: .2 }, { transform: 'none', opacity: 1 }], { duration: 380, easing: 'cubic-bezier(.16,1,.3,1)' });
+}));
+
+// Aprovação: o botão aprova e volta depois de alguns segundos
+document.querySelectorAll('.ap-btn').forEach(b => b.addEventListener('click', () => {
+  if (b.classList.contains('ok')) return;
+  const label = b.querySelector('span'), before = label.textContent;
+  b.classList.add('ok'); label.textContent = 'Aprovado';
+  setTimeout(() => { b.classList.remove('ok'); label.textContent = before; }, 2600);
+}));
+
+// Agenda: troca de dia sozinha; clicar num dia fixa a escolha
+document.querySelectorAll('.ag').forEach(ag => {
+  const days = [...ag.querySelectorAll('.ag-days button')], out = ag.querySelector('.ag-card');
+  let i = 0, hold = false;
+  const show = k => {
+    i = k;
+    days.forEach((d, j) => d.classList.toggle('on', j === k));
+    const [t, title, sub] = days[k].dataset.ev.split('|');
+    out.querySelector('.t').textContent = t;
+    out.querySelector('b').textContent = title;
+    out.querySelector('em').textContent = sub;
+    out.style.animation = 'none'; void out.offsetWidth; out.style.animation = '';
+  };
+  days.forEach((d, k) => d.addEventListener('click', () => { hold = true; show(k); }));
+  ag.addEventListener('mouseenter', () => { hold = true; });
+  ag.addEventListener('mouseleave', () => { hold = false; });
+  setInterval(() => { if (!hold && !still.matches && ag.closest('.bx.in')) show((i + 1) % days.length); }, 2600);
+});
+
+// Contrato: clicar assina de novo
+document.querySelectorAll('.ct').forEach(c => c.addEventListener('click', () => {
+  c.querySelectorAll('path, .ct-st').forEach(el => { el.style.animation = 'none'; void el.getBoundingClientRect(); el.style.animation = ''; });
+}));
+
+// WhatsApp: a conversa se escreve sozinha enquanto o card está na tela
+document.querySelectorAll('.wa').forEach(wa => {
+  if (still.matches) return;
+  const body = wa.querySelector('.wa-b'), msgs = [...body.children].map(n => n.cloneNode(true));
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  let visible = false, running = false;
+  async function loop() {
+    running = true;
+    while (visible) {
+      body.innerHTML = '';
+      for (const m of msgs) {
+        if (!visible) break;
+        if (m.classList.contains('them')) {
+          const t = document.createElement('div');
+          t.className = 'wa-m them wa-typing';
+          t.innerHTML = '<span></span><span></span><span></span>';
+          body.append(t); await wait(1100); t.remove();
+        }
+        body.append(m.cloneNode(true));
+        await wait(1300);
+      }
+      await wait(3200);
+    }
+    running = false;
+  }
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible && !running) loop(); }).observe(wa);
+});
 </script>
 </body>
 </html>

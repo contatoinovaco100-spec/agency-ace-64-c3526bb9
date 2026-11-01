@@ -15,8 +15,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { LpEditor } from "@/components/lp/LpEditor";
-import { STATIC_LPS, fetchStaticLp, lpPublicPath, slugifyLp } from "@/lib/lp-html";
-import { Copy, Download, ExternalLink, Eye, EyeOff, Loader2, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { STATIC_LPS, carryLpLinks, fetchStaticLp, lpPublicPath, slugifyLp } from "@/lib/lp-html";
+import { Copy, Download, ExternalLink, Eye, EyeOff, Loader2, MoreHorizontal, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 type Lp = { id: string; slug: string; title: string; published: boolean; updated_at: string };
 
@@ -59,6 +59,7 @@ export default function MyLandingPagesPage() {
   const [newBase, setNewBase] = useState("blank");
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState<Lp | null>(null);
+  const [refreshing, setRefreshing] = useState<Lp | null>(null);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -118,6 +119,30 @@ export default function MyLandingPagesPage() {
     setCreating(false); setNewTitle(""); setNewSlug(""); setNewBase("blank");
     await load();
     setEditing(data);
+  }
+
+  // Traz a versão nova do arquivo da LP e mantém os links que o usuário configurou
+  async function refreshFromStatic(lp: Lp) {
+    const s = STATIC_LPS.find(x => x.slug === lp.slug);
+    if (!s) return;
+    setBusy(true);
+    try {
+      const [fresh, { data, error: readErr }] = await Promise.all([
+        fetchStaticLp(s.file),
+        supabase.from("figma_landing_pages").select("generated_html").eq("id", lp.id).single(),
+      ]);
+      if (readErr) throw readErr;
+      const html = carryLpLinks(data?.generated_html ?? "", fresh);
+      const { error } = await supabase.from("figma_landing_pages").update({ generated_html: html }).eq("id", lp.id);
+      if (error) throw error;
+      toast({ title: "LP atualizada", description: "A versão nova já está no ar, com os seus links." });
+      load();
+    } catch (e) {
+      toast({ title: "Não foi possível atualizar", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
+    } finally {
+      setBusy(false);
+      setRefreshing(null);
+    }
   }
 
   async function togglePublished(lp: Lp) {
@@ -205,6 +230,9 @@ export default function MyLandingPagesPage() {
                   <DropdownMenuItem onClick={() => togglePublished(lp)}>
                     {lp.published ? <><EyeOff className="mr-2 h-4 w-4" /> Tirar do ar</> : <><Eye className="mr-2 h-4 w-4" /> Publicar</>}
                   </DropdownMenuItem>
+                  {STATIC_LPS.some(s => s.slug === lp.slug) && (
+                    <DropdownMenuItem onClick={() => setRefreshing(lp)}><RefreshCw className="mr-2 h-4 w-4" /> Atualizar com a versão nova</DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleting(lp)}>
                     <Trash2 className="mr-2 h-4 w-4" /> Excluir
@@ -269,6 +297,23 @@ export default function MyLandingPagesPage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleting && removeLp(deleting)}>
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!refreshing} onOpenChange={o => !o && !busy && setRefreshing(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Atualizar “{refreshing?.title}” com a versão nova?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Entram as seções e animações novas. Seus links (WhatsApp, checkout, Instagram) são mantidos, mas textos e imagens que você mudou no editor voltam para os da versão nova.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction disabled={busy} onClick={e => { e.preventDefault(); if (refreshing) refreshFromStatic(refreshing); }}>
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Atualizar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
