@@ -143,6 +143,7 @@ const FigmaToLpPage             = lazy(() => import("./pages/FigmaToLpPage"));
 const PublicLandingPage         = lazy(() => import("./pages/PublicLandingPage"));
 const ConsultaCnpjPage          = lazy(() => import("./pages/ConsultaCnpjPage"));
 const MentoriaLP                = lazy(() => import("./pages/MentoriaLP"));
+const MyLandingPagesPage        = lazy(() => import("./pages/MyLandingPagesPage"));
 
 // Finance & Rede
 const FinancePage               = lazy(() => import("./pages/FinancePage"));
@@ -328,6 +329,7 @@ function AppRoutes() {
                     <Route path="/ranking-viral"       element={<ViralRankingPage />} />
                     <Route path="/erros"               element={<AppErrorsPage />} />
                     <Route path="/figma-to-lp"         element={<StudioScope><FigmaToLpPage /></StudioScope>} />
+                    <Route path="/minhas-lps"          element={<MyLandingPagesPage />} />
                     <Route path="/financeiro"          element={<FinancePage />} />
                     <Route path="/financeiro-base"     element={<FinancialPage />} />
                     <Route path="/rede/admin"          element={<RedeAdminPage />} />

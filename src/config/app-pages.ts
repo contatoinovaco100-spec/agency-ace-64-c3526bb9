@@ -76,6 +76,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/prospeccao',          label: 'Prospecção IA',       icon: Bot,             category: 'Comercial' },
   { path: '/consulta-cnpj',       label: 'Consulta CNPJ',       icon: Search,          category: 'Comercial' },
   { path: '/time-comercial',      label: 'Time Comercial',      icon: TrendingUp,      category: 'Comercial' },
+  { path: '/minhas-lps',          label: 'Minhas LPs',          icon: Rocket,          category: 'Comercial', adminOnly: true },
   // { path: '/proposta',            label: 'Proposta Comercial',  icon: Sparkles,        category: 'Comercial' },
   // { path: '/proposta/editar',     label: 'Editar Proposta',     icon: Settings,        category: 'Comercial' },
 
