@@ -608,23 +608,13 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
                     }
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Valor (R$)</Label>
-                    <Input
-                      type="number"
-                      value={form.amount || ''}
-                      onChange={e => setForm(p => ({ ...p, amount: Number(e.target.value) }))}
-                    />
-                  </div>
-                  <div>
-                    <Label>Data</Label>
-                    <Input
-                      type="date"
-                      value={form.spent_on}
-                      onChange={e => e.target.value && setForm(p => ({ ...p, spent_on: e.target.value }))}
-                    />
-                  </div>
+                <div>
+                  <Label>Valor (R$)</Label>
+                  <Input
+                    type="number"
+                    value={form.amount || ''}
+                    onChange={e => setForm(p => ({ ...p, amount: Number(e.target.value) }))}
+                  />
                 </div>
                 {form.type !== 'faturamento' && (
                   <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
@@ -703,7 +693,7 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
           <Card className="border-border/50">
             <CardContent className="p-4">
               <form
-                className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_120px_minmax(0,1.3fr)_150px_140px_auto_auto] lg:items-center"
+                className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_120px_minmax(0,1.3fr)_150px_auto_auto] lg:items-center"
                 onSubmit={e => { e.preventDefault(); quickAdd(); }}
               >
                 <Input
@@ -733,12 +723,6 @@ export function ExpensesPanel({ mrr, clients = [] }: { mrr: number; clients?: Cl
                   <SelectTrigger aria-label="Tipo"><SelectValue /></SelectTrigger>
                   <SelectContent>{typeOptions}</SelectContent>
                 </Select>
-                <Input
-                  type="date"
-                  value={quick.spent_on}
-                  onChange={e => e.target.value && setQuick(q => ({ ...q, spent_on: e.target.value }))}
-                  aria-label="Data"
-                />
                 <label className="flex items-center gap-2 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" title="Repete todo mês">
                   <Checkbox checked={quick.recurring} onCheckedChange={v => setQuick(q => ({ ...q, recurring: v === true }))} />
                   Fixo
