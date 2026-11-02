@@ -1736,6 +1736,8 @@ export type Database = {
           description: string
           id: string
           month_ref: string
+          recurring: boolean
+          spent_on: string | null
           type: string
           updated_at: string
         }
@@ -1747,6 +1749,8 @@ export type Database = {
           description?: string
           id?: string
           month_ref?: string
+          recurring?: boolean
+          spent_on?: string | null
           type?: string
           updated_at?: string
         }
@@ -1758,6 +1762,8 @@ export type Database = {
           description?: string
           id?: string
           month_ref?: string
+          recurring?: boolean
+          spent_on?: string | null
           type?: string
           updated_at?: string
         }
