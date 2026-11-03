@@ -51,12 +51,31 @@ export function captionProblems(caption: string): string[] {
   return out;
 }
 
+/** Nome sem acento, minúsculo, com z = s (Petruz = Petrus) */
+const normName = (n: string) => n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/z/g, 's').replace(/\s+/g, ' ').trim();
+
+/**
+ * Acha a pessoa acompanhada pelo nome escrito no cliente ou na tarefa. Aceita o nome completo ou só o primeiro
+ * nome (quando nenhuma outra pessoa acompanhada tem o mesmo primeiro nome): "Petrus Delgado" acha "Petruz".
+ */
+export function personMatcher(people: string[]) {
+  const full = new Map(people.map((n) => [normName(n), n.trim()]));
+  const firstCount = new Map<string, number>();
+  people.forEach((n) => { const f = normName(n).split(' ')[0]; firstCount.set(f, (firstCount.get(f) ?? 0) + 1); });
+  const byFirst = new Map(people.filter((n) => firstCount.get(normName(n).split(' ')[0]) === 1).map((n) => [normName(n).split(' ')[0], n.trim()]));
+  const one = (raw?: string) => {
+    const k = normName(raw ?? '');
+    if (!k) return undefined;
+    return full.get(k) ?? byFirst.get(k.split(' ')[0]);
+  };
+  return (names: (string | undefined)[]) => names.map(one).find(Boolean);
+}
+
 export function findPostIssues(
   tasks: Task[], clients: Client[], reviews: Record<string, ClientReview>, people: string[], today = iso(new Date()),
 ): FlaggedPost[] {
   const byClient = new Map(clients.map((c) => [c.id, c]));
-  const tracked = new Map(people.map((n) => [n.trim().toLowerCase(), n.trim()]));
-  const trackedOf = (names: (string | undefined)[]) => names.map((n) => tracked.get((n ?? '').trim().toLowerCase())).find(Boolean);
+  const trackedOf = personMatcher(people);
   const open = tasks.filter((t) => !t.deletedAt && t.postDate && !DONE.test(t.status)
     && t.postDate >= today && t.postDate <= shift(today, 30));
   // Mesmo cliente, mesmo dia e mesmo horário
