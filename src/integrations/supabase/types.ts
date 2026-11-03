@@ -4325,6 +4325,92 @@ export type Database = {
         }
         Relationships: []
       }
+      team_reminder_logs: {
+        Row: {
+          created_at: string
+          error: string
+          id: string
+          person: string
+          profile_id: string | null
+          reminder_id: string | null
+          sent_on: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string
+          id?: string
+          person?: string
+          profile_id?: string | null
+          reminder_id?: string | null
+          sent_on: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          error?: string
+          id?: string
+          person?: string
+          profile_id?: string | null
+          reminder_id?: string | null
+          sent_on?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_reminder_logs_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: false
+            referencedRelation: "team_reminders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_reminders: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          items: string[]
+          kind: string
+          last_run_on: string | null
+          message: string
+          people: string[]
+          send_time: string
+          title: string
+          updated_at: string
+          weekdays: number[]
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          items?: string[]
+          kind?: string
+          last_run_on?: string | null
+          message?: string
+          people?: string[]
+          send_time?: string
+          title: string
+          updated_at?: string
+          weekdays?: number[]
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          items?: string[]
+          kind?: string
+          last_run_on?: string | null
+          message?: string
+          people?: string[]
+          send_time?: string
+          title?: string
+          updated_at?: string
+          weekdays?: number[]
+        }
+        Relationships: []
+      }
       user_client_access: {
         Row: {
           client_id: string
