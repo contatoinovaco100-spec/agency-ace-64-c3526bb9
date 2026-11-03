@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowUpRight, Check, Clapperboard, Clock3, Target, Sparkles, Users } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowDown, ArrowUp, ArrowUpRight, Bookmark, Camera, Check, Clapperboard, Clock3, Film, Heart, Lightbulb, MessageCircle, Mic, Play, Scissors, Send, Sparkles, Target, TrendingUp, Users } from 'lucide-react';
 import logoInova from '@/assets/logo-inova.png';
 import escritorioAsset from '@/assets/escritorio-inova-recepcao.jpg.asset.json';
 import { useSeo } from '@/lib/seo';
@@ -288,43 +288,161 @@ function Week() {
   );
 }
 
-/** O pacto: a pessoa escreve o nome e "assina" */
-function Pact() {
-  const [name, setName] = useState('');
-  const [signed, setSigned] = useState(false);
-  const first = name.trim().split(/\s+/)[0];
-  const dots = useMemo(() => Array.from({ length: 40 }, (_, i) => ({ x: Math.random() * 100, d: Math.random() * 0.6, s: 4 + Math.random() * 8, i })), []);
+/** Selo circular girando com o texto dos pilares */
+function SpinBadge({ size = 140, ink = false, className = '' }: { size?: number; ink?: boolean; className?: string }) {
+  const c = ink ? 'hsl(var(--ob-ink))' : 'hsl(var(--ob-lime))';
   return (
-    <div className="ob-card relative overflow-hidden rounded-3xl p-6 sm:p-12">
-      {signed && dots.map((p) => (
-        <span key={p.i} aria-hidden className="ob-confetti absolute top-0 rounded-full" style={{ left: `${p.x}%`, width: p.s, height: p.s, animationDelay: `${p.d}s`, background: 'hsl(var(--ob-lime))' }} />
-      ))}
-      {!signed ? (
-        <form onSubmit={(e) => { e.preventDefault(); if (first) setSigned(true); }} className="mx-auto max-w-2xl text-center">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: 'hsl(var(--ob-lime))' }}>O pacto</p>
-          <h3 className="mt-3 font-display text-[clamp(1.8rem,4.5vw,3.6rem)] font-bold leading-[0.98] tracking-[-0.04em]">Eu entendi como a INOVA joga.</h3>
-          <ul className="mx-auto mt-6 max-w-md space-y-2 text-left text-sm" style={{ color: 'hsl(var(--ob-fg) / 0.8)' }}>
-            {['Eu entrego resultado, não só tarefa.', 'Eu cumpro o prazo, e aviso antes se algo sair do trilho.', 'Eu penso estratégia antes de criar.', 'Eu topo as ideias malucas, e quem sabe aparecer num vídeo de vez em quando.', 'Eu jogo em time.'].map((t) => (
-              <li key={t} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: 'hsl(var(--ob-lime))' }} />{t}</li>
-            ))}
-          </ul>
-          <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" aria-label="Seu nome"
-              className="h-12 flex-1 rounded-full border bg-transparent px-5 text-base outline-none focus:ring-2"
-              style={{ height: 48, borderColor: 'hsl(var(--ob-fg) / 0.2)', color: 'hsl(var(--ob-fg))', ['--tw-ring-color' as string]: 'hsl(var(--ob-lime))' }} />
-            <button type="submit" disabled={!first} className="ob-btn h-12 rounded-full px-6 font-display text-sm font-bold uppercase tracking-wide disabled:opacity-40">
-              Assinar o pacto
-            </button>
+    <div aria-hidden className={`relative shrink-0 ${className}`} style={{ width: size, height: size }}>
+      <svg viewBox="0 0 200 200" className="ob-spin absolute inset-0 h-full w-full">
+        <defs><path id={`ob-circle-${ink ? 'i' : 'l'}`} d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0" /></defs>
+        <text fill={c} style={{ fontFamily: 'Sora, sans-serif', fontSize: 17, fontWeight: 700, letterSpacing: 4.2 }}>
+          <textPath href={`#ob-circle-${ink ? 'i' : 'l'}`}>RESULTADO • PRAZO • ESTRATÉGIA • INOVA • </textPath>
+        </text>
+      </svg>
+      <div className="absolute inset-[30%] grid grid-cols-3 place-items-center gap-[6%]">
+        {Array.from({ length: 9 }).map((_, i) => (
+          <span key={i} className="ob-pulse h-full w-full rounded-full" style={{ background: c, animationDelay: `${(i % 3 + Math.floor(i / 3)) * 0.15}s` }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const FRAMES = [
+  { label: 'Bastidor', Icon: Camera, art: 'blob' },
+  { label: 'Trend', Icon: TrendingUp, art: 'stripes' },
+  { label: 'Roteiro', Icon: Lightbulb, art: 'rings' },
+  { label: 'Reels', Icon: Play, art: 'dots' },
+  { label: 'Captação', Icon: Mic, art: 'grid' },
+  { label: 'Corte', Icon: Scissors, art: 'wave' },
+  { label: 'Story', Icon: Film, art: 'blob' },
+  { label: 'Postado', Icon: Send, art: 'stripes' },
+] as const;
+
+const ART: Record<string, React.CSSProperties> = {
+  blob: { background: 'radial-gradient(circle at 30% 35%, hsl(var(--ob-lime)) 0, hsl(var(--ob-lime) / 0.35) 22%, transparent 55%), radial-gradient(circle at 80% 80%, hsl(var(--ob-lime) / 0.25), transparent 45%), hsl(var(--ob-bg-2))' },
+  stripes: { background: 'repeating-linear-gradient(-45deg, hsl(var(--ob-lime) / 0.9) 0 10px, transparent 10px 26px), hsl(var(--ob-bg-2))' },
+  rings: { background: 'repeating-radial-gradient(circle at 70% 60%, hsl(var(--ob-lime) / 0.8) 0 2px, transparent 2px 16px), hsl(var(--ob-bg-2))' },
+  dots: { background: 'radial-gradient(circle, hsl(var(--ob-lime)) 3px, transparent 3.5px) 0 0 / 18px 18px, hsl(var(--ob-bg-2))' },
+  grid: { background: 'linear-gradient(hsl(var(--ob-lime) / 0.5) 1px, transparent 1px) 0 0 / 22px 22px, linear-gradient(90deg, hsl(var(--ob-lime) / 0.5) 1px, transparent 1px) 0 0 / 22px 22px, radial-gradient(circle at 50% 50%, hsl(var(--ob-lime) / 0.35), transparent 60%), hsl(var(--ob-bg-2))' },
+  wave: { background: 'linear-gradient(135deg, hsl(var(--ob-lime)) 0%, hsl(var(--ob-lime) / 0.2) 45%, hsl(var(--ob-bg-2)) 70%)' },
+};
+
+/** Rolo de filme correndo com os "frames" do nosso dia */
+function FilmStrip() {
+  const frames = [...FRAMES, ...FRAMES];
+  return (
+    <div className="relative -rotate-2 overflow-hidden py-2" style={{ background: 'hsl(var(--ob-ink))' }}>
+      <div className="ob-sprockets h-4" />
+      <div className="ob-film flex w-max gap-3 px-3 py-3">
+        {[0, 1].map((k) => frames.map((f, i) => (
+          <div key={`${k}-${i}`} className="relative h-[130px] w-[190px] shrink-0 overflow-hidden rounded-md sm:h-[160px] sm:w-[240px]" style={ART[f.art]}>
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 40%, hsl(var(--ob-ink) / 0.85))' }} />
+            <f.Icon className="absolute right-3 top-3 h-5 w-5" style={{ color: 'hsl(var(--ob-fg))' }} />
+            <span className="absolute left-3 top-3 font-mono text-[10px]" style={{ color: 'hsl(var(--ob-fg) / 0.7)' }}>{String(i % FRAMES.length + 1).padStart(2, '0')}A</span>
+            <p className="absolute bottom-3 left-3 font-display text-xl font-bold tracking-[-0.03em]" style={{ color: 'hsl(var(--ob-fg))' }}>{f.label}</p>
           </div>
-        </form>
-      ) : (
-        <div className="relative mx-auto max-w-2xl text-center">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: 'hsl(var(--ob-lime))' }}>Pacto assinado</p>
-          <p className="ob-sign mt-4 font-display text-[clamp(3rem,10vw,7rem)] font-bold italic leading-none tracking-[-0.05em]" style={{ color: 'hsl(var(--ob-lime))' }}>{first}.</p>
-          <p className="mt-6 font-display text-2xl font-semibold sm:text-3xl">Bem-vindo ao time. Que bom ter você aqui.</p>
-          <p className="mt-3 text-sm" style={{ color: 'hsl(var(--ob-fg) / 0.65)' }}>A partir de agora, o resultado dos nossos clientes também tem o seu nome.</p>
+        )))}
+      </div>
+      <div className="ob-sprockets h-4" />
+    </div>
+  );
+}
+
+function Phone({ children, className = '', style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
+  return (
+    <div className={`relative aspect-[9/19] w-[200px] shrink-0 rounded-[34px] border-[6px] p-0 shadow-2xl sm:w-[230px] ${className}`}
+      style={{ borderColor: 'hsl(var(--ob-fg) / 0.14)', background: 'hsl(var(--ob-bg-2))', boxShadow: '0 40px 80px -30px hsl(var(--ob-lime) / 0.35)', ...style }}>
+      <span className="absolute left-1/2 top-2 z-10 h-4 w-16 -translate-x-1/2 rounded-full" style={{ background: 'hsl(var(--ob-ink))' }} />
+      <div className="relative h-full w-full overflow-hidden rounded-[28px]">{children}</div>
+    </div>
+  );
+}
+
+/** "Do set pro feed": três celulares com Reels, feed e story animados */
+function PhoneFeed() {
+  return (
+    <div className="relative flex items-center justify-center gap-4 py-10 sm:gap-8">
+      {/* Feed */}
+      <Phone className="ob-float hidden md:block" style={{ transform: 'rotate(-8deg) translateY(30px)', animationDelay: '-2s' }}>
+        <div className="p-3 pt-8">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-8 w-8 rounded-full" style={{ background: 'conic-gradient(hsl(var(--ob-lime)), hsl(var(--ob-lime) / 0.2), hsl(var(--ob-lime)))' }} />
+            <span className="h-2 w-16 rounded-full" style={{ background: 'hsl(var(--ob-fg) / 0.25)' }} />
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <span key={i} className="ob-tile aspect-square rounded-sm" style={{ ...ART[['blob', 'stripes', 'dots', 'rings', 'grid', 'wave'][i % 6]], animationDelay: `${i * 0.35}s` }} />
+            ))}
+          </div>
         </div>
-      )}
+      </Phone>
+      {/* Reels */}
+      <Phone className="ob-float z-10" style={{ ...ART.blob }}>
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 50%, hsl(var(--ob-ink) / 0.9))' }} />
+        <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full" style={{ background: 'hsl(var(--ob-fg) / 0.2)', backdropFilter: 'blur(8px)' }}>
+          <Play className="h-6 w-6" style={{ color: 'hsl(var(--ob-fg))', fill: 'hsl(var(--ob-fg))' }} />
+        </div>
+        <div className="absolute bottom-24 right-3 flex flex-col items-center gap-4" style={{ color: 'hsl(var(--ob-fg))' }}>
+          <Heart className="ob-heart h-6 w-6" style={{ fill: 'hsl(var(--ob-lime))', color: 'hsl(var(--ob-lime))' }} />
+          <MessageCircle className="h-6 w-6" />
+          <Send className="h-6 w-6" />
+          <Bookmark className="h-6 w-6" />
+        </div>
+        {[0, 1, 2, 3].map((i) => (
+          <Heart key={i} aria-hidden className="ob-hearts absolute bottom-28 right-4 h-4 w-4" style={{ color: 'hsl(var(--ob-lime))', fill: 'hsl(var(--ob-lime))', animationDelay: `${i * 0.7}s` }} />
+        ))}
+        <div className="absolute inset-x-3 bottom-5" style={{ color: 'hsl(var(--ob-fg))' }}>
+          <p className="text-xs font-bold">@inova.co</p>
+          <p className="mt-1 text-[11px] opacity-80">bastidor de hoje 🎬 quem apareceu? 👀</p>
+          <div className="mt-3 h-1 overflow-hidden rounded-full" style={{ background: 'hsl(var(--ob-fg) / 0.25)' }}>
+            <div className="ob-progress h-full" style={{ background: 'hsl(var(--ob-lime))' }} />
+          </div>
+        </div>
+      </Phone>
+      {/* Story */}
+      <Phone className="ob-float hidden sm:block" style={{ transform: 'rotate(8deg) translateY(30px)', animationDelay: '-4s', ...ART.stripes }}>
+        <div className="absolute inset-x-3 top-7 flex gap-1">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="h-0.5 flex-1 overflow-hidden rounded-full" style={{ background: 'hsl(var(--ob-fg) / 0.3)' }}>
+              <span className="ob-story block h-full" style={{ background: 'hsl(var(--ob-fg))', animationDelay: `${i * 3}s` }} />
+            </span>
+          ))}
+        </div>
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, hsl(var(--ob-ink) / 0.2), hsl(var(--ob-ink) / 0.85))' }} />
+        <div className="absolute inset-x-4 bottom-16 flex h-16 items-end justify-center gap-1">
+          {Array.from({ length: 18 }).map((_, i) => (
+            <span key={i} className="ob-wave w-1.5 rounded-full" style={{ background: 'hsl(var(--ob-lime))', animationDelay: `${(i % 6) * 0.12}s` }} />
+          ))}
+        </div>
+        <p className="absolute inset-x-3 bottom-6 text-center font-display text-sm font-bold" style={{ color: 'hsl(var(--ob-fg))' }}>Gravando o dia ✨</p>
+      </Phone>
+      {/* Notificações flutuando */}
+      {[
+        { t: '♥ curtiu seu Reels', c: 'left-[4%] top-[12%]', d: '0s' },
+        { t: '✓ Postado às 18:00', c: 'right-[4%] top-[20%]', d: '-1.5s' },
+        { t: '+ novo seguidor', c: 'left-[10%] bottom-[10%]', d: '-3s' },
+        { t: '💬 "amei esse vídeo!"', c: 'right-[8%] bottom-[14%]', d: '-2.2s' },
+      ].map((n) => (
+        <span key={n.t} className={`ob-glass ob-float absolute z-20 hidden whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold lg:block ${n.c}`} style={{ animationDelay: n.d }}>{n.t}</span>
+      ))}
+    </div>
+  );
+}
+
+/** Faixa de texto vazado */
+function OutlineMarquee({ text, reverse = false }: { text: string; reverse?: boolean }) {
+  return (
+    <div aria-hidden className="overflow-hidden py-6">
+      <div className={`ob-marquee flex w-max whitespace-nowrap font-display text-[clamp(3.5rem,10vw,9rem)] font-bold leading-none tracking-[-0.05em] ${reverse ? 'ob-reverse' : ''}`}>
+        {[0, 1].map((k) => (
+          <span key={k} className="pr-8">
+            {text.split('•').filter((w) => w.trim()).map((w, i) => (
+              <span key={i} className={i % 2 ? 'ob-solid' : 'ob-outline'}>{w.trim()}<span className="mx-6" style={{ color: 'hsl(var(--ob-lime))', WebkitTextStroke: 0 }}>✦</span></span>
+            ))}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -347,7 +465,7 @@ export default function CulturePage() {
           <a href="#semana" className="hover:text-[hsl(var(--ob-lime))]">Primeira semana</a>
         </nav>
         <img src={logoInova} alt="INOVA" className="h-6 md:absolute md:left-1/2 md:-translate-x-1/2" />
-        <a href="#pacto" className="ob-link flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide">Onboarding <ArrowUpRight className="h-3.5 w-3.5" /></a>
+        <a href="#semana" className="ob-link flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide">Onboarding <ArrowUpRight className="h-3.5 w-3.5" /></a>
       </header>
 
       {/* ── Hero ── */}
@@ -401,6 +519,11 @@ export default function CulturePage() {
         <Manifesto />
       </section>
 
+      {/* ── Rolo de filme ── */}
+      <section className="pb-28" aria-label="O nosso dia em frames">
+        <FilmStrip />
+      </section>
+
       {/* ── Pilares ── */}
       <section id="pilares" className="mx-auto max-w-[1400px] px-4 pb-28 sm:px-8">
         <div className="mb-8 flex items-end gap-6">
@@ -451,7 +574,8 @@ export default function CulturePage() {
               ))}
             </div>
           </Reveal>
-          <Reveal delay={150}>
+          <Reveal delay={150} className="relative">
+            <SpinBadge size={130} className="absolute -left-8 -top-10 z-10 hidden lg:block" />
             {/* Visor de câmera */}
             <div className="relative aspect-[4/5] overflow-hidden rounded-3xl sm:aspect-[16/12]">
               <img src={escritorioAsset.url} alt="Escritório da INOVA" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
@@ -493,6 +617,16 @@ export default function CulturePage() {
         <Flow />
       </section>
 
+      {/* ── Do set pro feed ── */}
+      <section className="relative overflow-hidden px-4 pb-28 sm:px-8">
+        <div aria-hidden className="ob-dots-bg pointer-events-none absolute inset-0 opacity-40" />
+        <Reveal className="relative mx-auto max-w-3xl text-center">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: 'hsl(var(--ob-lime))' }}>Do set pro feed</p>
+          <h2 className="mt-3 font-display text-[clamp(2.2rem,5vw,4.2rem)] font-bold leading-[0.95] tracking-[-0.05em]">O que a gente grava de manhã, o mundo vê à noite.</h2>
+        </Reveal>
+        <div className="relative mx-auto max-w-[1100px]"><PhoneFeed /></div>
+      </section>
+
       {/* ── Regras da casa ── */}
       <section id="regras" className="px-4 py-28 sm:px-8" style={{ background: 'hsl(var(--ob-bg-2))' }}>
         <div className="mx-auto max-w-[1400px]">
@@ -517,6 +651,8 @@ export default function CulturePage() {
         </div>
       </section>
 
+      <OutlineMarquee text="CRIA • GRAVA • POSTA • COMEMORA • REPETE •" />
+
       {/* ── Primeira semana ── */}
       <section id="semana" className="mx-auto max-w-[1400px] px-4 py-28 sm:px-8">
         <Reveal className="mb-8">
@@ -527,9 +663,22 @@ export default function CulturePage() {
         <Week />
       </section>
 
-      {/* ── Pacto ── */}
-      <section id="pacto" className="mx-auto max-w-[1400px] px-4 pb-28 sm:px-8">
-        <Reveal><Pact /></Reveal>
+      {/* ── Fechamento ── */}
+      <section className="relative overflow-hidden px-4 py-24 sm:px-8 sm:py-32" style={{ background: 'hsl(var(--ob-lime))', color: 'hsl(var(--ob-ink))' }}>
+        <div aria-hidden className="ob-dots-ink pointer-events-none absolute inset-0" />
+        <div className="relative mx-auto flex max-w-[1400px] flex-col items-start gap-10 lg:flex-row lg:items-end lg:justify-between">
+          <Reveal>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] opacity-70">Agora é com você</p>
+            <h2 className="mt-3 font-display text-[clamp(3.2rem,11vw,10rem)] font-bold leading-[0.86] tracking-[-0.07em]">Bem-vindo<br />ao time.</h2>
+            <p className="mt-6 max-w-md text-base font-medium opacity-80">Que bom ter você aqui. Traz suas ideias, chama o time quando precisar e bora fazer conteúdo que dá resultado.</p>
+            <a href="#top" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className="mt-8 inline-flex items-center gap-2 rounded-full px-6 py-3 font-display text-sm font-bold uppercase tracking-wide transition-transform hover:-translate-y-0.5"
+              style={{ background: 'hsl(var(--ob-ink))', color: 'hsl(var(--ob-lime))' }}>
+              Voltar ao começo <ArrowUp className="h-4 w-4" />
+            </a>
+          </Reveal>
+          <SpinBadge size={220} ink className="hidden sm:block" />
+        </div>
       </section>
 
       {/* ── Rodapé ── */}
@@ -584,10 +733,30 @@ const CSS = `
 @keyframes obMarquee { to { transform: translateX(-50%); } }
 .ob-grain { opacity: .06; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); animation: obGrain .5s steps(4) infinite; }
 @keyframes obGrain { 25% { transform: translate(-3%, 2%); } 50% { transform: translate(2%, -3%); } 75% { transform: translate(-2%, -2%); } }
-.ob-confetti { animation: obFall 2.4s cubic-bezier(.3,.6,.4,1) forwards; opacity: 0; }
-@keyframes obFall { 0% { opacity: 1; transform: translateY(-20px) scale(1); } 100% { opacity: 0; transform: translateY(520px) scale(.4); } }
-.ob-sign { animation: obSign 1.2s cubic-bezier(.2,.8,.2,1) both; }
-@keyframes obSign { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.ob-spin { animation: obSpin 18s linear infinite; }
+@keyframes obSpin { to { transform: rotate(360deg); } }
+.ob-pulse { animation: obPulse 1.8s ease-in-out infinite; }
+@keyframes obPulse { 50% { transform: scale(.55); opacity: .5; } }
+.ob-film { animation: obMarquee 50s linear infinite; }
+.ob-reverse { animation-direction: reverse; }
+.ob-sprockets { background: repeating-linear-gradient(90deg, transparent 0 10px, hsl(var(--ob-fg) / .85) 10px 22px, transparent 22px 34px); -webkit-mask: linear-gradient(transparent 25%, #000 25% 75%, transparent 75%); mask: linear-gradient(transparent 25%, #000 25% 75%, transparent 75%); }
+.ob-float { animation: obFloat 6s ease-in-out infinite; }
+@keyframes obFloat { 50% { translate: 0 -14px; } }
+.ob-tile { animation: obTile 4.2s ease-in-out infinite; }
+@keyframes obTile { 0%, 70%, 100% { opacity: 1; } 80% { opacity: .25; } }
+.ob-heart { animation: obBeat 1.4s ease-in-out infinite; }
+@keyframes obBeat { 15% { transform: scale(1.3); } 30% { transform: scale(1); } }
+.ob-hearts { opacity: 0; animation: obHearts 2.8s ease-out infinite; }
+@keyframes obHearts { 0% { opacity: 0; transform: translate(0, 0) scale(.6); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(-30px, -160px) scale(1.2) rotate(-20deg); } }
+.ob-progress { animation: obProgress 6s linear infinite; }
+@keyframes obProgress { from { width: 0; } to { width: 100%; } }
+.ob-story { width: 0; animation: obProgress 9s linear infinite; }
+.ob-wave { height: 20%; animation: obWave 1s ease-in-out infinite alternate; }
+@keyframes obWave { to { height: 100%; } }
+.ob-outline { color: transparent; -webkit-text-stroke: 1.5px hsl(var(--ob-fg) / .35); }
+.ob-solid { color: hsl(var(--ob-fg)); }
+.ob-dots-bg { background-image: radial-gradient(circle, hsl(var(--ob-lime) / .35) 1.2px, transparent 1.6px); background-size: 26px 26px; -webkit-mask-image: radial-gradient(ellipse at 50% 60%, #000 20%, transparent 70%); mask-image: radial-gradient(ellipse at 50% 60%, #000 20%, transparent 70%); }
+.ob-dots-ink { background-image: radial-gradient(circle, hsl(var(--ob-ink) / .18) 1.5px, transparent 2px); background-size: 22px 22px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 70%); mask-image: linear-gradient(90deg, transparent, #000 70%); }
 @media (prefers-reduced-motion: reduce) {
   .ob *, .ob-grain { animation: none !important; transition: none !important; }
   .ob-reveal, .ob-hero-word { opacity: 1; transform: none; }
