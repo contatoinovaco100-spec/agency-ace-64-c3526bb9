@@ -1,12 +1,24 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronRight, ShieldAlert } from 'lucide-react';
-import { ISSUES, scoreByOwner, type FlaggedPost, type IssueKind } from '@/lib/postIssues';
+import { ChevronDown, ChevronRight, Loader2, MessageCircle, ShieldAlert } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ISSUES, issuesMessage, scoreByOwner, type FlaggedPost, type IssueKind } from '@/lib/postIssues';
 import { cn } from '@/lib/utils';
 
 const taskLink = (t: FlaggedPost['task']) => `${t.taskType === 'Arte' ? '/artes' : '/tarefas'}?taskId=${t.id}`;
 const taskName = (t: FlaggedPost['task']) => (t.videoName || t.title || 'Sem título').replace(/^(vídeo|video|arte)\s*\d*\s*\|\s*/i, '');
 const shortDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }).replace('.', '');
+
+const phoneOf = (raw?: string | null) => {
+  const d = (raw ?? '').replace(/\D/g, '');
+  if (d.length < 10) return null;
+  return d.length <= 11 ? `55${d}` : d;
+};
+const fmtPhone = (p: string) => p.replace(/^55(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
 
 const tagTone = (k: IssueKind) => ISSUES[k].severity === 3 ? 'bg-destructive/10 text-destructive'
   : ISSUES[k].severity === 2 ? 'bg-warning/15 text-warning' : 'bg-muted text-muted-foreground';
@@ -45,6 +57,32 @@ export function PostIssuesPanel({ posts, clientName, isAdmin, me }: {
   const [openOwner, setOpenOwner] = useState<string | null>(null);
   const mine = useMemo(() => posts.filter((p) => p.owner.toLowerCase() === me.toLowerCase()), [posts, me]);
   const list = isAdmin ? posts : mine;
+  // WhatsApp de cada pessoa (Equipe → Funcionários), para mandar a lista de erros
+  const [phones, setPhones] = useState<Record<string, string | null>>({});
+  const [sending, setSending] = useState<{ owner: string; to: string; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!isAdmin) return;
+    supabase.from('profiles').select('full_name, whatsapp').then(({ data }) => setPhones(Object.fromEntries(
+      ((data ?? []) as { full_name: string | null; whatsapp: string | null }[])
+        .filter((p) => p.full_name).map((p) => [p.full_name!.trim().toLowerCase(), phoneOf(p.whatsapp)]))));
+  }, [isAdmin]);
+
+  const openSend = (owner: string, ownerPosts: FlaggedPost[]) => {
+    const to = phones[owner.toLowerCase()];
+    if (!to) { toast.error(`${owner} está sem WhatsApp`, { description: 'Preencha o WhatsApp em Equipe → Funcionários.' }); return; }
+    setSending({ owner, to, text: issuesMessage(owner, ownerPosts, clientName, window.location.origin) });
+  };
+  const send = async () => {
+    if (!sending) return;
+    setBusy(true);
+    const { data, error } = await supabase.functions.invoke('wa-server', { body: { action: 'send', to: sending.to, message: sending.text } });
+    setBusy(false);
+    if (error || data?.error) { toast.error('Mensagem não enviada', { description: data?.error ?? 'Confira se o WhatsApp está conectado em Automações.' }); return; }
+    toast.success(`Erros enviados para ${sending.owner} no WhatsApp`);
+    setSending(null);
+  };
+
   if (!list.length) return null;
 
   return (
@@ -63,8 +101,9 @@ export function PostIssuesPanel({ posts, clientName, isAdmin, me }: {
             const open = openOwner === r.owner;
             return (
               <li key={r.owner}>
+                <div className="flex items-center gap-1 pr-3 transition-colors hover:bg-foreground/[0.03]">
                 <button type="button" onClick={() => setOpenOwner(open ? null : r.owner)} aria-expanded={open}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-foreground/[0.03]">
+                  className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 text-left">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{r.owner}</p>
                     <div className="mt-1 flex flex-wrap gap-1">
@@ -81,6 +120,11 @@ export function PostIssuesPanel({ posts, clientName, isAdmin, me }: {
                   </div>
                   <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
                 </button>
+                <Button size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={() => openSend(r.owner, r.posts)}
+                  title={phones[r.owner.toLowerCase()] ? `Mandar os erros para ${r.owner} no WhatsApp` : 'Sem WhatsApp em Equipe → Funcionários'}>
+                  <MessageCircle className="h-3.5 w-3.5" /><span className="hidden sm:inline">Enviar</span>
+                </Button>
+                </div>
                 {open && (
                   <ul className="divide-y border-t bg-muted/30">
                     {r.posts.map((p) => <PostRow key={p.task.id} p={p} clientName={clientName} />)}
@@ -93,6 +137,22 @@ export function PostIssuesPanel({ posts, clientName, isAdmin, me }: {
       ) : (
         <ul className="divide-y">{mine.slice(0, 12).map((p) => <PostRow key={p.task.id} p={p} clientName={clientName} />)}</ul>
       )}
+
+      <Dialog open={!!sending} onOpenChange={(v) => { if (!v && !busy) setSending(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Enviar erros para {sending?.owner}</DialogTitle>
+            <DialogDescription>WhatsApp {sending ? fmtPhone(sending.to) : ''}. Dá para editar o texto antes de enviar.</DialogDescription>
+          </DialogHeader>
+          <Textarea value={sending?.text ?? ''} onChange={(e) => sending && setSending({ ...sending, text: e.target.value })} className="min-h-[320px] text-sm" />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSending(null)} disabled={busy}>Cancelar</Button>
+            <Button onClick={send} disabled={busy || !sending?.text.trim()}>
+              {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageCircle className="mr-2 h-4 w-4" />}Enviar no WhatsApp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

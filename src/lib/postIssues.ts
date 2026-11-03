@@ -98,3 +98,39 @@ export function scoreByOwner(posts: FlaggedPost[]) {
   }
   return [...map.values()].sort((a, b) => b.points - a.points);
 }
+
+/** O que fazer para resolver cada erro (vai na mensagem de WhatsApp) */
+export const ISSUE_FIX: Record<IssueKind, string> = {
+  early_stage: 'acelerar a produção ou mudar a data de postar',
+  no_caption: 'escrever a legenda',
+  approved_not_scheduled: 'agendar o post',
+  not_approved: 'cobrar a aprovação do cliente',
+  change_pending: 'fazer o ajuste que o cliente pediu',
+  caption_problem: 'corrigir a legenda',
+  due_after_post: 'ajustar a data de entrega para antes da postagem',
+  no_time: 'colocar o horário de postar',
+  same_slot: 'mudar o horário de um dos posts',
+  no_client: 'vincular o cliente no card',
+};
+
+/** Mensagem de WhatsApp para o social media com cada post, o que arrumar e o link do card */
+export function issuesMessage(owner: string, posts: FlaggedPost[], clientName: Record<string, string>, origin: string) {
+  const first = owner.split(/\s+/)[0];
+  const when = (t: Task) => {
+    const [y, m, d] = t.postDate!.split('-').map(Number);
+    const wd = new Date(y, m - 1, d).toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+    return `${wd} ${pad(d)}/${pad(m)}${t.postTime ? ` às ${t.postTime.slice(0, 5)}` : ''}`;
+  };
+  const blocks = posts.map((p, i) => {
+    const t = p.task;
+    const name = (t.videoName || t.title || 'Sem título').replace(/^(vídeo|video|arte)\s*\d*\s*\|\s*/i, '');
+    const link = `${origin}${t.taskType === 'Arte' ? '/artes' : '/tarefas'}?taskId=${t.id}`;
+    const lines = p.issues.map((x) => `• ${ISSUES[x.kind].label}${x.detail ? ` (${x.detail})` : ''} → ${ISSUE_FIX[x.kind]}`);
+    return [`*${i + 1}. ${name}*`, `${(t.clientId && clientName[t.clientId]) || 'Sem cliente'} · posta ${when(t)}`, ...lines, link].join('\n');
+  });
+  return [
+    `Oi, ${first}! Esses ${posts.length === 1 ? 'post está' : `${posts.length} posts estão`} com pendência na plataforma:`,
+    ...blocks,
+    'Se algum já foi postado, é só dar baixa no card (mudar para Postado). Qualquer dúvida, me chama!',
+  ].join('\n\n');
+}
