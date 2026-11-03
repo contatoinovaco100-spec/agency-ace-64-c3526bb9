@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, AtSign, BadgeCheck, CalendarClock, Camera, ChevronRight, Clock, MessageCircle, MessageSquareWarning, PenLine, PhoneForwarded, Sun } from 'lucide-react';
+import { AlertTriangle, AtSign, BadgeCheck, CalendarClock, Camera, ChevronRight, Clock, MessageCircle, MessageSquareWarning, PhoneForwarded, Sun } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgency } from '@/contexts/AgencyContext';
@@ -8,6 +8,8 @@ import { usePageAccess } from '@/hooks/useUserRole';
 import { useClientReviews } from '@/lib/clientApprovals';
 import { PageHeader } from '@/components/PageHeader';
 import { cn } from '@/lib/utils';
+import { findPostIssues } from '@/lib/postIssues';
+import { PostIssuesPanel } from '@/components/myday/PostIssuesPanel';
 import { timeAgo, useNotificationFeed } from '@/lib/notificationFeed';
 import type { Task } from '@/types/agency';
 
@@ -22,7 +24,6 @@ const DONE = /postado|publicado|conclu|programado/i;
 const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const addDays = (n: number) => isoDay(new Date(Date.now() + n * 86_400_000));
 const shortDate = (d: string) => new Date(d.slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }).replace('.', '');
-const hasCaption = (t: Task) => /[\p{L}\p{N}]{2,}/u.test(t.caption ?? '');
 const taskLink = (t: Task) => `${t.taskType === 'Arte' ? '/artes' : '/tarefas'}?taskId=${t.id}`;
 const taskName = (t: Task) => (t.videoName || t.title || 'Sem título').replace(/^(vídeo|video|arte)\s*\d*\s*\|\s*/i, '');
 const dateOf = (t: Task) => t.postDate || t.dueDate || '';
@@ -92,20 +93,21 @@ export default function MyDayPage() {
       todayList: mine.filter((t) => dateOf(t) === today).sort(sortByDate),
       late: mine.filter((t) => dateOf(t) && dateOf(t) < today && dateOf(t) >= addDays(-30)).sort(sortByDate),
       next: mine.filter((t) => dateOf(t) > today && dateOf(t) <= addDays(7)).sort(sortByDate),
-      noCaption: social ? open.filter((t) => t.postDate && t.postDate >= today && t.postDate <= addDays(3) && !hasCaption(t)).sort(sortByDate) : [],
+      // Erros nos posts (sem legenda, atrasado, não aprovado...), com o social media responsável
+      postIssues: social ? findPostIssues(tasks, clients, reviews, today) : [],
       // Vendedor vê os próprios follow-ups; admin vê os de todo mundo
       followUps: isAdmin ? followUps : followUps.filter((l) => [l.assignee, l.closer].some((v) => (v || '').trim().toLowerCase() === me && !!me)),
       shootToday: shootings.filter((s) => s.shooting_date === today),
       shootNext: shootings.filter((s) => s.shooting_date > today),
       mentions: feed.filter((n) => n.kind === 'mention' && !n.read),
     };
-  }, [tasks, name, reviews, social, today, isAdmin, followUps, shootings, feed]);
+  }, [tasks, clients, name, reviews, social, today, isAdmin, followUps, shootings, feed]);
 
   const firstName = name.split(/\s+/)[0];
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
   const nothing = !data.changes.length && !data.approved.length && !data.todayList.length && !data.late.length
-    && !data.noCaption.length && !brokenAccounts.length && !data.followUps.length && !data.shootToday.length && !data.mentions.length;
+    && !data.postIssues.length && !brokenAccounts.length && !data.followUps.length && !data.shootToday.length && !data.mentions.length;
 
   const row = (t: Task, meta?: string) => (
     <li key={t.id}>
@@ -228,16 +230,13 @@ export default function MyDayPage() {
         </Block>
       )}
 
-      {social && (data.approved.length > 0 || data.noCaption.length > 0 || brokenAccounts.length > 0 || reminders.length > 0) && (
+      {social && <PostIssuesPanel posts={data.postIssues} clientName={clientName} isAdmin={isAdmin} me={name} />}
+
+      {social && (data.approved.length > 0 || brokenAccounts.length > 0 || reminders.length > 0) && (
         <div className="grid gap-4 lg:grid-cols-2">
           {data.approved.length > 0 && (
             <Block title="Aprovados pelo cliente, falta agendar" tone="success" icon={BadgeCheck} action={{ label: 'Abrir fila', to: '/planner?cliente=todos' }}>
               {data.approved.slice(0, 6).map((t) => row(t, t.postDate ? shortDate(t.postDate) : 'sem data'))}
-            </Block>
-          )}
-          {data.noCaption.length > 0 && (
-            <Block title="Posts dos próximos 3 dias sem legenda" tone="warning" icon={PenLine}>
-              {data.noCaption.slice(0, 8).map((t) => row(t, shortDate(t.postDate!)))}
             </Block>
           )}
           {reminders.length > 0 && (() => {
