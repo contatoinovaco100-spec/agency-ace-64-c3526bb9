@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { useClientAbc, ABC_STYLES, ABC_HINT } from '@/lib/clientAbc';
 import { useClientReviews } from '@/lib/clientApprovals';
 import { useSearchParams } from 'react-router-dom';
 import { useUrlAction } from '@/hooks/useUrlAction';
@@ -95,6 +96,10 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
   const isArte = task.taskType === 'Arte';
   // Aprovação do cliente: coluna do banco ou, sem ela, o histórico de comentários da tarefa
   const review = useClientReviews()[task.id];
+  const abc = useClientAbc()[task.clientId];
+  const abcTag = clientName && abc ? (
+    <span title={ABC_HINT[abc.letter]} className={cn('shrink-0 rounded border px-1 text-[9px] font-bold leading-[14px]', ABC_STYLES[abc.letter])}>{abc.letter}</span>
+  ) : null;
   const approvedByClient = task.approvedByClient || !!review?.approved;
   const approvedAt = task.approvedAt || review?.at || '';
   const date = task.dueDate || task.postDate;
@@ -127,7 +132,9 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
           )}
         </div>
         {clientName && (
-          <p className={cn("mt-0.5 text-[10px] font-medium truncate", isRevisionStage(stageName) ? "text-warning/70" : "text-primary/70")}>{clientName}</p>
+          <p className={cn("mt-0.5 flex items-center gap-1 text-[10px] font-medium min-w-0", isRevisionStage(stageName) ? "text-warning/70" : "text-primary/70")}>
+            {abcTag}<span className="truncate">{clientName}</span>
+          </p>
         )}
         {approvedByClient && (
           <p className="mt-1.5 flex items-center gap-1.5 rounded-md bg-success/15 px-2 py-1 text-[11px] font-semibold text-success"
@@ -231,6 +238,7 @@ function CardContent({ task, clientName, compact, onArtPreview, stageName }: {
             )}
           </div>
           <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
+            {abcTag}
             {clientName && (
               <span className={cn("text-[9px] truncate max-w-[90px]", isRevisionStage(stageName) ? "text-warning/70" : "text-primary/70")}>{clientName}</span>
             )}

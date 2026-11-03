@@ -47,6 +47,8 @@ export interface Client {
   /** Pausas que já terminaram: esses meses não entram no LTV */
   stoppedPeriods?: { from: string; to: string }[];
   deletedAt?: string | null;
+  /** Letra da curva ABC escolhida à mão (null = automática pelo valor; undefined = banco sem a coluna) */
+  abcClass?: 'A' | 'B' | 'C' | null;
   scopeDetails: ScopeDetails;
 }
 

@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { ClientDiagnosisTab } from '@/components/clients/ClientDiagnosisTab';
 import { Shield, Lock, Mail, Key, Loader2, Link as LinkIcon, Target, Sparkles, Eye, EyeOff, Gift, Link2, Copy, MessageCircle, UserPlus, Users, RefreshCw } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useClientAbc, ABC_STYLES, ABC_HINT, type AbcLetter, type ClientAbc } from '@/lib/clientAbc';
 
 const serviceOptions: ServiceType[] = ['Gestor de trafego', 'Social Media', 'Estrategista digital', 'Editor de Video', 'Copywritter', 'Design'];
 const statusOptions: ClientStatus[] = ['Ativo', 'Pausado', 'Cancelado'];
@@ -38,6 +39,21 @@ const statusColors: Record<string, string> = {
 };
 
 const HEALTH_ORDER: Record<HealthLevel, number> = { risco: 0, atencao: 1, ok: 2 };
+
+/** Selo da curva ABC; o % do faturamento só aparece para quem vê os valores */
+function AbcBadge({ abc, showShare }: { abc: ClientAbc; showShare: boolean }) {
+  const title = [
+    ABC_HINT[abc.letter],
+    showShare && abc.share > 0 ? `${(abc.share * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do faturamento` : '',
+    abc.manual ? `escolhida à mão (pela curva seria ${abc.auto})` : '',
+  ].filter(Boolean).join(' · ');
+  return (
+    <span title={title} aria-label={title}
+      className={`inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded border px-1 text-[11px] font-bold ${ABC_STYLES[abc.letter]}`}>
+      {abc.letter}{abc.manual && <span className="ml-px text-[8px] font-medium opacity-70">*</span>}
+    </span>
+  );
+}
 
 /** Bolinha da saúde do cliente: verde em dia, amarela pede atenção, vermelha em risco */
 function HealthDot({ health }: { health: ClientHealth }) {
@@ -226,10 +242,14 @@ export default function ClientsPage() {
 
   const health = useClientHealth(clients, tasks, isAdmin);
   const atRiskCount = Object.values(health).filter((h) => h.level !== 'ok').length;
+  const abc = useClientAbc();
+  const [abcFilter, setAbcFilter] = useState<AbcLetter | 'all'>('all');
+  const abcCount = (l: AbcLetter) => clients.filter(c => abc[c.id]?.letter === l).length;
   const filtered = clients.filter(c =>
     (c.companyName.toLowerCase().includes(search.toLowerCase()) ||
     c.contactName.toLowerCase().includes(search.toLowerCase())) &&
-    (!onlyAtRisk || (health[c.id] && health[c.id].level !== 'ok'))
+    (!onlyAtRisk || (health[c.id] && health[c.id].level !== 'ok')) &&
+    (abcFilter === 'all' || abc[c.id]?.letter === abcFilter)
   ).sort((a, b) => onlyAtRisk ? HEALTH_ORDER[health[a.id]?.level ?? 'ok'] - HEALTH_ORDER[health[b.id]?.level ?? 'ok'] : 0);
 
   const openNew = () => { setEditing(null); setForm({ serviceType: [], accountManager: [], scopeDetails: emptyScope }); setDialogOpen(true); };
@@ -307,6 +327,15 @@ export default function ClientsPage() {
             Precisam de atenção <span className="tabular-nums">{atRiskCount}</span>
           </button>
         )}
+        <div className="flex shrink-0 items-center gap-1" role="group" aria-label="Filtrar pela curva ABC">
+          {(['all', 'A', 'B', 'C'] as const).map(l => (
+            <button key={l} type="button" onClick={() => setAbcFilter(l)}
+              title={l === 'all' ? 'Todos os clientes' : ABC_HINT[l]}
+              className={`h-9 rounded-md border px-2.5 text-sm font-medium transition-colors ${abcFilter === l ? 'border-primary/50 bg-primary/10 text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              {l === 'all' ? 'Todos' : <>{l} <span className="tabular-nums text-xs opacity-70">{abcCount(l)}</span></>}
+            </button>
+          ))}
+        </div>
         <button
           onClick={toggleSelectAll}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
@@ -393,6 +422,7 @@ export default function ClientsPage() {
               <div className="flex-1 min-w-0">
                 <p className="flex items-center gap-2 font-medium text-foreground">
                   {health[client.id] && <HealthDot health={health[client.id]} />}
+                  {abc[client.id] && <AbcBadge abc={abc[client.id]} showShare={isAdmin} />}
                   <span className="truncate">{client.companyName}</span>
                 </p>
                 {health[client.id]?.reasons.length ? (
@@ -597,6 +627,18 @@ export default function ClientsPage() {
                 <Select value={form.status || 'Ativo'} onValueChange={v => setForm({ ...form, status: v as ClientStatus })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Curva ABC</Label>
+                <Select value={form.abcClass || 'auto'} onValueChange={v => setForm({ ...form, abcClass: v === 'auto' ? null : v as AbcLetter })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Automática{editing && abc[editing.id] ? ` (pelo valor: ${abc[editing.id].auto})` : ' (pelo valor)'}</SelectItem>
+                    <SelectItem value="A">A · prioridade máxima</SelectItem>
+                    <SelectItem value="B">B · intermediário</SelectItem>
+                    <SelectItem value="C">C · menor</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
               {editing && (form.status === 'Pausado' || form.status === 'Cancelado') && (

@@ -62,6 +62,7 @@ function rowToClient(row: Tables<'clients'>): Client {
     billingStoppedAt: (row as any).billing_stopped_at || null,
     stoppedPeriods: Array.isArray((row as any).stopped_periods) ? (row as any).stopped_periods : [],
     deletedAt: (row as any).deleted_at || null,
+    abcClass: 'abc_class' in row ? ((row as any).abc_class || null) : undefined,
     scopeDetails: {
       monthlyDeliverables: row.scope_monthly_deliverables || [],
       includedServices: row.scope_included_services || [],
@@ -79,6 +80,8 @@ function clientToRow(c: Client): TablesInsert<'clients'> {
     monthly_value: c.monthlyValue, scope: c.scope, service_type: c.serviceType,
     // Só manda o tipo quando ele existe no cliente (antes da migração a coluna ainda não existe no banco)
     ...(c.billingType ? { billing_type: c.billingType } as any : {}),
+    // A letra ABC manual só vai quando o banco já tem a coluna (undefined = migração não aplicada)
+    ...(c.abcClass !== undefined ? { abc_class: c.abcClass } as any : {}),
     account_manager: c.accountManager || [], status: c.status, notes: c.notes,
     scope_monthly_deliverables: c.scopeDetails?.monthlyDeliverables || [],
     scope_included_services: c.scopeDetails?.includedServices || [],
@@ -321,6 +324,11 @@ export function AgencyProvider({ children }: { children: React.ReactNode }) {
       const { billing_type: _skip, ...withoutType } = row;
       ({ error } = await run(withoutType));
       if (!error) toast.warning('Cliente salvo, mas o tipo "Pontual" só passa a valer depois de publicar a atualização no Lovable.');
+    }
+    if (error && /abc_class/.test(error.message) && 'abc_class' in row) {
+      const { abc_class: _skip, ...withoutAbc } = row;
+      ({ error } = await run(withoutAbc));
+      if (!error) toast.warning('Cliente salvo, mas a letra ABC escolhida à mão só passa a valer depois de aplicar a migração no Lovable.');
     }
     if (error) {
       toast.error(`Não foi possível salvar o cliente: ${error.message}`);
