@@ -3,6 +3,7 @@ import { CalendarCheck, ChevronLeft, ChevronRight, Loader2, PartyPopper, Send } 
 import { toast } from 'sonner';
 import { useAgency } from '@/contexts/AgencyContext';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { commemorativeByDay } from '@/lib/commemorativeDates';
 import { cn } from '@/lib/utils';
@@ -18,7 +19,7 @@ const short = (s: string) => fromIso(s).toLocaleDateString('pt-BR', { weekday: '
 type Field = 'due' | 'post';
 
 /**
- * Planner que abre depois de criar o card: só marca as datas planejadas (entrega e dia de postar).
+ * Planner que abre depois de criar o card: só marca as datas planejadas (entrega, dia e hora de postar).
  * Não agenda nem publica nada: o card continua no kanban e passa por captação, edição e revisão.
  * O calendário mostra os posts que o cliente já tem e as datas comemorativas.
  */
@@ -28,12 +29,14 @@ export function SchedulePostDialog({ task, onClose }: { task: Task | null; onClo
   const [field, setField] = useState<Field>('due');
   const [due, setDue] = useState('');
   const [post, setPost] = useState('');
+  const [time, setTime] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!task) return;
     setDue(task.dueDate || '');
     setPost(task.postDate || '');
+    setTime(task.postTime?.slice(0, 5) || '');
     setField(task.dueDate && !task.postDate ? 'post' : 'due');
     setMonth(fromIso(task.postDate || task.dueDate || iso(new Date())));
   }, [task]);
@@ -75,7 +78,7 @@ export function SchedulePostDialog({ task, onClose }: { task: Task | null; onClo
     if (!task) return;
     setSaving(true);
     try {
-      await updateTask({ ...task, dueDate: due, postDate: post });
+      await updateTask({ ...task, dueDate: due, postDate: post, postTime: post ? time : '' });
       toast.success('Datas do card salvas', { description: 'O card segue no kanban: captação, edição e revisão.' });
       onClose();
     } catch (e) {
@@ -160,6 +163,11 @@ export function SchedulePostDialog({ task, onClose }: { task: Task | null; onClo
             {taken[post]?.length ? <p className="text-warning">Esse dia já tem {taken[post].length} post(s) deste cliente.</p> : null}
           </div>
         ) : null}
+
+        <label className="flex items-center gap-3 text-sm">
+          <span className="text-muted-foreground">Horário de postar</span>
+          <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={!post} className="h-9 w-32" />
+        </label>
 
         <p className="text-xs text-muted-foreground [text-wrap:pretty]">Só planeja as datas: nada é agendado nem publicado. O card segue no kanban por captação, edição e revisão.</p>
 
