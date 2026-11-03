@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DIAGNOSTIC_RULES, DiagnosticRule, BusinessType } from '@/data/diagnosticRules';
 import { AIVisionConverter } from '@/components/diagnostic/AIVisionConverter';
 import { DiagnosticReport } from '@/components/diagnostic/DiagnosticReport';
+import { DiagnosticLogoUpload } from '@/components/diagnostic/DiagnosticLogoUpload';
 
 const ScoreBar = ({ label, percentage }: { label: string; percentage: number }) => (
   <div className="space-y-1">
@@ -153,7 +154,7 @@ export default function DiagnosticEditorPage() {
         nome: data.cliente?.nome || clientInfo.nome,
         instaAgencia: clientInfo.instaAgencia,
         whatsAgencia: clientInfo.whatsAgencia,
-        foto: data.imageUrl || clientInfo.foto || ''
+        foto: data.logoUrl || clientInfo.foto || data.imageUrl || ''
       },
       intro: { 
         titulo: 'Diagnóstico Estratégico de IA', 
@@ -439,6 +440,7 @@ export default function DiagnosticEditorPage() {
               <Input id="diag-nicho" placeholder="Ex.: Estética avançada" value={clientInfo.nicho} onChange={e => setClientInfo({ ...clientInfo, nicho: e.target.value })} />
             </div>
             <div className="space-y-1.5 md:col-span-2">
+              <DiagnosticLogoUpload value={clientInfo.foto} onChange={url => setClientInfo({ ...clientInfo, foto: url })} />
               <Label htmlFor="diag-foto">URL da foto de perfil (opcional)</Label>
               <Input id="diag-foto" placeholder="https://…" value={clientInfo.foto} onChange={e => setClientInfo({ ...clientInfo, foto: e.target.value })} />
             </div>
@@ -514,6 +516,8 @@ export default function DiagnosticEditorPage() {
     <AIVisionConverter
       onBack={() => setStep('choice')}
       onDataExtracted={handleAIExtraction}
+      logoUrl={clientInfo.foto}
+      onLogoChange={url => setClientInfo({ ...clientInfo, foto: url })}
     />
   );
 
@@ -629,6 +633,10 @@ export default function DiagnosticEditorPage() {
       <div className="flex flex-col gap-4 lg:h-[calc(100dvh-12rem)] lg:min-h-[560px] lg:flex-row">
         {/* PAINEL DE CONTROLE */}
         <aside className="no-print space-y-4 lg:w-[320px] lg:shrink-0 lg:overflow-y-auto lg:pr-1">
+          <DiagnosticLogoUpload value={config.cliente?.foto || clientInfo.foto} onChange={url => {
+            setClientInfo({ ...clientInfo, foto: url });
+            setConfig({ ...config, cliente: { ...config.cliente, foto: url } });
+          }} disabled={isSaving} />
           <div className="space-y-3 rounded-xl border border-border bg-card p-4">
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="diag-edit-mode" className="text-sm font-medium">Modo edição</Label>
