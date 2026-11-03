@@ -2118,6 +2118,7 @@ export type Database = {
           enabled: boolean
           ends_on: string | null
           id: string
+          image_url: string
           link: string
           message: string
           starts_on: string | null
@@ -2131,6 +2132,7 @@ export type Database = {
           enabled?: boolean
           ends_on?: string | null
           id?: string
+          image_url?: string
           link?: string
           message?: string
           starts_on?: string | null
@@ -2144,6 +2146,7 @@ export type Database = {
           enabled?: boolean
           ends_on?: string | null
           id?: string
+          image_url?: string
           link?: string
           message?: string
           starts_on?: string | null

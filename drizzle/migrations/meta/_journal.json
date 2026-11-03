@@ -218,6 +218,13 @@
       "when": 1793703266555,
       "tag": "0030_kanban_notices",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793703285190,
+      "tag": "0031_kanban_notices_image",
+      "breakpoints": true
     }
   ]
 }
