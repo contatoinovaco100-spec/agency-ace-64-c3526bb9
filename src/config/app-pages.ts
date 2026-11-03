@@ -3,7 +3,7 @@ import {
   Shield, FileText, BarChart3,   Film, Clapperboard, Palette, Play,
   LayoutList, Bot, Sparkles, Settings, Bell, Calendar, CalendarDays,
   MessageSquare, TrendingUp, Images, BookOpen, CalculatorIcon,
-  Gift, Link2, Video, Rocket, NotebookPen, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy, Scissors, Gauge, Bug, BellRing, Crown, Megaphone,
+  Gift, Link2, Video, Rocket, NotebookPen, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy, Scissors, Gauge, Bug, BellRing, Crown, Megaphone, HeartHandshake,
 } from 'lucide-react';
 
 export type PageCategory =
@@ -46,6 +46,8 @@ export const APP_PAGES: AppPage[] = [
   { path: '/desempenho',          label: 'Desempenho da Equipe', icon: Gauge,          category: 'Administração', adminOnly: true, hidden: true },
   // Meu dia: resumo pessoal do dia, com Minhas Tarefas como segunda aba
   { path: '/meu-dia',             label: 'Meu dia',             icon: Sparkles,        category: 'Geral', alwaysAllowed: true, includes: ['/minhas-tarefas'] },
+  // Landing de onboarding (/cultura): página pública, abre fora do layout da plataforma
+  { path: '/cultura',             label: 'Cultura INOVA',       icon: HeartHandshake,  category: 'Geral', alwaysAllowed: true },
   { path: '/minhas-tarefas',      label: 'Minhas Tarefas',      icon: ListChecks,      category: 'Geral', hidden: true },
   // Agenda reúne Calendário, Gravações e Escala semanal em abas (cada aba mantém o próprio endereço e permissão)
   { path: '/agenda',              label: 'Agenda',              icon: Calendar,        category: 'Geral', includes: ['/calendario', '/gravacoes', '/agenda-videos'] },

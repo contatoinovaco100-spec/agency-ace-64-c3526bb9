@@ -743,7 +743,8 @@ export default function CulturePage() {
       {/* ── Navegação ── */}
       <header className="fixed inset-x-0 top-3 z-40 px-3 sm:top-5 sm:px-6">
         <div className="cx-nav mx-auto flex max-w-[1240px] items-center justify-between rounded-full py-2 pl-5 pr-2">
-          <img src={logoInova} alt="INOVA" className="cx-logo h-5" />
+          {/* Logo volta para a plataforma (quem veio pelo menu lateral) */}
+          <a href="/" aria-label="Voltar para a plataforma"><img src={logoInova} alt="INOVA" className="cx-logo h-5" /></a>
           <nav className="hidden gap-7 text-[13px] font-medium md:flex" style={{ color: 'hsl(var(--c-ink) / 0.7)' }}>
             <a href="#pilares" className="transition-colors hover:text-[hsl(var(--c-ink))]">Pilares</a>
             <a href="#processo" className="transition-colors hover:text-[hsl(var(--c-ink))]">Processo</a>
