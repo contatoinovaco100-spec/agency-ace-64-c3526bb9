@@ -1832,6 +1832,68 @@ export type Database = {
         }
         Relationships: []
       }
+      head_routine_checks: {
+        Row: {
+          checked_at: string
+          checked_by: string
+          id: string
+          item_id: string
+          period_key: string
+        }
+        Insert: {
+          checked_at?: string
+          checked_by?: string
+          id?: string
+          item_id: string
+          period_key: string
+        }
+        Update: {
+          checked_at?: string
+          checked_by?: string
+          id?: string
+          item_id?: string
+          period_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "head_routine_checks_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "head_routine_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      head_routine_items: {
+        Row: {
+          created_at: string
+          hint: string
+          id: string
+          link: string
+          period: string
+          sort: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          hint?: string
+          id?: string
+          link?: string
+          period: string
+          sort?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          hint?: string
+          id?: string
+          link?: string
+          period?: string
+          sort?: number
+          title?: string
+        }
+        Relationships: []
+      }
       ig_queue_accounts: {
         Row: {
           active: boolean
