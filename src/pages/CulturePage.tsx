@@ -228,7 +228,7 @@ function Hero() {
             <path d="M120 140 C 220 160, 260 260, 330 300" stroke="hsl(0 0% 100% / 0.35)" strokeWidth="1.2" strokeDasharray="4 6" />
             <path d="M640 120 C 560 150, 520 240, 440 280" stroke="hsl(0 0% 100% / 0.35)" strokeWidth="1.2" strokeDasharray="4 6" />
           </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center" style={{ transform: 'translateY(calc(min(var(--sy), 900) * 0.35px))' }}>
           <AiImage src="/cultura/hero.webp" alt="Logo da INOVA sobre uma nuvem"
             className="cx-cloud h-full w-auto max-w-none object-contain object-center"
             fallback={
@@ -321,11 +321,10 @@ function BigWords() {
         <p className="cx-row whitespace-nowrap font-display text-[clamp(5rem,19vw,17rem)] font-bold leading-[0.85] tracking-[-0.06em]" style={{ color: 'hsl(var(--c-ink) / 0.09)', transform: 'translateX(calc(var(--p, 0) * 45% - 60%))' }}>
           Cria. Grava. Posta. Repete.
         </p>
-        {/* Objeto no meio, girando */}
-        <div className="pointer-events-none absolute left-1/2 top-1/2 w-[clamp(150px,26vw,330px)]"
-          style={{ transform: 'translate(-50%, -50%) rotate(calc(var(--p, 0) * 50deg - 22deg)) scale(calc(0.85 + var(--p, 0) * 0.3))' }}>
-          <GlassIcon kind="play" tint="blue" className="w-full" />
-          <GlassIcon kind="heart" tint="lime" className="absolute -right-[18%] -top-[14%] w-[34%] rotate-12" />
+        {/* A nuvem do topo continua aqui: desce e vai para o canto conforme a rolagem */}
+        <div className="pointer-events-none absolute left-1/2 top-1/2 w-[clamp(240px,40vw,560px)]"
+          style={{ transform: 'translate(calc(-50% + var(--p, 0) * 30vw), calc(-60% + var(--p, 0) * 34vh)) scale(calc(1 - var(--p, 0) * 0.45)) rotate(calc(var(--p, 0) * 10deg))' }}>
+          <img src="/cultura/hero.webp" alt="" aria-hidden className="w-full drop-shadow-[0_30px_40px_hsl(var(--c-ink)/0.18)]" />
         </div>
         <p className="absolute inset-x-0 bottom-8 text-center text-xs font-medium uppercase tracking-[0.2em]" style={{ color: C.muted }}>Três palavras. Todo santo dia.</p>
       </div>
