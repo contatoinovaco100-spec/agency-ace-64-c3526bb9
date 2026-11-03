@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { EmployeeWhatsApp } from '@/components/team/EmployeeWhatsApp';
+import { EmployeeJobTitle, JobTitleSuggestions } from '@/components/team/EmployeeJobTitle';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Navigate } from 'react-router-dom';
@@ -229,6 +230,7 @@ export default function EmployeesPage() {
         <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       ) : (
         <div className="grid gap-3">
+          <JobTitleSuggestions extra={employees.map((e) => e.job_title ?? '')} />
           {employees.map(emp => (
             <Card key={emp.id} className={!emp.is_active ? 'opacity-60' : ''}>
               <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
@@ -243,7 +245,8 @@ export default function EmployeesPage() {
                       {!emp.is_active && <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                      {emp.job_title && <span>{emp.job_title}</span>}
+                      <EmployeeJobTitle profileId={emp.id} value={emp.job_title ?? ''}
+                        onSaved={(v) => setEmployees((prev) => prev.map((e) => (e.id === emp.id ? { ...e, job_title: v || null } : e)))} />
                       <EmployeeWhatsApp profileId={emp.id} />
                       {emp.username && (
                         <span className="flex items-center gap-1">
@@ -290,7 +293,7 @@ export default function EmployeesPage() {
               </div>
               <div>
                 <Label>Cargo</Label>
-                <Input value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="Editor de vídeo" />
+                <Input value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="Social Media, Editor de vídeo…" list="employee-job-titles" />
               </div>
               <div>
                 <Label>Usuário (login)</Label>
