@@ -169,6 +169,13 @@
       "when": 1793673754675,
       "tag": "0023_shooting_booking",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793674289873,
+      "tag": "0024_shooting_booking",
+      "breakpoints": true
     }
   ]
 }
