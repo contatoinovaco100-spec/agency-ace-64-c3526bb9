@@ -3546,6 +3546,45 @@ export type Database = {
         }
         Relationships: []
       }
+      shooting_booking_settings: {
+        Row: {
+          blocked_dates: string[]
+          end_time: string
+          horizon_days: number
+          id: number
+          location: string
+          min_notice_days: number
+          slot_minutes: number
+          start_time: string
+          updated_at: string
+          weekdays: number[]
+        }
+        Insert: {
+          blocked_dates?: string[]
+          end_time?: string
+          horizon_days?: number
+          id?: number
+          location?: string
+          min_notice_days?: number
+          slot_minutes?: number
+          start_time?: string
+          updated_at?: string
+          weekdays?: number[]
+        }
+        Update: {
+          blocked_dates?: string[]
+          end_time?: string
+          horizon_days?: number
+          id?: number
+          location?: string
+          min_notice_days?: number
+          slot_minutes?: number
+          start_time?: string
+          updated_at?: string
+          weekdays?: number[]
+        }
+        Relationships: []
+      }
       shooting_schedules: {
         Row: {
           cast_notes: string
@@ -4798,6 +4837,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      book_shooting: {
+        Args: { p_client: string; p_date: string; p_time: string }
+        Returns: Json
+      }
       client_review_task: {
         Args: { _approve: boolean; _comment?: string; _id: string }
         Returns: undefined
@@ -4816,6 +4859,7 @@ export type Database = {
         Args: { _month?: string }
         Returns: number
       }
+      get_booking_page: { Args: { p_client: string }; Returns: Json }
       get_contract_signature_minimal: {
         Args: { _contract_id: string }
         Returns: {
@@ -5082,6 +5126,13 @@ export type Database = {
         Returns: undefined
       }
       renew_recurring_invoices: { Args: never; Returns: number }
+      shooting_free_slots: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          slot_date: string
+          slot_time: string
+        }[]
+      }
       start_public_quiz_response: {
         Args: {
           _quiz_id: string
