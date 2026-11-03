@@ -184,6 +184,7 @@ export function ProspectCampaigns() {
         </p>
         <div className="flex shrink-0 flex-wrap gap-2">
           <PullFromManual numbers={numbers} sequences={sequences} primary onDone={(id) => { if (id) setSelected(id); load(); }} />
+          <PullFromGroup numbers={numbers} sequences={sequences} onDone={(id) => { if (id) setSelected(id); load(); }} />
           <Button variant="outline" className="gap-1.5" onClick={() => setEditing({ ...EMPTY, example_message: manualTemplate(), followup_sequence_id: defaultSequence(sequences) })}><Plus className="h-4 w-4" /> Nova campanha</Button>
         </div>
       </div>
@@ -192,7 +193,8 @@ export function ProspectCampaigns() {
         <div className="rounded-xl border border-dashed p-10 text-center">
           <p className="font-medium">Nenhuma campanha ainda</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Clique em <strong className="font-medium text-foreground">Disparar da Manual</strong> e escolha o nicho que você captou: a campanha é criada sozinha com essas empresas.
+            Clique em <strong className="font-medium text-foreground">Disparar da Manual</strong> e escolha o nicho que você captou, ou em{' '}
+            <strong className="font-medium text-foreground">Puxar de grupo</strong> para usar os membros de um grupo do WhatsApp: a campanha é criada sozinha.
           </p>
         </div>
       ) : (
@@ -410,34 +412,67 @@ function CampaignDetail({ campaign: c, numbers, sequences, prospects, stats, onT
   );
 }
 
-/** Coloca na fila desta campanha os membros de um grupo do WhatsApp do número que envia a campanha */
-function PullFromGroup({ campaign: c, onDone }: { campaign: Campaign; onDone: () => void }) {
+/**
+ * Coloca na fila os membros de um grupo do WhatsApp. Dentro de uma campanha usa o número dela;
+ * no topo (sem campanha) você escolhe o número e a campanha "Grupo …" é criada pausada.
+ */
+function PullFromGroup({ campaign, numbers = [], sequences = [], onDone }: {
+  campaign?: Campaign; numbers?: WaNumber[]; sequences?: Sequence[]; onDone: (campaignId?: string) => void;
+}) {
   const [groups, setGroups] = useState<{ id: string; name: string }[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState<string | null>(null);
   const [q, setQ] = useState('');
+  const [session, setSession] = useState<string | null>(null);
 
-  const openDialog = async () => {
+  const listGroups = async (sess: string | null) => {
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke('wa-server', { body: { action: 'groups', session: c.session_id ?? undefined } });
+    const { data, error } = await supabase.functions.invoke('wa-server', { body: { action: 'groups', session: sess ?? undefined } });
     setLoading(false);
     if (error || data?.error) {
-      toast.error('Não foi possível listar os grupos', { description: data?.error || 'Confira se o número da campanha está conectado.' });
-      return;
+      toast.error('Não foi possível listar os grupos', { description: data?.error || 'Confira se esse número está conectado em CRM → Números do WhatsApp.' });
+      return false;
     }
-    setQ('');
     setGroups((data?.groups ?? []) as { id: string; name: string }[]);
+    return true;
   };
+
+  const openDialog = async () => {
+    // Sem campanha: começa pelo número principal, que é onde os grupos costumam estar
+    const sess = campaign ? campaign.session_id : (numbers.find((n) => n.is_default) ?? numbers[0])?.id ?? null;
+    setSession(sess); setQ('');
+    await listGroups(sess);
+  };
+
+  const pickNumber = async (id: string) => { setSession(id); setGroups([]); await listGroups(id); };
 
   const pull = async (g: { id: string; name: string }) => {
     setImporting(g.id);
     try {
+      let c = campaign;
+      if (!c) {
+        const { data: u } = await supabase.auth.getUser();
+        const row = {
+          ...EMPTY, name: `Grupo ${g.name}`, niche: '', city: '', session_id: session, active: false, created_by: u.user?.id ?? null,
+          example_message: manualTemplate(),
+          ...(defaultSequence(sequences) ? { followup_sequence_id: defaultSequence(sequences) } : {}),
+        };
+        let { data, error } = await supabase.from(CAMPAIGNS).insert(row as never).select('*').single();
+        // Migração do follow-up ainda não aplicada: cria sem ele
+        if (error && /followup_sequence_id/.test(error.message)) {
+          const { followup_sequence_id: _skip, ...rest } = row as typeof row & { followup_sequence_id?: string };
+          ({ data, error } = await supabase.from(CAMPAIGNS).insert(rest as never).select('*').single());
+        }
+        if (error) throw new Error(error.message);
+        c = data as unknown as Campaign;
+      }
       const r = await invoke<{ members: number; added: number; repeated: number; hidden: number }>({ action: 'import_group', campaign_id: c.id, group: g.id, group_name: g.name });
       toast.success(`${r.added} contatos na fila`, {
         description: `${r.members} membros com telefone · ${r.repeated} já estavam na lista${r.hidden ? ` · ${r.hidden} com número oculto pelo WhatsApp` : ''}`,
       });
+      if (!campaign) toast.info(`Campanha "${c.name}" criada pausada`, { description: 'Confira a mensagem em Editar e ligue quando quiser começar.' });
       setGroups(null);
-      onDone();
+      onDone(c.id);
     } catch (e) { toast.error('Não foi possível puxar o grupo', { description: e instanceof Error ? e.message : '' }); }
     setImporting(null);
   };
@@ -454,10 +489,23 @@ function PullFromGroup({ campaign: c, onDone }: { campaign: Campaign; onDone: ()
           <DialogContent className="max-w-md">
             <DialogTitle>Puxar membros de um grupo</DialogTitle>
             <DialogDescription>
-              Grupos do número desta campanha. Os membros entram na fila com o nome salvo no WhatsApp; quem já está em alguma lista não entra de novo.
+              {campaign ? 'Grupos do número desta campanha.' : 'Escolha o número que está no grupo. Os membros vão para uma campanha nova, pausada.'} Os membros entram na fila com o nome salvo no WhatsApp; quem já está em alguma lista não entra de novo.
             </DialogDescription>
+            {!campaign && numbers.length > 1 && (
+              <div className="flex flex-wrap gap-1.5">
+                {numbers.map((n) => (
+                  <button key={n.id} type="button" disabled={loading || !!importing} onClick={() => pickNumber(n.id)}
+                    className={cn('rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-50',
+                      session === n.id ? 'border-primary bg-primary/10 text-foreground' : 'text-muted-foreground hover:border-foreground/30')}>
+                    {n.name}{n.is_default ? ' (principal)' : ''}
+                  </button>
+                ))}
+              </div>
+            )}
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Procurar grupo" />
-            {shown.length === 0 ? (
+            {loading ? (
+              <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+            ) : shown.length === 0 ? (
               <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Nenhum grupo encontrado.</p>
             ) : (
               <ul className="max-h-80 space-y-1.5 overflow-y-auto">
