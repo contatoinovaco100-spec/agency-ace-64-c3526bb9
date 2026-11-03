@@ -181,9 +181,12 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
       { label: 'Cliente', value: form.clientId },
       { label: 'Responsável', value: form.assignee },
       { label: 'Prioridade', value: form.priority },
-      { label: 'Data de entrega', value: form.dueDate },
-      { label: 'Data de postagem', value: form.postDate },
-      { label: 'Hora de postagem', value: form.postTime },
+      // Card novo: as datas são escolhidas no pop-up que abre depois de criar
+      ...(isNew ? [] : [
+        { label: 'Data de entrega', value: form.dueDate },
+        { label: 'Data de postagem', value: form.postDate },
+        { label: 'Hora de postagem', value: form.postTime },
+      ]),
       { label: 'Legenda', value: form.caption },
       { label: 'Roteiro', value: form.fullScript },
       ...(isArte ? [] : [
@@ -497,12 +500,15 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                   <SelectContent>{priorities.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.dueDate))}>Data de entrega</Label>
-                <Input type="date" value={form.dueDate || ''} onChange={e => setForm({ ...form, dueDate: e.target.value })} className={cn('mt-1', fieldClass(form.dueDate))} />
-              </div>
+              {!isNew && (
+                <div>
+                  <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.dueDate))}>Data de entrega</Label>
+                  <Input type="date" value={form.dueDate || ''} onChange={e => setForm({ ...form, dueDate: e.target.value })} className={cn('mt-1', fieldClass(form.dueDate))} />
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
+            {/* Card novo: entrega, dia e hora de postar ficam no pop-up que abre depois de criar */}
+            {!isNew && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
               <div>
                 <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.postDate))}>Data de postagem</Label>
                 <Input type="date" value={form.postDate || ''} onChange={e => setForm({ ...form, postDate: e.target.value })} className={cn('mt-1', fieldClass(form.postDate))} />
@@ -511,7 +517,7 @@ export default function TaskDetailPanel({ task, isNew, clients, team, defaultCli
                 <Label className={cn("text-[10px] sm:text-xs uppercase tracking-wider", labelClass(form.postTime))}>Hora de postagem</Label>
                 <Input type="time" value={form.postTime || ''} onChange={e => setForm({ ...form, postTime: e.target.value })} className={cn('mt-1', fieldClass(form.postTime))} />
               </div>
-            </div>
+            </div>}
           </div>
 
           {/* ── Copy da Arte (H1 / H2 / CTA) ── */}
