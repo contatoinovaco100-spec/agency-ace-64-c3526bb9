@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Loader2, Megaphone, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ImagePlus, Loader2, Megaphone, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader } from '@/components/PageHeader';
@@ -17,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { TONES, isLive, noticesTable, todayIso, type KanbanNotice } from '@/lib/kanbanNotices';
 
 type Draft = Omit<KanbanNotice, 'id' | 'created_by' | 'updated_at'> & { id?: string };
-const emptyNotice = (): Draft => ({ title: '', message: '', tone: 'destaque', link: '', starts_on: null, ends_on: null, enabled: true });
+const emptyNotice = (): Draft => ({ title: '', message: '', tone: 'destaque', link: '', image_url: '', starts_on: null, ends_on: null, enabled: true });
 const shortDate = (d: string) => d.split('-').reverse().slice(0, 2).join('/');
 
 /** Administração → Avisos do kanban: banner que aparece no topo do kanban de todo mundo */
@@ -28,6 +29,8 @@ export default function KanbanNoticesPage() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState<KanbanNotice | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const today = todayIso();
 
   const load = async () => {
@@ -51,9 +54,26 @@ export default function KanbanNoticesPage() {
       ? await noticesTable().update(row as never).eq('id', id)
       : await noticesTable().insert({ ...row, created_by: user?.email ?? '' } as never);
     setSaving(false);
-    if (error) { toast.error('Não foi possível salvar', { description: error.message }); return; }
+    if (error) {
+      toast.error('Não foi possível salvar', { description: /image_url/.test(error.message) ? 'Falta aplicar a migração 20261103160000_kanban_notices_image.' : error.message });
+      return;
+    }
     toast.success(id ? 'Aviso atualizado' : 'Aviso publicado no kanban');
     setDraft(null); load();
+  };
+
+  // Foto vai para o bucket público task-attachments, pasta avisos/
+  const upload = async (file?: File) => {
+    if (!file || !draft) return;
+    if (!file.type.startsWith('image/')) { toast.error('Escolha uma imagem (JPG, PNG ou WEBP)'); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.error('Imagem muito grande', { description: 'Use uma de até 8 MB.' }); return; }
+    setUploading(true);
+    const path = `avisos/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]+/g, '_')}`;
+    const { error } = await supabase.storage.from('task-attachments').upload(path, file, { contentType: file.type });
+    setUploading(false);
+    if (error) { toast.error('Não foi possível enviar a foto', { description: error.message }); return; }
+    const { data } = supabase.storage.from('task-attachments').getPublicUrl(path);
+    setDraft((d) => (d ? { ...d, image_url: data.publicUrl } : d));
   };
 
   const toggle = async (n: KanbanNotice) => {
@@ -163,6 +183,24 @@ export default function KanbanNoticesPage() {
                 </div>
               </div>
               <div className="space-y-1.5">
+                <Label>Foto (opcional)</Label>
+                <input ref={fileRef} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ''; }} />
+                {draft.image_url ? (
+                  <div className="flex items-center gap-3">
+                    <img src={draft.image_url} alt="" className="h-16 w-16 rounded-lg object-cover ring-1 ring-foreground/10" />
+                    <Button type="button" size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>Trocar</Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setDraft({ ...draft, image_url: '' })}><X className="mr-1 h-4 w-4" />Tirar</Button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed p-4 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground">
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                    {uploading ? 'Enviando...' : 'Escolher imagem'}
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1.5">
                 <Label htmlFor="notice-link">Link (opcional)</Label>
                 <Input id="notice-link" value={draft.link} placeholder="/planner ou https://..."
                   onChange={(e) => setDraft({ ...draft, link: e.target.value })} />
@@ -189,7 +227,7 @@ export default function KanbanNoticesPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDraft(null)}>Cancelar</Button>
-            <Button onClick={save} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{draft?.id ? 'Salvar' : 'Publicar'}</Button>
+            <Button onClick={save} disabled={saving || uploading}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{draft?.id ? 'Salvar' : 'Publicar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, Megaphone, Siren, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useLiveNotices, type KanbanNotice } from '@/lib/kanbanNotices';
 
@@ -19,6 +20,7 @@ const TONE_STYLE = {
 export function KanbanNoticeBanner({ preview }: { preview?: KanbanNotice[] }) {
   const live = useLiveNotices();
   const [hidden, setHidden] = useState(readHidden);
+  const [zoom, setZoom] = useState<KanbanNotice | null>(null);
   const list = (preview ?? live).filter((n) => preview || !hidden.includes(keyOf(n)));
   if (!list.length) return null;
 
@@ -35,9 +37,16 @@ export function KanbanNoticeBanner({ preview }: { preview?: KanbanNotice[] }) {
         const external = /^https?:\/\//.test(n.link);
         return (
           <div key={n.id} role="status" className={cn('relative flex items-start gap-3 overflow-hidden rounded-xl p-3 pr-10 sm:items-center sm:p-4 sm:pr-12', s.box)}>
-            <div className={cn('relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', s.iconBox)}>
-              <s.icon className="h-4 w-4" />
-            </div>
+            {n.image_url ? (
+              <button type="button" onClick={() => setZoom(n)} aria-label="Ver foto do aviso"
+                className="relative z-[1] h-14 w-14 shrink-0 overflow-hidden rounded-lg ring-1 ring-foreground/10 transition-transform hover:scale-[1.03] sm:h-16 sm:w-16">
+                <img src={n.image_url} alt="" className="h-full w-full object-cover" />
+              </button>
+            ) : (
+              <div className={cn('relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', s.iconBox)}>
+                <s.icon className="h-4 w-4" />
+              </div>
+            )}
             <div className="relative z-[1] min-w-0 flex-1">
               <p className="font-display text-sm font-semibold leading-snug sm:text-[15px]">{n.title}</p>
               {n.message && <p className={cn('mt-0.5 whitespace-pre-line text-xs leading-relaxed sm:text-sm', s.muted)}>{n.message}</p>}
@@ -54,6 +63,12 @@ export function KanbanNoticeBanner({ preview }: { preview?: KanbanNotice[] }) {
           </div>
         );
       })}
+      <Dialog open={!!zoom} onOpenChange={(o) => !o && setZoom(null)}>
+        <DialogContent className="max-w-3xl p-2 sm:p-3">
+          <DialogTitle className="sr-only">{zoom?.title}</DialogTitle>
+          {zoom?.image_url && <img src={zoom.image_url} alt={zoom.title} className="max-h-[80vh] w-full rounded-md object-contain" />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

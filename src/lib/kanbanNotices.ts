@@ -5,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 export type NoticeTone = 'destaque' | 'aviso' | 'urgente';
 export type KanbanNotice = {
   id: string; title: string; message: string; tone: NoticeTone; link: string;
+  /** Foto opcional (URL pública no bucket task-attachments) */
+  image_url?: string;
   starts_on: string | null; ends_on: string | null; enabled: boolean; created_by: string; updated_at: string;
 };
 
