@@ -603,6 +603,54 @@ async function runFollowUps(admin: SupabaseClient) {
   return sent;
 }
 
+// ─── Lembretes da equipe (Equipe → Lembretes): checklist/lembrete por dia da semana ──
+const WEEKDAY_NAMES = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+type TeamReminder = {
+  id: string; title: string; kind: "checklist" | "lembrete"; message: string; items: string[];
+  weekdays: number[]; send_time: string; people: string[]; enabled: boolean; last_run_on: string | null;
+};
+
+/** Mesmo texto da prévia da plataforma (src/lib/teamReminders.ts) */
+function reminderMessage(r: TeamReminder, person: string, dow: number) {
+  const vars = { nome: person.trim().split(/\s+/)[0] || "", dia: WEEKDAY_NAMES[dow] };
+  const items = (r.items ?? []).map((i) => i.trim()).filter(Boolean);
+  return [
+    `${r.kind === "checklist" ? "📋" : "🔔"} *${r.title}*`,
+    r.message.trim() ? render(r.message.trim(), vars) : "",
+    items.map((i) => `${r.kind === "checklist" ? "☐" : "•"} ${i}`).join("\n"),
+  ].filter(Boolean).join("\n\n");
+}
+
+async function runTeamReminders(admin: SupabaseClient) {
+  const { data, error } = await admin.from("team_reminders").select("*").eq("enabled", true);
+  if (error) return 0; // tabela ainda não criada
+  const now = spNow(), today = spDay(0), dow = now.getUTCDay();
+  const minutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  let sent = 0;
+  for (const r of (data ?? []) as TeamReminder[]) {
+    if (r.last_run_on === today || !r.weekdays.includes(dow)) continue;
+    const [h, m] = String(r.send_time).split(":").map(Number);
+    if (minutes < h * 60 + m) continue;
+    // Marca antes de enviar: se a próxima rodada do cron chegar no meio, não duplica
+    await admin.from("team_reminders").update({ last_run_on: today }).eq("id", r.id);
+    if (!r.people?.length) continue;
+    const { data: people } = await admin.from("profiles").select("id, full_name, whatsapp, is_active").in("id", r.people);
+    for (const p of people ?? []) {
+      if (p.is_active === false) continue;
+      const to = phoneOf(p.whatsapp);
+      const row = { reminder_id: r.id, profile_id: p.id, person: p.full_name ?? "", sent_on: today, status: "enviado", error: "" };
+      if (!to) row.status = "sem_contato";
+      else {
+        try { await sendWhatsApp(to, reminderMessage(r, p.full_name ?? "", dow)); sent++; }
+        catch (e) { row.status = "erro"; row.error = String((e as Error).message).slice(0, 300); }
+        await new Promise((res) => setTimeout(res, 1500));
+      }
+      await admin.from("team_reminder_logs").insert(row);
+    }
+  }
+  return sent;
+}
+
 async function runAutomation(admin: SupabaseClient, a: Automation) {
   const jobs = await buildJobs(admin, a);
   // Não repete o que já foi enviado com sucesso (mesma chave)
@@ -669,7 +717,8 @@ Deno.serve(async (req) => {
         }
       }
       const followUps = await runFollowUps(admin);
-      return json({ ran: results, follow_ups: followUps });
+      const teamReminders = await runTeamReminders(admin);
+      return json({ ran: results, follow_ups: followUps, team_reminders: teamReminders });
     }
 
     // Prévia e teste: só para quem está logado na plataforma

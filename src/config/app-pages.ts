@@ -123,9 +123,10 @@ export const APP_PAGES: AppPage[] = [
 
   // Administração (só admin)
   // Equipe reúne Funcionários, Squads e Desempenho em abas (cada aba mantém o próprio endereço)
-  { path: '/equipe',              label: 'Equipe',              icon: UsersRound,      category: 'Administração', adminOnly: true, includes: ['/funcionarios', '/squads', '/desempenho'] },
+  { path: '/equipe',              label: 'Equipe',              icon: UsersRound,      category: 'Administração', adminOnly: true, includes: ['/funcionarios', '/squads', '/desempenho', '/lembretes-equipe'] },
   { path: '/funcionarios',        label: 'Funcionários',        icon: UserCog,         category: 'Administração', adminOnly: true, hidden: true },
   { path: '/squads',              label: 'Squads',              icon: UsersRound,      category: 'Administração', adminOnly: true, hidden: true },
+  { path: '/lembretes-equipe',    label: 'Lembretes da equipe', icon: UsersRound,      category: 'Administração', adminOnly: true, hidden: true },
   // Sem dados (nenhum post viral importado): fora do menu, rota mantida
   { path: '/ranking-viral',       label: 'Ranking Viral',       icon: Trophy,          category: 'Administração', adminOnly: true, hidden: true },
   { path: '/erros',               label: 'Erros da plataforma', icon: Bug,             category: 'Administração', adminOnly: true },
