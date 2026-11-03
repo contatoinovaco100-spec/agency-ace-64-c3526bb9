@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BadgeCheck, CalendarClock, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Film, Image as ImageIcon, Loader2, MessageSquareWarning, Search, Send, Timer } from "lucide-react";
+import { BadgeCheck, CalendarClock, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Film, Image as ImageIcon, Loader2, MessageSquareWarning, PartyPopper, Search, Send, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { isReferenceAttachment } from "@/lib/attachmentPurpose";
 import { PageHeader } from "@/components/PageHeader";
 import { PostDetailSheet, type PostPatch } from "@/components/planner/PostDetailSheet";
 import { fetchClientReviews } from "@/lib/clientApprovals";
+import { commemorativeByDay, commemorativeDatesBetween, daysUntil, type CommemorativeDate } from "@/lib/commemorativeDates";
 
 type Task = {
   id: string; title: string; task_type: string; status: string; client_id: string | null;
@@ -49,6 +50,21 @@ const STAGE_STYLE = {
   scheduled: { card: "bg-sky-500/10 border-sky-500/30", text: "text-sky-600 dark:text-sky-400", Icon: CalendarClock },
   progress: { card: "bg-orange-500/10 border-orange-500/30", text: "text-orange-600 dark:text-orange-400", Icon: Timer },
 } as const;
+
+/** Data comemorativa no calendário; as grandes datas em destaque */
+function HolidayTag({ list, className = "" }: { list: CommemorativeDate[]; className?: string }) {
+  const major = list.some((d) => d.major);
+  return (
+    <span title={list.map((d) => d.name).join(" · ")}
+      className={`inline-flex min-w-0 items-center gap-1 truncate rounded px-1.5 py-0.5 text-[10px] font-semibold ${major ? "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300" : "bg-muted text-muted-foreground"} ${className}`}>
+      {major && <PartyPopper className="h-3 w-3 shrink-0" />}
+      <span className="truncate">{list.map((d) => d.name).join(" · ")}</span>
+    </span>
+  );
+}
+
+/** Quanto falta: "hoje", "amanhã", "em 12 dias" */
+const whenLabel = (n: number) => (n === 0 ? "hoje" : n === 1 ? "amanhã" : `em ${n} dias`);
 
 function ClientAvatar({ name, className = "h-8 w-8 text-xs" }: { name: string; className?: string }) {
   return <div className={`shrink-0 rounded-md bg-primary/15 text-primary font-bold flex items-center justify-center ${className}`}>{initials(name)}</div>;
@@ -195,6 +211,9 @@ export default function PlannerPage() {
   }, [tasks, view, anchor]);
 
   const today = iso(new Date());
+  // Datas comemorativas: as do período na tela e as próximas (para dar tempo de produzir)
+  const holidays = useMemo(() => commemorativeByDay(from, to), [from, to]);
+  const upcoming = useMemo(() => commemorativeDatesBetween(today, iso(addDays(new Date(), 75))).slice(0, 6), [today]);
   const step = (n: number) => setAnchor(view === "week" ? addDays(anchor, 7 * n) : new Date(anchor.getFullYear(), anchor.getMonth() + n, 1));
   const a = days[0], b = days[days.length - 1];
   const label = view === "month" ? `${MONTHS_FULL[anchor.getMonth()]} ${anchor.getFullYear()}`
@@ -454,6 +473,7 @@ export default function PlannerPage() {
                     <div className="mb-2 flex items-center gap-2">
                       {isToday && <span className="h-4 w-[3px] rounded-full bg-tally" />}
                       <h3 className={`text-sm font-semibold ${isToday ? "text-primary" : "text-foreground"}`}>{DAYS_FULL[d.getDay()]}, {d.getDate()} {MONTHS[d.getMonth()].toLowerCase()}</h3>
+                      {holidays[key] && <HolidayTag list={holidays[key]} />}
                       <span className="ml-auto text-xs tabular-nums text-muted-foreground">{list.length || "—"}</span>
                     </div>
                     {list.length > 0 && <div className="grid grid-cols-2 gap-2">{list.map((t) => <Card key={t.id} t={t} />)}</div>}
@@ -485,7 +505,10 @@ export default function PlannerPage() {
                     const weekend = d.getDay() === 0 || d.getDay() === 6;
                     return (
                       <div key={key} {...dropProps(key)} className={`h-[150px] space-y-1.5 border-b p-1.5 transition-colors ${i % 7 ? "border-l" : ""} ${dropTarget === key ? "bg-primary/15 ring-2 ring-inset ring-primary" : isToday ? "bg-primary/10" : weekend ? "bg-muted/40" : ""}`}>
-                        <div className={`px-1 pb-1 pt-0.5 text-sm ${isToday ? "font-bold text-primary" : out ? "text-muted-foreground" : "text-foreground"}`}>{d.getDate()}</div>
+                        <div className="flex min-w-0 items-center gap-1.5 px-1 pb-1 pt-0.5">
+                          <span className={`shrink-0 text-sm ${isToday ? "font-bold text-primary" : out ? "text-muted-foreground" : "text-foreground"}`}>{d.getDate()}</span>
+                          {holidays[key] && <HolidayTag list={holidays[key]} className={out ? "opacity-60" : ""} />}
+                        </div>
                         {list.slice(0, MONTH_VISIBLE).map((t) => <Chip key={t.id} t={t} />)}
                         {list.length > MONTH_VISIBLE && (
                           <button className="px-1 text-xs font-medium text-primary hover:underline" onClick={() => { setAnchor(d); setView("week"); }}>
@@ -497,6 +520,7 @@ export default function PlannerPage() {
                   }
                   return (
                     <div key={key} {...dropProps(key)} className={`min-h-[560px] space-y-2 p-2 transition-colors ${i % 7 ? "border-l" : ""} ${dropTarget === key ? "bg-primary/10 ring-2 ring-inset ring-primary" : isToday ? "bg-primary/5 ring-1 ring-inset ring-primary/60" : ""}`}>
+                      {holidays[key] && <HolidayTag list={holidays[key]} className="flex w-full whitespace-normal py-1 text-[11px]" />}
                       {list.map((t) => <Card key={t.id} t={t} />)}
                       {list.length === 0 && dropTarget === key && <p className="pt-6 text-center text-xs font-medium text-primary">Soltar aqui</p>}
                     </div>
@@ -562,6 +586,29 @@ export default function PlannerPage() {
                     <span className="font-semibold tabular-nums">{count}</span>
                   </button>
                 ))}
+                {upcoming.length > 0 && (
+                  <>
+                    <p className="pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Próximas datas comemorativas</p>
+                    <div className="space-y-1.5">
+                      {upcoming.map((h) => {
+                        const n = daysUntil(h.date);
+                        // Grande data chegando: hora de produzir o conteúdo
+                        const soon = h.major && n <= 21;
+                        return (
+                          <button key={h.date + h.name} onClick={() => { const [y, m, dd] = h.date.split("-").map(Number); setAnchor(new Date(y, m - 1, dd)); }}
+                            title="Ver no calendário"
+                            className={`flex w-full items-center gap-2 rounded-lg border p-2.5 text-left text-sm transition hover:border-primary ${soon ? "border-fuchsia-500/40 bg-fuchsia-500/10" : ""}`}>
+                            <PartyPopper className={`h-4 w-4 shrink-0 ${h.major ? "text-fuchsia-600 dark:text-fuchsia-400" : "text-muted-foreground"}`} />
+                            <span className="min-w-0 flex-1">
+                              <span className={`block truncate ${h.major ? "font-semibold" : ""}`}>{h.name}</span>
+                              <span className="block text-xs text-muted-foreground">{shortDate(h.date)} · {whenLabel(n)}{soon ? " · comece a produzir" : ""}</span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
                 <p className="pt-1 text-xs text-muted-foreground [text-wrap:pretty]">Dica: arraste um post para outro dia para reagendar. Clique para ver mídia, legenda e briefing.</p>
               </div>
             ) : (
