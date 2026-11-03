@@ -162,6 +162,13 @@
       "when": 1793668976623,
       "tag": "0022_client_abc_class",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793673754675,
+      "tag": "0023_shooting_booking",
+      "breakpoints": true
     }
   ]
 }
