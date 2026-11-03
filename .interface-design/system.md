@@ -53,6 +53,7 @@ Branco fixo (`text-white`) só sobre fundo sólido colorido (`bg-success`, `bg-p
 ## Padrões de componente
 
 - **Página nova:** comece com `<PageHeader eyebrow title description actions />` (`src/components/PageHeader.tsx`). Não adicione padding próprio na raiz da página — o `AppLayout` já dá.
+- **Painel azul e adesivo:** `SpotlightPanel` e `Sticker` (`src/components/brand/Spotlight.tsx`). O painel azul (o do diagnóstico) só no topo de telas de resumo, como o Meu Dia, no lugar do `PageHeader`. O adesivo lima no máximo um por tela, no número ou palavra mais importante. Nunca em tabelas, formulários ou listas.
 - **Navegação:** `src/config/app-pages.ts` alimenta menu, permissões e rotas. Item ativo = `bg-sidebar-accent` + barrinha `bg-tally`.
 - **Celular:** barra inferior com Início, Tarefas, Planner, Clientes e Mais (`MOBILE_TABS` no `AppLayout`). Reserve `pb-24` no conteúdo (já no layout).
 - **KPIs:** 2 colunas no celular (`grid-cols-2`), o principal pode ocupar `col-span-2`.

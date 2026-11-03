@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAgency } from '@/contexts/AgencyContext';
 import { usePageAccess } from '@/hooks/useUserRole';
 import { useClientReviews } from '@/lib/clientApprovals';
-import { PageHeader } from '@/components/PageHeader';
+import { SpotlightPanel, Sticker } from '@/components/brand/Spotlight';
 import { cn } from '@/lib/utils';
 import { defaultTrackedPeople, findPostIssues } from '@/lib/postIssues';
 import { PostIssuesPanel } from '@/components/myday/PostIssuesPanel';
@@ -148,11 +148,24 @@ export default function MyDayPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow={new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-        title={firstName ? `${greeting}, ${firstName}` : greeting}
-        description="O que precisa da sua atenção hoje, em um só lugar."
-      />
+      {/* Topo em destaque: o adesivo marca o número que mais pede ação */}
+      <SpotlightPanel>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-spotlight-foreground/75">
+          {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </p>
+        <h1 className="mt-2 font-display text-2xl font-semibold leading-tight tracking-tight sm:text-[34px]">
+          {firstName ? `${greeting}, ${firstName}.` : `${greeting}.`}
+          <br />
+          {data.late.length ? (
+            <>Você tem <Sticker className="tabular-nums">{data.late.length} {data.late.length === 1 ? 'atrasada' : 'atrasadas'}</Sticker></>
+          ) : data.todayList.length ? (
+            <>Hoje são <Sticker className="tabular-nums">{data.todayList.length} {data.todayList.length === 1 ? 'tarefa' : 'tarefas'}</Sticker></>
+          ) : (
+            <>Dia <Sticker>tranquilo.</Sticker></>
+          )}
+        </h1>
+        <p className="mt-3 max-w-xl text-sm text-spotlight-foreground/80">O que precisa da sua atenção hoje, em um só lugar.</p>
+      </SpotlightPanel>
 
       {/* Placar do dia: o número grande é o que pede ação agora */}
       <div className={cn('grid grid-cols-2 gap-3', sales ? 'sm:grid-cols-3 lg:grid-cols-5' : 'lg:grid-cols-4')}>

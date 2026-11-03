@@ -39,6 +39,10 @@ export default {
           DEFAULT: "hsl(var(--brand))",
           foreground: "hsl(var(--brand-foreground))",
         },
+        spotlight: {
+          DEFAULT: "hsl(var(--spotlight))",
+          foreground: "hsl(var(--spotlight-foreground))",
+        },
         tally: "hsl(var(--tally))",
         rec: {
           DEFAULT: "hsl(var(--rec))",
