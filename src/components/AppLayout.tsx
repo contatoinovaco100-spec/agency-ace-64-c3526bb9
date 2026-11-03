@@ -13,6 +13,7 @@ import logoInova from '@/assets/logo-inova.png';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ProfileSettingsDialog, initialsOf, useMyProfile } from '@/components/ProfileSettingsDialog';
 import { ChatDock } from '@/components/ChatDock';
+import { ShootingCheckBanner } from '@/components/ShootingCheckBanner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { CommandPalette, QUICK_CREATE, SEARCH_SHORTCUT } from '@/components/CommandPalette';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -220,6 +221,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <ChatDock />
+      <ShootingCheckBanner />
       <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} pages={visiblePages} canOpen={canOpen} />
       <ProfileSettingsDialog open={profileOpen} onOpenChange={setProfileOpen} profile={profile} onProfileChange={setProfile} />
 
