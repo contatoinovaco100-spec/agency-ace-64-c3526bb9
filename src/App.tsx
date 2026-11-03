@@ -152,6 +152,7 @@ const FinancePage               = lazy(() => import("./pages/FinancePage"));
 const FinancialPage             = lazy(() => import("./pages/FinancialPage"));
 const PublicInvoicePage         = lazy(() => import("./pages/PublicInvoicePage"));
 const BookingPage               = lazy(() => import("./pages/BookingPage"));
+const CulturePage               = lazy(() => import("./pages/CulturePage"));
 const RedeNegociosPage          = lazy(() => import("./pages/RedeNegociosPage"));
 const RedeNovoPostPage          = lazy(() => import("./pages/RedeNovoPostPage"));
 const PublicReferralsPage       = lazy(() => import("./pages/PublicReferralsPage"));
@@ -187,6 +188,7 @@ function AppRoutes() {
     (location.pathname === '/redes-sociais' && (new URLSearchParams(location.search).get('state') ?? '').startsWith('onb.')) ||
     location.pathname.startsWith('/fatura/') ||
     location.pathname.startsWith('/agendar/') ||
+    location.pathname === '/cultura' ||
     location.pathname.startsWith('/proposta') ||
     location.pathname.startsWith('/indicacoes/') ||
     location.pathname.startsWith('/indicar/') ||
@@ -219,6 +221,7 @@ function AppRoutes() {
           <Route path="/redes-sociais"       element={<OnboardingConnectCallback />} />
           <Route path="/fatura/:id"          element={<PublicInvoicePage />} />
           <Route path="/agendar/:clientId"   element={<BookingPage />} />
+          <Route path="/cultura"             element={<CulturePage />} />
           <Route path="/proposta"            element={<SalesLP />} />
           <Route path="/proposta/:slug"      element={<SalesLP />} />
           <Route path="/proposta/editar"     element={<SalesEditorPage />} />
