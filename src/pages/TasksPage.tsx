@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useClientAbc, ABC_STYLES, ABC_HINT } from '@/lib/clientAbc';
+import { SchedulePostDialog } from '@/components/tasks/SchedulePostDialog';
 import { useClientReviews } from '@/lib/clientApprovals';
 import { useSearchParams } from 'react-router-dom';
 import { useUrlAction } from '@/hooks/useUrlAction';
@@ -1055,6 +1056,9 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
     setCollapsedGroups(prev => ({ ...prev, [key]: !(prev[key] ?? key === 'history') }));
   };
 
+  // Card recém-criado: abre o planner para escolher a entrega e a publicação
+  const [scheduling, setScheduling] = useState<Task | null>(null);
+
   const handleSave = async (data: Task) => {
     if (selectedClient !== 'all' && !data.clientId) {
       data.clientId = selectedClient;
@@ -1066,6 +1070,8 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
         await updateTask(data);
       }
       setDialogOpen(false);
+      // Depois que a janela do card fecha (duas janelas ao mesmo tempo travam o clique)
+      if (creating) setTimeout(() => setScheduling(data), 250);
     } catch (err) {
       console.error('Save failed:', err);
     }
@@ -1676,6 +1682,8 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
           />
         </DialogContent>
       </Dialog>
+
+      <SchedulePostDialog task={scheduling} onClose={() => setScheduling(null)} />
 
       {/* Aba de rascunhos */}
       <Dialog open={draftsOpen} onOpenChange={setDraftsOpen}>
