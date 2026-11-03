@@ -228,20 +228,7 @@ function Hero() {
             <path d="M120 140 C 220 160, 260 260, 330 300" stroke="hsl(0 0% 100% / 0.35)" strokeWidth="1.2" strokeDasharray="4 6" />
             <path d="M640 120 C 560 150, 520 240, 440 280" stroke="hsl(0 0% 100% / 0.35)" strokeWidth="1.2" strokeDasharray="4 6" />
           </svg>
-          <div className="absolute inset-0 flex items-center justify-center" style={{ transform: 'translateY(calc(min(var(--sy), 900) * 0.35px))' }}>
-          <AiImage src="/cultura/hero.webp" alt="Logo da INOVA sobre uma nuvem"
-            className="cx-cloud h-full w-auto max-w-none object-contain object-center"
-            fallback={
-              <div aria-hidden className="absolute inset-0">
-                <div className="cx-heroglow absolute bottom-[-30%] left-1/2 h-[90%] w-[70%] -translate-x-1/2 rounded-full" />
-                <GlassIcon kind="play" tint="lime" className="cx-float absolute bottom-[14%] left-1/2 w-[34%] max-w-[240px] -translate-x-1/2" />
-                <GlassIcon kind="bars" tint="blue" className="cx-float absolute bottom-[38%] left-[16%] w-[17%] max-w-[120px] -rotate-12" style={{ animationDelay: '-2s' }} />
-                <GlassIcon kind="target" tint="clear" className="cx-float absolute bottom-[44%] right-[17%] w-[16%] max-w-[110px] rotate-12" style={{ animationDelay: '-3s' }} />
-                <GlassIcon kind="calendar" tint="clear" className="cx-float absolute bottom-[4%] left-[22%] w-[14%] max-w-[100px] rotate-6" style={{ animationDelay: '-1s' }} />
-                <GlassIcon kind="bolt" tint="blue" className="cx-float absolute bottom-[6%] right-[22%] w-[13%] max-w-[96px] -rotate-6" style={{ animationDelay: '-4s' }} />
-              </div>
-            } />
-          </div>
+          <div id="cx-cloud-slot" aria-hidden className="absolute inset-0" />
         </div>
 
         {/* Botões embaixo da nuvem */}
@@ -309,11 +296,65 @@ function Timecode() {
   return <span className="tabular-nums">{p(Math.floor(s / 60) % 60)}:{p(s % 60)}:{p(Math.floor((ms % 1000) / (1000 / 24)))}</span>;
 }
 
-/** Palavras gigantes correndo atrás do objeto de vidro, guiadas pela rolagem */
+const CLOUD_RATIO = 1400 / 1164;
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+
+/**
+ * A nuvem INOVA é uma só: nasce no centro do topo, fica parada na tela enquanto o topo sobe
+ * (saindo do painel azul), pousa no meio das palavras gigantes e depois desce para o canto.
+ */
+function CloudTraveler() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const el = ref.current;
+      const slot = document.getElementById('cx-cloud-slot');
+      const sec = document.getElementById('cx-words');
+      if (!el || !slot || !sec) return;
+      const vw = window.innerWidth, vh = window.innerHeight, sy = window.scrollY;
+      // Posição inicial: o lugar da nuvem no topo, como estava com a página no começo
+      const b = slot.getBoundingClientRect();
+      const startW = Math.min(b.height * CLOUD_RATIO, vw * 1.1);
+      const start = { x: b.left + b.width / 2, y: b.top + sy + b.height / 2, w: startW };
+      const midW = Math.min(Math.max(240, vw * 0.4), 560);
+      const mid = { x: vw / 2, y: vh * 0.47, w: midW };
+      const end = { x: vw / 2 + vw * 0.3, y: vh * 0.5 + vh * 0.3, w: midW * 0.55 };
+      const secTop = sec.offsetTop;
+      const total = Math.max(1, sec.offsetHeight - vh);
+      let x: number, y: number, w: number, rot: number;
+      if (sy < secTop) {
+        const t = ease(Math.min(1, sy / Math.max(1, secTop)));
+        x = lerp(start.x, mid.x, t); y = lerp(start.y, mid.y, t); w = lerp(start.w, mid.w, t); rot = 0;
+      } else {
+        const p = Math.min(1, (sy - secTop) / total);
+        x = lerp(mid.x, end.x, p); y = lerp(mid.y, end.y, p) - Math.max(0, sy - secTop - total); w = lerp(mid.w, end.w, p); rot = p * 10;
+      }
+      el.style.width = `${w}px`;
+      el.style.transform = `translate(${x - w / 2}px, ${y - w / CLOUD_RATIO / 2}px) rotate(${rot}deg)`;
+      el.style.visibility = y > -vh ? 'visible' : 'hidden';
+    };
+    const on = () => { if (!raf) raf = requestAnimationFrame(update); };
+    update();
+    const t = setTimeout(update, 300); // depois que as fontes assentam o layout
+    window.addEventListener('scroll', on, { passive: true });
+    window.addEventListener('resize', on);
+    return () => { clearTimeout(t); cancelAnimationFrame(raf); window.removeEventListener('scroll', on); window.removeEventListener('resize', on); };
+  }, []);
+  return (
+    <div ref={ref} aria-hidden className="pointer-events-none fixed left-0 top-0 z-30 will-change-transform" style={{ visibility: 'hidden' }}>
+      <img src="/cultura/hero.webp" alt="" className="cx-cloud w-full drop-shadow-[0_30px_40px_hsl(var(--c-ink)/0.18)]" />
+    </div>
+  );
+}
+
+/** Palavras gigantes correndo atrás da nuvem, guiadas pela rolagem */
 function BigWords() {
   const ref = useScrollProgress<HTMLElement>();
   return (
-    <section ref={ref} className="relative h-[240vh]" aria-label="Resultado, prazo e estratégia">
+    <section ref={ref} id="cx-words" className="relative h-[240vh]" aria-label="Resultado, prazo e estratégia">
       <div className="sticky top-0 flex h-[100svh] flex-col justify-center overflow-hidden">
         <p className="cx-row whitespace-nowrap font-display text-[clamp(5rem,19vw,17rem)] font-bold leading-[0.85] tracking-[-0.06em]" style={{ color: C.ink, transform: 'translateX(calc(var(--p, 0) * -55% + 4%))' }}>
           Resultado. Prazo. Estratégia.
@@ -321,11 +362,6 @@ function BigWords() {
         <p className="cx-row whitespace-nowrap font-display text-[clamp(5rem,19vw,17rem)] font-bold leading-[0.85] tracking-[-0.06em]" style={{ color: 'hsl(var(--c-ink) / 0.09)', transform: 'translateX(calc(var(--p, 0) * 45% - 60%))' }}>
           Cria. Grava. Posta. Repete.
         </p>
-        {/* A nuvem do topo continua aqui: desce e vai para o canto conforme a rolagem */}
-        <div className="pointer-events-none absolute left-1/2 top-1/2 w-[clamp(240px,40vw,560px)]"
-          style={{ transform: 'translate(calc(-50% + var(--p, 0) * 30vw), calc(-60% + var(--p, 0) * 34vh)) scale(calc(1 - var(--p, 0) * 0.45)) rotate(calc(var(--p, 0) * 10deg))' }}>
-          <img src="/cultura/hero.webp" alt="" aria-hidden className="w-full drop-shadow-[0_30px_40px_hsl(var(--c-ink)/0.18)]" />
-        </div>
         <p className="absolute inset-x-0 bottom-8 text-center text-xs font-medium uppercase tracking-[0.2em]" style={{ color: C.muted }}>Três palavras. Todo santo dia.</p>
       </div>
     </section>
@@ -722,6 +758,7 @@ export default function CulturePage() {
 
       {/* ── Hero ── */}
       <Hero />
+      <CloudTraveler />
 
       <section className="px-4 pb-16 sm:px-8">
         {/* Faixa escura com os números da casa */}
