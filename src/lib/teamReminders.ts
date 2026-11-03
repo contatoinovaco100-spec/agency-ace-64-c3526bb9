@@ -2,6 +2,8 @@
 export type TeamReminder = {
   id: string; title: string; kind: 'checklist' | 'lembrete'; message: string; items: string[];
   weekdays: number[]; send_time: string; people: string[]; enabled: boolean; last_run_on: string | null;
+  /** Horários do dia, "08:00" e "14:00" */
+  send_times: string[];
 };
 
 export type ReminderLog = { reminder_id: string; person: string; sent_on: string; status: 'enviado' | 'sem_contato' | 'erro' | 'teste'; error: string };
@@ -12,6 +14,7 @@ export const WEEKDAY_NAMES = ['domingo', 'segunda', 'terça', 'quarta', 'quinta'
 export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 export const emptyReminder = (): Omit<TeamReminder, 'id' | 'last_run_on'> => ({
+  send_times: ['08:00'],
   title: '', kind: 'checklist', message: 'Bom dia, {nome}! Checklist de {dia}:', items: [''],
   weekdays: [1, 2, 3, 4, 5], send_time: '08:00', people: [], enabled: true,
 });

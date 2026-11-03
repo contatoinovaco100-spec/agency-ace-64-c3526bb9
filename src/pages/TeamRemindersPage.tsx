@@ -41,7 +41,8 @@ export default function TeamRemindersPage() {
   const load = async () => {
     const { data, error } = await table('team_reminders').select('*').order('send_time');
     if (error) { setState('missing'); return; }
-    setList((data ?? []) as unknown as TeamReminder[]);
+    // Sem a migração dos vários horários: usa o horário único
+    setList(((data ?? []) as unknown as TeamReminder[]).map((r) => ({ ...r, send_times: r.send_times?.length ? r.send_times.map((t) => t.slice(0, 5)) : [r.send_time.slice(0, 5)] })));
     const since = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
     const { data: l } = await table('team_reminder_logs').select('reminder_id, person, sent_on, status, error').gte('sent_on', since).order('created_at', { ascending: false });
     setLogs((l ?? []) as unknown as ReminderLog[]);
@@ -55,7 +56,7 @@ export default function TeamRemindersPage() {
 
   const nameOf = useMemo(() => Object.fromEntries(team.map((m) => [m.id, m.name])), [team]);
   const byDay = useMemo(() => Object.fromEntries(WEEK_ORDER.map((d) => [d,
-    list.filter((r) => r.weekdays.includes(d)).sort((a, b) => a.send_time.localeCompare(b.send_time))])), [list]);
+    list.filter((r) => r.weekdays.includes(d)).sort((a, b) => a.send_times[0].localeCompare(b.send_times[0]))])), [list]);
   const today = todayIso();
   const todayDow = new Date().getDay();
 
@@ -67,11 +68,16 @@ export default function TeamRemindersPage() {
     if (draft.kind === 'lembrete' && !draft.message.trim() && !items.length) { toast.error('Escreva o lembrete'); return; }
     if (!draft.weekdays.length) { toast.error('Escolha pelo menos um dia da semana'); return; }
     if (!draft.people.length) { toast.error('Escolha quem recebe'); return; }
+    const times = [...new Set(draft.send_times.filter(Boolean))].sort();
+    if (!times.length) { toast.error('Escolha pelo menos um horário'); return; }
     setSaving(true);
-    const { id, ...row } = { ...draft, title: draft.title.trim(), items, updated_at: new Date().toISOString() };
+    const { id, ...row } = { ...draft, title: draft.title.trim(), items, send_times: times, send_time: times[0], updated_at: new Date().toISOString() };
     const { error } = id ? await table('team_reminders').update(row as never).eq('id', id) : await table('team_reminders').insert(row as never);
     setSaving(false);
-    if (error) { toast.error('Não foi possível salvar', { description: error.message }); return; }
+    if (error) {
+      toast.error('Não foi possível salvar', { description: /send_times/.test(error.message) ? 'Falta aplicar a migração 20261103130000_team_reminders_times.' : error.message });
+      return;
+    }
     toast.success(id ? 'Lembrete atualizado' : 'Lembrete criado');
     setDraft(null); load();
   };
@@ -150,9 +156,9 @@ export default function TeamRemindersPage() {
                   const st = d === todayDow ? statusToday(r) : null;
                   return (
                     <li key={r.id}>
-                      <button type="button" onClick={() => setDraft({ ...r, send_time: r.send_time.slice(0, 5) })}
+                      <button type="button" onClick={() => setDraft({ ...r })}
                         className={cn('w-full rounded-lg border p-2 text-left transition-colors hover:border-foreground/30', !r.enabled && 'opacity-50')}>
-                        <p className="text-xs font-semibold tabular-nums text-muted-foreground">{r.send_time.slice(0, 5)}</p>
+                        <p className="text-xs font-semibold tabular-nums text-muted-foreground">{r.send_times.join(' · ')}</p>
                         <p className="flex items-center gap-1 text-sm font-medium text-foreground">
                           {r.kind === 'checklist' ? <ClipboardList className="h-3.5 w-3.5 shrink-0" /> : <BellRing className="h-3.5 w-3.5 shrink-0" />}
                           <span className="truncate">{r.title}</span>
@@ -184,16 +190,16 @@ export default function TeamRemindersPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-foreground">{r.title}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {WEEK_ORDER.filter((d) => r.weekdays.includes(d)).map((d) => WEEKDAY_SHORT[d]).join(', ')} · {r.send_time.slice(0, 5)} · {r.people.map((p) => nameOf[p] ?? '?').join(', ')}
+                    {WEEK_ORDER.filter((d) => r.weekdays.includes(d)).map((d) => WEEKDAY_SHORT[d]).join(', ')} · {r.send_times.join(', ')} · {r.people.map((p) => nameOf[p] ?? '?').join(', ')}
                   </p>
                 </div>
                 <div className="flex gap-1">
                   <Button size="sm" variant="outline" onClick={() => sendNow(r)} disabled={testing === r.id} title="Mandar agora para os escolhidos">
                     {testing === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}<span className="ml-1.5 hidden sm:inline">Enviar agora</span>
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Editar" onClick={() => setDraft({ ...r, send_time: r.send_time.slice(0, 5) })}><Pencil className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Editar" onClick={() => setDraft({ ...r })}><Pencil className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Duplicar"
-                    onClick={() => { const { id: _id, last_run_on: _l, ...rest } = r; setDraft({ ...rest, title: `${r.title} (cópia)`, send_time: r.send_time.slice(0, 5) }); }}><Copy className="h-4 w-4" /></Button>
+                    onClick={() => { const { id: _id, last_run_on: _l, ...rest } = r; setDraft({ ...rest, title: `${r.title} (cópia)` }); }}><Copy className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" aria-label="Excluir" onClick={() => setRemoving(r)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </li>
@@ -249,7 +255,22 @@ export default function TeamRemindersPage() {
                   </div>
                 </div>
                 <div className="flex items-end gap-4">
-                  <div><Label>Horário</Label><Input type="time" value={draft.send_time} onChange={(e) => setDraft({ ...draft, send_time: e.target.value })} className="w-32" /></div>
+                  <div>
+                    <Label>Horários no dia</Label>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      {draft.send_times.map((t, i) => (
+                        <div key={i} className="flex items-center">
+                          <Input type="time" value={t} aria-label={`Horário ${i + 1}`} className="w-28"
+                            onChange={(e) => setDraft({ ...draft, send_times: draft.send_times.map((x, j) => (j === i ? e.target.value : x)) })} />
+                          {draft.send_times.length > 1 && (
+                            <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Tirar horário"
+                              onClick={() => setDraft({ ...draft, send_times: draft.send_times.filter((_, j) => j !== i) })}><X className="h-4 w-4" /></Button>
+                          )}
+                        </div>
+                      ))}
+                      <Button size="sm" variant="outline" onClick={() => setDraft({ ...draft, send_times: [...draft.send_times, ''] })}><Plus className="mr-1.5 h-3.5 w-3.5" />Horário</Button>
+                    </div>
+                  </div>
                   <label className="flex items-center gap-2 pb-2 text-sm"><Switch checked={draft.enabled} onCheckedChange={(v) => setDraft({ ...draft, enabled: v })} /> Ligado</label>
                 </div>
               </div>

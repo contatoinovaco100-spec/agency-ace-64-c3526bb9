@@ -608,6 +608,8 @@ const WEEKDAY_NAMES = ["domingo", "segunda", "terça", "quarta", "quinta", "sext
 type TeamReminder = {
   id: string; title: string; kind: "checklist" | "lembrete"; message: string; items: string[];
   weekdays: number[]; send_time: string; people: string[]; enabled: boolean; last_run_on: string | null;
+  /** Horários do dia ("08:00", "14:00"); sem a coluna, usa send_time */
+  send_times?: string[] | null; last_slot?: string | null;
 };
 
 /** Mesmo texto da prévia da plataforma (src/lib/teamReminders.ts) */
@@ -628,11 +630,16 @@ async function runTeamReminders(admin: SupabaseClient) {
   const minutes = now.getUTCHours() * 60 + now.getUTCMinutes();
   let sent = 0;
   for (const r of (data ?? []) as TeamReminder[]) {
-    if (r.last_run_on === today || !r.weekdays.includes(dow)) continue;
-    const [h, m] = String(r.send_time).split(":").map(Number);
-    if (minutes < h * 60 + m) continue;
+    if (!r.weekdays.includes(dow)) continue;
+    // Último horário do dia que já chegou (se o cron atrasar, manda só o mais recente)
+    const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+    const times = (r.send_times?.length ? r.send_times : [String(r.send_time).slice(0, 5)]).filter((t) => /^\d{1,2}:\d{2}/.test(t));
+    const slot = times.filter((t) => toMin(t) <= minutes).sort((a, b) => toMin(b) - toMin(a))[0];
+    if (!slot) continue;
+    const key = `${today} ${slot.slice(0, 5)}`;
+    if (r.send_times ? r.last_slot === key : r.last_run_on === today) continue;
     // Marca antes de enviar: se a próxima rodada do cron chegar no meio, não duplica
-    await admin.from("team_reminders").update({ last_run_on: today }).eq("id", r.id);
+    await admin.from("team_reminders").update(r.send_times ? { last_slot: key, last_run_on: today } : { last_run_on: today }).eq("id", r.id);
     if (!r.people?.length) continue;
     const { data: people } = await admin.from("profiles").select("id, full_name, whatsapp, is_active").in("id", r.people);
     for (const p of people ?? []) {
