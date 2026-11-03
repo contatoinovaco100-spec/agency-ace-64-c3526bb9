@@ -2111,6 +2111,51 @@ export type Database = {
         }
         Relationships: []
       }
+      kanban_notices: {
+        Row: {
+          created_at: string
+          created_by: string
+          enabled: boolean
+          ends_on: string | null
+          id: string
+          image_url: string
+          link: string
+          message: string
+          starts_on: string | null
+          title: string
+          tone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          enabled?: boolean
+          ends_on?: string | null
+          id?: string
+          image_url?: string
+          link?: string
+          message?: string
+          starts_on?: string | null
+          title: string
+          tone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          enabled?: boolean
+          ends_on?: string | null
+          id?: string
+          image_url?: string
+          link?: string
+          message?: string
+          starts_on?: string | null
+          title?: string
+          tone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       kanban_stages: {
         Row: {
           board: string
