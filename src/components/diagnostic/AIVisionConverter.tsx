@@ -5,10 +5,13 @@ import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { DiagnosticLogoUpload } from './DiagnosticLogoUpload';
 
 interface AIVisionConverterProps {
   onDataExtracted: (data: any) => void;
   onBack: () => void;
+  logoUrl?: string;
+  onLogoChange: (url: string) => void;
 }
 
 /** 10 pontos que um perfil precisa ter para ser bom. Cada ponto perdido = -10% na nota geral. */
@@ -25,7 +28,7 @@ const PROFILE_POINTS: { id: number; cat: 'posicionamento' | 'presenca' | 'autori
   { id: 10, cat: 'conversao', titulo: 'Chamada para ação', criterio: 'Bio e posts pedem uma ação clara (chamar no direct, agendar, comprar).' },
 ];
 
-export const AIVisionConverter: React.FC<AIVisionConverterProps> = ({ onDataExtracted, onBack }) => {
+export const AIVisionConverter: React.FC<AIVisionConverterProps> = ({ onDataExtracted, onBack, logoUrl, onLogoChange }) => {
   const [image, setImage] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -168,6 +171,7 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
       }
       // Add the public URL to the result
       result.imageUrl = publicUrl;
+      result.logoUrl = logoUrl;
       result.analysisTone = analysisTone;
       
       onDataExtracted(result);
@@ -225,6 +229,10 @@ IMPORTANTE: Retorne APENAS o JSON puro. Não explique nada fora do JSON.`;
               </motion.div>
             </AnimatePresence>
           )}
+        </div>
+
+        <div className="mt-6">
+          <DiagnosticLogoUpload value={logoUrl} onChange={onLogoChange} disabled={isProcessing} />
         </div>
 
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 text-left">
