@@ -330,7 +330,7 @@ function AppRoutes() {
                     <Route path="/etapas-kanban"       element={<KanbanStagesPage />} />
                     <Route path="/time-comercial"      element={<CommercialTeamPage />} />
                     <Route path="/squads"              element={<SectionTabs tabs={TEAM_TABS}><SquadsPage /></SectionTabs>} />
-                    <Route path="/lembretes-equipe"    element={<SectionTabs tabs={TEAM_TABS}><TeamRemindersPage /></SectionTabs>} />
+                    <Route path="/lembretes-equipe"    element={<TeamRemindersPage />} />
                     <Route path="/ranking-viral"       element={<ViralRankingPage />} />
                     <Route path="/erros"               element={<AppErrorsPage />} />
                     <Route path="/figma-to-lp"         element={<StudioScope><FigmaToLpPage /></StudioScope>} />

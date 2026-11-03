@@ -3,7 +3,7 @@ import {
   Shield, FileText, BarChart3,   Film, Clapperboard, Palette, Play,
   LayoutList, Bot, Sparkles, Settings, Bell, Calendar, CalendarDays,
   MessageSquare, TrendingUp, Images, BookOpen, CalculatorIcon,
-  Gift, Link2, Video, Rocket, NotebookPen, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy, Scissors, Gauge, Bug,
+  Gift, Link2, Video, Rocket, NotebookPen, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy, Scissors, Gauge, Bug, BellRing,
 } from 'lucide-react';
 
 export type PageCategory =
@@ -123,10 +123,10 @@ export const APP_PAGES: AppPage[] = [
 
   // Administração (só admin)
   // Equipe reúne Funcionários, Squads e Desempenho em abas (cada aba mantém o próprio endereço)
-  { path: '/equipe',              label: 'Equipe',              icon: UsersRound,      category: 'Administração', adminOnly: true, includes: ['/funcionarios', '/squads', '/desempenho', '/lembretes-equipe'] },
+  { path: '/equipe',              label: 'Equipe',              icon: UsersRound,      category: 'Administração', adminOnly: true, includes: ['/funcionarios', '/squads', '/desempenho'] },
   { path: '/funcionarios',        label: 'Funcionários',        icon: UserCog,         category: 'Administração', adminOnly: true, hidden: true },
   { path: '/squads',              label: 'Squads',              icon: UsersRound,      category: 'Administração', adminOnly: true, hidden: true },
-  { path: '/lembretes-equipe',    label: 'Lembretes da equipe', icon: UsersRound,      category: 'Administração', adminOnly: true, hidden: true },
+  { path: '/lembretes-equipe',    label: 'Lembretes da equipe', icon: BellRing,        category: 'Administração', adminOnly: true },
   // Sem dados (nenhum post viral importado): fora do menu, rota mantida
   { path: '/ranking-viral',       label: 'Ranking Viral',       icon: Trophy,          category: 'Administração', adminOnly: true, hidden: true },
   { path: '/erros',               label: 'Erros da plataforma', icon: Bug,             category: 'Administração', adminOnly: true },

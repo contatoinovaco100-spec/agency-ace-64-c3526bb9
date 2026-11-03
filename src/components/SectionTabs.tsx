@@ -15,7 +15,6 @@ export const TEAM_TABS: SectionTab[] = [
   { path: '/funcionarios', label: 'Funcionários' },
   { path: '/squads', label: 'Squads' },
   { path: '/desempenho', label: 'Desempenho' },
-  { path: '/lembretes-equipe', label: 'Lembretes' },
 ];
 
 export const PLANNING_TABS: SectionTab[] = [
