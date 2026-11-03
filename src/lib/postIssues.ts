@@ -32,6 +32,8 @@ export type FlaggedPost = { task: Task; owner: string; issues: PostIssue[] };
 const DONE = /postado|publicado|conclu|programado/i;
 /** Etapas em que o post ainda nem foi gravado/escrito */
 const EARLY = /a fazer|para fazer|copy|capta|pré|pre -|pre-|produ|dire|grava/i;
+/** Etapas em que o conteúdo está pronto esperando o cliente (as mesmas do lembrete de aprovação) */
+const IN_APPROVAL = /revis|finaliz|aprova/i;
 const PLACEHOLDER = /lorem|xxx|legenda aqui|inserir|\[[^\]]*\]|\{[^}]*\}|a definir/i;
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -91,7 +93,8 @@ export function findPostIssues(
     if (post <= shift(today, 3) && !hasText(t.caption)) issues.push({ kind: 'no_caption' });
     if (r?.changeRequested) issues.push({ kind: 'change_pending' });
     else if (r?.approved && !r.scheduled && post <= shift(today, 1)) issues.push({ kind: 'approved_not_scheduled' });
-    else if (!r?.approved && post <= shift(today, 2) && !EARLY.test(t.status)) issues.push({ kind: 'not_approved' });
+    // Só cobra aprovação do que já está pronto e na etapa de aprovação (o que o cliente vê no link)
+    else if (!r?.approved && post <= shift(today, 2) && IN_APPROVAL.test(t.status)) issues.push({ kind: 'not_approved' });
     if (hasText(t.caption)) {
       const p = captionProblems(t.caption!);
       if (p.length) issues.push({ kind: 'caption_problem', detail: p.join('; ') });
