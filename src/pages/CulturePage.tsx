@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { ArrowDown, ArrowRight, ArrowUp, Check, Clock3, Compass, Target } from 'lucide-react';
 import logoInova from '@/assets/logo-inova.png';
 import escritorioAsset from '@/assets/escritorio-inova-recepcao.jpg.asset.json';
@@ -113,48 +113,165 @@ function useScrollProgress<T extends HTMLElement>() {
 
 /* ───────────── Objetos de vidro ───────────── */
 
-function Tile({ dark = false, className = '', style, children }: { dark?: boolean; className?: string; style?: React.CSSProperties; children?: React.ReactNode }) {
-  return <div aria-hidden className={`cx-tile ${dark ? 'cx-tile-dark' : ''} ${/\babsolute\b/.test(className) ? '' : 'relative'} ${className}`} style={style}>{children}</div>;
+type GlassKind = 'play' | 'target' | 'bars' | 'calendar' | 'chat' | 'heart' | 'check' | 'camera' | 'bolt';
+const TINTS = {
+  blue: ['213 100% 72%', '214 91% 46%', '216 91% 30%'],
+  lime: ['79 100% 80%', '79 93% 55%', '84 80% 34%'],
+  clear: ['210 40% 98%', '213 60% 82%', '214 50% 58%'],
+} as const;
+
+const SYMBOLS: Record<GlassKind, React.ReactNode> = {
+  play: <path d="M50 40 Q50 34 55.5 37 L80 54.5 Q85 58 80 61.5 L55.5 79 Q50 82 50 76 Z" />,
+  target: <><circle cx="60" cy="60" r="26" fillOpacity=".45" /><circle cx="60" cy="60" r="16" fillOpacity=".7" /><circle cx="60" cy="60" r="7" /></>,
+  bars: <><rect x="34" y="62" width="13" height="22" rx="6" /><rect x="53.5" y="48" width="13" height="36" rx="6" /><rect x="73" y="34" width="13" height="50" rx="6" /></>,
+  calendar: <><rect x="33" y="38" width="54" height="48" rx="12" fillOpacity=".55" /><rect x="33" y="38" width="54" height="15" rx="7" /><rect x="43" y="31" width="7" height="14" rx="3.5" /><rect x="70" y="31" width="7" height="14" rx="3.5" /><circle cx="48" cy="68" r="5" /><circle cx="60" cy="68" r="5" /><circle cx="72" cy="68" r="5" fillOpacity=".55" /></>,
+  chat: <><path d="M36 44 Q36 34 46 34 H74 Q84 34 84 44 V64 Q84 74 74 74 H56 L44 84 V74 Q36 73 36 64 Z" /><circle cx="50" cy="54" r="4" fillOpacity=".5" /><circle cx="60" cy="54" r="4" fillOpacity=".5" /><circle cx="70" cy="54" r="4" fillOpacity=".5" /></>,
+  heart: <path d="M60 84 C38 70 32 58 34 48 C36 38 48 34 56 42 L60 46 L64 42 C72 34 84 38 86 48 C88 58 82 70 60 84 Z" />,
+  check: <path d="M38 61 L53 75 L83 44" fill="none" strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" />,
+  camera: <><rect x="32" y="44" width="56" height="40" rx="12" /><rect x="48" y="36" width="24" height="12" rx="5" /><circle cx="60" cy="64" r="11" fillOpacity=".45" /></>,
+  bolt: <path d="M64 30 L42 64 H58 L54 90 L78 54 H62 Z" strokeLinejoin="round" />,
+};
+
+/** Ícone de vidro fosco em SVG (base translúcida, brilho, símbolo branco em relevo) */
+function GlassIcon({ kind, tint = 'blue', className = '', style }: { kind: GlassKind; tint?: keyof typeof TINTS; className?: string; style?: React.CSSProperties }) {
+  const id = useId().replace(/:/g, '');
+  const [hi, mid, deep] = TINTS[tint];
+  return (
+    <svg aria-hidden viewBox="0 0 120 120" className={`cx-glass ${className}`} style={{ ['--g' as string]: mid, ...style }}>
+      <defs>
+        <linearGradient id={`b${id}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={`hsl(${hi})`} stopOpacity=".95" />
+          <stop offset=".5" stopColor={`hsl(${mid})`} stopOpacity=".72" />
+          <stop offset="1" stopColor={`hsl(${deep})`} stopOpacity=".9" />
+        </linearGradient>
+        <linearGradient id={`r${id}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="hsl(0 0% 100%)" stopOpacity=".95" />
+          <stop offset=".45" stopColor="hsl(0 0% 100%)" stopOpacity=".15" />
+          <stop offset="1" stopColor="hsl(0 0% 100%)" stopOpacity=".5" />
+        </linearGradient>
+        <linearGradient id={`s${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="hsl(0 0% 100%)" />
+          <stop offset="1" stopColor={`hsl(${hi})`} />
+        </linearGradient>
+        <filter id={`f${id}`} x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5" /></filter>
+        <filter id={`d${id}`} x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="3" stdDeviation="3" floodColor={`hsl(${deep})`} floodOpacity=".55" /></filter>
+      </defs>
+      <rect x="8" y="8" width="104" height="104" rx="32" fill={`url(#b${id})`} />
+      <ellipse cx="44" cy="30" rx="30" ry="13" fill="hsl(0 0% 100%)" opacity=".55" filter={`url(#f${id})`} />
+      <ellipse cx="80" cy="100" rx="26" ry="8" fill={`hsl(${hi})`} opacity=".5" filter={`url(#f${id})`} />
+      <rect x="8.75" y="8.75" width="102.5" height="102.5" rx="31.5" fill="none" stroke={`url(#r${id})`} strokeWidth="1.5" />
+      <g fill={`url(#s${id})`} stroke={`url(#s${id})`} strokeWidth="0" filter={`url(#d${id})`}>{SYMBOLS[kind]}</g>
+    </svg>
+  );
 }
 
-/** Composição do topo: prato de vidro com barras crescendo (resultado) e peças flutuando */
-function GlassScene() {
+/** Palavra "adesivo": fundo lima, borda branca, levemente torta */
+function Sticker({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <span className={`cx-sticker inline-block ${className}`}>{children}</span>;
+}
+
+/** Foto gerada por IA (public/cultura/...); enquanto não existir, mostra o fallback */
+function AiImage({ src, alt, className = '', fallback }: { src: string; alt: string; className?: string; fallback: React.ReactNode }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <>{fallback}</>;
+  return <img src={src} alt={alt} className={className} onError={() => setFailed(true)} loading="lazy" />;
+}
+
+/** Card de vidro branco flutuando no topo */
+function FloatCard({ icon, tint = 'blue', title, text, className = '', style }: { icon: GlassKind; tint?: keyof typeof TINTS; title: string; text: string; className?: string; style?: React.CSSProperties }) {
   return (
-    <div aria-hidden className="relative mx-auto aspect-square w-full max-w-[560px]">
-      <div className="cx-glow absolute inset-[12%] rounded-full" />
-      {/* Prato e barras */}
-      <div className="absolute inset-x-[10%] bottom-[12%] h-[56%]">
-        <div className="cx-dish absolute inset-x-0 bottom-0 h-[24%]" />
-        <div className="absolute inset-x-[18%] bottom-[11%] flex h-full items-end justify-between">
-          {[42, 64, 88].map((h, i) => (
-            <div key={h} className="cx-bar w-[24%]" style={{ height: `${h}%`, animationDelay: `${400 + i * 180}ms` }} />
-          ))}
+    <div className={`cx-floatcard absolute w-[210px] rounded-[26px] p-4 ${className}`} style={style}>
+      <GlassIcon kind={icon} tint={tint} className="h-12 w-12" />
+      <p className="mt-3 font-display text-[17px] font-semibold leading-tight tracking-[-0.03em]" style={{ color: C.ink }}>{title}</p>
+      <p className="mt-1 text-[13px] leading-snug" style={{ color: C.muted }}>{text}</p>
+    </div>
+  );
+}
+
+/** Topo: painel azul do diagnóstico, título com adesivo, pessoa no centro e vidros em volta */
+function Hero() {
+  return (
+    <section className="px-3 pb-10 pt-[88px] sm:px-6 sm:pt-[104px]">
+      <div className="cx-bluepanel relative mx-auto max-w-[1320px] overflow-hidden rounded-[36px] px-5 pt-14 text-center sm:rounded-[44px] sm:pt-20">
+        <div aria-hidden className="cx-stars pointer-events-none absolute inset-0" />
+
+        {/* Ícones de vidro nas bordas */}
+        <div aria-hidden className="cx-par pointer-events-none absolute left-[3%] top-[9%] w-[13%] min-w-[64px] max-w-[150px]" style={{ ['--f' as string]: -0.25, ['--r' as string]: -14 }}>
+          <GlassIcon kind="play" tint="clear" className="cx-float w-full" />
+        </div>
+        <div aria-hidden className="cx-par pointer-events-none absolute right-[4%] top-[6%] w-[11%] min-w-[56px] max-w-[130px]" style={{ ['--f' as string]: -0.35, ['--r' as string]: 12 }}>
+          <GlassIcon kind="heart" tint="lime" className="cx-float w-full" style={{ animationDelay: '-2s' }} />
+        </div>
+        <div aria-hidden className="cx-par pointer-events-none absolute -left-[2%] bottom-[16%] hidden w-[12%] max-w-[150px] md:block" style={{ ['--f' as string]: -0.15, ['--r' as string]: 18 }}>
+          <GlassIcon kind="camera" tint="clear" className="cx-float w-full blur-[2px]" style={{ animationDelay: '-4s' }} />
+        </div>
+        <div aria-hidden className="cx-par pointer-events-none absolute -right-[1%] bottom-[20%] hidden w-[10%] max-w-[130px] md:block" style={{ ['--f' as string]: -0.2, ['--r' as string]: -10 }}>
+          <GlassIcon kind="chat" tint="clear" className="cx-float w-full" style={{ animationDelay: '-1s' }} />
+        </div>
+
+        <div className="relative z-10 mx-auto max-w-6xl">
+          <span className="cx-in inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold" style={{ background: 'hsl(0 0% 100% / 0.14)', color: 'hsl(0 0% 100%)', boxShadow: 'inset 0 0 0 1px hsl(0 0% 100% / 0.25)', animationDelay: '100ms' }}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: C.lime }} /> Onboarding · Bem-vindo ao time INOVA
+          </span>
+          <h1 className="mt-7 font-display text-[clamp(2.7rem,7.4vw,6.6rem)] font-semibold leading-[0.95] tracking-[-0.055em]" style={{ color: 'hsl(0 0% 100%)' }}>
+            <span className="block overflow-hidden pb-[0.06em]"><span className="cx-line block" style={{ animationDelay: '200ms' }}>Conteúdo que vira</span></span>
+            <span className="cx-pop mt-2 inline-block" style={{ animationDelay: '550ms' }}><Sticker>resultado.</Sticker></span>
+          </h1>
+          <p className="cx-in mx-auto mt-7 max-w-lg text-base leading-relaxed sm:text-lg" style={{ color: 'hsl(0 0% 100% / 0.8)', animationDelay: '700ms' }}>
+            A INOVA é uma produtora focada em estratégia de conteúdo. Antes do primeiro card, vem entender como a gente joga.
+          </p>
+          <div className="cx-in mt-8 inline-flex flex-wrap justify-center gap-2 rounded-full p-1.5" style={{ background: 'hsl(0 0% 100% / 0.16)', boxShadow: 'inset 0 0 0 1px hsl(0 0% 100% / 0.25)', animationDelay: '850ms' }}>
+            <a href="#pilares" className="inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition-transform hover:-translate-y-0.5" style={{ background: C.ink, color: C.light }}>
+              Conhecer a cultura <ArrowDown className="h-4 w-4" />
+            </a>
+            <a href="#semana" className="inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition-transform hover:-translate-y-0.5" style={{ background: 'hsl(0 0% 100%)', color: C.ink }}>
+              Minha primeira semana
+            </a>
+          </div>
+        </div>
+
+        {/* Centro: foto gerada por IA (ou composição de vidro enquanto não houver foto) */}
+        <div className="relative z-[5] mx-auto mt-10 h-[320px] max-w-[760px] sm:mt-6 sm:h-[460px]">
+          <svg aria-hidden viewBox="0 0 760 460" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 hidden h-full w-full lg:block" fill="none">
+            <path d="M120 140 C 220 160, 260 260, 330 300" stroke="hsl(0 0% 100% / 0.35)" strokeWidth="1.2" strokeDasharray="4 6" />
+            <path d="M640 120 C 560 150, 520 240, 440 280" stroke="hsl(0 0% 100% / 0.35)" strokeWidth="1.2" strokeDasharray="4 6" />
+          </svg>
+          <AiImage src="/cultura/hero.png" alt="Criadora de conteúdo da INOVA"
+            className="cx-in absolute bottom-0 left-1/2 h-full w-auto max-w-none -translate-x-1/2 object-contain object-bottom"
+            fallback={
+              <div aria-hidden className="absolute inset-0">
+                <div className="cx-heroglow absolute bottom-[-30%] left-1/2 h-[90%] w-[70%] -translate-x-1/2 rounded-full" />
+                <GlassIcon kind="play" tint="lime" className="cx-float absolute bottom-[14%] left-1/2 w-[34%] max-w-[240px] -translate-x-1/2" />
+                <GlassIcon kind="bars" tint="blue" className="cx-float absolute bottom-[38%] left-[16%] w-[17%] max-w-[120px] -rotate-12" style={{ animationDelay: '-2s' }} />
+                <GlassIcon kind="target" tint="clear" className="cx-float absolute bottom-[44%] right-[17%] w-[16%] max-w-[110px] rotate-12" style={{ animationDelay: '-3s' }} />
+                <GlassIcon kind="calendar" tint="clear" className="cx-float absolute bottom-[4%] left-[22%] w-[14%] max-w-[100px] rotate-6" style={{ animationDelay: '-1s' }} />
+                <GlassIcon kind="bolt" tint="blue" className="cx-float absolute bottom-[6%] right-[22%] w-[13%] max-w-[96px] -rotate-6" style={{ animationDelay: '-4s' }} />
+              </div>
+            } />
+        </div>
+
+        {/* Cards de vidro */}
+        <FloatCard icon="target" title="Resultado" text="Conteúdo que move o ponteiro do cliente." className="cx-float left-[4%] top-[50%] hidden -rotate-3 lg:block" />
+        <FloatCard icon="calendar" tint="lime" title="Prazo" text="O que a gente promete, a gente entrega." className="cx-float right-[4%] top-[46%] hidden rotate-3 lg:block" style={{ animationDelay: '-3s' }} />
+        <div className="cx-floatcard absolute bottom-[5%] left-[4%] hidden rounded-[22px] p-4 text-left lg:block">
+          <p className="text-[13px] font-semibold" style={{ color: C.ink }}>Um time só</p>
+          <div className="mt-2 flex -space-x-2">
+            {['CP', 'ED', 'CA', 'SM'].map((t, i) => (
+              <span key={t} className="flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-bold ring-2 ring-[hsl(var(--c-card))]"
+                style={{ background: ['hsl(var(--c-blue))', C.lime, C.ink, 'hsl(var(--c-blue-light))'][i], color: i === 1 ? C.ink : C.light }}>{t}</span>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px]" style={{ color: C.muted }}>Copy · Edição · Captação · Social</p>
+        </div>
+        <div className="cx-floatcard absolute bottom-[6%] right-[4%] hidden items-center gap-3 rounded-[22px] p-3 pr-5 text-left lg:flex">
+          <GlassIcon kind="bars" tint="blue" className="h-11 w-11" />
+          <div>
+            <p className="text-[13px] font-semibold" style={{ color: C.ink }}>Estratégia</p>
+            <p className="text-[11px]" style={{ color: C.muted }}>Nada é postado por acaso.</p>
+          </div>
         </div>
       </div>
-      {/* Peças flutuantes, com parallax pela rolagem */}
-      <div className="cx-par absolute left-[4%] top-[8%] w-[24%]" style={{ ['--f' as string]: -0.18, ['--r' as string]: -14 }}>
-        <Tile className="cx-float aspect-square w-full">
-          <span className="absolute left-[22%] top-[24%] h-[30%] w-[44%] rounded-[30%]" style={{ background: C.lime }} />
-          <span className="absolute bottom-[22%] right-[20%] h-[30%] w-[30%] rounded-full" style={{ background: C.ink }} />
-        </Tile>
-      </div>
-      <div className="cx-par absolute right-[6%] top-[2%] w-[21%]" style={{ ['--f' as string]: -0.32, ['--r' as string]: 12 }}>
-        <Tile className="cx-float aspect-square w-full" style={{ animationDelay: '-2s' }}>
-          <svg viewBox="0 0 60 60" className="absolute inset-[18%]" fill="none"><path d="M4 46 L20 30 L32 38 L56 12" stroke="hsl(var(--c-ink))" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" /><circle cx="56" cy="12" r="5" fill="hsl(var(--c-lime))" /></svg>
-        </Tile>
-      </div>
-      <div className="cx-par absolute left-[0%] top-[44%] w-[20%]" style={{ ['--f' as string]: -0.1, ['--r' as string]: 8 }}>
-        <Tile dark className="cx-float aspect-square w-full" style={{ animationDelay: '-4s' }}>
-          <span className="absolute left-1/2 top-1/2 h-0 w-0 -translate-x-[35%] -translate-y-1/2" style={{ borderLeft: '22px solid hsl(var(--c-lime))', borderTop: '14px solid transparent', borderBottom: '14px solid transparent' }} />
-        </Tile>
-      </div>
-      <div className="cx-par absolute right-[0%] top-[42%] w-[13%]" style={{ ['--f' as string]: -0.4, ['--r' as string]: 0 }}>
-        <div className="cx-bubble cx-float aspect-square w-full" style={{ animationDelay: '-1s' }} />
-      </div>
-      <div className="cx-par absolute left-[30%] top-[2%] w-[7%]" style={{ ['--f' as string]: -0.5, ['--r' as string]: 0 }}>
-        <div className="cx-bubble cx-float aspect-square w-full" style={{ animationDelay: '-3s' }} />
-      </div>
-    </div>
+    </section>
   );
 }
 
@@ -201,10 +318,8 @@ function BigWords() {
         {/* Objeto no meio, girando */}
         <div className="pointer-events-none absolute left-1/2 top-1/2 w-[clamp(150px,26vw,330px)]"
           style={{ transform: 'translate(-50%, -50%) rotate(calc(var(--p, 0) * 50deg - 22deg)) scale(calc(0.85 + var(--p, 0) * 0.3))' }}>
-          <Tile dark className="aspect-square w-full">
-            <span className="absolute left-1/2 top-1/2 h-0 w-0 -translate-x-[35%] -translate-y-1/2" style={{ borderLeft: 'clamp(34px,6vw,76px) solid hsl(var(--c-lime))', borderTop: 'clamp(22px,3.8vw,48px) solid transparent', borderBottom: 'clamp(22px,3.8vw,48px) solid transparent' }} />
-          </Tile>
-          <div className="cx-bubble absolute -right-[14%] -top-[10%] aspect-square w-[26%]" />
+          <GlassIcon kind="play" tint="blue" className="w-full" />
+          <GlassIcon kind="heart" tint="lime" className="absolute -right-[18%] -top-[14%] w-[34%] rotate-12" />
         </div>
         <p className="absolute inset-x-0 bottom-8 text-center text-xs font-medium uppercase tracking-[0.2em]" style={{ color: C.muted }}>Três palavras. Todo santo dia.</p>
       </div>
@@ -268,7 +383,7 @@ function Balance() {
       <div className="absolute inset-y-0 w-px" style={{ left: `${v}%`, background: 'hsl(var(--c-light) / 0.9)' }}>
         <button type="button" aria-label="Arraste para comparar" role="slider" aria-valuenow={Math.round(v)} aria-valuemin={0} aria-valuemax={100}
           onKeyDown={(e) => { if (e.key === 'ArrowLeft') setV((x) => Math.max(4, x - 5)); if (e.key === 'ArrowRight') setV((x) => Math.min(96, x + 5)); }}
-          className="cx-tile absolute top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center !rounded-full text-sm font-bold"
+          className="cx-floatcard absolute top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center !rounded-full text-sm font-bold"
           style={{ color: C.ink }}>⟷</button>
       </div>
     </div>
@@ -552,9 +667,7 @@ function NextSteps() {
           <a href="#diagnostico" className="mt-auto inline-flex w-fit items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5" style={{ background: C.ink, color: C.light, marginTop: 24 }}>
             Ver o guia <ArrowUp className="h-4 w-4" />
           </a>
-          <Tile className="cx-float absolute -bottom-4 -right-4 aspect-square w-24">
-            <Target className="absolute inset-[26%] h-[48%] w-[48%]" style={{ color: C.ink }} />
-          </Tile>
+          <GlassIcon kind="target" tint="blue" className="cx-float absolute -bottom-3 -right-3 w-28 -rotate-12" />
         </div>
       </Reveal>
     </div>
@@ -603,34 +716,9 @@ export default function CulturePage() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="cx-hero relative overflow-hidden px-4 pb-16 pt-32 sm:px-8 sm:pt-40">
-        <div className="mx-auto grid max-w-[1240px] items-center gap-10 lg:grid-cols-[1.05fr_1fr]">
-          <div>
-            <div className="cx-in" style={{ animationDelay: '100ms' }}><Eyebrow>Onboarding · Bem-vindo ao time</Eyebrow></div>
-            <h1 className="mt-6 font-display text-[clamp(2.8rem,6.4vw,5.6rem)] font-semibold leading-[0.98] tracking-[-0.05em]">
-              {['Conteúdo que', 'vira resultado.'].map((l, i) => (
-                <span key={l} className="block overflow-hidden pb-[0.06em]">
-                  <span className="cx-line block" style={{ animationDelay: `${200 + i * 120}ms` }}>
-                    {i === 1 ? <>vira <span className="cx-mark">resultado.</span></> : l}
-                  </span>
-                </span>
-              ))}
-            </h1>
-            <p className="cx-in mt-6 max-w-md text-base leading-relaxed sm:text-lg" style={{ color: C.muted, animationDelay: '500ms' }}>
-              A INOVA é uma produtora focada em estratégia de conteúdo. Antes do primeiro card, vem entender como a gente joga.
-            </p>
-            <div className="cx-in mt-8 flex flex-wrap gap-3" style={{ animationDelay: '650ms' }}>
-              <a href="#pilares" className="inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition-transform hover:-translate-y-0.5" style={{ background: C.ink, color: C.light }}>
-                Conhecer a cultura <ArrowDown className="h-4 w-4" />
-              </a>
-              <a href="#semana" className="cx-card inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition-transform hover:-translate-y-0.5">
-                Minha primeira semana
-              </a>
-            </div>
-          </div>
-          <div className="cx-in" style={{ animationDelay: '300ms' }}><GlassScene /></div>
-        </div>
+      <Hero />
 
+      <section className="px-4 pb-16 sm:px-8">
         {/* Faixa escura com os números da casa */}
         <Reveal className="mx-auto mt-10 max-w-[1240px]">
           <div className="cx-darkcard grid gap-6 rounded-[32px] p-6 sm:grid-cols-2 sm:p-8 lg:grid-cols-4">
@@ -670,18 +758,21 @@ export default function CulturePage() {
         <div className="grid gap-4 lg:grid-cols-6">
           {/* Resultado: card escuro grande com barras de vidro */}
           <Reveal className="lg:col-span-4">
-            <article className="cx-darkcard relative h-full min-h-[420px] overflow-hidden rounded-[32px] p-7 sm:p-9">
+            <article className="cx-bluepanel relative h-full min-h-[420px] overflow-hidden rounded-[32px] p-7 sm:p-9" style={{ color: 'hsl(0 0% 100%)' }}>
+              <div aria-hidden className="cx-stars pointer-events-none absolute inset-0" />
               <div className="relative z-10 max-w-sm">
                 <span className="text-xs font-semibold tabular-nums" style={{ color: C.lime }}>{PILLARS[0].n}</span>
                 <h3 className="mt-3 font-display text-[clamp(2.4rem,4.5vw,3.8rem)] font-semibold leading-none tracking-[-0.05em]">{PILLARS[0].name}</h3>
                 <p className="mt-4 font-display text-lg font-medium">{PILLARS[0].line}</p>
-                <p className="mt-3 text-sm leading-relaxed" style={{ color: 'hsl(var(--c-light) / 0.65)' }}>{PILLARS[0].body}</p>
+                <p className="mt-3 text-sm leading-relaxed" style={{ color: 'hsl(0 0% 100% / 0.78)' }}>{PILLARS[0].body}</p>
                 <div className="mt-6 flex flex-wrap gap-2">
-                  {PILLARS[0].practice.map((x) => <span key={x} className="rounded-full px-3 py-1.5 text-xs" style={{ background: 'hsl(var(--c-light) / 0.08)' }}>{x}</span>)}
+                  {PILLARS[0].practice.map((x) => <span key={x} className="rounded-full px-3 py-1.5 text-xs" style={{ background: 'hsl(0 0% 100% / 0.14)', boxShadow: 'inset 0 0 0 1px hsl(0 0% 100% / 0.2)' }}>{x}</span>)}
                 </div>
               </div>
-              <div aria-hidden className="absolute -bottom-6 right-0 hidden h-[78%] w-[42%] items-end justify-center gap-[6%] md:flex">
-                {[38, 58, 82].map((h) => <div key={h} className="cx-bar cx-bar-dark w-[22%]" style={{ height: `${h}%` }} />)}
+              <div aria-hidden className="absolute bottom-0 right-0 top-0 hidden w-[44%] md:block">
+                <GlassIcon kind="bars" tint="clear" className="cx-float absolute right-[14%] top-[16%] w-[56%] rotate-6" />
+                <GlassIcon kind="target" tint="lime" className="cx-float absolute bottom-[12%] left-[4%] w-[34%] -rotate-12" style={{ animationDelay: '-2s' }} />
+                <GlassIcon kind="heart" tint="clear" className="cx-float absolute bottom-[6%] right-[6%] w-[22%] rotate-12 blur-[1.5px]" style={{ animationDelay: '-4s' }} />
               </div>
             </article>
           </Reveal>
@@ -689,7 +780,7 @@ export default function CulturePage() {
           {/* Prazo: card claro com anel */}
           <Reveal className="lg:col-span-2" delay={100}>
             <article className="cx-card relative h-full min-h-[420px] overflow-hidden rounded-[32px] p-7">
-              <div aria-hidden className="cx-ring mx-auto mb-6 aspect-square w-[46%]" />
+              <GlassIcon kind="calendar" tint="blue" className="cx-float mx-auto mb-6 block w-[46%] -rotate-6" />
               <span className="text-xs font-semibold tabular-nums" style={{ color: C.muted }}>{PILLARS[1].n}</span>
               <h3 className="mt-2 font-display text-[2.6rem] font-semibold leading-none tracking-[-0.05em]">{PILLARS[1].name}</h3>
               <p className="mt-3 font-display text-base font-medium">{PILLARS[1].line}</p>
@@ -700,14 +791,7 @@ export default function CulturePage() {
           {/* Estratégia: card claro com rede de pontos */}
           <Reveal className="lg:col-span-3" delay={50}>
             <article className="cx-card relative h-full overflow-hidden rounded-[32px] p-7 sm:p-9">
-              <svg aria-hidden viewBox="0 0 200 120" className="absolute -right-4 -top-2 w-[48%] opacity-90" fill="none">
-                {[[20, 90, 70, 40], [70, 40, 130, 70], [130, 70, 180, 20], [70, 40, 110, 10], [130, 70, 160, 110]].map(([a, b, c, d], i) => (
-                  <line key={i} x1={a} y1={b} x2={c} y2={d} stroke="hsl(var(--c-ink) / 0.18)" strokeWidth="1.5" />
-                ))}
-                {[[20, 90, 5], [70, 40, 7], [130, 70, 9], [180, 20, 6], [110, 10, 4], [160, 110, 5]].map(([x, y, r], i) => (
-                  <circle key={i} cx={x} cy={y} r={r} fill={i === 2 ? 'hsl(var(--c-lime))' : 'hsl(var(--c-ink))'} className="cx-node" style={{ animationDelay: `${i * 0.3}s` }} />
-                ))}
-              </svg>
+              <GlassIcon kind="target" tint="blue" className="cx-float absolute right-6 top-6 w-20 rotate-6 sm:w-28" />
               <span className="text-xs font-semibold tabular-nums" style={{ color: C.muted }}>{PILLARS[2].n}</span>
               <h3 className="mt-2 font-display text-[2.6rem] font-semibold leading-none tracking-[-0.05em]">{PILLARS[2].name}</h3>
               <p className="mt-3 max-w-md font-display text-base font-medium">{PILLARS[2].line}</p>
@@ -723,9 +807,7 @@ export default function CulturePage() {
             <article className="relative flex h-full min-h-[260px] flex-col justify-between overflow-hidden rounded-[32px] p-7 sm:p-9" style={{ background: C.lime, color: C.ink }}>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] opacity-60">A pergunta que a gente sempre faz</p>
               <p className="font-display text-[clamp(3rem,7vw,5.5rem)] font-semibold leading-[0.9] tracking-[-0.06em]">Funcionou?</p>
-              <Tile className="cx-float absolute right-6 top-6 aspect-square w-20 sm:w-24">
-                <Check className="absolute inset-[26%] h-[48%] w-[48%]" strokeWidth={3} style={{ color: C.ink }} />
-              </Tile>
+              <GlassIcon kind="check" tint="blue" className="cx-float absolute right-6 top-6 w-20 rotate-6 sm:w-28" />
             </article>
           </Reveal>
         </div>
@@ -737,7 +819,7 @@ export default function CulturePage() {
           <Reveal className="lg:col-span-3">
             <div className="cx-card h-full rounded-[32px] p-7 sm:p-10">
               <Eyebrow>A gente vive de conteúdo</Eyebrow>
-              <MaskTitle className="mt-6 text-[clamp(2.6rem,5.6vw,5rem)] leading-[0.95]" lines={['A gente se grava.', <span key="m" className="cx-mark">Muito.</span>]} />
+              <MaskTitle className="mt-6 text-[clamp(2.6rem,5.6vw,5rem)] leading-[0.95]" lines={['A gente se grava.', <Sticker key="m" className="text-[0.8em]">Muito.</Sticker>]} />
               <p className="mt-6 max-w-xl text-base leading-relaxed" style={{ color: C.muted }}>
                 Somos uma produtora, então câmera ligada é parte do nosso dia: bastidores, trends, reunião que vira vídeo, ideia que vira cena. Ninguém é obrigado a aparecer, mas não se assuste se, vira e mexe, você estiver no vídeo. A gente adora quando o time topa entrar na brincadeira.
               </p>
@@ -752,7 +834,8 @@ export default function CulturePage() {
             <div className="relative h-full min-h-[440px]">
               {/* Círculos recortados, como no vídeo de referência */}
               <div className="absolute right-0 top-0 aspect-square w-[78%] overflow-hidden rounded-full" style={{ background: C.dark }}>
-                <img src={escritorioAsset.url} alt="Escritório da INOVA" className="h-full w-full object-cover" loading="lazy" />
+                <AiImage src="/cultura/bastidor.jpg" alt="Bastidor de gravação da INOVA" className="h-full w-full object-cover"
+                  fallback={<img src={escritorioAsset.url} alt="Escritório da INOVA" className="h-full w-full object-cover" loading="lazy" />} />
                 <span className="absolute left-1/2 top-[14%] flex -translate-x-1/2 items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[11px]" style={{ background: 'hsl(var(--c-ink) / 0.6)', color: C.light }}>
                   <span className="cx-rec h-2 w-2 rounded-full" style={{ background: 'hsl(var(--c-rec))' }} /> REC <Timecode />
                 </span>
@@ -760,9 +843,7 @@ export default function CulturePage() {
               <div className="cx-float absolute bottom-0 left-0 flex aspect-square w-[52%] items-center justify-center rounded-full p-6 text-center" style={{ background: C.lime, color: C.ink, animationDelay: '-3s' }}>
                 <p className="font-display text-lg font-semibold leading-tight tracking-[-0.03em] sm:text-xl">Spoiler: você vai aparecer no story.</p>
               </div>
-              <Tile dark className="cx-float absolute bottom-[16%] right-[6%] aspect-square w-[22%]">
-                <span className="absolute left-1/2 top-1/2 h-0 w-0 -translate-x-[35%] -translate-y-1/2" style={{ borderLeft: '16px solid hsl(var(--c-lime))', borderTop: '10px solid transparent', borderBottom: '10px solid transparent' }} />
-              </Tile>
+              <GlassIcon kind="camera" tint="blue" className="cx-float absolute bottom-[12%] right-[2%] w-[26%] rotate-6" style={{ animationDelay: '-1s' }} />
             </div>
           </Reveal>
         </div>
@@ -810,15 +891,19 @@ export default function CulturePage() {
       </section>
 
       {/* ── Diagnóstico ── */}
-      <section id="diagnostico" className="mx-auto max-w-[1240px] scroll-mt-24 px-4 pb-28 sm:px-8">
-        <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
+      <section id="diagnostico" className="scroll-mt-24 px-3 pb-28 sm:px-6">
+       <div className="cx-bluepanel relative mx-auto max-w-[1320px] overflow-hidden rounded-[36px] px-4 py-16 sm:rounded-[44px] sm:px-10 sm:py-20" style={{ color: 'hsl(0 0% 100%)' }}>
+        <div aria-hidden className="cx-stars pointer-events-none absolute inset-0" />
+        <GlassIcon kind="target" tint="clear" className="cx-float pointer-events-none absolute -right-6 top-8 hidden w-36 rotate-12 md:block" />
+        <div className="relative mb-10 flex flex-wrap items-end justify-between gap-6">
           <div>
-            <Eyebrow>Mão na massa</Eyebrow>
-            <MaskTitle className="mt-5 text-[clamp(2.4rem,5vw,4.4rem)] leading-[0.98]" lines={['Como fazer o', <span key="d" className="cx-mark">nosso diagnóstico.</span>]} />
+            <Eyebrow dark>Mão na massa</Eyebrow>
+            <MaskTitle className="mt-5 text-[clamp(2.4rem,5vw,4.4rem)] leading-[0.98]" lines={['Como fazer o', <Sticker key="d" className="text-[0.8em]">nosso diagnóstico.</Sticker>]} />
           </div>
-          <p className="max-w-sm text-sm leading-relaxed" style={{ color: C.muted }}>O diagnóstico é a base de tudo: dele sai o plano de ação, a organização do perfil e o roteiro da captação.</p>
+          <p className="max-w-sm text-sm leading-relaxed" style={{ color: 'hsl(0 0% 100% / 0.8)' }}>O diagnóstico é a base de tudo: dele sai o plano de ação, a organização do perfil e o roteiro da captação.</p>
         </div>
-        <DiagnosticGuide />
+        <div className="relative"><DiagnosticGuide /></div>
+       </div>
       </section>
 
       {/* ── Regras da casa ── */}
@@ -880,14 +965,8 @@ export default function CulturePage() {
               </button>
             </div>
             <div aria-hidden className="absolute -right-2 bottom-0 top-0 hidden w-[32%] lg:block">
-              <Tile className="cx-float absolute right-[30%] top-[14%] aspect-square w-[34%]" style={{ rotate: '-12deg' }}>
-                <span className="absolute left-[22%] top-[24%] h-[30%] w-[44%] rounded-[30%]" style={{ background: C.ink }} />
-                <span className="absolute bottom-[22%] right-[20%] h-[30%] w-[30%] rounded-full" style={{ background: 'hsl(var(--c-light))' }} />
-              </Tile>
-              <Tile dark className="cx-float absolute bottom-[14%] right-[12%] aspect-square w-[30%]" style={{ rotate: '10deg', animationDelay: '-2s' }}>
-                <span className="absolute left-1/2 top-1/2 h-0 w-0 -translate-x-[35%] -translate-y-1/2" style={{ borderLeft: '24px solid hsl(var(--c-lime))', borderTop: '15px solid transparent', borderBottom: '15px solid transparent' }} />
-              </Tile>
-              <div className="cx-bubble cx-float absolute bottom-[38%] right-[52%] aspect-square w-[12%]" style={{ animationDelay: '-3s' }} />
+              <GlassIcon kind="heart" tint="blue" className="cx-float absolute right-[34%] top-[10%] w-[36%] -rotate-12" />
+              <GlassIcon kind="play" tint="clear" className="cx-float absolute bottom-[10%] right-[8%] w-[32%] rotate-12" style={{ animationDelay: '-2s' }} />
             </div>
           </div>
         </Reveal>
@@ -912,44 +991,35 @@ const CSS = `
   --c-light: 90 20% 97%;
   --c-lime: 75 90% 57%;
   --c-rec: 0 84% 58%;
+  --c-blue: 214 91% 46%;
+  --c-blue-light: 213 100% 59%;
+  --c-blue-deep: 216 91% 36%;
   --sy: 0;
   background: hsl(var(--c-bg));
   color: hsl(var(--c-ink));
 }
 .cx ::selection { background: hsl(var(--c-lime)); color: hsl(var(--c-ink)); }
 .cx-logo { filter: brightness(0) saturate(100%); opacity: .9; }
-.cx-hero { background:
-  radial-gradient(60% 50% at 78% 38%, hsl(var(--c-lime) / .28), transparent 70%),
-  radial-gradient(40% 40% at 10% 0%, hsl(var(--c-card)), transparent 70%); }
 .cx-nav { background: hsl(var(--c-card) / .7); backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%); box-shadow: inset 0 0 0 1px hsl(var(--c-card) / .9), 0 10px 40px -18px hsl(var(--c-ink) / .25); }
 .cx-card { background: hsl(var(--c-card)); color: hsl(var(--c-ink)); box-shadow: inset 0 0 0 1px hsl(var(--c-ink) / .06), 0 24px 50px -32px hsl(var(--c-ink) / .25); }
 .cx-darkcard { background: radial-gradient(80% 120% at 100% 100%, hsl(var(--c-lime) / .14), transparent 60%), hsl(var(--c-dark)); color: hsl(var(--c-light)); box-shadow: 0 40px 80px -40px hsl(var(--c-ink) / .6); }
-.cx-mark { background: linear-gradient(transparent 58%, hsl(var(--c-lime)) 58%, hsl(var(--c-lime)) 92%, transparent 92%); padding: 0 .06em; }
 
 /* Vidro */
-.cx-tile { border-radius: 28%; background: linear-gradient(145deg, hsl(var(--c-card) / .85), hsl(var(--c-card) / .2)); border: 1px solid hsl(var(--c-card) / .9);
-  box-shadow: inset 0 2px 1px hsl(var(--c-card)), inset 0 -14px 28px hsl(var(--c-ink) / .07), 0 40px 60px -26px hsl(var(--c-ink) / .4);
-  backdrop-filter: blur(14px) saturate(150%); -webkit-backdrop-filter: blur(14px) saturate(150%); }
-.cx-tile-dark { background: linear-gradient(145deg, hsl(150 8% 22%), hsl(150 10% 5%)); border-color: hsl(var(--c-light) / .14);
-  box-shadow: inset 0 2px 1px hsl(var(--c-light) / .22), inset 0 -14px 28px hsl(var(--c-ink) / .5), 0 40px 60px -24px hsl(var(--c-ink) / .55); }
-.cx-bubble { border-radius: 50%; background: radial-gradient(circle at 32% 28%, hsl(var(--c-card)) 0, hsl(var(--c-card) / .6) 18%, hsl(var(--c-lime) / .3) 52%, hsl(var(--c-ink) / .12) 78%);
-  box-shadow: inset -6px -8px 18px hsl(var(--c-ink) / .12), 0 20px 30px -16px hsl(var(--c-ink) / .35); }
-.cx-dish { border-radius: 50%; background: radial-gradient(ellipse at 50% 40%, hsl(var(--c-card) / .25), hsl(var(--c-card) / .85) 70%); border: 1px solid hsl(var(--c-card));
-  box-shadow: inset 0 -10px 20px hsl(var(--c-ink) / .08), 0 40px 50px -24px hsl(var(--c-ink) / .4); }
-.cx-bar { position: relative; border-radius: 50% / 22px; transform-origin: bottom;
-  background: linear-gradient(90deg, hsl(var(--c-card) / .85), hsl(var(--c-lime) / .55) 35%, hsl(var(--c-lime) / .25) 65%, hsl(var(--c-card) / .7));
-  border: 1px solid hsl(var(--c-card) / .9); box-shadow: inset 0 -12px 24px hsl(var(--c-lime) / .3), 0 30px 40px -24px hsl(var(--c-ink) / .4);
-  animation: cxGrow 1.4s cubic-bezier(.2,.8,.2,1) both; }
-.cx-bar::before { content: ''; position: absolute; left: -1px; right: -1px; top: -1px; height: 44px; border-radius: 50%; background: linear-gradient(180deg, hsl(var(--c-card) / .95), hsl(var(--c-lime) / .35)); border: 1px solid hsl(var(--c-card)); }
-.cx-bar-dark { background: linear-gradient(90deg, hsl(var(--c-light) / .22), hsl(var(--c-lime) / .5) 35%, hsl(var(--c-lime) / .18) 65%, hsl(var(--c-light) / .15)); border-color: hsl(var(--c-light) / .25); }
-.cx-bar-dark::before { background: linear-gradient(180deg, hsl(var(--c-light) / .5), hsl(var(--c-lime) / .4)); border-color: hsl(var(--c-light) / .3); }
-@keyframes cxGrow { from { transform: scaleY(.15); opacity: 0; } to { transform: none; opacity: 1; } }
-.cx-glow { background: radial-gradient(circle, hsl(var(--c-lime) / .45), transparent 65%); filter: blur(30px); }
-.cx-ring { border-radius: 50%; background: conic-gradient(from -90deg, hsl(var(--c-lime)) 0 72%, hsl(var(--c-ink) / .07) 72% 100%);
-  -webkit-mask: radial-gradient(circle, transparent 54%, #000 55%); mask: radial-gradient(circle, transparent 54%, #000 55%); animation: cxSpin 12s linear infinite; }
-@keyframes cxSpin { to { transform: rotate(360deg); } }
-.cx-node { transform-box: fill-box; transform-origin: center; animation: cxNode 2.4s ease-in-out infinite; }
-@keyframes cxNode { 50% { transform: scale(1.35); } }
+.cx-bluepanel { background:
+  radial-gradient(70% 60% at 50% 0%, hsl(var(--c-blue-light) / .9), transparent 70%),
+  radial-gradient(60% 50% at 50% 110%, hsl(var(--c-lime) / .35), transparent 70%),
+  linear-gradient(180deg, hsl(var(--c-blue)) 0%, hsl(var(--c-blue-deep)) 100%);
+  box-shadow: 0 50px 100px -50px hsl(var(--c-blue) / .7); }
+.cx-stars { background-image: radial-gradient(circle, hsl(0 0% 100% / .5) 1px, transparent 1.5px), radial-gradient(circle, hsl(0 0% 100% / .25) 1px, transparent 1.5px);
+  background-size: 120px 120px, 70px 70px; background-position: 10px 20px, 40px 55px; -webkit-mask-image: linear-gradient(180deg, #000, transparent 85%); mask-image: linear-gradient(180deg, #000, transparent 85%); }
+.cx-sticker { background: hsl(var(--c-lime)); color: hsl(var(--c-ink)); padding: .02em .28em .1em; border-radius: .22em; border: .07em solid hsl(0 0% 100%);
+  transform: rotate(-3deg); box-shadow: 0 .12em 0 hsl(var(--c-ink) / .9), 0 .4em .8em -.2em hsl(var(--c-ink) / .45); }
+.cx-glass { overflow: visible; filter: drop-shadow(0 22px 26px hsl(var(--g) / .45)) drop-shadow(0 4px 6px hsl(var(--c-ink) / .12)); }
+.cx-floatcard { background: hsl(0 0% 100% / .82); backdrop-filter: blur(18px) saturate(150%); -webkit-backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: inset 0 0 0 1px hsl(0 0% 100% / .9), 0 30px 60px -28px hsl(var(--c-ink) / .5); text-align: left; z-index: 6; }
+.cx-heroglow { background: radial-gradient(circle, hsl(var(--c-lime) / .55), hsl(var(--c-blue-light) / .2) 50%, transparent 70%); filter: blur(20px); }
+.cx-pop { opacity: 0; animation: cxPop .8s cubic-bezier(.3,1.6,.5,1) forwards; }
+@keyframes cxPop { from { opacity: 0; transform: scale(.6) rotate(-10deg); } to { opacity: 1; transform: none; } }
 
 /* Movimento */
 .cx-par { transform: translateY(calc(var(--sy) * var(--f) * 1px)) rotate(calc(var(--r) * 1deg + var(--sy) * var(--f) * -0.04deg)); will-change: transform; }
@@ -978,7 +1048,7 @@ const CSS = `
 
 @media (prefers-reduced-motion: reduce) {
   .cx *, .cx *::before { animation: none !important; transition: none !important; }
-  .cx-reveal, .cx-in { opacity: 1; transform: none; filter: none; }
+  .cx-reveal, .cx-in, .cx-pop { opacity: 1; transform: none; filter: none; }
   .cx-line, .cx-mask > span > span { transform: none; }
   .cx-par { transform: none; }
 }
