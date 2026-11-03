@@ -12,12 +12,12 @@ import { mentionsUser } from '@/components/ChatMentions';
 /**
  * Avisos da equipe que entram na central de notificações:
  * - alguém te mencionou no chat (@usuario ou @todos)
- * - chegou um lead novo no CRM (para quem tem acesso ao CRM)
+ * - chegou um lead novo no CRM (só admin)
  * - alguma tela quebrou no navegador de alguém (só admin; sem som, uma vez por mensagem)
  */
 export function TeamNotifications() {
   const { user } = useAuth();
-  const { hasPageAccess, isAdmin, loading } = usePageAccess();
+  const { isAdmin, loading } = usePageAccess();
   const { playSound } = usePushNotification();
   const navigate = useNavigate();
   const usernameRef = useRef<string | null>(null);
@@ -25,7 +25,8 @@ export function TeamNotifications() {
   navigateRef.current = navigate;
   const soundRef = useRef(playSound);
   soundRef.current = playSound;
-  const seesLeads = !loading && hasPageAccess('/crm');
+  // Lead novo só avisa o admin; quem só trabalha no CRM vê os leads na tela, sem notificação
+  const seesLeads = !loading && isAdmin;
 
   useEffect(() => {
     if (!user) return;
