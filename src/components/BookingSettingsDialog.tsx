@@ -13,9 +13,11 @@ import { cn } from '@/lib/utils';
 type Settings = {
   weekdays: number[]; start_time: string; end_time: string; slot_minutes: number;
   min_notice_days: number; horizon_days: number; blocked_dates: string[]; location: string;
+  /** Equipes que gravam ao mesmo tempo: quantos clientes cabem no mesmo horário */
+  teams_per_slot?: number;
 };
 
-const DEFAULTS: Settings = { weekdays: [1, 2, 3, 4, 5], start_time: '09:00', end_time: '18:00', slot_minutes: 120, min_notice_days: 1, horizon_days: 30, blocked_dates: [], location: '' };
+const DEFAULTS: Settings = { weekdays: [1, 2, 3, 4, 5], start_time: '09:00', end_time: '18:00', slot_minutes: 120, min_notice_days: 1, horizon_days: 30, blocked_dates: [], location: '', teams_per_slot: 2 };
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const fmtDay = (s: string) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }); };
 
@@ -59,9 +61,13 @@ export function BookingSettingsDialog() {
 
   const save = async () => {
     if (!s.weekdays.length) { toast.error('Escolha pelo menos um dia da semana'); return; }
+    if ((s.teams_per_slot ?? 1) < 1) { toast.error('Precisa de pelo menos 1 equipe'); return; }
     if (slotsPerDay < 1) { toast.error('A janela de horário não comporta nenhuma captação'); return; }
     setSaving(true);
-    const { error } = await settingsTable().update({ ...s, updated_at: new Date().toISOString() } as never).eq('id', 1);
+    // Sem a migração das equipes a coluna não existe: salva o resto
+    const { teams_per_slot, ...rest } = s;
+    const payload = teams_per_slot === undefined ? rest : s;
+    const { error } = await settingsTable().update({ ...payload, updated_at: new Date().toISOString() } as never).eq('id', 1);
     setSaving(false);
     if (error) { toast.error('Não foi possível salvar', { description: error.message }); return; }
     toast.success('Agenda de captação salva');
@@ -115,12 +121,18 @@ export function BookingSettingsDialog() {
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <div><Label className="text-xs text-muted-foreground">Começa às</Label><Input type="time" value={s.start_time} onChange={(e) => setS({ ...s, start_time: e.target.value })} /></div>
                   <div><Label className="text-xs text-muted-foreground">Termina às</Label><Input type="time" value={s.end_time} onChange={(e) => setS({ ...s, end_time: e.target.value })} /></div>
+                  {s.teams_per_slot !== undefined && (
+                    <div><Label className="text-xs text-muted-foreground">Equipes no mesmo horário</Label><Input type="number" min={1} max={20} value={s.teams_per_slot} onChange={num('teams_per_slot')} /></div>
+                  )}
                   <div><Label className="text-xs text-muted-foreground">Duração (min)</Label><Input type="number" min={15} step={15} value={s.slot_minutes} onChange={num('slot_minutes')} /></div>
                   <div><Label className="text-xs text-muted-foreground">Antecedência (dias)</Label><Input type="number" min={0} value={s.min_notice_days} onChange={num('min_notice_days')} /></div>
                   <div><Label className="text-xs text-muted-foreground">Abre até (dias à frente)</Label><Input type="number" min={1} max={180} value={s.horizon_days} onChange={num('horizon_days')} /></div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {slotsPerDay === 1 ? '1 captação por dia' : `${slotsPerDay} captações por dia`}. Dias com gravação sem horário ficam fechados inteiros.
+                  {(() => {
+                    const teams = s.teams_per_slot ?? 1; const total = slotsPerDay * teams;
+                    return `${slotsPerDay === 1 ? '1 horário' : `${slotsPerDay} horários`} por dia${teams > 1 ? ` × ${teams} equipes = ${total} captações por dia` : ''}.`;
+                  })()} Gravação sem horário ocupa uma equipe o dia todo.
                 </p>
                 <div><Label className="text-xs text-muted-foreground">Local (aparece para o cliente)</Label><Input value={s.location} onChange={(e) => setS({ ...s, location: e.target.value })} placeholder="Ex: Estúdio INOVA, ou no endereço do cliente" /></div>
                 <div>
