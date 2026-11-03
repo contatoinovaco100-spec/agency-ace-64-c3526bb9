@@ -325,9 +325,13 @@ function CloudTraveler() {
       const secTop = sec.offsetTop;
       const total = Math.max(1, sec.offsetHeight - vh);
       let x: number, y: number, w: number, rot: number;
-      if (sy < secTop) {
-        const t = ease(Math.min(1, sy / Math.max(1, secTop)));
-        x = lerp(start.x, mid.x, t); y = lerp(start.y, mid.y, t); w = lerp(start.w, mid.w, t); rot = 0;
+      // Primeiro trecho da rolagem: a nuvem sobe junto com o topo, só depois começa a viajar
+      const hold = Math.min(vh * 0.25, secTop * 0.4);
+      if (sy < hold) {
+        x = start.x; y = start.y - sy; w = start.w; rot = 0;
+      } else if (sy < secTop) {
+        const t = ease(Math.min(1, (sy - hold) / Math.max(1, secTop - hold)));
+        x = lerp(start.x, mid.x, t); y = lerp(start.y - hold, mid.y, t); w = lerp(start.w, mid.w, t); rot = 0;
       } else {
         const p = Math.min(1, (sy - secTop) / total);
         x = lerp(mid.x, end.x, p); y = lerp(mid.y, end.y, p) - Math.max(0, sy - secTop - total); w = lerp(mid.w, end.w, p); rot = p * 10;
