@@ -3556,6 +3556,7 @@ export type Database = {
           min_notice_days: number
           slot_minutes: number
           start_time: string
+          teams_per_slot: number
           updated_at: string
           weekdays: number[]
         }
@@ -3568,6 +3569,7 @@ export type Database = {
           min_notice_days?: number
           slot_minutes?: number
           start_time?: string
+          teams_per_slot?: number
           updated_at?: string
           weekdays?: number[]
         }
@@ -3580,6 +3582,7 @@ export type Database = {
           min_notice_days?: number
           slot_minutes?: number
           start_time?: string
+          teams_per_slot?: number
           updated_at?: string
           weekdays?: number[]
         }
