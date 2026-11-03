@@ -108,8 +108,12 @@ async function syncAvatars(call: (path: string, init?: RequestInit) => Promise<R
             const path = `${session}/${c.contact_phone.replace(/[^\w.-]/g, '_')}.jpg`;
             const up = await admin.storage.from('wa-avatars')
               .upload(path, await img.arrayBuffer(), { contentType: img.headers.get('content-type') ?? 'image/jpeg', upsert: true });
-            // ?v= para o navegador não mostrar a foto antiga do cache
-            if (!up.error) avatar = `${admin.storage.from('wa-avatars').getPublicUrl(path).data.publicUrl}?v=${Date.now()}`;
+            // Bucket privado: link assinado válido por 7 dias (a foto é revalidada a cada 3)
+            // &v= para o navegador não mostrar a foto antiga do cache
+            if (!up.error) {
+              const { data: signed } = await admin.storage.from('wa-avatars').createSignedUrl(path, 7 * 24 * 3600);
+              if (signed) avatar = `${signed.signedUrl}&v=${Date.now()}`;
+            }
           }
         } catch { /* sem foto desta vez */ }
       }
