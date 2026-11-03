@@ -231,13 +231,14 @@ function Hero() {
         </div>
 
         {/* Centro: foto gerada por IA (ou composição de vidro enquanto não houver foto) */}
-        <div className="relative z-[5] mx-auto mt-10 h-[320px] max-w-[760px] sm:mt-6 sm:h-[460px]">
+        <div className="relative z-[5] mx-auto mt-8 h-[300px] max-w-[820px] sm:mt-4 sm:h-[480px]">
           <svg aria-hidden viewBox="0 0 760 460" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 hidden h-full w-full lg:block" fill="none">
             <path d="M120 140 C 220 160, 260 260, 330 300" stroke="hsl(0 0% 100% / 0.35)" strokeWidth="1.2" strokeDasharray="4 6" />
             <path d="M640 120 C 560 150, 520 240, 440 280" stroke="hsl(0 0% 100% / 0.35)" strokeWidth="1.2" strokeDasharray="4 6" />
           </svg>
-          <AiImage src="/cultura/hero.png" alt="Criadora de conteúdo da INOVA"
-            className="cx-in absolute bottom-0 left-1/2 h-full w-auto max-w-none -translate-x-1/2 object-contain object-bottom"
+          <div className="absolute inset-0 flex items-end justify-center">
+          <AiImage src="/cultura/hero.webp" alt="Logo da INOVA sobre uma nuvem"
+            className="cx-cloud h-full w-auto max-w-none object-contain object-bottom"
             fallback={
               <div aria-hidden className="absolute inset-0">
                 <div className="cx-heroglow absolute bottom-[-30%] left-1/2 h-[90%] w-[70%] -translate-x-1/2 rounded-full" />
@@ -248,6 +249,7 @@ function Hero() {
                 <GlassIcon kind="bolt" tint="blue" className="cx-float absolute bottom-[6%] right-[22%] w-[13%] max-w-[96px] -rotate-6" style={{ animationDelay: '-4s' }} />
               </div>
             } />
+          </div>
         </div>
 
         {/* Cards de vidro */}
@@ -1018,6 +1020,8 @@ const CSS = `
 .cx-floatcard { background: hsl(0 0% 100% / .82); backdrop-filter: blur(18px) saturate(150%); -webkit-backdrop-filter: blur(18px) saturate(150%);
   box-shadow: inset 0 0 0 1px hsl(0 0% 100% / .9), 0 30px 60px -28px hsl(var(--c-ink) / .5); text-align: left; z-index: 6; }
 .cx-heroglow { background: radial-gradient(circle, hsl(var(--c-lime) / .55), hsl(var(--c-blue-light) / .2) 50%, transparent 70%); filter: blur(20px); }
+.cx-cloud { opacity: 0; animation: cxIn 1.2s .3s cubic-bezier(.2,.8,.2,1) forwards, cxCloud 8s 1.5s ease-in-out infinite; }
+@keyframes cxCloud { 50% { translate: 0 -12px; } }
 .cx-pop { opacity: 0; animation: cxPop .8s cubic-bezier(.3,1.6,.5,1) forwards; }
 @keyframes cxPop { from { opacity: 0; transform: scale(.6) rotate(-10deg); } to { opacity: 1; transform: none; } }
 
@@ -1048,7 +1052,7 @@ const CSS = `
 
 @media (prefers-reduced-motion: reduce) {
   .cx *, .cx *::before { animation: none !important; transition: none !important; }
-  .cx-reveal, .cx-in, .cx-pop { opacity: 1; transform: none; filter: none; }
+  .cx-reveal, .cx-in, .cx-pop, .cx-cloud { opacity: 1; transform: none; filter: none; }
   .cx-line, .cx-mask > span > span { transform: none; }
   .cx-par { transform: none; }
 }
