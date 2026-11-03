@@ -183,6 +183,13 @@
       "when": 1793674304178,
       "tag": "0025_shooting_booking_teams",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793676745352,
+      "tag": "0026_admin_update_profiles",
+      "breakpoints": true
     }
   ]
 }
