@@ -357,6 +357,210 @@ function Week() {
   );
 }
 
+const PROCESS = [
+  { name: 'Cliente entrou', what: 'Boas-vindas, grupo no WhatsApp e o briefing enviado para o cliente preencher.', why: 'A gente começa com informação, não com achismo. Tudo o que vem depois sai daqui.' },
+  { name: 'Diagnóstico', what: 'Entender o negócio, o público, o perfil atual e a concorrência.', why: 'Não dá para tratar sem diagnosticar. Se a gente não sabe onde o cliente está, não sabe para onde levar.' },
+  { name: 'Plano de ação', what: 'Metas dos próximos 3 meses, linhas editoriais, formatos e frequência.', why: 'Com o plano, todo mundo do time sabe para onde vai e o cliente sabe o que esperar.' },
+  { name: 'Organizar o perfil', what: 'Bio, destaques e posts fixados arrumados antes de qualquer conteúdo novo.', why: 'O perfil é a vitrine. Quem chega pelo conteúdo novo precisa encontrar a casa arrumada, senão vai embora.' },
+  { name: 'Captação', what: 'Gravar com roteiro pronto, sabendo o que, por que e para quem.', why: 'Só gravamos depois de saber o objetivo de cada vídeo. Assim nenhum dia de set é desperdiçado.' },
+];
+
+/** O processo de todo cliente novo, com o porquê de cada etapa */
+function Process() {
+  const [i, setI] = useState(0);
+  const step = PROCESS[i];
+  return (
+    <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+      <ol className="flex flex-col gap-2">
+        {PROCESS.map((s, k) => (
+          <li key={s.name}>
+            <button type="button" onClick={() => setI(k)} aria-pressed={k === i}
+              className="flex w-full items-center gap-4 rounded-[22px] p-3 pr-5 text-left transition-all duration-300"
+              style={k === i
+                ? { background: C.ink, color: C.light, boxShadow: '0 20px 40px -24px hsl(var(--c-ink) / 0.7)' }
+                : { background: C.card, color: C.ink, boxShadow: 'inset 0 0 0 1px hsl(var(--c-ink) / 0.06)' }}>
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-display text-sm font-semibold"
+                style={k === i ? { background: C.lime, color: C.ink } : { background: 'hsl(var(--c-ink) / 0.05)' }}>{String(k + 1).padStart(2, '0')}</span>
+              <span className="font-display text-lg font-semibold tracking-[-0.03em]">{s.name}</span>
+              {k < i && <Check className="ml-auto h-4 w-4" style={{ color: C.muted }} />}
+              {k === i && <ArrowRight className="ml-auto h-4 w-4" style={{ color: C.lime }} />}
+            </button>
+          </li>
+        ))}
+      </ol>
+      <div key={i} className="cx-darkcard cx-swap relative flex min-h-[360px] flex-col justify-between overflow-hidden rounded-[32px] p-7 sm:p-10">
+        <div className="relative z-10">
+          <span className="font-display text-sm font-semibold" style={{ color: C.lime }}>Etapa {i + 1} de {PROCESS.length}</span>
+          <h3 className="mt-3 font-display text-[clamp(2.2rem,4.4vw,3.6rem)] font-semibold leading-none tracking-[-0.05em]">{step.name}</h3>
+          <p className="mt-4 max-w-md text-base" style={{ color: 'hsl(var(--c-light) / 0.75)' }}>{step.what}</p>
+        </div>
+        <div className="relative z-10 mt-8 rounded-[22px] p-5" style={{ background: 'hsl(var(--c-light) / 0.06)', boxShadow: 'inset 0 0 0 1px hsl(var(--c-light) / 0.08)' }}>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: C.lime }}>Por que é assim</p>
+          <p className="mt-2 font-display text-lg font-medium leading-snug">{step.why}</p>
+        </div>
+        <div aria-hidden className="absolute -right-6 -top-6 font-display text-[11rem] font-semibold leading-none tracking-[-0.08em]" style={{ color: 'hsl(var(--c-light) / 0.04)' }}>{String(i + 1).padStart(2, '0')}</div>
+        <div className="absolute bottom-0 left-0 h-1" style={{ width: `${((i + 1) / PROCESS.length) * 100}%`, background: C.lime, transition: 'width .5s ease' }} />
+      </div>
+    </div>
+  );
+}
+
+const BRIEFING_TOPICS = ['Objetivos para os próximos 3 meses', 'Público: idade, gênero, região', 'Dores do público', 'Desejos do público', 'Diferenciais do cliente', 'Concorrentes', 'Estilo de comunicação', 'Expectativa de faturamento'];
+
+const PROFILE_CHECKS = [
+  'A bio diz o que o cliente faz, para quem, e tem uma chamada para ação',
+  'Foto de perfil nítida e reconhecível',
+  'Link da bio funcionando e levando para o lugar certo',
+  'Destaques organizados, com capas no padrão da marca',
+  '3 posts fixados estratégicos (quem somos, prova social, oferta)',
+  'Frequência de postagem constante',
+  'Identidade visual reconhecível no feed',
+  'Já sabemos quais formatos performam melhor (Reels, carrossel, story)',
+  'Engajamento real: comentários e salvamentos, não só curtidas',
+  'Comparamos com pelo menos 3 concorrentes',
+];
+
+/** Guia do diagnóstico, com um checklist de treino */
+function DiagnosticGuide() {
+  const [ok, setOk] = useState<boolean[]>(() => PROFILE_CHECKS.map(() => false));
+  const score = ok.filter(Boolean).length * 10;
+  return (
+    <div className="grid gap-4 lg:grid-cols-6">
+      <Reveal className="lg:col-span-2">
+        <div className="cx-card h-full rounded-[32px] p-7">
+          <span className="inline-block rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: C.lime, color: C.ink }}>Passo 1</span>
+          <h3 className="mt-4 font-display text-2xl font-semibold tracking-[-0.035em]">Ler o briefing</h3>
+          <p className="mt-2 text-sm leading-relaxed" style={{ color: C.muted }}>O cliente preenche o briefing e as respostas aparecem na plataforma, em Clientes → aba Diagnóstico. Leia tudo antes de abrir o Instagram.</p>
+          <ul className="mt-5 space-y-2 text-sm">
+            {BRIEFING_TOPICS.map((t) => <li key={t} className="flex gap-2"><span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: C.ink }} />{t}</li>)}
+          </ul>
+        </div>
+      </Reveal>
+      <Reveal className="lg:col-span-4" delay={100}>
+        <div className="cx-card h-full rounded-[32px] p-7 sm:p-9">
+          <div className="flex flex-wrap items-start justify-between gap-6">
+            <div className="max-w-md">
+              <span className="inline-block rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: C.lime, color: C.ink }}>Passo 2</span>
+              <h3 className="mt-4 font-display text-2xl font-semibold tracking-[-0.035em]">Analisar o perfil</h3>
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: C.muted }}>Abra o Instagram do cliente e passe ponto por ponto. Treine aqui: marque o que um perfil forte precisa ter.</p>
+            </div>
+            <div className="relative h-24 w-24 shrink-0">
+              <div className="absolute inset-0 rounded-full" style={{ background: `conic-gradient(hsl(var(--c-lime)) ${score * 3.6}deg, hsl(var(--c-ink) / 0.07) 0)`, WebkitMask: 'radial-gradient(circle, transparent 58%, #000 59%)', mask: 'radial-gradient(circle, transparent 58%, #000 59%)', transition: 'background .4s' }} />
+              <span className="absolute inset-0 flex flex-col items-center justify-center font-display text-2xl font-semibold tabular-nums">{score}<span className="text-[10px] font-medium" style={{ color: C.muted }}>de 100</span></span>
+            </div>
+          </div>
+          <ul className="mt-6 grid gap-2 sm:grid-cols-2">
+            {PROFILE_CHECKS.map((t, k) => (
+              <li key={t}>
+                <button type="button" aria-pressed={ok[k]} onClick={() => setOk((o) => o.map((v, j) => (j === k ? !v : v)))}
+                  className="flex h-full w-full items-start gap-2.5 rounded-2xl p-3 text-left text-sm transition-colors"
+                  style={{ background: ok[k] ? 'hsl(var(--c-lime) / 0.35)' : 'hsl(var(--c-ink) / 0.04)' }}>
+                  <span className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md border"
+                    style={ok[k] ? { background: C.ink, borderColor: 'transparent', color: C.lime } : { borderColor: 'hsl(var(--c-ink) / 0.25)' }}>
+                    {ok[k] && <Check className="h-3 w-3" strokeWidth={3} />}
+                  </span>
+                  {t}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Reveal>
+      <Reveal className="lg:col-span-6" delay={150}>
+        <div className="cx-darkcard grid gap-6 rounded-[32px] p-7 sm:p-9 md:grid-cols-[1fr_2fr] md:items-center">
+          <div>
+            <span className="inline-block rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: C.lime, color: C.ink }}>Passo 3</span>
+            <h3 className="mt-4 font-display text-2xl font-semibold tracking-[-0.035em]">Fechar o diagnóstico</h3>
+            <p className="mt-2 text-sm" style={{ color: 'hsl(var(--c-light) / 0.65)' }}>Resuma em três blocos. Isso vira o plano de ação.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[['Pontos fortes', 'O que já funciona e vamos manter.'], ['O que melhorar', 'O que está travando o resultado hoje.'], ['Oportunidades', 'O que ninguém do nicho está fazendo e a gente pode fazer.']].map(([t, d]) => (
+              <div key={t} className="rounded-[22px] p-5" style={{ background: 'hsl(var(--c-light) / 0.06)', boxShadow: 'inset 0 0 0 1px hsl(var(--c-light) / 0.08)' }}>
+                <p className="font-display text-lg font-semibold" style={{ color: C.lime }}>{t}</p>
+                <p className="mt-1 text-sm" style={{ color: 'hsl(var(--c-light) / 0.7)' }}>{d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Reveal>
+    </div>
+  );
+}
+
+const NEXT_KEY = 'inova-cultura:proximos';
+
+/** Próximos passos: publicação no Meta, email do briefing e o diagnóstico */
+function NextSteps() {
+  const [state, setState] = useState<{ meta?: 'sei' | 'ajuda'; email?: string }>(() => {
+    try { return JSON.parse(localStorage.getItem(NEXT_KEY) || '{}'); } catch { return {}; }
+  });
+  const [copied, setCopied] = useState(false);
+  const save = (n: typeof state) => { setState(n); try { localStorage.setItem(NEXT_KEY, JSON.stringify(n)); } catch { /* armazenamento indisponível */ } };
+  const email = state.email ?? '';
+  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const message = `Oi! Sou novo(a) no time da INOVA. Meu email para liberar o acesso ao briefing dos clientes é: ${email.trim()}`;
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(message); setCopied(true); setTimeout(() => setCopied(false), 2500); } catch { /* sem permissão */ }
+  };
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      {/* Meta */}
+      <Reveal>
+        <div className="cx-card flex h-full flex-col rounded-[32px] p-7">
+          <span className="font-display text-sm font-semibold" style={{ color: C.muted }}>01</span>
+          <h3 className="mt-3 font-display text-2xl font-semibold leading-tight tracking-[-0.035em]">Você sabe publicar pelo Meta Business Suite?</h3>
+          <p className="mt-2 text-sm" style={{ color: C.muted }}>É por lá que agendamos posts, Reels e stories dos clientes.</p>
+          <div className="mt-6 flex gap-2">
+            {([['sei', 'Sei sim'], ['ajuda', 'Preciso de ajuda']] as const).map(([v, l]) => (
+              <button key={v} type="button" onClick={() => save({ ...state, meta: v })} aria-pressed={state.meta === v}
+                className="flex-1 rounded-full px-4 py-3 text-sm font-semibold transition-all"
+                style={state.meta === v ? { background: C.ink, color: C.light } : { background: 'hsl(var(--c-ink) / 0.05)', color: C.ink }}>{l}</button>
+            ))}
+          </div>
+          {state.meta && (
+            <p className="cx-swap mt-5 rounded-2xl p-4 text-sm" style={{ background: state.meta === 'sei' ? 'hsl(var(--c-lime) / 0.35)' : 'hsl(var(--c-ink) / 0.05)' }}>
+              {state.meta === 'sei'
+                ? 'Boa! Na primeira semana você já agenda um post com o social media do lado, só para alinhar o nosso jeito.'
+                : 'Tranquilo, a gente te ensina! Avise o head no primeiro dia e marcamos um passo a passo juntos: conectar a conta, agendar post, Reels e story.'}
+            </p>
+          )}
+        </div>
+      </Reveal>
+
+      {/* Email */}
+      <Reveal delay={100}>
+        <div className="cx-card flex h-full flex-col rounded-[32px] p-7">
+          <span className="font-display text-sm font-semibold" style={{ color: C.muted }}>02</span>
+          <h3 className="mt-3 font-display text-2xl font-semibold leading-tight tracking-[-0.035em]">Precisamos do seu email</h3>
+          <p className="mt-2 text-sm" style={{ color: C.muted }}>É com ele que liberamos o seu acesso ao briefing dos clientes. Sem isso, você não consegue fazer o diagnóstico.</p>
+          <input type="email" value={email} onChange={(e) => save({ ...state, email: e.target.value })} placeholder="seu@email.com" aria-label="Seu email"
+            className="mt-6 w-full rounded-full border bg-transparent px-5 text-sm outline-none focus:ring-2"
+            style={{ height: 48, borderColor: 'hsl(var(--c-ink) / 0.15)', ['--tw-ring-color' as string]: 'hsl(var(--c-lime))' }} />
+          <button type="button" disabled={!validEmail} onClick={copy}
+            className="mt-2 rounded-full px-4 py-3 text-sm font-semibold transition-all disabled:opacity-40"
+            style={{ background: C.ink, color: C.light }}>{copied ? 'Copiado! Agora é só colar no WhatsApp' : 'Copiar mensagem para o head'}</button>
+          <p className="mt-3 text-xs" style={{ color: C.muted }}>Copie e mande para o head no WhatsApp.</p>
+        </div>
+      </Reveal>
+
+      {/* Diagnóstico */}
+      <Reveal delay={200}>
+        <div className="relative flex h-full flex-col overflow-hidden rounded-[32px] p-7" style={{ background: C.lime, color: C.ink }}>
+          <span className="font-display text-sm font-semibold opacity-60">03</span>
+          <h3 className="mt-3 font-display text-2xl font-semibold leading-tight tracking-[-0.035em]">Aprender o nosso diagnóstico</h3>
+          <p className="mt-2 text-sm opacity-75">É a primeira coisa que fazemos com todo cliente novo. Releia o guia e faça o seu primeiro junto com o head.</p>
+          <a href="#diagnostico" className="mt-auto inline-flex w-fit items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5" style={{ background: C.ink, color: C.light, marginTop: 24 }}>
+            Ver o guia <ArrowUp className="h-4 w-4" />
+          </a>
+          <Tile className="cx-float absolute -bottom-4 -right-4 aspect-square w-24">
+            <Target className="absolute inset-[26%] h-[48%] w-[48%]" style={{ color: C.ink }} />
+          </Tile>
+        </div>
+      </Reveal>
+    </div>
+  );
+}
+
 const Eyebrow = ({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) => (
   <span className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em]"
     style={dark ? { background: 'hsl(var(--c-light) / 0.08)', color: C.lime } : { background: C.card, color: C.ink, boxShadow: 'inset 0 0 0 1px hsl(var(--c-ink) / 0.08)' }}>
@@ -388,9 +592,9 @@ export default function CulturePage() {
           <img src={logoInova} alt="INOVA" className="cx-logo h-5" />
           <nav className="hidden gap-7 text-[13px] font-medium md:flex" style={{ color: 'hsl(var(--c-ink) / 0.7)' }}>
             <a href="#pilares" className="transition-colors hover:text-[hsl(var(--c-ink))]">Pilares</a>
-            <a href="#gravacao" className="transition-colors hover:text-[hsl(var(--c-ink))]">Bastidores</a>
-            <a href="#regras" className="transition-colors hover:text-[hsl(var(--c-ink))]">Jeito INOVA</a>
-            <a href="#semana" className="transition-colors hover:text-[hsl(var(--c-ink))]">Primeira semana</a>
+            <a href="#processo" className="transition-colors hover:text-[hsl(var(--c-ink))]">Processo</a>
+            <a href="#diagnostico" className="transition-colors hover:text-[hsl(var(--c-ink))]">Diagnóstico</a>
+            <a href="#proximos" className="transition-colors hover:text-[hsl(var(--c-ink))]">Próximos passos</a>
           </nav>
           <a href="#semana" className="rounded-full px-4 py-2.5 text-[13px] font-semibold transition-transform hover:-translate-y-0.5" style={{ background: C.ink, color: C.light }}>
             Começar onboarding
@@ -593,6 +797,30 @@ export default function CulturePage() {
         </Reveal>
       </section>
 
+      {/* ── Processo ── */}
+      <section id="processo" className="mx-auto max-w-[1240px] scroll-mt-24 px-4 pb-28 sm:px-8">
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <Eyebrow>Nosso processo</Eyebrow>
+            <MaskTitle className="mt-5 text-[clamp(2.4rem,5vw,4.4rem)] leading-[0.98]" lines={['Cliente entrou.', 'E agora?']} />
+          </div>
+          <p className="max-w-sm text-sm leading-relaxed" style={{ color: C.muted }}>Todo cliente novo passa por essas cinco etapas, nessa ordem. Clique em cada uma para entender o porquê.</p>
+        </div>
+        <Reveal><Process /></Reveal>
+      </section>
+
+      {/* ── Diagnóstico ── */}
+      <section id="diagnostico" className="mx-auto max-w-[1240px] scroll-mt-24 px-4 pb-28 sm:px-8">
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <Eyebrow>Mão na massa</Eyebrow>
+            <MaskTitle className="mt-5 text-[clamp(2.4rem,5vw,4.4rem)] leading-[0.98]" lines={['Como fazer o', <span key="d" className="cx-mark">nosso diagnóstico.</span>]} />
+          </div>
+          <p className="max-w-sm text-sm leading-relaxed" style={{ color: C.muted }}>O diagnóstico é a base de tudo: dele sai o plano de ação, a organização do perfil e o roteiro da captação.</p>
+        </div>
+        <DiagnosticGuide />
+      </section>
+
       {/* ── Regras da casa ── */}
       <Torn color={C.dark} />
       <section id="regras" className="scroll-mt-16 px-4 py-28 sm:px-8" style={{ background: C.dark, color: C.light }}>
@@ -626,6 +854,15 @@ export default function CulturePage() {
           <p className="text-sm" style={{ color: C.muted }}>Vai marcando conforme acontece. Fica salvo neste aparelho.</p>
         </div>
         <Week />
+      </section>
+
+      {/* ── Próximos passos ── */}
+      <section id="proximos" className="mx-auto max-w-[1240px] scroll-mt-24 px-4 pb-28 sm:px-8">
+        <div className="mb-10">
+          <Eyebrow>Próximos passos</Eyebrow>
+          <MaskTitle className="mt-5 text-[clamp(2.4rem,5vw,4.4rem)] leading-[0.98]" lines={['Antes do', 'primeiro card.']} />
+        </div>
+        <NextSteps />
       </section>
 
       {/* ── Fechamento ── */}
@@ -727,6 +964,7 @@ const CSS = `
 .cx-mask.is-in > span > span { transform: none; }
 .cx-reveal { opacity: 0; transform: translateY(50px) scale(.97); transition: opacity .9s ease, transform 1s cubic-bezier(.2,.8,.2,1); }
 .cx-reveal.is-in { opacity: 1; transform: none; }
+.cx-swap { animation: cxIn .6s cubic-bezier(.2,.8,.2,1) both; }
 .cx-rec { animation: cxBlink 1.1s steps(2, start) infinite; }
 @keyframes cxBlink { to { visibility: hidden; } }
 
