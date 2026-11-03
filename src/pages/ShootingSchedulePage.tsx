@@ -14,6 +14,7 @@ import { Plus, MapPin, Clock, Calendar, Trash2, Pencil, Clapperboard } from 'luc
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { BookingSettingsDialog } from '@/components/BookingSettingsDialog';
 
 interface ShootingSchedule {
   id: string; title: string; location: string; shooting_date: string;
@@ -83,11 +84,13 @@ export default function ShootingSchedulePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Agenda de Gravações</h1>
           <p className="text-sm text-muted-foreground">Locações, diárias e elenco</p>
         </div>
+        <div className="flex flex-wrap gap-2">
+        <BookingSettingsDialog />
         <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) { setEditId(null); setForm(emptyForm); } }}>
           <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />Nova Gravação</Button></DialogTrigger>
           <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
@@ -128,6 +131,7 @@ export default function ShootingSchedulePage() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {loading ? <p className="text-muted-foreground">Carregando...</p> : items.length === 0 ? (

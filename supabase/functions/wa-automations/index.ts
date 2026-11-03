@@ -70,6 +70,7 @@ function clientVars(c: Client): Record<string, string> {
   return {
     nome: firstName(c), empresa: c.company_name ?? "",
     link_aprovacao: `${APP_URL}/conteudo/${c.id}`, link_relatorio: `${APP_URL}/relatorio/${c.id}`, link_portal: `${APP_URL}/portal/${c.id}`,
+    link_agenda: `${APP_URL}/agendar/${c.id}`,
   };
 }
 
@@ -373,6 +374,29 @@ async function buildJobs(admin: SupabaseClient, a: Automation): Promise<Job[]> {
         lista_conteudos: list.sort((x, y) => String(x.post_date).localeCompare(String(y.post_date)))
           .map((t) => `• ${fmtDate(t.post_date!).slice(0, 5)} — ${cleanTitle(t)}`).join("\n"),
       }, `week:${id}:${from}`));
+    }
+
+    case "shooting_slots": {
+      // Próximos dias com horário livre na agenda de captação (regras em Gravações → Link de agendamento)
+      const { data: cfg } = await admin.from("shooting_booking_settings").select("min_notice_days, horizon_days").eq("id", 1).maybeSingle();
+      if (!cfg) return [];
+      const { data: slots } = await admin.rpc("shooting_free_slots", { p_from: spDay(cfg.min_notice_days), p_to: spDay(cfg.horizon_days) });
+      const byDate = new Map<string, string[]>();
+      for (const r of (slots ?? []) as { slot_date: string; slot_time: string }[]) {
+        byDate.set(r.slot_date, [...(byDate.get(r.slot_date) ?? []), String(r.slot_time).slice(0, 5)]);
+      }
+      if (!byDate.size) return [];
+      const wd = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+      const lista = [...byDate].slice(0, Math.max(1, p.max_days ?? 5)).map(([d, times]) =>
+        `• ${wd[new Date(d + "T12:00:00Z").getUTCDay()]} ${fmtDate(d).slice(0, 5)} — ${times.join(", ")}`).join("\n");
+      // Quem já tem captação marcada daqui para frente não precisa receber
+      let targets = clients;
+      if ((p.skip_booked ?? 1) === 1) {
+        const { data: booked } = await admin.from("shooting_schedules").select("client_id, status").gte("shooting_date", spDay(0)).not("client_id", "is", null);
+        const has = new Set((booked ?? []).filter((b) => !/cancel/i.test(b.status ?? "")).map((b) => b.client_id));
+        targets = clients.filter((c) => !has.has(c.id));
+      }
+      return targets.map((c) => job(c, { datas_livres: lista }, `slots:${spDay(0)}`));
     }
 
     // ── Equipe ──

@@ -3,7 +3,7 @@ export type TriggerKey =
   | 'approval_pending' | 'monthly_report' | 'invoice_due_soon' | 'invoice_due_today' | 'invoice_overdue'
   | 'shooting_tomorrow' | 'post_today' | 'team_daily_summary' | 'manual'
   | 'welcome_contract' | 'onboarding_stalled' | 'content_ready' | 'change_received' | 'approved_ack' | 'partnership_anniversary' | 'satisfaction_survey'
-  | 'payment_confirmed' | 'invoice_created' | 'contract_ending' | 'post_published' | 'next_week'
+  | 'payment_confirmed' | 'invoice_created' | 'contract_ending' | 'post_published' | 'next_week' | 'shooting_slots'
   | 'task_assigned' | 'deadline_tomorrow' | 'client_at_risk' | 'instagram_disconnected' | 'sale_closed' | 'lead_stalled'
   | 'script_missing' | 'change_request_team' | 'shooting_team' | 'manager_report'
   | 'recurring_clients' | 'recurring_team';
@@ -33,6 +33,7 @@ export const CLIENT_VARS = [
   { key: 'link_aprovacao', label: 'Link de aprovação', sample: 'https://inovamarketing.online/conteudo/…' },
   { key: 'link_relatorio', label: 'Link do relatório', sample: 'https://inovamarketing.online/relatorio/…' },
   { key: 'link_portal', label: 'Link do portal', sample: 'https://inovamarketing.online/portal/…' },
+  { key: 'link_agenda', label: 'Link para marcar captação', sample: 'https://inovamarketing.online/agendar/…' },
 ];
 
 export const TRIGGERS: Record<TriggerKey, {
@@ -182,6 +183,18 @@ export const TRIGGERS: Record<TriggerKey, {
     label: 'O que vai ao ar na próxima semana', group: 'Produção', audience: 'client', schedule: 'weekly',
     description: 'Lista dos posts de segunda a domingo da semana seguinte.', params: [],
     vars: [{ key: 'qtd', label: 'Quantidade', sample: '4' }, { key: 'lista_conteudos', label: 'Lista com datas', sample: '• 03/11 — Dicas de verão' }],
+  },
+  shooting_slots: {
+    label: 'Datas livres para captação', group: 'Produção', audience: 'client', schedule: 'weekly',
+    description: 'Manda os próximos dias com horário livre na agenda de Gravações e o link para o cliente marcar a captação. Os horários seguem Gravações → Link de agendamento.',
+    params: [
+      { key: 'max_days', label: 'Mostrar até', suffix: 'dias livres', default: 5 },
+      { key: 'skip_booked', label: 'Pular quem já tem captação marcada', suffix: '(1 = sim, 0 = não)', default: 1 },
+    ],
+    vars: [
+      { key: 'datas_livres', label: 'Dias e horários livres', sample: '• Seg 09/11 — 09:00, 11:00, 14:00\n• Ter 10/11 — 09:00, 16:00' },
+      { key: 'link_agenda', label: 'Link para marcar', sample: 'https://inovamarketing.online/agendar/…' },
+    ],
   },
   task_assigned: {
     label: 'Tarefa nova para você', group: 'Equipe', audience: 'people', schedule: 'event',
