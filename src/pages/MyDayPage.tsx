@@ -8,7 +8,7 @@ import { usePageAccess } from '@/hooks/useUserRole';
 import { useClientReviews } from '@/lib/clientApprovals';
 import { PageHeader } from '@/components/PageHeader';
 import { cn } from '@/lib/utils';
-import { findPostIssues } from '@/lib/postIssues';
+import { defaultTrackedPeople, findPostIssues } from '@/lib/postIssues';
 import { PostIssuesPanel } from '@/components/myday/PostIssuesPanel';
 import { timeAgo, useNotificationFeed } from '@/lib/notificationFeed';
 import type { Task } from '@/types/agency';
@@ -33,6 +33,8 @@ type ReminderRow = { client_id: string; status: 'enviado' | 'sem_contato' | 'err
 type FollowUp = { id: string; name: string; company: string; stage: string; assignee: string; closer: string; next_step: string | null; next_step_at: string };
 const CLOSED_LEAD = /fechad|ganh|perdid|descart/i;
 
+const TRACKED_KEY = 'myday:tracked-people';
+
 type Shooting = { id: string; title: string; shooting_date: string; start_time: string | null; location: string; client_id: string | null };
 
 export default function MyDayPage() {
@@ -47,6 +49,15 @@ export default function MyDayPage() {
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
   const { items: feed } = useNotificationFeed();
   const social = isAdmin || hasPageAccess('/planner');
+  // Funcionários que o admin escolheu acompanhar nos Erros nos posts (fica salvo neste navegador)
+  const [picked, setPicked] = useState<string[] | null>(() => {
+    try { const v = localStorage.getItem(TRACKED_KEY); return v ? JSON.parse(v) : null; } catch { return null; }
+  });
+  const choosePeople = (names: string[]) => {
+    setPicked(names);
+    try { localStorage.setItem(TRACKED_KEY, JSON.stringify(names)); } catch { /* armazenamento indisponível */ }
+  };
+  const tracked = useMemo(() => (isAdmin ? picked ?? defaultTrackedPeople(team) : name ? [name] : []), [isAdmin, picked, team, name]);
   const sales = isAdmin || hasPageAccess('/crm');
 
   useEffect(() => {
@@ -94,14 +105,14 @@ export default function MyDayPage() {
       late: mine.filter((t) => dateOf(t) && dateOf(t) < today && dateOf(t) >= addDays(-30)).sort(sortByDate),
       next: mine.filter((t) => dateOf(t) > today && dateOf(t) <= addDays(7)).sort(sortByDate),
       // Erros nos posts (sem legenda, atrasado, não aprovado...), com o social media responsável
-      postIssues: social ? findPostIssues(tasks, clients, reviews, team, today) : [],
+      postIssues: social ? findPostIssues(tasks, clients, reviews, tracked, today) : [],
       // Vendedor vê os próprios follow-ups; admin vê os de todo mundo
       followUps: isAdmin ? followUps : followUps.filter((l) => [l.assignee, l.closer].some((v) => (v || '').trim().toLowerCase() === me && !!me)),
       shootToday: shootings.filter((s) => s.shooting_date === today),
       shootNext: shootings.filter((s) => s.shooting_date > today),
       mentions: feed.filter((n) => n.kind === 'mention' && !n.read),
     };
-  }, [tasks, clients, team, name, reviews, social, today, isAdmin, followUps, shootings, feed]);
+  }, [tasks, clients, tracked, name, reviews, social, today, isAdmin, followUps, shootings, feed]);
 
   const firstName = name.split(/\s+/)[0];
   const hour = new Date().getHours();
@@ -230,7 +241,8 @@ export default function MyDayPage() {
         </Block>
       )}
 
-      {social && <PostIssuesPanel posts={data.postIssues} clientName={clientName} isAdmin={isAdmin} me={name} />}
+      {social && <PostIssuesPanel posts={data.postIssues} clientName={clientName} isAdmin={isAdmin} me={name}
+        team={team} people={tracked} onPeopleChange={choosePeople} />}
 
       {social && (data.approved.length > 0 || brokenAccounts.length > 0 || reminders.length > 0) && (
         <div className="grid gap-4 lg:grid-cols-2">

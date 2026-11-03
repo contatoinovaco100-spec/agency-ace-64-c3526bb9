@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronRight, Loader2, MessageCircle, ShieldAlert } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader2, MessageCircle, ShieldAlert, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ISSUES, issuesMessage, scoreByOwner, type FlaggedPost, type IssueKind } from '@/lib/postIssues';
 import { cn } from '@/lib/utils';
+import type { TeamMember } from '@/types/agency';
 
 const taskLink = (t: FlaggedPost['task']) => `${t.taskType === 'Arte' ? '/artes' : '/tarefas'}?taskId=${t.id}`;
 const taskName = (t: FlaggedPost['task']) => (t.videoName || t.title || 'Sem título').replace(/^(vídeo|video|arte)\s*\d*\s*\|\s*/i, '');
@@ -47,13 +50,14 @@ function PostRow({ p, clientName }: { p: FlaggedPost; clientName: Record<string,
 }
 
 /**
- * Erros nos posts. Admin vê a pontuação de cada social media (grave 3, médio 2, leve 1) e abre os posts de cada um;
- * os outros veem só os posts dos clientes deles.
+ * Erros nos posts. Admin escolhe os funcionários que quer acompanhar (ficam fixados), vê a pontuação de cada um
+ * (grave 3, médio 2, leve 1) e abre os posts; os outros veem só os próprios posts.
  */
-export function PostIssuesPanel({ posts, clientName, isAdmin, me }: {
+export function PostIssuesPanel({ posts, clientName, isAdmin, me, team, people, onPeopleChange }: {
   posts: FlaggedPost[]; clientName: Record<string, string>; isAdmin: boolean; me: string;
+  team: TeamMember[]; people: string[]; onPeopleChange: (names: string[]) => void;
 }) {
-  const ranking = useMemo(() => scoreByOwner(posts), [posts]);
+  const ranking = useMemo(() => scoreByOwner(posts, isAdmin ? people : []), [posts, people, isAdmin]);
   const [openOwner, setOpenOwner] = useState<string | null>(null);
   const mine = useMemo(() => posts.filter((p) => p.owner.toLowerCase() === me.toLowerCase()), [posts, me]);
   const list = isAdmin ? posts : mine;
@@ -83,18 +87,47 @@ export function PostIssuesPanel({ posts, clientName, isAdmin, me }: {
     setSending(null);
   };
 
-  if (!list.length) return null;
+  if (!isAdmin && !list.length) return null;
+  const pickedSet = new Set(people.map((n) => n.toLowerCase()));
+  const toggle = (n: string) => onPeopleChange(pickedSet.has(n.toLowerCase()) ? people.filter((x) => x.toLowerCase() !== n.toLowerCase()) : [...people, n]);
 
   return (
     <section className="overflow-hidden rounded-xl border border-l-[3px] border-l-destructive bg-card">
-      <div className="border-b px-4 py-3">
+      <div className="flex items-start gap-3 border-b px-4 py-3">
+        <div className="min-w-0 flex-1">
         <h2 className="flex items-center gap-2 text-sm font-semibold"><ShieldAlert className="h-4 w-4 text-muted-foreground" /> Erros nos posts</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {list.length === 1 ? '1 post com problema' : `${list.length} posts com problema`} que ainda vão sair (próximos 30 dias).
-          {isAdmin && ' Pontos: grave 3, médio 2, leve 1. Social media é quem tem "social" no cargo em Equipe → Funcionários.'}
+          {list.length === 0 ? 'Nenhum post com problema' : list.length === 1 ? '1 post com problema' : `${list.length} posts com problema`} entre os que ainda vão sair (próximos 30 dias).
+          {isAdmin && ' Pontos: grave 3, médio 2, leve 1. Conta o post do cliente de quem é Responsável ou de quem está na tarefa.'}
         </p>
+        </div>
+        {isAdmin && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="sm" variant="outline" className="shrink-0 gap-1.5"><Users className="h-3.5 w-3.5" />Funcionários ({people.length})</Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 p-0">
+              <p className="border-b px-3 py-2 text-xs text-muted-foreground">Quem aparece aqui. Fica salvo.</p>
+              <ul className="max-h-72 overflow-y-auto py-1">
+                {team.map((m) => (
+                  <li key={m.id}>
+                    <label className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-muted">
+                      <Checkbox checked={pickedSet.has(m.name.trim().toLowerCase())} onCheckedChange={() => toggle(m.name.trim())} />
+                      <span className="min-w-0 flex-1 truncate text-foreground">{m.name}</span>
+                      {m.role && <span className="max-w-[90px] truncate text-[11px] text-muted-foreground">{m.role}</span>}
+                    </label>
+                  </li>
+                ))}
+                {team.length === 0 && <li className="px-3 py-2 text-sm text-muted-foreground">Nenhum funcionário</li>}
+              </ul>
+            </PopoverContent>
+          </Popover>
+        )}
       </div>
 
+      {isAdmin && ranking.length === 0 && (
+        <p className="px-4 py-6 text-center text-sm text-muted-foreground">Escolha em Funcionários quem você quer acompanhar aqui.</p>
+      )}
       {isAdmin ? (
         <ul className="divide-y">
           {ranking.map((r) => {
@@ -102,11 +135,12 @@ export function PostIssuesPanel({ posts, clientName, isAdmin, me }: {
             return (
               <li key={r.owner}>
                 <div className="flex items-center gap-1 pr-3 transition-colors hover:bg-foreground/[0.03]">
-                <button type="button" onClick={() => setOpenOwner(open ? null : r.owner)} aria-expanded={open}
+                <button type="button" onClick={() => r.posts.length && setOpenOwner(open ? null : r.owner)} aria-expanded={open}
                   className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 text-left">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{r.owner}</p>
                     <div className="mt-1 flex flex-wrap gap-1">
+                      {r.posts.length === 0 && <span className="rounded bg-success/10 px-1.5 py-0.5 text-[11px] font-medium text-success">Sem erros</span>}
                       {(Object.entries(r.kinds) as [IssueKind, number][])
                         .sort((a, b) => ISSUES[b[0]].severity - ISSUES[a[0]].severity || b[1] - a[1])
                         .map(([k, n]) => (
@@ -120,12 +154,12 @@ export function PostIssuesPanel({ posts, clientName, isAdmin, me }: {
                   </div>
                   <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
                 </button>
-                <Button size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={() => openSend(r.owner, r.posts)}
+                <Button size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={() => openSend(r.owner, r.posts)} disabled={!r.posts.length}
                   title={phones[r.owner.toLowerCase()] ? `Mandar os erros para ${r.owner} no WhatsApp` : 'Sem WhatsApp em Equipe → Funcionários'}>
                   <MessageCircle className="h-3.5 w-3.5" /><span className="hidden sm:inline">Enviar</span>
                 </Button>
                 </div>
-                {open && (
+                {open && r.posts.length > 0 && (
                   <ul className="divide-y border-t bg-muted/30">
                     {r.posts.map((p) => <PostRow key={p.task.id} p={p} clientName={clientName} />)}
                   </ul>

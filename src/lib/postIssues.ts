@@ -1,10 +1,13 @@
 import type { Client, Task, TeamMember } from '@/types/agency';
+
+/** Quem aparece nos Erros nos posts quando o admin ainda não escolheu: cargo com "social" */
+export const defaultTrackedPeople = (team: TeamMember[]) => team.filter((m) => /social/i.test(m.role)).map((m) => m.name.trim());
 import type { ClientReview } from '@/lib/clientApprovals';
 
 /**
  * Erros nos posts para o Meu dia: só posts que ainda vão sair (data de postar de hoje em diante).
- * Os problemas vão para o social media do cliente: o Responsável do cliente cujo cargo (Equipe → Funcionários)
- * tem "social"; sem nenhum, a pessoa da tarefa com esse cargo. Post sem social media fica de fora.
+ * Os problemas vão para uma das pessoas acompanhadas (`people`): primeiro o Responsável do cliente,
+ * depois quem está em algum papel da tarefa. Post sem nenhuma delas fica de fora.
  */
 export type IssueKind =
   | 'early_stage' | 'no_caption' | 'approved_not_scheduled' | 'not_approved' | 'change_pending'
@@ -49,11 +52,11 @@ export function captionProblems(caption: string): string[] {
 }
 
 export function findPostIssues(
-  tasks: Task[], clients: Client[], reviews: Record<string, ClientReview>, team: TeamMember[], today = iso(new Date()),
+  tasks: Task[], clients: Client[], reviews: Record<string, ClientReview>, people: string[], today = iso(new Date()),
 ): FlaggedPost[] {
   const byClient = new Map(clients.map((c) => [c.id, c]));
-  const socialMedia = new Map(team.filter((m) => /social/i.test(m.role)).map((m) => [m.name.trim().toLowerCase(), m.name.trim()]));
-  const socialOf = (names: (string | undefined)[]) => names.map((n) => socialMedia.get((n ?? '').trim().toLowerCase())).find(Boolean);
+  const tracked = new Map(people.map((n) => [n.trim().toLowerCase(), n.trim()]));
+  const trackedOf = (names: (string | undefined)[]) => names.map((n) => tracked.get((n ?? '').trim().toLowerCase())).find(Boolean);
   const open = tasks.filter((t) => !t.deletedAt && t.postDate && !DONE.test(t.status)
     && t.postDate >= today && t.postDate <= shift(today, 30));
   // Mesmo cliente, mesmo dia e mesmo horário
@@ -79,7 +82,7 @@ export function findPostIssues(
     else if ((slotCount.get(`${t.clientId}|${post}|${t.postTime.slice(0, 5)}`) ?? 0) > 1) issues.push({ kind: 'same_slot', detail: `${t.postTime.slice(0, 5)}` });
     if (!t.clientId || !byClient.has(t.clientId)) issues.push({ kind: 'no_client' });
     const managers = (t.clientId && byClient.get(t.clientId)?.accountManager) || [];
-    const owner = socialOf(managers) || socialOf([t.assignee, t.copywriter]);
+    const owner = trackedOf(managers) || trackedOf([t.assignee, t.copywriter, t.editor, t.director, t.videomaker, t.scriptWriter, t.decupador]);
     if (!issues.length || !owner) continue;
     issues.sort((a, b) => ISSUES[b.kind].severity - ISSUES[a.kind].severity);
     out.push({ task: t, owner, issues });
@@ -88,15 +91,17 @@ export function findPostIssues(
 }
 
 /** Pontos por pessoa: erro grave vale 3, médio 2, leve 1 */
-export function scoreByOwner(posts: FlaggedPost[]) {
+export function scoreByOwner(posts: FlaggedPost[], people: string[] = []) {
   const map = new Map<string, { owner: string; points: number; posts: FlaggedPost[]; kinds: Partial<Record<IssueKind, number>> }>();
+  // Pessoas fixadas aparecem mesmo sem erro
+  people.forEach((n) => map.set(n.trim(), { owner: n.trim(), points: 0, posts: [], kinds: {} }));
   for (const p of posts) {
     const cur = map.get(p.owner) ?? { owner: p.owner, points: 0, posts: [], kinds: {} };
     cur.posts.push(p);
     for (const i of p.issues) { cur.points += ISSUES[i.kind].severity; cur.kinds[i.kind] = (cur.kinds[i.kind] ?? 0) + 1; }
     map.set(p.owner, cur);
   }
-  return [...map.values()].sort((a, b) => b.points - a.points);
+  return [...map.values()].sort((a, b) => b.points - a.points || a.owner.localeCompare(b.owner));
 }
 
 /** O que fazer para resolver cada erro (vai na mensagem de WhatsApp) */
