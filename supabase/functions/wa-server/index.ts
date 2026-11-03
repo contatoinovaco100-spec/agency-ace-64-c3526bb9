@@ -3,7 +3,9 @@
 // Ações:
 //   status | groups {session?} | participants {group, session?} | send {to, message, session?, lead_id?}
 //   sessions | create {name, id?} | rename {session, name} | qr {session} | logout {session} | remove {session}
+//   avatars {ids}: busca a foto de perfil das conversas e guarda uma cópia no bucket wa-avatars
 // "send" também registra a mensagem na conversa do CRM.
+// deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { findLeadByPhone, normalizePhone, recordMessage, upsertConversation } from "../_shared/crm.ts";
 
@@ -67,6 +69,7 @@ Deno.serve(async (req) => {
         }
         return json(data, res.status);
       }
+      case 'avatars': return json(await syncAvatars(call, (Array.isArray(body.ids) ? body.ids : []).map(String).slice(0, 30)));
       default: return json({ error: 'Ação inválida' }, 400);
     }
     const data = await res.json().catch(() => ({}));
@@ -75,3 +78,44 @@ Deno.serve(async (req) => {
     return json({ error: `Servidor do WhatsApp fora do ar: ${(e as Error).message}` }, 502);
   }
 });
+
+/** De novo a cada 3 dias: a pessoa pode trocar a foto */
+const AVATAR_TTL = 3 * 24 * 3600_000;
+
+/** Fotos de perfil das conversas: pede ao servidor, guarda uma cópia (o link do WhatsApp expira) e grava na conversa */
+async function syncAvatars(call: (path: string, init?: RequestInit) => Promise<Response>, ids: string[]) {
+  if (!ids.length) return { updated: {} };
+  const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  const { data: convs, error } = await admin.from('wa_conversations')
+    .select('id, session_id, contact_phone, avatar_checked_at').in('id', ids);
+  if (error) return { error: error.message, updated: {} };
+  const due = (convs ?? []).filter((c: any) => !c.avatar_checked_at || Date.now() - new Date(c.avatar_checked_at).getTime() > AVATAR_TTL);
+  const updated: Record<string, string | null> = {};
+
+  const bySession = new Map<string, any[]>();
+  for (const c of due) bySession.set(c.session_id, [...(bySession.get(c.session_id) ?? []), c]);
+  for (const [session, list] of bySession) {
+    const res = await call('/avatars', { method: 'POST', body: JSON.stringify({ session, to: list.map((c) => c.contact_phone) }) });
+    if (!res.ok) continue; // número desconectado: tenta de novo depois, sem marcar como verificado
+    const { photos = {} } = await res.json().catch(() => ({}));
+    for (const c of list) {
+      let avatar: string | null = null;
+      const url = photos[c.contact_phone];
+      if (url) {
+        try {
+          const img = await fetch(url);
+          if (img.ok) {
+            const path = `${session}/${c.contact_phone.replace(/[^\w.-]/g, '_')}.jpg`;
+            const up = await admin.storage.from('wa-avatars')
+              .upload(path, await img.arrayBuffer(), { contentType: img.headers.get('content-type') ?? 'image/jpeg', upsert: true });
+            // ?v= para o navegador não mostrar a foto antiga do cache
+            if (!up.error) avatar = `${admin.storage.from('wa-avatars').getPublicUrl(path).data.publicUrl}?v=${Date.now()}`;
+          }
+        } catch { /* sem foto desta vez */ }
+      }
+      await admin.from('wa_conversations').update({ contact_avatar: avatar, avatar_checked_at: new Date().toISOString() }).eq('id', c.id);
+      updated[c.id] = avatar;
+    }
+  }
+  return { updated };
+}

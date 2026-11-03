@@ -486,6 +486,22 @@ app.post('/check', auth, async (req, res) => {
   res.json({ results });
 });
 
+// Fotos de perfil: { to: [telefone ou grupo…], session? } → { photos: { [to]: url | null } }
+// null = sem foto ou escondida pela privacidade. O link do WhatsApp expira: quem chama guarda uma cópia.
+app.post('/avatars', auth, async (req, res) => {
+  const s = getSession(req.body?.session);
+  if (!s || s.status !== 'CONNECTED') return res.status(503).json({ error: `Número ${req.body?.session || 'principal'} não conectado` });
+  const list = (Array.isArray(req.body?.to) ? req.body.to : []).map(String).slice(0, 30);
+  const photos = {};
+  for (const to of list) {
+    const jid = toJid(to);
+    if (!jid) continue;
+    try { photos[to] = (await s.sock.profilePictureUrl(jid, 'image')) || null; } catch { photos[to] = null; }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  res.json({ photos });
+});
+
 // Página para escanear (compatível com o link antigo /qr?key=…&session=…)
 app.get('/qr', auth, (req, res) => {
   const s = sessions.get(String(req.query.session || 'default'));

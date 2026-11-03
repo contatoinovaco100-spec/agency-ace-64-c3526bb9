@@ -12,6 +12,8 @@ import { QuickReplyButton, SlashMenu, countUse, fillReply, matchReplies, useQuic
 type Conversation = {
   id: string; session_id: string; contact_phone: string; contact_name: string; last_message: string;
   last_message_at: string; unread_count: number; lead_id: string | null; client_id: string | null;
+  /** Cópia da foto de perfil do WhatsApp (migração 20261102100000) */
+  contact_avatar?: string | null; avatar_checked_at?: string | null;
 };
 type Message = { id: string; direction: 'in' | 'out'; content: string; type: string; created_at: string; status: string };
 type NumberRow = { id: string; name: string };
@@ -28,6 +30,20 @@ const timeLabel = (iso: string) => {
 const fmtPhone = (p: string) => p.replace(/^55(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
 /** Conversa de grupo: o "telefone" é o id do grupo (…@g.us) */
 const isGroup = (c: Pick<Conversation, 'contact_phone'>) => c.contact_phone.endsWith('@g.us');
+
+/** Foto de perfil; sem foto (ou se não carregar) mostra a inicial, ou o ícone de grupo */
+function ConvAvatar({ c, className }: { c: Conversation; className?: string }) {
+  const [broken, setBroken] = useState<string | null>(null);
+  return (
+    <span className={cn('flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-sm font-semibold', className)}>
+      {c.contact_avatar && c.contact_avatar !== broken
+        ? <img src={c.contact_avatar} alt="" loading="lazy" className="h-full w-full object-cover" onError={() => setBroken(c.contact_avatar ?? null)} />
+        : isGroup(c) ? <Users className="h-4 w-4 text-muted-foreground" /> : (c.contact_name || '?').charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
+const AVATAR_TTL = 3 * 24 * 3600_000;
 
 /** Caixa de conversas do WhatsApp: todas as conversas dos números conectados, ligadas aos leads */
 export function CrmInbox({ openConversationFor }: { openConversationFor?: string | null }) {
@@ -72,6 +88,21 @@ export function CrmInbox({ openConversationFor }: { openConversationFor?: string
     const c = convs.find((x) => x.lead_id === openConversationFor);
     if (c) setOpenId(c.id);
   }, [openConversationFor, convs]);
+
+  // Fotos de perfil: pede as que faltam (ou estão velhas) das primeiras conversas, uma vez por conversa nesta tela
+  const askedAvatars = useRef(new Set<string>());
+  useEffect(() => {
+    if (!convs?.length || !('avatar_checked_at' in convs[0])) return; // sem a migração não há onde guardar
+    const due = convs.filter((c) => !askedAvatars.current.has(c.id)
+      && (!c.avatar_checked_at || Date.now() - new Date(c.avatar_checked_at).getTime() > AVATAR_TTL)).slice(0, 30);
+    if (!due.length) return;
+    due.forEach((c) => askedAvatars.current.add(c.id));
+    supabase.functions.invoke('wa-server', { body: { action: 'avatars', ids: due.map((c) => c.id) } })
+      .then(({ data }) => {
+        const updated = (data?.updated ?? {}) as Record<string, string | null>;
+        if (Object.keys(updated).length) setConvs((prev) => prev?.map((c) => c.id in updated ? { ...c, contact_avatar: updated[c.id], avatar_checked_at: new Date().toISOString() } : c) ?? prev);
+      });
+  }, [convs]);
 
   const numberName = (id: string) => numbers.find((n) => n.id === id)?.name ?? id;
   const visible = (convs ?? []).filter((c) =>
@@ -124,9 +155,7 @@ export function CrmInbox({ openConversationFor }: { openConversationFor?: string
             return (
               <li key={c.id}>
                 <button onClick={() => setOpenId(c.id)} className={cn('flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-foreground/[0.03]', openId === c.id && 'bg-primary/[0.07]')}>
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
-                    {isGroup(c) ? <Users className="h-4 w-4 text-muted-foreground" /> : (c.contact_name || '?').charAt(0).toUpperCase()}
-                  </span>
+                  <ConvAvatar c={c} className="h-9 w-9" />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-2">
                       <span className="truncate text-sm font-medium">{lead?.company || c.contact_name || fmtPhone(c.contact_phone)}</span>
@@ -238,6 +267,7 @@ function Thread({ conv, numberName, lead, onBack, onChanged }: {
     <div className="flex min-h-0 flex-col">
       <div className="flex items-center gap-3 border-b p-3">
         <button onClick={onBack} className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted md:hidden" aria-label="Voltar"><ArrowLeft className="h-4 w-4" /></button>
+        <ConvAvatar c={conv} className="h-9 w-9" />
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">{lead?.company || conv.contact_name || fmtPhone(conv.contact_phone)}</p>
           <p className="truncate text-xs text-muted-foreground">
