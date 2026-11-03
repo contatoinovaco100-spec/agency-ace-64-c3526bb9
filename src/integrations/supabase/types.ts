@@ -991,6 +991,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          abc_class: string | null
           account_manager: string[]
           billing_stopped_at: string | null
           billing_type: string
@@ -1019,6 +1020,7 @@ export type Database = {
           whatsapp_group_name: string | null
         }
         Insert: {
+          abc_class?: string | null
           account_manager?: string[]
           billing_stopped_at?: string | null
           billing_type?: string
@@ -1047,6 +1049,7 @@ export type Database = {
           whatsapp_group_name?: string | null
         }
         Update: {
+          abc_class?: string | null
           account_manager?: string[]
           billing_stopped_at?: string | null
           billing_type?: string
