@@ -3,7 +3,6 @@ import { CalendarCheck, ChevronLeft, ChevronRight, Loader2, PartyPopper, Send } 
 import { toast } from 'sonner';
 import { useAgency } from '@/contexts/AgencyContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { commemorativeByDay } from '@/lib/commemorativeDates';
 import { cn } from '@/lib/utils';
@@ -19,8 +18,9 @@ const short = (s: string) => fromIso(s).toLocaleDateString('pt-BR', { weekday: '
 type Field = 'due' | 'post';
 
 /**
- * Planner que abre depois de criar o card: escolhe o dia em que o post fica pronto (entrega) e o dia e
- * horário em que vai ao ar. O calendário mostra os posts que o cliente já tem e as datas comemorativas.
+ * Planner que abre depois de criar o card: só marca as datas planejadas (entrega e dia de postar).
+ * Não agenda nem publica nada: o card continua no kanban e passa por captação, edição e revisão.
+ * O calendário mostra os posts que o cliente já tem e as datas comemorativas.
  */
 export function SchedulePostDialog({ task, onClose }: { task: Task | null; onClose: () => void }) {
   const { tasks, clients, updateTask } = useAgency();
@@ -28,14 +28,12 @@ export function SchedulePostDialog({ task, onClose }: { task: Task | null; onClo
   const [field, setField] = useState<Field>('due');
   const [due, setDue] = useState('');
   const [post, setPost] = useState('');
-  const [time, setTime] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!task) return;
     setDue(task.dueDate || '');
     setPost(task.postDate || '');
-    setTime(task.postTime?.slice(0, 5) || '');
     setField(task.dueDate && !task.postDate ? 'post' : 'due');
     setMonth(fromIso(task.postDate || task.dueDate || iso(new Date())));
   }, [task]);
@@ -64,7 +62,7 @@ export function SchedulePostDialog({ task, onClose }: { task: Task | null; onClo
   const pick = (day: string) => {
     if (field === 'due') {
       setDue(day);
-      // Entrega depois da publicação não faz sentido: a publicação acompanha
+      // Entrega depois do dia de postar não faz sentido: o dia de postar acompanha
       if (post && post < day) setPost('');
       setField('post');
     } else {
@@ -77,8 +75,8 @@ export function SchedulePostDialog({ task, onClose }: { task: Task | null; onClo
     if (!task) return;
     setSaving(true);
     try {
-      await updateTask({ ...task, dueDate: due, postDate: post, postTime: post && time ? time : '' });
-      toast.success(post ? `Publicação marcada para ${short(post)}${time ? ` às ${time}` : ''}` : 'Datas salvas');
+      await updateTask({ ...task, dueDate: due, postDate: post });
+      toast.success('Datas do card salvas', { description: 'O card segue no kanban: captação, edição e revisão.' });
       onClose();
     } catch (e) {
       toast.error('Não foi possível salvar as datas', { description: (e as Error).message });
@@ -101,10 +99,10 @@ export function SchedulePostDialog({ task, onClose }: { task: Task | null; onClo
 
   return (
     <Dialog open={!!task} onOpenChange={(o) => !o && onClose()}>
-      {/* Presa no alto: o aviso e o horário mudam a altura e o calendário não pode pular de lugar */}
+      {/* Presa no alto: o aviso muda a altura e o calendário não pode pular de lugar */}
       <DialogContent className="top-[4vh] max-h-[92vh] translate-y-0 overflow-y-auto sm:max-w-[460px]">
         <DialogHeader>
-          <DialogTitle>Quando esse post sai?</DialogTitle>
+          <DialogTitle>Datas do card</DialogTitle>
           <DialogDescription className="truncate">
             {task?.videoName || task?.title || 'Card novo'}{clientName ? ` · ${clientName}` : ''}
           </DialogDescription>
@@ -112,7 +110,7 @@ export function SchedulePostDialog({ task, onClose }: { task: Task | null; onClo
 
         <div className="flex gap-2">
           <FieldButton k="due" label="Post pronto (entrega)" value={due} Icon={CalendarCheck} />
-          <FieldButton k="post" label="Publicação" value={post} Icon={Send} />
+          <FieldButton k="post" label="Dia de postar" value={post} Icon={Send} />
         </div>
 
         <div className="rounded-lg border p-2">
@@ -163,10 +161,7 @@ export function SchedulePostDialog({ task, onClose }: { task: Task | null; onClo
           </div>
         ) : null}
 
-        <label className="flex items-center gap-3 text-sm">
-          <span className="text-muted-foreground">Horário da publicação</span>
-          <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={!post} className="h-9 w-32" />
-        </label>
+        <p className="text-xs text-muted-foreground [text-wrap:pretty]">Só planeja as datas: nada é agendado nem publicado. O card segue no kanban por captação, edição e revisão.</p>
 
         <div className="flex gap-2 pt-1">
           <Button variant="ghost" className="flex-1" onClick={onClose} disabled={saving}>Depois</Button>
