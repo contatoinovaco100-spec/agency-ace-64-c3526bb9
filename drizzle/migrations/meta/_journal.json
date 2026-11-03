@@ -211,6 +211,13 @@
       "when": 1793680227697,
       "tag": "0029_head_routine",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1793703266555,
+      "tag": "0030_kanban_notices",
+      "breakpoints": true
     }
   ]
 }
