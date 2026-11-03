@@ -223,7 +223,7 @@ function Hero() {
         </div>
 
         {/* Centro: foto gerada por IA (ou composição de vidro enquanto não houver foto) */}
-        <div className="relative z-[5] mx-auto mt-6 h-[280px] max-w-[820px] sm:mt-2 sm:h-[440px]">
+        <div className="relative z-[5] mx-auto mt-1 h-[250px] max-w-[820px] sm:mt-2 sm:h-[440px]">
           <svg aria-hidden viewBox="0 0 760 460" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 hidden h-full w-full lg:block" fill="none">
             <path d="M120 140 C 220 160, 260 260, 330 300" stroke="hsl(0 0% 100% / 0.35)" strokeWidth="1.2" strokeDasharray="4 6" />
             <path d="M640 120 C 560 150, 520 240, 440 280" stroke="hsl(0 0% 100% / 0.35)" strokeWidth="1.2" strokeDasharray="4 6" />
@@ -245,7 +245,7 @@ function Hero() {
         </div>
 
         {/* Botões embaixo da nuvem */}
-        <div className="relative z-10 pb-10 pt-6 sm:pb-14">
+        <div className="relative z-10 pb-10 pt-2 sm:pb-14 sm:pt-6">
           <div className="cx-in inline-flex flex-wrap justify-center gap-2 rounded-full p-1.5" style={{ background: 'hsl(0 0% 100% / 0.16)', boxShadow: 'inset 0 0 0 1px hsl(0 0% 100% / 0.25)', animationDelay: '1100ms' }}>
             <a href="#pilares" className="inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition-transform hover:-translate-y-0.5" style={{ background: C.ink, color: C.light }}>
               Conhecer a cultura <ArrowDown className="h-4 w-4" />
