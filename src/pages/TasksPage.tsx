@@ -9,6 +9,7 @@ import { useAgency } from '@/contexts/AgencyContext';
 import { Task } from '@/types/agency';
 import { Plus, Filter, Search, X, Users, ChevronDown, ChevronLeft, ChevronRight, FolderCheck, CheckCircle2, RefreshCw, Copy, Film, FolderOpen, FileSpreadsheet, Undo2, Trash2, RotateCcw, FileEdit, Calendar } from 'lucide-react';
 import { BulkImportDialog } from '@/components/tasks/BulkImportDialog';
+import { KanbanNoticeBanner } from '@/components/tasks/KanbanNoticeBanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -1106,6 +1107,8 @@ export default function TasksPage({ taskTypeFilter, pageTitle, pageHint, headerE
 
   return (
     <div className="flex h-full flex-col gap-3 sm:gap-4">
+      {/* Avisos do admin (Administração → Avisos do kanban) */}
+      <KanbanNoticeBanner />
       {/* Header */}
       <div className="flex flex-col gap-2.5 sm:gap-3">
         <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
