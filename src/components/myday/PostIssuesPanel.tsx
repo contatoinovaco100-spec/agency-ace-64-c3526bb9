@@ -52,8 +52,8 @@ export function PostIssuesPanel({ posts, clientName, isAdmin, me }: {
       <div className="border-b px-4 py-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold"><ShieldAlert className="h-4 w-4 text-muted-foreground" /> Erros nos posts</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {list.length === 1 ? '1 post com problema' : `${list.length} posts com problema`} entre os últimos 30 dias e os próximos 14.
-          {isAdmin && ' Pontos: grave 3, médio 2, leve 1. O responsável é o do cadastro do cliente.'}
+          {list.length === 1 ? '1 post com problema' : `${list.length} posts com problema`} que ainda vão sair (próximos 30 dias).
+          {isAdmin && ' Pontos: grave 3, médio 2, leve 1. Social media é quem tem "social" no cargo em Equipe → Funcionários.'}
         </p>
       </div>
 

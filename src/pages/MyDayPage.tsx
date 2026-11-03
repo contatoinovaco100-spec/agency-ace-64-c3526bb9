@@ -37,7 +37,7 @@ type Shooting = { id: string; title: string; shooting_date: string; start_time: 
 
 export default function MyDayPage() {
   const { user } = useAuth();
-  const { tasks, clients } = useAgency();
+  const { tasks, clients, team } = useAgency();
   const { hasPageAccess, isAdmin } = usePageAccess();
   const reviews = useClientReviews();
   const [name, setName] = useState('');
@@ -94,14 +94,14 @@ export default function MyDayPage() {
       late: mine.filter((t) => dateOf(t) && dateOf(t) < today && dateOf(t) >= addDays(-30)).sort(sortByDate),
       next: mine.filter((t) => dateOf(t) > today && dateOf(t) <= addDays(7)).sort(sortByDate),
       // Erros nos posts (sem legenda, atrasado, não aprovado...), com o social media responsável
-      postIssues: social ? findPostIssues(tasks, clients, reviews, today) : [],
+      postIssues: social ? findPostIssues(tasks, clients, reviews, team, today) : [],
       // Vendedor vê os próprios follow-ups; admin vê os de todo mundo
       followUps: isAdmin ? followUps : followUps.filter((l) => [l.assignee, l.closer].some((v) => (v || '').trim().toLowerCase() === me && !!me)),
       shootToday: shootings.filter((s) => s.shooting_date === today),
       shootNext: shootings.filter((s) => s.shooting_date > today),
       mentions: feed.filter((n) => n.kind === 'mention' && !n.read),
     };
-  }, [tasks, clients, name, reviews, social, today, isAdmin, followUps, shootings, feed]);
+  }, [tasks, clients, team, name, reviews, social, today, isAdmin, followUps, shootings, feed]);
 
   const firstName = name.split(/\s+/)[0];
   const hour = new Date().getHours();

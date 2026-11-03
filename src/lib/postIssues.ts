@@ -1,16 +1,16 @@
-import type { Client, Task } from '@/types/agency';
+import type { Client, Task, TeamMember } from '@/types/agency';
 import type { ClientReview } from '@/lib/clientApprovals';
 
 /**
- * Erros nos posts para o Meu dia: cada card com data de postar é conferido e os problemas
- * vão para o social media responsável pelo cliente (campo Responsável do cliente; sem ele, quem está na tarefa).
+ * Erros nos posts para o Meu dia: só posts que ainda vão sair (data de postar de hoje em diante).
+ * Os problemas vão para o social media do cliente: o Responsável do cliente cujo cargo (Equipe → Funcionários)
+ * tem "social"; sem nenhum, a pessoa da tarefa com esse cargo. Post sem social media fica de fora.
  */
 export type IssueKind =
-  | 'late' | 'early_stage' | 'no_caption' | 'approved_not_scheduled' | 'not_approved' | 'change_pending'
+  | 'early_stage' | 'no_caption' | 'approved_not_scheduled' | 'not_approved' | 'change_pending'
   | 'caption_problem' | 'no_time' | 'due_after_post' | 'same_slot' | 'no_client';
 
 export const ISSUES: Record<IssueKind, { label: string; severity: 1 | 2 | 3 }> = {
-  late: { label: 'Data de postar passou', severity: 3 },
   early_stage: { label: 'Atrasado na produção', severity: 3 },
   no_caption: { label: 'Sem legenda', severity: 3 },
   approved_not_scheduled: { label: 'Aprovado e não agendado', severity: 3 },
@@ -49,11 +49,13 @@ export function captionProblems(caption: string): string[] {
 }
 
 export function findPostIssues(
-  tasks: Task[], clients: Client[], reviews: Record<string, ClientReview>, today = iso(new Date()),
+  tasks: Task[], clients: Client[], reviews: Record<string, ClientReview>, team: TeamMember[], today = iso(new Date()),
 ): FlaggedPost[] {
   const byClient = new Map(clients.map((c) => [c.id, c]));
+  const socialMedia = new Map(team.filter((m) => /social/i.test(m.role)).map((m) => [m.name.trim().toLowerCase(), m.name.trim()]));
+  const socialOf = (names: (string | undefined)[]) => names.map((n) => socialMedia.get((n ?? '').trim().toLowerCase())).find(Boolean);
   const open = tasks.filter((t) => !t.deletedAt && t.postDate && !DONE.test(t.status)
-    && t.postDate >= shift(today, -30) && t.postDate <= shift(today, 14));
+    && t.postDate >= today && t.postDate <= shift(today, 30));
   // Mesmo cliente, mesmo dia e mesmo horário
   const slotCount = new Map<string, number>();
   open.forEach((t) => { if (t.postTime) { const k = `${t.clientId}|${t.postDate}|${t.postTime.slice(0, 5)}`; slotCount.set(k, (slotCount.get(k) ?? 0) + 1); } });
@@ -63,12 +65,11 @@ export function findPostIssues(
     const post = t.postDate!;
     const r = reviews[t.id];
     const issues: PostIssue[] = [];
-    if (post < today) issues.push({ kind: 'late', detail: `era para ${post.split('-').reverse().slice(0, 2).join('/')}` });
-    else if (post <= shift(today, 2) && EARLY.test(t.status)) issues.push({ kind: 'early_stage', detail: `posta em até 2 dias e está em ${t.status}` });
+    if (post <= shift(today, 2) && EARLY.test(t.status)) issues.push({ kind: 'early_stage', detail: `posta em até 2 dias e está em ${t.status}` });
     if (post <= shift(today, 3) && !hasText(t.caption)) issues.push({ kind: 'no_caption' });
     if (r?.changeRequested) issues.push({ kind: 'change_pending' });
     else if (r?.approved && !r.scheduled && post <= shift(today, 1)) issues.push({ kind: 'approved_not_scheduled' });
-    else if (!r?.approved && post >= today && post <= shift(today, 2) && !EARLY.test(t.status)) issues.push({ kind: 'not_approved' });
+    else if (!r?.approved && post <= shift(today, 2) && !EARLY.test(t.status)) issues.push({ kind: 'not_approved' });
     if (hasText(t.caption)) {
       const p = captionProblems(t.caption!);
       if (p.length) issues.push({ kind: 'caption_problem', detail: p.join('; ') });
@@ -77,10 +78,10 @@ export function findPostIssues(
     if (!t.postTime) issues.push({ kind: 'no_time' });
     else if ((slotCount.get(`${t.clientId}|${post}|${t.postTime.slice(0, 5)}`) ?? 0) > 1) issues.push({ kind: 'same_slot', detail: `${t.postTime.slice(0, 5)}` });
     if (!t.clientId || !byClient.has(t.clientId)) issues.push({ kind: 'no_client' });
-    if (!issues.length) continue;
+    const managers = (t.clientId && byClient.get(t.clientId)?.accountManager) || [];
+    const owner = socialOf(managers) || socialOf([t.assignee, t.copywriter]);
+    if (!issues.length || !owner) continue;
     issues.sort((a, b) => ISSUES[b.kind].severity - ISSUES[a.kind].severity);
-    const managers = (t.clientId && byClient.get(t.clientId)?.accountManager?.filter((m) => m.trim())) || [];
-    const owner = managers[0]?.trim() || t.assignee?.trim() || 'Sem responsável';
     out.push({ task: t, owner, issues });
   }
   return out.sort((a, b) => a.task.postDate!.localeCompare(b.task.postDate!));
