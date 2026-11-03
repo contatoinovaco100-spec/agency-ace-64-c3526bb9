@@ -15,8 +15,12 @@ export function EmployeeJobTitle({ profileId, value: initial, onSaved }: { profi
   const save = async () => {
     const v = value.trim();
     if (v === saved) return;
-    const { error } = await supabase.from('profiles').update({ job_title: v || null }).eq('id', profileId);
-    if (error) { toast.error('Não foi possível salvar o cargo'); setValue(saved); return; }
+    // Sem permissão o banco não dá erro, só não altera nada: confere se a linha voltou
+    const { data, error } = await supabase.from('profiles').update({ job_title: v || null }).eq('id', profileId).select('id');
+    if (error || !data?.length) {
+      toast.error('Não foi possível salvar o cargo', { description: error?.message ?? 'Falta aplicar a migração 20261103110000_admin_update_profiles no Lovable.' });
+      setValue(saved); return;
+    }
     setSaved(v);
     onSaved?.(v);
     toast.success('Cargo salvo');

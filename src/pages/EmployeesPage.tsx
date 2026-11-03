@@ -135,7 +135,11 @@ export default function EmployeesPage() {
   };
 
   const handleToggleActive = async (emp: Employee) => {
-    await supabase.from('profiles').update({ is_active: !emp.is_active }).eq('id', emp.id);
+    const { data, error } = await supabase.from('profiles').update({ is_active: !emp.is_active }).eq('id', emp.id).select('id');
+    if (error || !data?.length) {
+      toast({ title: 'Não foi possível alterar', description: error?.message ?? 'Falta aplicar a migração 20261103110000_admin_update_profiles no Lovable.', variant: 'destructive' });
+      return;
+    }
     loadEmployees();
   };
 

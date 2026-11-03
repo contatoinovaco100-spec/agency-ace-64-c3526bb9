@@ -25,8 +25,12 @@ export function EmployeeWhatsApp({ profileId }: { profileId: string }) {
     const v = value.trim();
     if (v === saved) return;
     if (v && v.replace(/\D/g, '').length < 10) { toast.error('WhatsApp com DDD, ex.: 24 99999-9999'); return; }
-    const { error } = await supabase.from('profiles').update({ whatsapp: v || null } as never).eq('id', profileId);
-    if (error) { toast.error('Não foi possível salvar o WhatsApp'); return; }
+    // Sem permissão o banco não dá erro, só não altera nada: confere se a linha voltou
+    const { data, error } = await supabase.from('profiles').update({ whatsapp: v || null } as never).eq('id', profileId).select('id');
+    if (error || !data?.length) {
+      toast.error('Não foi possível salvar o WhatsApp', { description: error?.message ?? 'Falta aplicar a migração 20261103110000_admin_update_profiles no Lovable.' });
+      return;
+    }
     setSaved(v);
     toast.success('WhatsApp salvo');
   };
