@@ -138,6 +138,7 @@ const ClientOnboardingsPage     = lazy(() => import("./pages/ClientOnboardingsPa
 const CommercialTeamPage        = lazy(() => import("./pages/CommercialTeamPage"));
 const SquadsPage                = lazy(() => import("./pages/SquadsPage"));
 const TeamRemindersPage         = lazy(() => import("./pages/TeamRemindersPage"));
+const HeadPage                  = lazy(() => import("./pages/HeadPage"));
 const ViralRankingPage          = lazy(() => import("./pages/ViralRankingPage"));
 const AppErrorsPage             = lazy(() => import("./pages/AppErrorsPage"));
 const FigmaToLpPage             = lazy(() => import("./pages/FigmaToLpPage"));
@@ -331,6 +332,7 @@ function AppRoutes() {
                     <Route path="/time-comercial"      element={<CommercialTeamPage />} />
                     <Route path="/squads"              element={<SectionTabs tabs={TEAM_TABS}><SquadsPage /></SectionTabs>} />
                     <Route path="/lembretes-equipe"    element={<TeamRemindersPage />} />
+                    <Route path="/head"                element={<HeadPage />} />
                     <Route path="/ranking-viral"       element={<ViralRankingPage />} />
                     <Route path="/erros"               element={<AppErrorsPage />} />
                     <Route path="/figma-to-lp"         element={<StudioScope><FigmaToLpPage /></StudioScope>} />

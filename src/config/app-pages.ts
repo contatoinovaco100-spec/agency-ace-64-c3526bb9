@@ -3,7 +3,7 @@ import {
   Shield, FileText, BarChart3,   Film, Clapperboard, Palette, Play,
   LayoutList, Bot, Sparkles, Settings, Bell, Calendar, CalendarDays,
   MessageSquare, TrendingUp, Images, BookOpen, CalculatorIcon,
-  Gift, Link2, Video, Rocket, NotebookPen, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy, Scissors, Gauge, Bug, BellRing,
+  Gift, Link2, Video, Rocket, NotebookPen, ListChecks, Search, Wallet, Network, Layers, KeyRound, UsersRound, Trophy, Scissors, Gauge, Bug, BellRing, Crown,
 } from 'lucide-react';
 
 export type PageCategory =
@@ -81,6 +81,7 @@ export const APP_PAGES: AppPage[] = [
   // { path: '/proposta/editar',     label: 'Editar Proposta',     icon: Settings,        category: 'Comercial' },
 
   // Operacional
+  { path: '/head',                label: 'Painel do Head',      icon: Crown,           category: 'Operacional' },
   { path: '/clientes',            label: 'Clientes',            icon: Users,           category: 'Operacional' },
   { path: '/tarefas',             label: 'Tarefas (Kanban)',    icon: CheckSquare,     category: 'Operacional' },
   // Substituído pelo Planner (o endereço antigo leva para lá)
