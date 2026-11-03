@@ -148,6 +148,13 @@
       "when": 1793476769057,
       "tag": "0020_security_team_only",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793667773114,
+      "tag": "0021_wa_conversation_avatars",
+      "breakpoints": true
     }
   ]
 }

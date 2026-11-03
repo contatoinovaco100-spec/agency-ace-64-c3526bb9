@@ -1736,6 +1736,8 @@ export type Database = {
           description: string
           id: string
           month_ref: string
+          recurring: boolean
+          spent_on: string | null
           type: string
           updated_at: string
         }
@@ -1747,6 +1749,8 @@ export type Database = {
           description?: string
           id?: string
           month_ref?: string
+          recurring?: boolean
+          spent_on?: string | null
           type?: string
           updated_at?: string
         }
@@ -1758,6 +1762,8 @@ export type Database = {
           description?: string
           id?: string
           month_ref?: string
+          recurring?: boolean
+          spent_on?: string | null
           type?: string
           updated_at?: string
         }
@@ -4578,7 +4584,9 @@ export type Database = {
       wa_conversations: {
         Row: {
           assigned_to: string | null
+          avatar_checked_at: string | null
           client_id: string | null
+          contact_avatar: string | null
           contact_name: string
           contact_phone: string
           created_at: string
@@ -4592,7 +4600,9 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          avatar_checked_at?: string | null
           client_id?: string | null
+          contact_avatar?: string | null
           contact_name?: string
           contact_phone: string
           created_at?: string
@@ -4606,7 +4616,9 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          avatar_checked_at?: string | null
           client_id?: string | null
+          contact_avatar?: string | null
           contact_name?: string
           contact_phone?: string
           created_at?: string
