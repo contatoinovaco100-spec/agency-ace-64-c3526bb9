@@ -6,7 +6,7 @@ import { useSeo } from '@/lib/seo';
 
 /**
  * /cultura — onboarding de quem entra no time: a cultura da INOVA (Resultado, Prazo, Estratégia),
- * que somos uma produtora (todo mundo grava), liberdade criativa com responsabilidade total e a primeira semana.
+ * que somos uma produtora (a gente se grava, e quem quiser aparece junto), liberdade criativa com responsabilidade e a primeira semana.
  * Página pública, sempre escura, com a identidade da marca (lima sobre grafite).
  */
 
@@ -20,7 +20,7 @@ const PILLARS = [
   {
     n: '02', name: 'Prazo', Icon: Clock3,
     line: 'Prazo é promessa. E promessa a gente cumpre.',
-    body: 'O cliente confia no dia e na hora que combinamos. Um post atrasado é uma oportunidade que não volta. Por isso o prazo não é sugestão: é o compromisso do time inteiro com quem paga a nossa conta.',
+    body: 'O cliente confia no dia e na hora que combinamos. Um post atrasado é uma oportunidade que não volta. Por isso o prazo é um compromisso do time inteiro, e a gente se ajuda para chegar lá.',
     practice: ['Data marcada na plataforma é data cumprida', 'Viu que vai atrasar? Avise antes, não depois', 'Entregue no prazo e com qualidade, as duas coisas'],
   },
   {
@@ -32,10 +32,10 @@ const PILLARS = [
 ];
 
 const RULES = [
-  { k: 'Prazo é promessa.', v: 'O que foi combinado com o cliente acontece. Ponto.' },
+  { k: 'Prazo é promessa.', v: 'O que a gente combina com o cliente, a gente faz acontecer.' },
   { k: 'Avisou cedo, resolveu.', v: 'Problema escondido vira crise. Problema avisado vira solução.' },
-  { k: 'Se não está na plataforma, não existe.', v: 'Card atualizado, data certa, legenda no lugar. Sempre.' },
-  { k: 'Errou? Assume e corrige.', v: 'Errar acontece. Repetir o erro e não falar nada, não.' },
+  { k: 'Se não está na plataforma, não existe.', v: 'Card atualizado, data certa, legenda no lugar. Assim todo mundo se ajuda.' },
+  { k: 'Errou? Assume e corrige.', v: 'Errar faz parte. O que importa é falar logo e aprender junto.' },
   { k: 'Ninguém ganha sozinho.', v: 'O post é do time: copy, captação, edição, design e social media.' },
   { k: 'Ideia boa vem de qualquer lugar.', v: 'Estagiário ou head: a melhor ideia vence, não o cargo.' },
 ];
@@ -45,12 +45,12 @@ const FLOW = ['Pauta', 'Roteiro', 'Captação', 'Edição', 'Revisão', 'Aprova�
 const WEEK = [
   { day: 'Dia 1', title: 'Chegada', items: ['Receber acesso à plataforma INOVA', 'Abrir o Meu Dia e entender o que aparece lá', 'Conhecer o time e quem cuida de cada cliente'] },
   { day: 'Dia 2', title: 'Clientes', items: ['Ler o escopo dos clientes que você vai atender', 'Ver o Planner e o kanban de cada um', 'Entender o tom de voz de cada marca'] },
-  { day: 'Dia 3', title: 'Set', items: ['Acompanhar uma gravação do começo ao fim', 'Ajudar no set: luz, som, rebatedor, direção', 'Ver como o material vira roteiro e corte'] },
+  { day: 'Dia 3', title: 'Bastidores', items: ['Acompanhar uma gravação para conhecer o set', 'Dar uma mão se bater vontade: luz, som, ideia', 'Ver como o material vira roteiro e corte'] },
   { day: 'Dia 4', title: 'Fluxo', items: ['Seguir um card da pauta até a postagem', 'Mover cards e marcar datas na plataforma', 'Conhecer o link de aprovação do cliente'] },
   { day: 'Dia 5', title: 'Primeira entrega', items: ['Entregar sua primeira tarefa no prazo', 'Receber feedback do head', 'Combinar suas metas do primeiro mês'] },
 ];
 
-const MANIFESTO = 'A gente não faz post. A gente faz resultado. Somos uma produtora: câmera ligada, ideia na mesa e prazo no calendário. Aqui você tem liberdade total para criar e responsabilidade total pelo que entrega. As duas coisas. Sempre.';
+const MANIFESTO = 'A gente não faz post. A gente faz resultado. Somos uma produtora: câmera ligada, ideia na mesa e prazo no calendário. Aqui você tem liberdade para criar e a gente confia que você cuida do que entrega. As duas coisas juntas. Sempre.';
 
 const STORAGE_KEY = 'inova-cultura:semana';
 
@@ -175,7 +175,7 @@ function Balance() {
           <div className="max-w-[46%] text-right">
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] opacity-70">Responsabilidade</p>
             <p className="mt-2 font-display text-[clamp(1.6rem,4vw,3.4rem)] font-bold leading-[0.95] tracking-[-0.04em]">100% dono do que entrega.</p>
-            <p className="mt-3 hidden text-sm font-medium opacity-80 sm:block">Combinou, cumpriu. Começou, terminou. Deu problema, avisou antes.</p>
+            <p className="mt-3 hidden text-sm font-medium opacity-80 sm:block">Combinou, cumpre. Começou, termina. Apertou? Avisa, que o time segura junto.</p>
           </div>
         </div>
         {/* Lado liberdade (por cima, recortado) */}
@@ -304,7 +304,7 @@ function Pact() {
           <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: 'hsl(var(--ob-lime))' }}>O pacto</p>
           <h3 className="mt-3 font-display text-[clamp(1.8rem,4.5vw,3.6rem)] font-bold leading-[0.98] tracking-[-0.04em]">Eu entendi como a INOVA joga.</h3>
           <ul className="mx-auto mt-6 max-w-md space-y-2 text-left text-sm" style={{ color: 'hsl(var(--ob-fg) / 0.8)' }}>
-            {['Eu entrego resultado, não só tarefa.', 'Eu cumpro o prazo, e aviso antes se algo sair do trilho.', 'Eu penso estratégia antes de criar.', 'Eu topo o set: aqui todo mundo grava.', 'Eu jogo em time.'].map((t) => (
+            {['Eu entrego resultado, não só tarefa.', 'Eu cumpro o prazo, e aviso antes se algo sair do trilho.', 'Eu penso estratégia antes de criar.', 'Eu topo as ideias malucas, e quem sabe aparecer num vídeo de vez em quando.', 'Eu jogo em time.'].map((t) => (
               <li key={t} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: 'hsl(var(--ob-lime))' }} />{t}</li>
             ))}
           </ul>
@@ -321,7 +321,7 @@ function Pact() {
         <div className="relative mx-auto max-w-2xl text-center">
           <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: 'hsl(var(--ob-lime))' }}>Pacto assinado</p>
           <p className="ob-sign mt-4 font-display text-[clamp(3rem,10vw,7rem)] font-bold italic leading-none tracking-[-0.05em]" style={{ color: 'hsl(var(--ob-lime))' }}>{first}.</p>
-          <p className="mt-6 font-display text-2xl font-semibold sm:text-3xl">Bem-vindo ao time que faz acontecer.</p>
+          <p className="mt-6 font-display text-2xl font-semibold sm:text-3xl">Bem-vindo ao time. Que bom ter você aqui.</p>
           <p className="mt-3 text-sm" style={{ color: 'hsl(var(--ob-fg) / 0.65)' }}>A partir de agora, o resultado dos nossos clientes também tem o seu nome.</p>
         </div>
       )}
@@ -436,15 +436,15 @@ export default function CulturePage() {
       <section id="produtora" className="relative overflow-hidden px-4 py-28 sm:px-8" style={{ background: 'hsl(var(--ob-bg-2))' }}>
         <div className="mx-auto grid max-w-[1400px] items-center gap-12 lg:grid-cols-2">
           <Reveal>
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: 'hsl(var(--ob-lime))' }}>Somos uma produtora</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: 'hsl(var(--ob-lime))' }}>A gente vive de conteúdo</p>
             <h2 className="mt-4 font-display text-[clamp(2.6rem,6vw,5.5rem)] font-bold leading-[0.92] tracking-[-0.05em]">
-              Aqui todo<br />mundo <span style={{ color: 'hsl(var(--ob-lime))' }}>grava.</span>
+              A gente se<br />grava. <span style={{ color: 'hsl(var(--ob-lime))' }}>Muito.</span>
             </h2>
             <p className="mt-6 max-w-lg text-base leading-relaxed" style={{ color: 'hsl(var(--ob-fg) / 0.75)' }}>
-              Não importa se você é social media, designer, copy ou editor: conteúdo nasce no set. Câmera ligada faz parte da rotina, e todo mundo ajuda a gravação acontecer.
+              Somos uma produtora, então câmera ligada é parte do nosso dia: bastidores, trends, reunião que vira vídeo, ideia que vira cena. Ninguém é obrigado a aparecer, mas não se assuste se, vira e mexe, você estiver no vídeo. A gente adora quando o time topa entrar na brincadeira.
             </p>
             <div className="mt-8 grid grid-cols-2 gap-3 text-sm">
-              {['Ir para captação com o time', 'Segurar o rebatedor sem drama', 'Dirigir o cliente na frente da câmera', 'Aparecer no vídeo quando precisar', 'Pensar o roteiro antes do REC', 'Organizar o material para a edição'].map((t) => (
+              {['Ir numa captação só pra ver como é', 'Dar pitaco no roteiro', 'Fazer uma ponta num vídeo da INOVA', 'Gravar um bastidor do seu dia', 'Sugerir uma trend pro time', 'Ajudar o cliente a ficar à vontade'].map((t) => (
                 <div key={t} className="flex items-start gap-2 rounded-xl p-3" style={{ background: 'hsl(var(--ob-fg) / 0.04)' }}>
                   <Clapperboard className="mt-0.5 h-4 w-4 shrink-0" style={{ color: 'hsl(var(--ob-lime))' }} />{t}
                 </div>
@@ -465,8 +465,8 @@ export default function CulturePage() {
               <div className="absolute right-4 top-4 rounded-full px-3 py-1 font-mono text-[11px]" style={{ background: 'hsl(0 0% 0% / 0.55)', color: 'hsl(0 0% 100%)' }}>▮▮▮▯ 76%</div>
               <span aria-hidden className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-sm border-2" style={{ borderColor: 'hsl(var(--ob-lime))' }} />
               <div className="absolute inset-x-5 bottom-5" style={{ color: 'hsl(0 0% 100%)' }}>
-                <p className="font-display text-2xl font-bold tracking-[-0.03em] sm:text-3xl">"Ação!" é a palavra mais dita aqui.</p>
-                <p className="mt-1 text-xs opacity-75">Nossa casa: onde as ideias viram cena.</p>
+                <p className="font-display text-2xl font-bold tracking-[-0.03em] sm:text-3xl">Spoiler: você vai aparecer no story.</p>
+                <p className="mt-1 text-xs opacity-75">E a gente promete escolher o seu melhor ângulo.</p>
               </div>
             </div>
           </Reveal>
@@ -477,7 +477,7 @@ export default function CulturePage() {
       <section className="mx-auto max-w-[1400px] px-4 py-28 sm:px-8">
         <Reveal className="mb-10 max-w-3xl">
           <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: 'hsl(var(--ob-lime))' }}>Como a gente joga</p>
-          <h2 className="mt-3 font-display text-[clamp(2.2rem,5vw,4.2rem)] font-bold leading-[0.95] tracking-[-0.05em]">Sem barreira para criar. Sem desculpa para não entregar.</h2>
+          <h2 className="mt-3 font-display text-[clamp(2.2rem,5vw,4.2rem)] font-bold leading-[0.95] tracking-[-0.05em]">Liberdade para criar. Carinho com o que entrega.</h2>
           <p className="mt-4 text-base" style={{ color: 'hsl(var(--ob-fg) / 0.65)' }}>Arraste e veja os dois lados da INOVA.</p>
         </Reveal>
         <Reveal><Balance /></Reveal>
@@ -499,7 +499,7 @@ export default function CulturePage() {
           <Reveal className="mb-10 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: 'hsl(var(--ob-lime))' }}>Regras da casa</p>
-              <h2 className="mt-2 font-display text-[clamp(2.2rem,5vw,4rem)] font-bold leading-none tracking-[-0.05em]">O que ninguém precisa<br />te lembrar duas vezes.</h2>
+              <h2 className="mt-2 font-display text-[clamp(2.2rem,5vw,4rem)] font-bold leading-none tracking-[-0.05em]">O jeito INOVA<br />de trabalhar junto.</h2>
             </div>
             <Users className="h-10 w-10" style={{ color: 'hsl(var(--ob-lime))' }} />
           </Reveal>
