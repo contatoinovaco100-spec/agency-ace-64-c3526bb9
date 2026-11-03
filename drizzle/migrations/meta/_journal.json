@@ -197,6 +197,13 @@
       "when": 1793677559186,
       "tag": "0027_team_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793678244981,
+      "tag": "0028_team_reminders_times",
+      "breakpoints": true
     }
   ]
 }

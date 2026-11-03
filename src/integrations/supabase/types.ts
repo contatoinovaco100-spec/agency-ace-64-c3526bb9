@@ -4374,9 +4374,11 @@ export type Database = {
           items: string[]
           kind: string
           last_run_on: string | null
+          last_slot: string | null
           message: string
           people: string[]
           send_time: string
+          send_times: string[]
           title: string
           updated_at: string
           weekdays: number[]
@@ -4388,9 +4390,11 @@ export type Database = {
           items?: string[]
           kind?: string
           last_run_on?: string | null
+          last_slot?: string | null
           message?: string
           people?: string[]
           send_time?: string
+          send_times?: string[]
           title: string
           updated_at?: string
           weekdays?: number[]
@@ -4402,9 +4406,11 @@ export type Database = {
           items?: string[]
           kind?: string
           last_run_on?: string | null
+          last_slot?: string | null
           message?: string
           people?: string[]
           send_time?: string
+          send_times?: string[]
           title?: string
           updated_at?: string
           weekdays?: number[]
