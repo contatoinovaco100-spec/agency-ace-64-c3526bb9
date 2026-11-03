@@ -101,9 +101,11 @@ export function SchedulePostDialog({ task, onClose }: { task: Task | null; onClo
   );
 
   return (
-    <Dialog open={!!task} onOpenChange={(o) => !o && onClose()}>
+    // Datas obrigatórias: só fecha salvando (sem X, Esc ou clique fora)
+    <Dialog open={!!task}>
       {/* Presa no alto: o aviso muda a altura e o calendário não pode pular de lugar */}
-      <DialogContent className="top-[4vh] max-h-[92vh] translate-y-0 overflow-y-auto sm:max-w-[460px]">
+      <DialogContent className="top-[4vh] max-h-[92vh] translate-y-0 overflow-y-auto sm:max-w-[460px] [&>button:last-child]:hidden"
+        onEscapeKeyDown={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Datas do card</DialogTitle>
           <DialogDescription className="truncate">
@@ -169,11 +171,15 @@ export function SchedulePostDialog({ task, onClose }: { task: Task | null; onClo
           <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={!post} className="h-9 w-32" />
         </label>
 
+        {(!due || !post || !time) && (
+          <p className="text-xs font-medium text-warning">
+            Obrigatório: {[!due && 'entrega', !post && 'dia de postar', !time && 'horário de postar'].filter(Boolean).join(', ')}.
+          </p>
+        )}
         <p className="text-xs text-muted-foreground [text-wrap:pretty]">Só planeja as datas: nada é agendado nem publicado. O card segue no kanban por captação, edição e revisão.</p>
 
         <div className="flex gap-2 pt-1">
-          <Button variant="ghost" className="flex-1" onClick={onClose} disabled={saving}>Depois</Button>
-          <Button className="flex-1" onClick={save} disabled={saving || (!due && !post)}>
+          <Button className="flex-1" onClick={save} disabled={saving || !due || !post || !time}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar datas
           </Button>
         </div>
