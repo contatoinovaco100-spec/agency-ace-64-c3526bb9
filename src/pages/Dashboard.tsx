@@ -6,6 +6,7 @@ import { ExpensesPanel } from '@/components/dashboard/ExpensesPanel';
 import type { Client } from '@/types/agency';
 
 import { PageHeader } from '@/components/PageHeader';
+import { SpotlightPanel, Sticker } from '@/components/brand/Spotlight';
 import { motion } from 'framer-motion';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
@@ -602,48 +603,50 @@ export default function Dashboard() {
   return (
     <div className="admin-dashboard space-y-5">
       <SocialSyncAlert />
-      {/* Executive header */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-        className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-center md:justify-between"
-      >
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-[3px] rounded-full bg-tally" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Resumo operacional</p>
+      {/* Topo em destaque: painel azul com o adesivo no MRR */}
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
+        <SpotlightPanel>
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-spotlight-foreground/75">Resumo operacional</p>
+              <h1 className="font-display text-2xl font-semibold leading-tight tracking-tight sm:text-[34px]">
+                {greeting}, INOVA CO.
+                <br />
+                MRR em <Sticker className="tabular-nums">{formatCurrency(mrr)}</Sticker>
+              </h1>
+              <p className="max-w-xl text-sm text-spotlight-foreground/80">
+                {goalProgress >= 100
+                  ? `Meta de ${goalLabel} batida.`
+                  : `Faltam ${formatCurrency(Math.max(0, nextGoal - mrr))} para a meta de ${goalLabel} · ${Math.round(goalProgress)}% do caminho.`}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => requestPermission()}
+                className="hidden gap-2 rounded-md border-spotlight-foreground/30 bg-spotlight-foreground/10 text-spotlight-foreground hover:bg-spotlight-foreground/20 hover:text-spotlight-foreground sm:flex"
+              >
+                <BellRing className="h-4 w-4" /> Habilitar Push
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => triggerNotification("Nova Venda Realizada! 🎉", "O cliente fechou o contrato de R$ 5.000,00.", "success", "sale")}
+                className="gap-2 rounded-md bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))] hover:bg-[hsl(var(--success))]/90"
+              >
+                <BellRing className="h-4 w-4" /> Venda
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => triggerNotification("Tarefa Atrasada 🚨", "A entrega da Landing Page está atrasada.", "error", "overdue")}
+                className="gap-2 rounded-md"
+              >
+                <AlertTriangle className="h-4 w-4" /> Atraso
+              </Button>
+            </div>
           </div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-[28px] sm:leading-9">
-            {greeting}, <span className="text-primary">INOVA CO.</span>
-          </h1>
-          <p className="text-sm text-muted-foreground">Indicadores financeiros, carteira e desempenho da operação.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => requestPermission()}
-            className="hidden gap-2 rounded-md border-border sm:flex"
-          >
-            <BellRing className="h-4 w-4" /> Habilitar Push
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => triggerNotification("Nova Venda Realizada! 🎉", "O cliente fechou o contrato de R$ 5.000,00.", "success", "sale")}
-            className="gap-2 rounded-md bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))] hover:bg-[hsl(var(--success))]/90"
-          >
-            <BellRing className="h-4 w-4" /> Venda
-          </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={() => triggerNotification("Tarefa Atrasada 🚨", "A entrega da Landing Page está atrasada.", "error", "overdue")}
-            className="gap-2 rounded-md"
-          >
-            <AlertTriangle className="h-4 w-4" /> Atraso
-          </Button>
-        </div>
+        </SpotlightPanel>
       </motion.div>
 
       <Tabs defaultValue="financeiro" className="space-y-5">
