@@ -360,6 +360,15 @@ app.get('/groups/:id/participants', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// "digitando…" numa conversa ou grupo: { to, session?, state? } (state: composing | paused)
+app.post('/presence', auth, async (req, res) => {
+  const s = getSession(req.body?.session);
+  const jid = toJid(req.body?.to);
+  if (!s || s.status !== 'CONNECTED' || !jid) return res.status(400).json({ error: 'Número não conectado ou destino inválido' });
+  try { await s.sock.sendPresenceUpdate(req.body?.state === 'paused' ? 'paused' : 'composing', jid); res.json({ ok: true }); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Áudio de uma mensagem recente (base64), para o assistente ouvir comandos de voz
 app.get('/media/:id', auth, async (req, res) => {
   const s = getSession(req.query.session);

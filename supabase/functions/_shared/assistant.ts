@@ -396,12 +396,19 @@ export async function answerQuestion(admin: any, input: AssistantInput, askerNam
   const messages: any[] = [{ role: "system", content: SYSTEM(askerName) + (allowActions ? RULES_ACTIONS : RULES_READONLY) + audioRule }, { role: "user", content: user }];
   const done = (answer: string) => ({ answer, actions });
 
-  for (let round = 0; round < 6; round++) {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, tools }),
+  // Sem o "raciocínio" do modelo a resposta sai bem mais rápido; se o gateway recusar o parâmetro, segue sem ele
+  let fast = true;
+  const call = async () => {
+    const body = { model: "google/gemini-2.5-flash", messages, tools, ...(fast ? { reasoning_effort: "none" } : {}) };
+    let r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` }, body: JSON.stringify(body),
     });
+    if (fast && r.status === 400) { fast = false; r = await call(); }
+    return r;
+  };
+
+  for (let round = 0; round < 6; round++) {
+    const res = await call();
     if (res.status === 429) return done("Muitos pedidos seguidos. Tente de novo em um minuto.");
     if (res.status === 402) return done("Os créditos de IA do Lovable acabaram. Adicione créditos no workspace para eu voltar a responder.");
     if (!res.ok) {
@@ -414,16 +421,21 @@ export async function answerQuestion(admin: any, input: AssistantInput, askerNam
     const content = String(msg.content || "").trim();
     if (!calls.length) return done(content.includes(IGNORE) ? IGNORE : content || "Não achei nada sobre isso na plataforma.");
     messages.push(msg);
-    for (const c of calls) {
+    // Consultas da mesma rodada em paralelo; ações em sequência (uma pode depender da outra)
+    const runOne = async (c: any) => {
       const name = c.function?.name;
       const tool = all[name];
-      let result: any;
-      try {
-        result = tool ? await tool.run(admin, JSON.parse(c.function.arguments || "{}")) : { erro: "Ferramenta desconhecida" };
-      } catch (e) { result = { erro: String((e as Error).message) }; }
+      try { return tool ? await tool.run(admin, JSON.parse(c.function.arguments || "{}")) : { erro: "Ferramenta desconhecida" }; }
+      catch (e) { return { erro: String((e as Error).message) }; }
+    };
+    const results: any[] = calls.some((c: any) => c.function?.name in ACTIONS)
+      ? await calls.reduce(async (acc: Promise<any[]>, c: any) => [...await acc, await runOne(c)], Promise.resolve([]))
+      : await Promise.all(calls.map(runOne));
+    calls.forEach((c: any, i: number) => {
+      const name = c.function?.name, result = results[i];
       if (name in ACTIONS) actions.push({ tool: name, ok: !!result?.ok, resumo: result?.resumo ?? result?.erro ?? "" });
       messages.push({ role: "tool", tool_call_id: c.id, content: JSON.stringify(result).slice(0, 12000) });
-    }
+    });
   }
   return done("O pedido ficou grande demais para uma resposta só. Tente dividir em partes.");
 }
@@ -438,6 +450,17 @@ export async function fetchAudio(session: string, messageId: string) {
   if (!res.ok) return null;
   const d = await res.json().catch(() => null);
   return d?.base64 ? { base64: String(d.base64), mimetype: String(d.mimetype || "audio/ogg") } : null;
+}
+
+/** "digitando…" no grupo enquanto o assistente trabalha (servidor sem a rota: ignora) */
+export async function showTyping(session: string, to: string) {
+  const url = Deno.env.get("WA_SERVER_URL");
+  if (!url) return;
+  await fetch(`${url}/presence`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": Deno.env.get("WA_API_KEY") ?? "" },
+    body: JSON.stringify({ to, session, state: "composing" }),
+  }).catch(() => null);
 }
 
 /** Manda a resposta pelo mesmo número que recebeu a pergunta */

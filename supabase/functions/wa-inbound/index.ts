@@ -6,7 +6,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   createLead, enroll, findClientByPhone, firstContactStage, lostStage, newLeadStage, findLeadByPhone, normalizePhone, recordMessage, upsertConversation,
 } from "../_shared/crm.ts";
-import { IGNORE, answerQuestion, fetchAudio, replyOnWhatsApp, stripTrigger } from "../_shared/assistant.ts";
+import { IGNORE, answerQuestion, fetchAudio, replyOnWhatsApp, showTyping, stripTrigger } from "../_shared/assistant.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -62,12 +62,15 @@ async function assistantInGroup(admin: any, session: string, jid: string, sender
   const text = isAudio ? "" : stripTrigger(String(m.text || ""), trigger);
   if (!isAudio && !text) return;
   const work = (async () => {
+    const started = Date.now();
+    if (!isAudio) showTyping(session, jid); // áudio sem gatilho não deve mostrar "digitando"
     const audio = isAudio ? await fetchAudio(session, String(m.id)) : null;
     const { answer, actions } = isAudio && !audio
       ? { answer: "Não consegui baixar esse áudio. Pode mandar de novo ou por escrito?", actions: [] }
       : await answerQuestion(admin, { text, audio }, sender, cfg.allow_actions !== false, trigger);
     if (answer === IGNORE) return;
     await replyOnWhatsApp(session, jid, answer);
+    console.log(`assistente: ${Date.now() - started} ms (${isAudio ? "áudio" : "texto"}, ${actions.length} ações)`);
     await admin.from("wa_assistant_log").insert({ sender, question: isAudio ? "[áudio]" : text, via_audio: isAudio, answer, actions });
   })().catch((e) => { console.error("assistant error", e); return replyOnWhatsApp(session, jid, "Deu um erro ao consultar a plataforma. Tente de novo."); });
   const runtime = (globalThis as any).EdgeRuntime;
