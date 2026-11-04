@@ -7,6 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { EnrollButton } from '@/components/crm/LeadExtras';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { colorClasses, useKanbanStages } from '@/hooks/useKanbanStages';
+import { useAgency } from '@/contexts/AgencyContext';
+import type { Lead, LeadStage } from '@/types/agency';
 import { QuickReplyButton, SlashMenu, countUse, fillReply, matchReplies, useQuickReplies, type QuickReply } from '@/components/crm/QuickReplies';
 
 type Conversation = {
@@ -182,7 +186,8 @@ export function CrmInbox({ openConversationFor }: { openConversationFor?: string
       {/* Conversa */}
       {open ? (
         <Thread key={open.id} conv={open} numberName={numberName(open.session_id)} lead={open.lead_id ? leads[open.lead_id] : null}
-          onBack={() => setOpenId(null)} onChanged={load} />
+          onBack={() => setOpenId(null)} onChanged={load}
+          onStage={(stage) => open.lead_id && setLeads((all) => ({ ...all, [open.lead_id!]: { ...all[open.lead_id!], stage } }))} />
       ) : (
         <div className="hidden items-center justify-center p-8 text-center text-sm text-muted-foreground md:flex">Escolha uma conversa.</div>
       )}
@@ -190,8 +195,9 @@ export function CrmInbox({ openConversationFor }: { openConversationFor?: string
   );
 }
 
-function Thread({ conv, numberName, lead, onBack, onChanged }: {
+function Thread({ conv, numberName, lead, onBack, onChanged, onStage }: {
   conv: Conversation; numberName: string; lead: { name: string; company: string; stage: string } | null; onBack: () => void; onChanged: () => void;
+  onStage: (stage: string) => void;
 }) {
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [text, setText] = useState('');
@@ -271,9 +277,10 @@ function Thread({ conv, numberName, lead, onBack, onChanged }: {
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">{lead?.company || conv.contact_name || fmtPhone(conv.contact_phone)}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {isGroup(conv) ? 'Grupo' : lead ? `${lead.name} · ${lead.stage}` : fmtPhone(conv.contact_phone)} · pelo número {numberName}
+            {isGroup(conv) ? 'Grupo' : lead ? lead.name : fmtPhone(conv.contact_phone)} · pelo número {numberName}
           </p>
         </div>
+        {conv.lead_id && lead && <StageSelect leadId={conv.lead_id} stage={lead.stage} onStage={onStage} />}
         {conv.lead_id
           ? <EnrollButton leadId={conv.lead_id} session={conv.session_id} small />
           : !conv.client_id && !isGroup(conv) && <Button size="sm" variant="outline" className="gap-1.5" onClick={createLead}><UserPlus className="h-3.5 w-3.5" /> Virar lead</Button>}
@@ -319,6 +326,41 @@ function Thread({ conv, numberName, lead, onBack, onChanged }: {
 
 
 /** Texto da mensagem; no grupo, o nome de quem escreveu ("Nome: texto") vai em destaque */
+/** Etapa do lead no pipeline, trocada ali mesmo na conversa (mesmo efeito de arrastar o card no CRM) */
+function StageSelect({ leadId, stage, onStage }: { leadId: string; stage: string; onStage: (stage: string) => void }) {
+  const { stages } = useKanbanStages('crm');
+  const { leads, updateLead } = useAgency();
+  const current = stages.find((s) => s.name === stage);
+  const change = async (next: string) => {
+    if (next === stage) return;
+    onStage(next);
+    const known = leads.find((l: Lead) => l.id === leadId);
+    if (known) await updateLead({ ...known, stage: next as LeadStage });
+    else {
+      const { error } = await supabase.from('leads').update({ stage: next } as never).eq('id', leadId);
+      if (error) { onStage(stage); toast.error('Não foi possível mudar a etapa', { description: error.message }); return; }
+    }
+    toast.success(`Lead movido para ${next}`);
+  };
+  return (
+    <Select value={stage} onValueChange={change}>
+      {/* O ponto colorido vem do próprio item escolhido */}
+      <SelectTrigger className="h-8 w-auto max-w-[190px] gap-1.5 text-xs" aria-label="Etapa do lead">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {/* Etapa antiga que não existe mais no pipeline continua visível */}
+        {!current && stage && <SelectItem value={stage}>{stage}</SelectItem>}
+        {stages.map((s) => (
+          <SelectItem key={s.id} value={s.name}>
+            <span className="flex items-center gap-2"><span className={cn('h-2 w-2 rounded-full', colorClasses(s.color).dot)} />{s.name}</span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function MessageText({ content, group }: { content: string; group: boolean }) {
   const sender = group ? /^([^:\n]{1,60}): /.exec(content) : null;
   return (
