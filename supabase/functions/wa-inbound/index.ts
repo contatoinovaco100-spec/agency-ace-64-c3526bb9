@@ -6,6 +6,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   createLead, enroll, findClientByPhone, firstContactStage, lostStage, newLeadStage, findLeadByPhone, normalizePhone, recordMessage, upsertConversation,
 } from "../_shared/crm.ts";
+import { flowsOnInbound } from "../_shared/flows.ts";
 import { IGNORE, answerQuestion, fetchAudio, replyOnWhatsApp, showTyping, stripTrigger } from "../_shared/assistant.ts";
 
 const json = (body: unknown, status = 200) =>
@@ -167,6 +168,13 @@ Deno.serve(async (req) => {
         const { data: seq } = await admin.from("crm_sequences").select("id, steps").eq("id", prospect.sequenceId).maybeSingle();
         if (seq) await enroll(admin, leadId, seq, session);
       }
+    }
+    // Fluxos do WhatsApp: segue quem espera resposta ou dispara um gatilho (em segundo plano, por causa das esperas curtas)
+    if (!fromMe) {
+      const work = flowsOnInbound(admin, { session, phone, name, text: String(m.text || ""), conversationId: conv.id, leadId })
+        .catch((e) => console.error("flows error", e));
+      const runtime = (globalThis as any).EdgeRuntime;
+      if (runtime?.waitUntil) runtime.waitUntil(work); else await work;
     }
     return json({ ok: true });
   } catch (e) {

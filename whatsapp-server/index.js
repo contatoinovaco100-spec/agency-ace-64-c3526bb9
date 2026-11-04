@@ -381,18 +381,38 @@ app.get('/media/:id', auth, async (req, res) => {
 });
 
 // Envia texto: { to, message, session? } (sem session usa o principal)
+/** Foto, vídeo, áudio (vai como mensagem de voz) ou arquivo por link público (Fluxos do WhatsApp) */
+function mediaContent(m) {
+  const url = typeof m?.url === 'string' && /^https?:\/\//.test(m.url) ? m.url : null;
+  if (!url) return null;
+  const caption = String(m.caption || '').slice(0, 1000) || undefined;
+  if (m.type === 'image') return { image: { url }, caption };
+  if (m.type === 'video') return { video: { url }, caption };
+  // Só .ogg/.opus aparece como mensagem de voz; mp3/m4a vão como arquivo de áudio
+  if (m.type === 'audio') {
+    const ogg = /\.(ogg|opus)(\?|$)/i.test(url);
+    return { audio: { url }, mimetype: ogg ? 'audio/ogg; codecs=opus' : /\.m4a(\?|$)/i.test(url) ? 'audio/mp4' : 'audio/mpeg', ptt: ogg };
+  }
+  if (m.type === 'document') {
+    const fileName = String(m.fileName || url.split('/').pop()?.split('?')[0] || 'arquivo');
+    return { document: { url }, fileName, mimetype: /\.pdf$/i.test(fileName) ? 'application/pdf' : 'application/octet-stream', caption };
+  }
+  return null;
+}
+
 app.post('/send', auth, async (req, res) => {
   if (process.env.SEND_PAUSED === '1') return res.status(423).json({ error: 'Envios pausados no servidor' });
   const s = getSession(req.body?.session);
   const jid = toJid(req.body?.to ?? req.body?.phone);
   const message = String(req.body?.message || '').slice(0, 4000);
-  if (!jid || !message) return res.status(400).json({ error: 'Informe "to" (telefone ou grupo) e "message"' });
+  const media = mediaContent(req.body?.media);
+  if (!jid || (!message && !media)) return res.status(400).json({ error: 'Informe "to" (telefone ou grupo) e "message" ou "media"' });
   if (!s || s.status !== 'CONNECTED') return res.status(503).json({ error: `Número ${req.body?.session || 'principal'} não conectado` });
   // Prospecção ("once"): não manda para quem já recebeu
   const once = !!req.body?.once && !jid.endsWith('@g.us');
   if (once && await alreadySent(jid)) return res.status(409).json({ error: 'já recebeu mensagem da prospecção', duplicate: true });
   try {
-    const result = await s.sock.sendMessage(jid, { text: message });
+    const result = await s.sock.sendMessage(jid, media ?? { text: message });
     if (once) await markSent(jid);
     res.json({ ok: true, messageId: result?.key?.id, session: s.id });
   } catch (err) { res.status(500).json({ error: err.message }); }

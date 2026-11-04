@@ -3,9 +3,11 @@
 //   e os disparos manuais agendados.
 // - action "preview" (login): monta destinatários e mensagens de uma automação, sem enviar.
 // - action "test" (login): envia a mensagem de exemplo para um telefone de teste.
+// - action "flow_test" (login): roda um fluxo do WhatsApp (/fluxos-whatsapp) num telefone de teste.
 // As mensagens saem pelo servidor WhatsApp da INOVA (WA_SERVER_URL / WA_API_KEY) e ficam em wa_automation_logs.
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { recordMessage, upsertConversation } from "../_shared/crm.ts";
+import { runDueFlows, startFlow } from "../_shared/flows.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -736,13 +738,29 @@ Deno.serve(async (req) => {
       }
       const followUps = await runFollowUps(admin);
       const teamReminders = await runTeamReminders(admin);
-      return json({ ran: results, follow_ups: followUps, team_reminders: teamReminders });
+      const flows = await runDueFlows(admin);
+      return json({ ran: results, follow_ups: followUps, team_reminders: teamReminders, flows });
     }
 
     // Prévia e teste: só para quem está logado na plataforma
     const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     const { data: user } = await admin.auth.getUser(token);
     if (!user?.user) return json({ error: "Faça login na plataforma" }, 401);
+
+    // Fluxos do WhatsApp: testar um fluxo num telefone (começa do primeiro passo, mesmo desligado)
+    if (action === "flow_test") {
+      const phone = phoneOf(body.to);
+      if (!phone) return json({ error: "Informe um telefone válido para o teste" }, 400);
+      const { data: flow } = await admin.from("wa_flows").select("*").eq("id", body.flow_id).maybeSingle();
+      if (!flow) return json({ error: "Salve o fluxo antes de testar" }, 404);
+      // Teste anterior ainda aberto neste telefone: encerra para começar do zero
+      await admin.from("wa_flow_runs").update({ status: "parado", last_error: "Novo teste" }).eq("phone", phone).in("status", ["ativo", "aguardando", "executando"]);
+      const { data: num } = await admin.from("wa_numbers").select("id").eq("is_default", true).limit(1).maybeSingle();
+      const work = startFlow(admin, flow, { phone, session: flow.session_id || num?.id || "default", name: "Teste", leadId: null });
+      const runtime = (globalThis as any).EdgeRuntime;
+      if (runtime?.waitUntil) runtime.waitUntil(work.catch((e: Error) => console.error("flow test", e))); else await work;
+      return json({ ok: true });
+    }
 
     const { data: a } = await admin.from("wa_automations").select("*").eq("id", body.automation_id).maybeSingle();
     // Permite prévia de uma automação ainda não salva (rascunho vindo do editor)
