@@ -1,8 +1,9 @@
-// Assistente da plataforma no WhatsApp: o admin manda uma pergunta para o número da INOVA e recebe a resposta
-// com os dados da plataforma (tarefas, clientes, CRM, financeiro, gravações, equipe). Só leitura: não altera nada.
-// Chamado pelo wa-inbound quando a mensagem vem do WhatsApp de um admin (Funcionários → WhatsApp).
+// Assistente da plataforma no WhatsApp: responde só no grupo escolhido em Administração → Assistente do WhatsApp.
+// Consulta os dados (tarefas, clientes, CRM, financeiro, gravações, equipe) e, se permitido, executa ações
+// (criar/mover card, lead, gravação, gasto, fatura paga, aviso do kanban). Entende texto e áudio. Nunca apaga nada.
+// Chamado pelo wa-inbound; cada pedido fica em wa_assistant_log.
 // deno-lint-ignore-file no-explicit-any
-import { phoneKey } from "./crm.ts";
+import { createLead } from "./crm.ts";
 
 const DONE = /postado|publicado|conclu|programado|finalizado|arquivad/i;
 const spNow = () => new Date(Date.now() - 3 * 3_600_000);
@@ -11,18 +12,6 @@ const brl = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigi
 const like = (s: string) => `%${s.trim().replace(/[%_,()]/g, " ")}%`;
 const dateOf = (t: any) => String(t.post_date || t.due_date || "");
 const people = (t: any) => [t.assignee, t.copywriter, t.script_writer, t.editor, t.videomaker, t.director].filter(Boolean).join(", ");
-
-/** É o WhatsApp de um admin? Compara DDD + 8 últimos dígitos com o WhatsApp do cadastro. */
-export async function adminByPhone(admin: any, phone: string): Promise<{ id: string; name: string } | null> {
-  const key = phoneKey(phone);
-  if (!key) return null;
-  const { data: roles } = await admin.from("user_roles").select("user_id").eq("role", "admin");
-  const ids = (roles ?? []).map((r: any) => r.user_id);
-  if (!ids.length) return null;
-  const { data: profs } = await admin.from("profiles").select("id, full_name, whatsapp").in("id", ids);
-  const p = (profs ?? []).find((x: any) => phoneKey(x.whatsapp) === key);
-  return p ? { id: p.id, name: String(p.full_name || "") } : null;
-}
 
 async function clientIds(admin: any, name?: string) {
   if (!name?.trim()) return null;
@@ -197,44 +186,236 @@ const TOOLS: Record<string, { description: string; parameters: Record<string, un
   },
 };
 
+// ─── Ações (escrevem na plataforma) ───────────────────────────────────────────
+// Mesmo nome do kanban na tela → valor gravado no banco (src/lib/taskStatus.ts)
+const UI_TO_DB: Record<string, string> = {
+  "Ideias / Backlog": "A fazer", "Em Copy": "Em copy", "Em Direção": "Em direção", "Em Gravação": "Em gravação", "Em Edição": "Em edição",
+};
+const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+async function stageNamed(admin: any, board: "tasks" | "crm", name: string) {
+  const { data } = await admin.from("kanban_stages").select("name").eq("board", board).order("position");
+  const list = ((data ?? []) as { name: string }[]).map((x) => x.name);
+  const hit = list.find((x) => norm(x) === norm(name)) ?? list.find((x) => norm(x).includes(norm(name)));
+  return { hit: hit ?? null, list };
+}
+
+async function oneClient(admin: any, name: string) {
+  const cs = (await clientIds(admin, name)) ?? [];
+  const exact = cs.find((c) => norm(c.company_name) === norm(name));
+  if (exact || cs.length === 1) return { client: exact ?? cs[0] };
+  return { erro: cs.length ? `Mais de um cliente com "${name}": ${cs.map((c) => c.company_name).join(", ")}. Qual?` : `Nenhum cliente com "${name}".` };
+}
+
+const DATE = { type: "string", description: "AAAA-MM-DD (converta 'amanhã', 'sexta' etc. para a data)" };
+const ACTIONS: typeof TOOLS = {
+  criar_tarefa: {
+    description: "Cria um card no kanban de tarefas.",
+    parameters: {
+      type: "object", required: ["titulo", "cliente"],
+      properties: {
+        titulo: { type: "string" }, cliente: { type: "string" }, tipo: { type: "string", enum: ["video", "arte"] },
+        responsavel: { type: "string" }, entrega: DATE, data_postar: DATE, hora_postar: { type: "string", description: "HH:MM" },
+        etapa: { type: "string" }, descricao: { type: "string" },
+      },
+    },
+    run: async (admin, a) => {
+      const c = await oneClient(admin, a.cliente);
+      if (!c.client) return { erro: c.erro };
+      let status = "A fazer";
+      if (a.etapa) { const st = await stageNamed(admin, "tasks", a.etapa); if (!st.hit) return { erro: `Etapa "${a.etapa}" não existe. Etapas: ${st.list.join(", ")}` }; status = UI_TO_DB[st.hit] ?? st.hit; }
+      const { data, error } = await admin.from("tasks").insert({
+        title: a.titulo, video_name: a.titulo, client_id: c.client.id, task_type: a.tipo || "video", priority: "media", status,
+        assignee: a.responsavel || "", description: a.descricao || "", due_date: a.entrega || null, post_date: a.data_postar || null,
+        post_time: a.hora_postar || null,
+      }).select("id").single();
+      if (error) return { erro: error.message };
+      return { ok: true, resumo: `Card "${a.titulo}" criado para ${c.client.company_name}`, id: data.id };
+    },
+  },
+
+  atualizar_tarefa: {
+    description: "Muda um card existente: etapa (mover), responsável, data/hora de postar ou entrega. Ache o card pelo título.",
+    parameters: {
+      type: "object", required: ["busca"],
+      properties: {
+        busca: { type: "string", description: "Parte do título do card" }, cliente: { type: "string" },
+        etapa: { type: "string" }, responsavel: { type: "string" }, data_postar: DATE, hora_postar: { type: "string" }, entrega: DATE,
+      },
+    },
+    run: async (admin, a) => {
+      let q = admin.from("tasks").select("id, title, video_name, status, client_id").is("deleted_at", null)
+        .or(`title.ilike.${like(a.busca)},video_name.ilike.${like(a.busca)}`).order("updated_at", { ascending: false }).limit(10);
+      if (a.cliente) { const cs = (await clientIds(admin, a.cliente)) ?? []; if (!cs.length) return { erro: `Nenhum cliente com "${a.cliente}"` }; q = q.in("client_id", cs.map((c) => c.id)); }
+      const { data } = await q;
+      const open = (data ?? []).filter((t: any) => !DONE.test(String(t.status)));
+      const found = open.length ? open : (data ?? []);
+      if (found.length !== 1) return { erro: found.length ? `Achei ${found.length} cards: ${found.map((t: any) => `"${t.video_name || t.title}"`).join(", ")}. Qual?` : `Nenhum card com "${a.busca}".` };
+      const t = found[0];
+      const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      if (a.etapa) { const st = await stageNamed(admin, "tasks", a.etapa); if (!st.hit) return { erro: `Etapa "${a.etapa}" não existe. Etapas: ${st.list.join(", ")}` }; patch.status = UI_TO_DB[st.hit] ?? st.hit; }
+      if (a.responsavel) patch.assignee = a.responsavel;
+      if (a.data_postar) patch.post_date = a.data_postar;
+      if (a.hora_postar) patch.post_time = a.hora_postar;
+      if (a.entrega) patch.due_date = a.entrega;
+      const { error } = await admin.from("tasks").update(patch).eq("id", t.id);
+      if (error) return { erro: error.message };
+      return { ok: true, resumo: `Card "${t.video_name || t.title}" atualizado (${Object.keys(patch).filter((k) => k !== "updated_at").join(", ")})` };
+    },
+  },
+
+  criar_lead: {
+    description: "Cadastra um lead novo no CRM (entra na primeira etapa e no rodízio de vendedores).",
+    parameters: { type: "object", required: ["nome"], properties: { nome: { type: "string" }, empresa: { type: "string" }, telefone: { type: "string" }, observacao: { type: "string" } } },
+    run: async (admin, a) => {
+      const lead = await createLead(admin, { name: a.nome, company: a.empresa || "", phone: a.telefone ? String(a.telefone).replace(/\D/g, "") : null, source: "Assistente WhatsApp", notes: a.observacao || "" });
+      return { ok: true, resumo: `Lead ${a.nome}${a.empresa ? ` (${a.empresa})` : ""} criado, com ${lead.assignee || "a equipe"}` };
+    },
+  },
+
+  mover_lead: {
+    description: "Muda a etapa de um lead do CRM.",
+    parameters: { type: "object", required: ["busca", "etapa"], properties: { busca: { type: "string", description: "Nome ou empresa" }, etapa: { type: "string" } } },
+    run: async (admin, a) => {
+      const { data } = await admin.from("leads").select("id, name, company").or(`name.ilike.${like(a.busca)},company.ilike.${like(a.busca)}`).limit(6);
+      if ((data ?? []).length !== 1) return { erro: data?.length ? `Achei ${data.length} leads: ${data.map((l: any) => l.company || l.name).join(", ")}. Qual?` : `Nenhum lead com "${a.busca}".` };
+      const st = await stageNamed(admin, "crm", a.etapa);
+      if (!st.hit) return { erro: `Etapa "${a.etapa}" não existe. Etapas: ${st.list.join(", ")}` };
+      const { error } = await admin.from("leads").update({ stage: st.hit, updated_at: new Date().toISOString() }).eq("id", data[0].id);
+      if (error) return { erro: error.message };
+      return { ok: true, resumo: `Lead ${data[0].company || data[0].name} movido para ${st.hit}` };
+    },
+  },
+
+  agendar_gravacao: {
+    description: "Agenda uma gravação na agenda de gravações.",
+    parameters: {
+      type: "object", required: ["cliente", "data"],
+      properties: { cliente: { type: "string" }, data: DATE, hora: { type: "string", description: "HH:MM" }, hora_fim: { type: "string" }, local: { type: "string" }, titulo: { type: "string" } },
+    },
+    run: async (admin, a) => {
+      const c = await oneClient(admin, a.cliente);
+      if (!c.client) return { erro: c.erro };
+      const { error } = await admin.from("shooting_schedules").insert({
+        title: a.titulo || `Gravação ${c.client.company_name}`, client_id: c.client.id, shooting_date: a.data,
+        start_time: a.hora || null, end_time: a.hora_fim || null, location: a.local || "",
+      });
+      if (error) return { erro: error.message };
+      return { ok: true, resumo: `Gravação de ${c.client.company_name} em ${a.data}${a.hora ? ` às ${a.hora}` : ""}` };
+    },
+  },
+
+  registrar_gasto: {
+    description: "Lança um gasto da INOVA (Dashboard → Gastos).",
+    parameters: { type: "object", required: ["valor", "descricao"], properties: { valor: { type: "number" }, descricao: { type: "string" }, categoria: { type: "string" }, data: DATE } },
+    run: async (admin, a) => {
+      const day = a.data || spDay();
+      const row = { type: "gasto", amount: Number(a.valor), description: a.descricao, category: a.categoria || "Outros", month_ref: `${day.slice(0, 7)}-01`, spent_on: day, recurring: false };
+      let { error } = await admin.from("expenses").insert(row);
+      if (error && /spent_on|recurring/.test(error.message)) { const { spent_on: _d, recurring: _r, ...rest } = row; ({ error } = await admin.from("expenses").insert(rest)); }
+      if (error) return { erro: error.message };
+      return { ok: true, resumo: `Gasto de ${brl(Number(a.valor))} (${a.descricao})` };
+    },
+  },
+
+  marcar_fatura_paga: {
+    description: "Marca como paga a fatura pendente mais antiga de um cliente.",
+    parameters: { type: "object", required: ["cliente"], properties: { cliente: { type: "string" }, valor: { type: "number", description: "Para escolher a fatura certa se houver várias" } } },
+    run: async (admin, a) => {
+      let q = admin.from("invoices").select("id, client_name, amount, due_date").eq("status", "pendente").ilike("client_name", like(a.cliente)).order("due_date").limit(5);
+      if (a.valor) q = q.eq("amount", a.valor);
+      const { data } = await q;
+      if (!data?.length) return { erro: `Nenhuma fatura pendente de "${a.cliente}".` };
+      const inv = data[0];
+      const { error } = await admin.from("invoices").update({ status: "pago", paid_at: new Date().toISOString() }).eq("id", inv.id);
+      if (error) return { erro: error.message };
+      return { ok: true, resumo: `Fatura de ${inv.client_name} (${brl(Number(inv.amount))}, venc. ${inv.due_date}) marcada como paga` };
+    },
+  },
+
+  publicar_aviso: {
+    description: "Publica um aviso no topo do kanban de todo mundo.",
+    parameters: {
+      type: "object", required: ["titulo"],
+      properties: { titulo: { type: "string" }, mensagem: { type: "string" }, tom: { type: "string", enum: ["destaque", "aviso", "urgente"] }, ate: DATE },
+    },
+    run: async (admin, a) => {
+      const { error } = await admin.from("kanban_notices").insert({ title: a.titulo, message: a.mensagem || "", tone: a.tom || "destaque", ends_on: a.ate || null, created_by: "Assistente WhatsApp" });
+      if (error) return { erro: error.message };
+      return { ok: true, resumo: `Aviso "${a.titulo}" publicado no kanban` };
+    },
+  },
+};
+
 const SYSTEM = (name: string) => `Você é o assistente da plataforma da INOVA (agência de marketing e produtora), respondendo pelo WhatsApp para ${name || "o admin"}.
 Hoje é ${spDay()} (horário de Brasília).
 - Use as ferramentas para buscar os dados; nunca invente números, nomes ou datas. Se a ferramenta não trouxer, diga que não achou.
 - Responda em português, curto e direto, no formato do WhatsApp: *negrito* com um asterisco, listas com "•", sem tabelas e sem markdown de títulos.
 - Comece pela resposta (o número ou o nome), depois o detalhe. No máximo uns 15 itens; se tiver mais, diga quantos faltam.
-- Datas no formato dd/mm. Você só consulta: não consegue criar, editar ou enviar nada; se pedirem, explique e diga onde fazer na plataforma.`;
+- Datas no formato dd/mm.`;
+const RULES_ACTIONS = `
+- Você pode executar ações com as ferramentas de ação. Só execute o que foi pedido claramente; se faltar um dado obrigatório ou a ferramenta pedir para escolher, pergunte em uma linha.
+- Depois de executar, confirme em uma linha o que foi feito. Você não apaga nada e não manda mensagem para clientes.`;
+const RULES_READONLY = `
+- Você só consulta: ações estão desligadas em Administração → Assistente do WhatsApp. Se pedirem uma ação, diga isso e onde fazer na plataforma.`;
 
-/** Responde a pergunta usando as ferramentas (até 5 rodadas de consulta). */
-export async function answerQuestion(admin: any, question: string, askerName: string): Promise<string> {
+export type AssistantInput = { text: string; audio?: { base64: string; mimetype: string } | null };
+export type AssistantAction = { tool: string; ok: boolean; resumo: string };
+
+/** Responde o pedido (texto ou áudio) usando as ferramentas, em até 6 rodadas. Devolve a resposta e as ações feitas. */
+export async function answerQuestion(admin: any, input: AssistantInput, askerName: string, allowActions: boolean): Promise<{ answer: string; actions: AssistantAction[] }> {
+  const actions: AssistantAction[] = [];
   const key = Deno.env.get("LOVABLE_API_KEY");
-  if (!key) return "O assistente não está configurado (falta a chave LOVABLE_API_KEY no Lovable).";
-  const tools = Object.entries(TOOLS).map(([name, t]) => ({ type: "function", function: { name, description: t.description, parameters: t.parameters } }));
-  const messages: any[] = [{ role: "system", content: SYSTEM(askerName) }, { role: "user", content: question }];
+  if (!key) return { answer: "O assistente não está configurado (falta a chave LOVABLE_API_KEY no Lovable).", actions };
+  const all = allowActions ? { ...TOOLS, ...ACTIONS } : TOOLS;
+  const tools = Object.entries(all).map(([name, t]) => ({ type: "function", function: { name, description: t.description, parameters: t.parameters } }));
+  const user = input.audio
+    ? [{ type: "text", text: "Pedido por áudio (ouça e atenda):" }, { type: "input_audio", input_audio: { data: input.audio.base64, format: input.audio.mimetype.includes("mpeg") ? "mp3" : "ogg" } }]
+    : input.text;
+  const messages: any[] = [{ role: "system", content: SYSTEM(askerName) + (allowActions ? RULES_ACTIONS : RULES_READONLY) }, { role: "user", content: user }];
+  const done = (answer: string) => ({ answer, actions });
 
-  for (let round = 0; round < 5; round++) {
+  for (let round = 0; round < 6; round++) {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, tools }),
     });
-    if (res.status === 429) return "Muitas perguntas seguidas. Tente de novo em um minuto.";
-    if (res.status === 402) return "Os créditos de IA do Lovable acabaram. Adicione créditos no workspace para eu voltar a responder.";
-    if (!res.ok) return `Não consegui consultar a IA agora (erro ${res.status}).`;
+    if (res.status === 429) return done("Muitos pedidos seguidos. Tente de novo em um minuto.");
+    if (res.status === 402) return done("Os créditos de IA do Lovable acabaram. Adicione créditos no workspace para eu voltar a responder.");
+    if (!res.ok) {
+      console.error("assistant gateway", res.status, await res.text().catch(() => ""));
+      return done(input.audio ? "Não consegui ouvir esse áudio. Pode mandar por escrito?" : `Não consegui consultar a IA agora (erro ${res.status}).`);
+    }
     const msg = (await res.json())?.choices?.[0]?.message;
-    if (!msg) return "Não consegui montar a resposta. Tente perguntar de outro jeito.";
+    if (!msg) return done("Não consegui montar a resposta. Tente pedir de outro jeito.");
     const calls = msg.tool_calls ?? [];
-    if (!calls.length) return String(msg.content || "").trim() || "Não achei nada sobre isso na plataforma.";
+    if (!calls.length) return done(String(msg.content || "").trim() || "Não achei nada sobre isso na plataforma.");
     messages.push(msg);
     for (const c of calls) {
-      const tool = TOOLS[c.function?.name];
-      let result: unknown;
+      const name = c.function?.name;
+      const tool = all[name];
+      let result: any;
       try {
         result = tool ? await tool.run(admin, JSON.parse(c.function.arguments || "{}")) : { erro: "Ferramenta desconhecida" };
       } catch (e) { result = { erro: String((e as Error).message) }; }
+      if (name in ACTIONS) actions.push({ tool: name, ok: !!result?.ok, resumo: result?.resumo ?? result?.erro ?? "" });
       messages.push({ role: "tool", tool_call_id: c.id, content: JSON.stringify(result).slice(0, 12000) });
     }
   }
-  return "A pergunta ficou grande demais para uma resposta só. Tente dividir em partes.";
+  return done("O pedido ficou grande demais para uma resposta só. Tente dividir em partes.");
+}
+
+/** Áudio de uma mensagem recente, baixado do servidor do WhatsApp */
+export async function fetchAudio(session: string, messageId: string) {
+  const url = Deno.env.get("WA_SERVER_URL");
+  if (!url) return null;
+  const res = await fetch(`${url}/media/${encodeURIComponent(messageId)}?session=${encodeURIComponent(session)}`, {
+    headers: { "x-api-key": Deno.env.get("WA_API_KEY") ?? "" },
+  });
+  if (!res.ok) return null;
+  const d = await res.json().catch(() => null);
+  return d?.base64 ? { base64: String(d.base64), mimetype: String(d.mimetype || "audio/ogg") } : null;
 }
 
 /** Manda a resposta pelo mesmo número que recebeu a pergunta */

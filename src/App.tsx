@@ -139,6 +139,7 @@ const CommercialTeamPage        = lazy(() => import("./pages/CommercialTeamPage"
 const SquadsPage                = lazy(() => import("./pages/SquadsPage"));
 const TeamRemindersPage         = lazy(() => import("./pages/TeamRemindersPage"));
 const KanbanNoticesPage         = lazy(() => import("./pages/KanbanNoticesPage"));
+const WaAssistantPage           = lazy(() => import("./pages/WaAssistantPage"));
 const HeadPage                  = lazy(() => import("./pages/HeadPage"));
 const ViralRankingPage          = lazy(() => import("./pages/ViralRankingPage"));
 const AppErrorsPage             = lazy(() => import("./pages/AppErrorsPage"));
@@ -337,6 +338,7 @@ function AppRoutes() {
                     <Route path="/squads"              element={<SectionTabs tabs={TEAM_TABS}><SquadsPage /></SectionTabs>} />
                     <Route path="/lembretes-equipe"    element={<TeamRemindersPage />} />
                     <Route path="/avisos-kanban"       element={<KanbanNoticesPage />} />
+                    <Route path="/assistente-whatsapp" element={<WaAssistantPage />} />
                     <Route path="/head"                element={<HeadPage />} />
                     <Route path="/ranking-viral"       element={<ViralRankingPage />} />
                     <Route path="/erros"               element={<AppErrorsPage />} />

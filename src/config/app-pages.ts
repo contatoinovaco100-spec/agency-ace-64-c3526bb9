@@ -130,6 +130,7 @@ export const APP_PAGES: AppPage[] = [
   { path: '/funcionarios',        label: 'Funcionários',        icon: UserCog,         category: 'Administração', adminOnly: true, hidden: true },
   { path: '/squads',              label: 'Squads',              icon: UsersRound,      category: 'Administração', adminOnly: true, hidden: true },
   { path: '/avisos-kanban',       label: 'Avisos do kanban',    icon: Megaphone,       category: 'Administração', adminOnly: true },
+  { path: '/assistente-whatsapp', label: 'Assistente do WhatsApp', icon: Bot,           category: 'Administração', adminOnly: true },
   { path: '/lembretes-equipe',    label: 'Lembretes da equipe', icon: BellRing,        category: 'Administração', adminOnly: true },
   // Sem dados (nenhum post viral importado): fora do menu, rota mantida
   { path: '/ranking-viral',       label: 'Ranking Viral',       icon: Trophy,          category: 'Administração', adminOnly: true, hidden: true },

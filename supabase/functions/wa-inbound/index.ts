@@ -6,7 +6,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   createLead, enroll, findClientByPhone, firstContactStage, lostStage, newLeadStage, findLeadByPhone, normalizePhone, recordMessage, upsertConversation,
 } from "../_shared/crm.ts";
-import { adminByPhone, answerQuestion, replyOnWhatsApp } from "../_shared/assistant.ts";
+import { answerQuestion, fetchAudio, replyOnWhatsApp } from "../_shared/assistant.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -51,6 +51,26 @@ async function prospectReplied(admin: any, phone: string, name: string, session:
   return { leadId: id, sequenceId: (p.prospect_campaigns?.followup_sequence_id ?? null) as string | null };
 }
 
+/** Grupo do assistente (Administração → Assistente do WhatsApp): consulta a plataforma e executa ações por texto ou áudio.
+ *  Roda depois de devolver a resposta ao servidor, para não segurar o repasse das mensagens. */
+async function assistantInGroup(admin: any, session: string, jid: string, sender: string, m: any) {
+  const { data: cfg } = await admin.from("wa_assistant_settings").select("enabled, group_id, session_id, allow_actions").eq("id", 1).maybeSingle();
+  if (!cfg?.enabled || cfg.group_id !== jid || (cfg.session_id && cfg.session_id !== session)) return;
+  const isAudio = m.type === "audio";
+  const text = isAudio ? "" : String(m.text || "").trim();
+  if (!isAudio && !text) return;
+  const work = (async () => {
+    const audio = isAudio ? await fetchAudio(session, String(m.id)) : null;
+    const { answer, actions } = isAudio && !audio
+      ? { answer: "Não consegui baixar esse áudio. Pode mandar de novo ou por escrito?", actions: [] }
+      : await answerQuestion(admin, { text, audio }, sender, cfg.allow_actions !== false);
+    await replyOnWhatsApp(session, jid, answer);
+    await admin.from("wa_assistant_log").insert({ sender, question: isAudio ? "[áudio]" : text, via_audio: isAudio, answer, actions });
+  })().catch((e) => { console.error("assistant error", e); return replyOnWhatsApp(session, jid, "Deu um erro ao consultar a plataforma. Tente de novo."); });
+  const runtime = (globalThis as any).EdgeRuntime;
+  if (runtime?.waitUntil) runtime.waitUntil(work); else await work;
+}
+
 /** Mensagem de grupo: a conversa é o grupo (contact_phone = id …@g.us) e a mensagem leva o nome de quem escreveu.
  *  Não cria lead; o grupo vinculado a um cliente (Clientes → Grupo do WhatsApp) aparece como cliente. */
 async function groupMessage(admin: any, session: string, m: any) {
@@ -65,6 +85,7 @@ async function groupMessage(admin: any, session: string, m: any) {
     at: new Date((Number(m.timestamp) || Date.now() / 1000) * 1000).toISOString(),
   });
   if (!isNew) return { ok: true, duplicate: true };
+  if (!m.fromMe) await assistantInGroup(admin, session, jid, sender, m);
   const patch: Record<string, unknown> = {};
   if (groupName && conv.contact_name !== groupName) patch.contact_name = groupName;
   if (!conv.client_id) {
@@ -96,21 +117,6 @@ Deno.serve(async (req) => {
       direction: fromMe ? "out" : "in", content: String(m.text || ""), type: m.type, wa_message_id: m.id, at,
     });
     if (!isNew) return json({ ok: true, duplicate: true });
-
-    // Pergunta de um admin (WhatsApp do cadastro em Funcionários): o assistente consulta a plataforma e responde.
-    // Roda depois de devolver a resposta ao servidor, para não segurar o repasse das mensagens.
-    const question = String(m.text || "").trim();
-    if (!fromMe && question) {
-      const asker = await adminByPhone(admin, phone);
-      if (asker) {
-        const work = answerQuestion(admin, question, asker.name)
-          .catch((e) => { console.error("assistant error", e); return "Deu um erro ao consultar a plataforma. Tente de novo."; })
-          .then((answer) => replyOnWhatsApp(session, phone, answer));
-        const runtime = (globalThis as any).EdgeRuntime;
-        if (runtime?.waitUntil) runtime.waitUntil(work); else await work;
-        return json({ ok: true, assistant: true });
-      }
-    }
 
     // Nome do contato (o que ele mesmo usa no WhatsApp) e vínculos com lead/cliente
     const patch: Record<string, unknown> = {};

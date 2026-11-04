@@ -12,6 +12,7 @@ import makeWASocket, {
   DisconnectReason,
   fetchLatestBaileysVersion,
   fetchLatestWaWebVersion,
+  downloadMediaMessage,
 } from '@whiskeysockets/baileys';
 
 const PORT = process.env.PORT || 8080;
@@ -157,10 +158,18 @@ async function groupPayload(sessionId, m) {
   return { group: jid, groupName: await groupName(sessionId, jid), phone: phone || '', name: m.pushName || (phone ? nameOf(sessionId, phone) : '') };
 }
 
+// Áudios recentes guardados por id, para a plataforma baixar quando precisar (assistente por voz)
+const recentAudio = new Map();
+function rememberAudio(sessionId, m) {
+  recentAudio.set(`${sessionId}|${m.key.id}`, m);
+  if (recentAudio.size > 300) recentAudio.delete(recentAudio.keys().next().value);
+}
+
 async function forward(sessionId, m) {
   if (!INBOUND_URL) return;
   const content = textOf(m);
   if (!content) return;
+  if (content.type === 'audio') rememberAudio(sessionId, m);
   const base = { session: sessionId, fromMe: !!m.key.fromMe, id: m.key.id, timestamp: Number(m.messageTimestamp || Date.now() / 1000), ...content };
   let body;
   if ((m.key?.remoteJid || '').endsWith('@g.us')) {
@@ -348,6 +357,17 @@ app.get('/groups/:id/participants', auth, async (req, res) => {
       participants.push({ phone, name: nameOf(s.id, phone), admin: !!p.admin });
     }
     res.json({ id: meta.id, name: meta.subject, participants, hidden });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Áudio de uma mensagem recente (base64), para o assistente ouvir comandos de voz
+app.get('/media/:id', auth, async (req, res) => {
+  const s = getSession(req.query.session);
+  const m = recentAudio.get(`${s?.id}|${req.params.id}`);
+  if (!s || !m) return res.status(404).json({ error: 'Áudio não encontrado (só os mais recentes ficam guardados)' });
+  try {
+    const buf = await downloadMediaMessage(m, 'buffer', {}, { logger, reuploadRequest: s.sock.updateMediaMessage });
+    res.json({ mimetype: m.message?.audioMessage?.mimetype || 'audio/ogg', base64: Buffer.from(buf).toString('base64') });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
