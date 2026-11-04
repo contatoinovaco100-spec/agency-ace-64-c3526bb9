@@ -4708,6 +4708,66 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_assistant_log: {
+        Row: {
+          actions: Json
+          answer: string
+          created_at: string
+          id: string
+          question: string
+          sender: string
+          via_audio: boolean
+        }
+        Insert: {
+          actions?: Json
+          answer?: string
+          created_at?: string
+          id?: string
+          question?: string
+          sender?: string
+          via_audio?: boolean
+        }
+        Update: {
+          actions?: Json
+          answer?: string
+          created_at?: string
+          id?: string
+          question?: string
+          sender?: string
+          via_audio?: boolean
+        }
+        Relationships: []
+      }
+      wa_assistant_settings: {
+        Row: {
+          allow_actions: boolean
+          enabled: boolean
+          group_id: string
+          group_name: string
+          id: number
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          allow_actions?: boolean
+          enabled?: boolean
+          group_id?: string
+          group_name?: string
+          id?: number
+          session_id?: string
+          updated_at?: string
+        }
+        Update: {
+          allow_actions?: boolean
+          enabled?: boolean
+          group_id?: string
+          group_name?: string
+          id?: number
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       wa_automation_logs: {
         Row: {
           automation_id: string | null
