@@ -359,11 +359,28 @@ const RULES_ACTIONS = `
 const RULES_READONLY = `
 - Você só consulta: ações estão desligadas em Administração → Assistente do WhatsApp. Se pedirem uma ação, diga isso e onde fazer na plataforma.`;
 
+/** Resposta da IA quando o áudio não começa com a palavra-gatilho: não manda nada no grupo */
+export const IGNORE = "__IGNORAR__";
+const fold = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/** Pedido sem a palavra-gatilho do começo ("Inova, quantos posts..." → "quantos posts..."); "" se não começar com ela.
+ *  Sem gatilho configurado, devolve o texto inteiro. */
+export function stripTrigger(text: string, trigger: string) {
+  const t = text.trim();
+  if (!trigger) return t;
+  const lead = t.match(/^[@/!\s]*/)?.[0].length ?? 0;
+  const head = fold(t.slice(lead, lead + trigger.length));
+  if (head !== fold(trigger)) return "";
+  const rest = t.slice(lead + trigger.length);
+  if (rest && /^[\p{L}\p{N}]/u.test(rest)) return ""; // "inovação" não é "inova"
+  return rest.replace(/^[\s,.:;!?\-–]+/, "").trim();
+}
+
 export type AssistantInput = { text: string; audio?: { base64: string; mimetype: string } | null };
 export type AssistantAction = { tool: string; ok: boolean; resumo: string };
 
 /** Responde o pedido (texto ou áudio) usando as ferramentas, em até 6 rodadas. Devolve a resposta e as ações feitas. */
-export async function answerQuestion(admin: any, input: AssistantInput, askerName: string, allowActions: boolean): Promise<{ answer: string; actions: AssistantAction[] }> {
+export async function answerQuestion(admin: any, input: AssistantInput, askerName: string, allowActions: boolean, trigger = ""): Promise<{ answer: string; actions: AssistantAction[] }> {
   const actions: AssistantAction[] = [];
   const key = Deno.env.get("LOVABLE_API_KEY");
   if (!key) return { answer: "O assistente não está configurado (falta a chave LOVABLE_API_KEY no Lovable).", actions };
@@ -372,7 +389,11 @@ export async function answerQuestion(admin: any, input: AssistantInput, askerNam
   const user = input.audio
     ? [{ type: "text", text: "Pedido por áudio (ouça e atenda):" }, { type: "input_audio", input_audio: { data: input.audio.base64, format: input.audio.mimetype.includes("mpeg") ? "mp3" : "ogg" } }]
     : input.text;
-  const messages: any[] = [{ role: "system", content: SYSTEM(askerName) + (allowActions ? RULES_ACTIONS : RULES_READONLY) }, { role: "user", content: user }];
+  // Áudio: a IA confere o gatilho ao ouvir; sem ele, devolve IGNORE e nada é enviado
+  const audioRule = input.audio && trigger
+    ? `\n- O pedido veio por áudio. Se a fala NÃO começar com a palavra "${trigger}", não faça nada e responda exatamente ${IGNORE}.`
+    : "";
+  const messages: any[] = [{ role: "system", content: SYSTEM(askerName) + (allowActions ? RULES_ACTIONS : RULES_READONLY) + audioRule }, { role: "user", content: user }];
   const done = (answer: string) => ({ answer, actions });
 
   for (let round = 0; round < 6; round++) {
@@ -390,7 +411,8 @@ export async function answerQuestion(admin: any, input: AssistantInput, askerNam
     const msg = (await res.json())?.choices?.[0]?.message;
     if (!msg) return done("Não consegui montar a resposta. Tente pedir de outro jeito.");
     const calls = msg.tool_calls ?? [];
-    if (!calls.length) return done(String(msg.content || "").trim() || "Não achei nada sobre isso na plataforma.");
+    const content = String(msg.content || "").trim();
+    if (!calls.length) return done(content.includes(IGNORE) ? IGNORE : content || "Não achei nada sobre isso na plataforma.");
     messages.push(msg);
     for (const c of calls) {
       const name = c.function?.name;

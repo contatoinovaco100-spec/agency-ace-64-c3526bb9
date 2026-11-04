@@ -6,7 +6,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   createLead, enroll, findClientByPhone, firstContactStage, lostStage, newLeadStage, findLeadByPhone, normalizePhone, recordMessage, upsertConversation,
 } from "../_shared/crm.ts";
-import { answerQuestion, fetchAudio, replyOnWhatsApp } from "../_shared/assistant.ts";
+import { IGNORE, answerQuestion, fetchAudio, replyOnWhatsApp, stripTrigger } from "../_shared/assistant.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -54,16 +54,19 @@ async function prospectReplied(admin: any, phone: string, name: string, session:
 /** Grupo do assistente (Administração → Assistente do WhatsApp): consulta a plataforma e executa ações por texto ou áudio.
  *  Roda depois de devolver a resposta ao servidor, para não segurar o repasse das mensagens. */
 async function assistantInGroup(admin: any, session: string, jid: string, sender: string, m: any) {
-  const { data: cfg } = await admin.from("wa_assistant_settings").select("enabled, group_id, session_id, allow_actions").eq("id", 1).maybeSingle();
+  const { data: cfg } = await admin.from("wa_assistant_settings").select("*").eq("id", 1).maybeSingle();
   if (!cfg?.enabled || cfg.group_id !== jid || (cfg.session_id && cfg.session_id !== session)) return;
+  const trigger = String(cfg.trigger_word ?? "").trim();
   const isAudio = m.type === "audio";
-  const text = isAudio ? "" : String(m.text || "").trim();
+  // Texto sem a palavra-gatilho no começo é conversa do grupo: ignora (o áudio é conferido pela IA ao ouvir)
+  const text = isAudio ? "" : stripTrigger(String(m.text || ""), trigger);
   if (!isAudio && !text) return;
   const work = (async () => {
     const audio = isAudio ? await fetchAudio(session, String(m.id)) : null;
     const { answer, actions } = isAudio && !audio
       ? { answer: "Não consegui baixar esse áudio. Pode mandar de novo ou por escrito?", actions: [] }
-      : await answerQuestion(admin, { text, audio }, sender, cfg.allow_actions !== false);
+      : await answerQuestion(admin, { text, audio }, sender, cfg.allow_actions !== false, trigger);
+    if (answer === IGNORE) return;
     await replyOnWhatsApp(session, jid, answer);
     await admin.from("wa_assistant_log").insert({ sender, question: isAudio ? "[áudio]" : text, via_audio: isAudio, answer, actions });
   })().catch((e) => { console.error("assistant error", e); return replyOnWhatsApp(session, jid, "Deu um erro ao consultar a plataforma. Tente de novo."); });

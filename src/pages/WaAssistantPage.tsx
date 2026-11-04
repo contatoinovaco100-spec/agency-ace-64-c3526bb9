@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 // Tabelas novas, ainda fora dos tipos gerados do Supabase
 const table = (t: string) => (supabase.from as unknown as (t: string) => ReturnType<typeof supabase.from>)(t);
 
-type Settings = { enabled: boolean; session_id: string; group_id: string; group_name: string; allow_actions: boolean };
+type Settings = { enabled: boolean; session_id: string; group_id: string; group_name: string; allow_actions: boolean; trigger_word: string };
 type WaNumber = { id: string; name: string; is_default: boolean };
 type LogRow = { id: string; sender: string; question: string; via_audio: boolean; answer: string; actions: { tool: string; ok: boolean; resumo: string }[]; created_at: string };
 
@@ -30,11 +30,13 @@ export default function WaAssistantPage() {
   const [groups, setGroups] = useState<{ id: string; name: string }[] | null>(null);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [q, setQ] = useState('');
+  const [trigger, setTrigger] = useState('inova');
 
   const load = async () => {
     const { data, error } = await table('wa_assistant_settings').select('*').eq('id', 1).maybeSingle();
     if (error) { setState('missing'); return; }
-    setSettings((data ?? { enabled: false, session_id: '', group_id: '', group_name: '', allow_actions: true }) as unknown as Settings);
+    setSettings({ enabled: false, session_id: '', group_id: '', group_name: '', allow_actions: true, trigger_word: 'inova', ...(data ?? {}) } as Settings);
+    setTrigger(String((data as { trigger_word?: string } | null)?.trigger_word ?? 'inova'));
     const { data: l } = await table('wa_assistant_log').select('*').order('created_at', { ascending: false }).limit(30);
     setLog((l ?? []) as unknown as LogRow[]);
     setState('ready');
@@ -50,7 +52,10 @@ export default function WaAssistantPage() {
     const next = { ...settings, ...patch };
     setSettings(next);
     const { error } = await table('wa_assistant_settings').upsert({ id: 1, ...next, updated_at: new Date().toISOString() } as never);
-    if (error) { toast.error('Não foi possível salvar', { description: error.message }); load(); }
+    if (error) {
+      toast.error('Não foi possível salvar', { description: /trigger_word/.test(error.message) ? 'Falta aplicar a migração 20261103180000_wa_assistant_trigger.' : error.message });
+      load();
+    }
   };
 
   const session = settings?.session_id || numbers.find((n) => n.is_default)?.id || numbers[0]?.id || '';
@@ -129,6 +134,18 @@ export default function WaAssistantPage() {
               </Button>
             </div>
 
+            <div className="space-y-1.5">
+              <label htmlFor="assistant-trigger" className="text-sm font-medium text-foreground">Palavra-gatilho</label>
+              <Input id="assistant-trigger" value={trigger} maxLength={30} placeholder="Ex.: inova"
+                onChange={(e) => setTrigger(e.target.value)}
+                onBlur={() => { const t = trigger.trim(); if (t !== settings.trigger_word) save({ trigger_word: t }); }} />
+              <p className="text-xs text-muted-foreground">
+                {settings.trigger_word
+                  ? <>Ele só responde mensagens e áudios que começam com "<strong className="font-medium text-foreground">{settings.trigger_word}</strong>". O resto da conversa no grupo ele ignora.</>
+                  : 'Sem palavra-gatilho ele responde toda mensagem do grupo.'}
+              </p>
+            </div>
+
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="font-semibold text-foreground">Pode executar ações</p>
@@ -143,12 +160,12 @@ export default function WaAssistantPage() {
               <div key={ex.kind} className="rounded-xl border bg-card p-4">
                 <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{ex.kind}</p>
                 <ul className="space-y-1.5 text-sm text-foreground">
-                  {ex.items.map((i) => <li key={i}>"{i}"</li>)}
+                  {ex.items.map((i) => <li key={i}>"{settings.trigger_word ? `${settings.trigger_word[0].toUpperCase()}${settings.trigger_word.slice(1)}, ${i[0].toLowerCase()}${i.slice(1)}` : i}"</li>)}
                 </ul>
               </div>
             ))}
             <p className="flex items-center gap-2 text-xs text-muted-foreground md:col-span-2">
-              <Mic className="h-3.5 w-3.5" /> Também funciona com áudio: grave o pedido no grupo e ele responde por escrito.
+              <Mic className="h-3.5 w-3.5" /> Também funciona com áudio: comece falando {settings.trigger_word ? `"${settings.trigger_word}"` : 'o pedido'} e ele responde por escrito.
             </p>
           </section>
 
