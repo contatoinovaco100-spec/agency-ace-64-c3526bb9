@@ -6,6 +6,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   createLead, enroll, findClientByPhone, firstContactStage, lostStage, newLeadStage, findLeadByPhone, normalizePhone, recordMessage, upsertConversation,
 } from "../_shared/crm.ts";
+import { adminByPhone, answerQuestion, replyOnWhatsApp } from "../_shared/assistant.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -95,6 +96,21 @@ Deno.serve(async (req) => {
       direction: fromMe ? "out" : "in", content: String(m.text || ""), type: m.type, wa_message_id: m.id, at,
     });
     if (!isNew) return json({ ok: true, duplicate: true });
+
+    // Pergunta de um admin (WhatsApp do cadastro em Funcionários): o assistente consulta a plataforma e responde.
+    // Roda depois de devolver a resposta ao servidor, para não segurar o repasse das mensagens.
+    const question = String(m.text || "").trim();
+    if (!fromMe && question) {
+      const asker = await adminByPhone(admin, phone);
+      if (asker) {
+        const work = answerQuestion(admin, question, asker.name)
+          .catch((e) => { console.error("assistant error", e); return "Deu um erro ao consultar a plataforma. Tente de novo."; })
+          .then((answer) => replyOnWhatsApp(session, phone, answer));
+        const runtime = (globalThis as any).EdgeRuntime;
+        if (runtime?.waitUntil) runtime.waitUntil(work); else await work;
+        return json({ ok: true, assistant: true });
+      }
+    }
 
     // Nome do contato (o que ele mesmo usa no WhatsApp) e vínculos com lead/cliente
     const patch: Record<string, unknown> = {};
