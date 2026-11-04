@@ -545,6 +545,8 @@ async function sendWhatsApp(to: string, message: string, session?: string | null
 }
 
 // ─── Follow-up do CRM: manda o passo da sequência na hora certa ──────────────
+/** Intervalo entre dois passos ("dia 2" → "dia 5" = 3 dias); passos no mesmo dia ficam 1 h separados */
+const gapMs = (fromDay: number, toDay: number) => Math.max(Number(toDay) - Number(fromDay), 0) * DAY || 60 * 60 * 1000;
 async function runFollowUps(admin: SupabaseClient) {
   const { data: due } = await admin.from("crm_enrollments")
     .select("*, crm_sequences(*), leads(id, name, company, phone, telefone, assignee, owner_id, whatsapp_session, stage)")
@@ -565,6 +567,16 @@ async function runFollowUps(admin: SupabaseClient) {
     const steps = (seq.steps ?? []) as { day: number; message: string }[];
     const step = steps[e.step_index];
     if (!step) { await stop("concluido"); continue; }
+    // Respeita o intervalo desde a mensagem anterior (updated_at = quando ela saiu). Corrige também quem já estava
+    // na fila com o horário errado (antes um passo atrasado puxava os outros para o mesmo dia).
+    const prev = steps[e.step_index - 1];
+    if (prev) {
+      const earliest = new Date(e.updated_at ?? e.created_at).getTime() + gapMs(prev.day, step.day);
+      if (earliest > Date.now()) {
+        await admin.from("crm_enrollments").update({ next_at: new Date(earliest).toISOString() }).eq("id", e.id);
+        continue;
+      }
+    }
     const phone = phoneOf(lead.phone || lead.telefone);
     if (!phone) { await stop("erro", "Lead sem telefone"); continue; }
 
@@ -573,9 +585,8 @@ async function runFollowUps(admin: SupabaseClient) {
       || numbers?.find((n) => n.owner_id && n.owner_id === lead.owner_id)?.id
       || numbers?.find((n) => n.is_default)?.id || "default";
     const next = steps[e.step_index + 1];
-    const nextAt = next
-      ? new Date(Math.max(new Date(e.created_at).getTime() + Number(next.day) * DAY, Date.now() + 60 * 60 * 1000)).toISOString()
-      : null;
+    // Próximo passo conta do envio deste (não da entrada no follow-up): mantém os dias entre as mensagens
+    const nextAt = next ? new Date(Date.now() + gapMs(step.day, next.day)).toISOString() : null;
     // Avança antes de enviar: se outra rodada chegar no meio, não duplica
     await admin.from("crm_enrollments").update({
       step_index: e.step_index + 1, next_at: nextAt ?? new Date().toISOString(),
