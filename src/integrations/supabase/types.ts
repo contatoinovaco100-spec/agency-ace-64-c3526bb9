@@ -4951,6 +4951,101 @@ export type Database = {
           },
         ]
       }
+      wa_flow_runs: {
+        Row: {
+          contact_name: string
+          created_at: string
+          current_step: string | null
+          flow_id: string
+          history: Json
+          id: string
+          last_error: string
+          lead_id: string | null
+          next_at: string
+          phone: string
+          session_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          contact_name?: string
+          created_at?: string
+          current_step?: string | null
+          flow_id: string
+          history?: Json
+          id?: string
+          last_error?: string
+          lead_id?: string | null
+          next_at?: string
+          phone: string
+          session_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_name?: string
+          created_at?: string
+          current_step?: string | null
+          flow_id?: string
+          history?: Json
+          id?: string
+          last_error?: string
+          lead_id?: string | null
+          next_at?: string
+          phone?: string
+          session_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_flow_runs_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "wa_flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_flows: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          name: string
+          session_id: string | null
+          steps: Json
+          trigger: string
+          trigger_config: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          name?: string
+          session_id?: string | null
+          steps?: Json
+          trigger?: string
+          trigger_config?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          name?: string
+          session_id?: string | null
+          steps?: Json
+          trigger?: string
+          trigger_config?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       wa_messages: {
         Row: {
           content: string
