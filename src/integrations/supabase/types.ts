@@ -1616,6 +1616,7 @@ export type Database = {
           start_hour: number
           steps: Json
           stop_on_reply: boolean
+          trigger_stage: string | null
           updated_at: string
           weekdays_only: boolean
         }
@@ -1629,6 +1630,7 @@ export type Database = {
           start_hour?: number
           steps?: Json
           stop_on_reply?: boolean
+          trigger_stage?: string | null
           updated_at?: string
           weekdays_only?: boolean
         }
@@ -1642,6 +1644,7 @@ export type Database = {
           start_hour?: number
           steps?: Json
           stop_on_reply?: boolean
+          trigger_stage?: string | null
           updated_at?: string
           weekdays_only?: boolean
         }
