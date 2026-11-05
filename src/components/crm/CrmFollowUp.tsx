@@ -8,12 +8,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { colorClasses, useKanbanStages } from '@/hooks/useKanbanStages';
 import { cn } from '@/lib/utils';
 
 type Step = { day: number; message: string };
 type Sequence = {
   id: string; name: string; steps: Step[]; stop_on_reply: boolean; start_hour: number; end_hour: number;
   weekdays_only: boolean; auto_enroll_new: boolean; active: boolean;
+  /** Etapa do CRM que coloca o lead nesta sequência sozinho (null = só manual) */
+  trigger_stage: string | null;
 };
 type Enrollment = { id: string; lead_id: string; sequence_id: string; step_index: number; next_at: string; status: string; last_error: string; leads?: { name: string; company: string } };
 
@@ -23,8 +27,11 @@ const VARS = [['nome', 'Primeiro nome do lead'], ['empresa', 'Empresa'], ['vende
 
 const empty = (): Partial<Sequence> => ({
   name: '', steps: [{ day: 0, message: '' }, { day: 2, message: '' }], stop_on_reply: true,
-  start_hour: 9, end_hour: 19, weekdays_only: true, auto_enroll_new: false, active: true,
+  start_hour: 9, end_hour: 19, weekdays_only: true, auto_enroll_new: false, active: true, trigger_stage: null,
 });
+const NO_STAGE = '__manual';
+/** Cliente fechado e Perdido não recebem follow-up (o envio para nessas etapas) */
+const followable = (name: string) => !/fechado|perdido/i.test(name);
 
 /** Sequências de follow-up (mensagens em dias definidos, que param quando o lead responde) */
 export function CrmFollowUp() {
@@ -32,6 +39,7 @@ export function CrmFollowUp() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [editing, setEditing] = useState<Partial<Sequence> | null>(null);
   const [missing, setMissing] = useState(false);
+  const { stages } = useKanbanStages('crm');
 
   const load = useCallback(async () => {
     const [{ data, error }, { data: e }] = await Promise.all([
@@ -73,6 +81,33 @@ export function CrmFollowUp() {
         <Button className="shrink-0 gap-1.5" onClick={() => setEditing(empty())}><Plus className="h-4 w-4" /> Nova sequência</Button>
       </div>
 
+      <section className="space-y-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Follow-up por etapa do CRM</h2>
+        <p className="text-xs text-muted-foreground">Quando o lead entra numa etapa, recebe o follow-up dela. Mudou de etapa, o anterior para e começa o da etapa nova.</p>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {stages.filter((st) => followable(st.name)).map((st) => {
+            const linked = seqs.filter((s) => s.trigger_stage === st.name);
+            return (
+              <div key={st.id} className="flex flex-col gap-2 rounded-xl border bg-card p-3">
+                <p className="flex items-center gap-2 text-sm font-medium"><span className={cn('h-2 w-2 rounded-full', colorClasses(st.color).dot)} />{st.name}</p>
+                {linked.length === 0 ? (
+                  <button onClick={() => setEditing({ ...empty(), name: `Follow-up · ${st.name}`, trigger_stage: st.name })}
+                    className="flex items-center gap-1.5 text-left text-xs text-muted-foreground hover:text-foreground">
+                    <Plus className="h-3.5 w-3.5" /> Sem follow-up · criar
+                  </button>
+                ) : linked.map((s) => (
+                  <button key={s.id} onClick={() => setEditing(s)} className="flex items-center gap-2 text-left text-xs hover:text-foreground">
+                    <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', s.active ? 'bg-success' : 'bg-muted-foreground/40')} />
+                    <span className="min-w-0 flex-1 truncate">{s.name}</span>
+                    <span className="shrink-0 text-muted-foreground">{s.steps.length} msg{s.active ? '' : ' · desligada'}</span>
+                  </button>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       <ul className="divide-y overflow-hidden rounded-xl border bg-card">
         {seqs.length === 0 && <li className="p-6 text-center text-sm text-muted-foreground">Nenhuma sequência ainda.</li>}
         {seqs.map((s) => {
@@ -83,6 +118,7 @@ export function CrmFollowUp() {
                 <p className="font-medium">{s.name}</p>
                 <p className="text-xs text-muted-foreground">
                   {s.steps.length} mensagens · dias {s.steps.map((x) => x.day).join(', ')} · {s.start_hour}h às {s.end_hour}h{s.weekdays_only ? ', dias úteis' : ''}
+                  {s.trigger_stage ? ` · entra quem chega em ${s.trigger_stage}` : ''}
                   {s.auto_enroll_new ? ' · entra todo lead novo' : ''}
                   {st ? ` · ${st.ativo} em andamento, ${st.respondeu} responderam (${Math.round((st.respondeu / st.total) * 100)}%)` : ''}
                 </p>
@@ -123,6 +159,7 @@ export function CrmFollowUp() {
 
 function SequenceEditor({ seq, onClose, onSaved }: { seq: Partial<Sequence>; onClose: () => void; onSaved: () => void }) {
   const [d, setD] = useState<Partial<Sequence>>(seq);
+  const { stages } = useKanbanStages('crm');
   const set = (p: Partial<Sequence>) => setD((x) => ({ ...x, ...p }));
   const steps = d.steps ?? [];
   const setStep = (i: number, p: Partial<Step>) => set({ steps: steps.map((s, j) => (j === i ? { ...s, ...p } : s)) });
@@ -143,11 +180,30 @@ function SequenceEditor({ seq, onClose, onSaved }: { seq: Partial<Sequence>; onC
       <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
         <div className="border-b p-5">
           <SheetTitle>{d.id ? 'Editar sequência' : 'Nova sequência'}</SheetTitle>
-          <SheetDescription>Cada mensagem sai no dia indicado, contado a partir de quando o lead entra na sequência.</SheetDescription>
+          <SheetDescription>Cada mensagem sai no dia indicado, contado a partir de quando o lead entra na sequência{d.trigger_stage ? ` (quando chega em ${d.trigger_stage})` : ''}.</SheetDescription>
         </div>
         <div className="flex-1 space-y-5 overflow-y-auto p-5">
           <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Nome</Label>
             <Input value={d.name ?? ''} onChange={(e) => set({ name: e.target.value })} placeholder="Ex.: Follow-up de proposta" /></div>
+
+          <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Etapa do CRM</Label>
+            <Select value={d.trigger_stage ?? NO_STAGE} onValueChange={(v) => set({ trigger_stage: v === NO_STAGE ? null : v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_STAGE}>Nenhuma: só quem eu colocar</SelectItem>
+                {stages.filter((st) => followable(st.name)).map((st) => (
+                  <SelectItem key={st.id} value={st.name}>
+                    <span className="flex items-center gap-2"><span className={cn('h-2 w-2 rounded-full', colorClasses(st.color).dot)} />{st.name}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {d.trigger_stage
+                ? `Todo lead que entrar em ${d.trigger_stage} recebe estas mensagens. Se sair da etapa, para.`
+                : 'O lead só entra quando alguém coloca pelo card ou pela conversa.'}
+            </p>
+          </div>
 
           <div className="space-y-3">
             {steps.map((s, i) => (

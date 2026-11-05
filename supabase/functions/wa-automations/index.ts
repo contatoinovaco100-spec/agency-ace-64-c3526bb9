@@ -566,6 +566,8 @@ async function runFollowUps(admin: SupabaseClient) {
     if (seq.weekdays_only && (now.getUTCDay() === 0 || now.getUTCDay() === 6)) continue;
     if (now.getUTCHours() < seq.start_hour || now.getUTCHours() >= seq.end_hour) continue;
     if (/fechado|perdido/i.test(lead.stage ?? "")) { await stop("parado", `Lead em ${lead.stage}`); continue; }
+    // Sequência de etapa: só segue enquanto o lead continua nela
+    if (seq.trigger_stage && seq.trigger_stage !== lead.stage) { await stop("parado", `Lead mudou para ${lead.stage}`); continue; }
     const steps = (seq.steps ?? []) as { day: number; message: string }[];
     const step = steps[e.step_index];
     if (!step) { await stop("concluido"); continue; }
