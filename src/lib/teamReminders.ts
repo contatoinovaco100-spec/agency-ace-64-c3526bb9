@@ -35,3 +35,31 @@ export const phoneOf = (raw?: string | null) => {
   if (d.length < 10) return null;
   return d.length <= 11 ? `55${d}` : d;
 };
+
+/** Modelo pronto "Rotina do coordenador": os blocos do dia e da semana do documento de processo, um lembrete por bloco */
+export type RoutineItem = Pick<TeamReminder, 'title' | 'kind' | 'message' | 'items' | 'weekdays' | 'send_times'>;
+const WEEKDAYS = [1, 2, 3, 4, 5];
+export const COORDINATOR_ROUTINE: RoutineItem[] = [
+  { title: 'Abertura do dia', kind: 'checklist', weekdays: WEEKDAYS, send_times: ['08:30'], message: 'Bom dia, {nome}! Abertura de {dia} (20 min):',
+    items: ['Abrir o Meu Dia e o kanban', 'Ver os atrasados e as entregas de hoje', 'Conferir na agenda as gravações e calls de hoje', 'Ler só os grupos de cliente com urgência'] },
+  { title: 'Daily com o time', kind: 'lembrete', weekdays: WEEKDAYS, send_times: ['08:50'], message: '{nome}, daily de 15 minutos agora: cada um diz o que entrega hoje e o que está travado.', items: [] },
+  { title: 'Coordenação de produção', kind: 'checklist', weekdays: WEEKDAYS, send_times: ['09:05'], message: 'Bloco de produção até 11h30:',
+    items: ['Revisar os cards em Revisão', 'Aprovar ou devolver com comentário', 'Mandar o aprovado para o cliente', 'Dar dono e nova data a cada atraso'] },
+  { title: 'Agenda de amanhã', kind: 'checklist', weekdays: WEEKDAYS, send_times: ['11:30'], message: 'Hora de fechar a agenda de amanhã:',
+    items: ['Confirmar as gravações de amanhã com os clientes', 'Confirmar as calls de amanhã', 'Resolver conflitos de horário', 'Avisar o videomaker'] },
+  { title: 'Preparar os fechamentos', kind: 'checklist', weekdays: WEEKDAYS, send_times: ['13:00'], message: 'Preparação das calls da tarde:',
+    items: ['Ler no CRM o card de cada lead das calls de hoje', 'Montar as propostas', 'Mandar o lembrete "daqui a 1 hora"'] },
+  { title: 'Calls de fechamento', kind: 'lembrete', weekdays: WEEKDAYS, send_times: ['14:00'], message: '{nome}, janela de calls até as 17h. Depois de cada call:',
+    items: ['Trocar a etapa do lead no CRM', 'Anotar dor, objeções, valor e próximo passo', 'Mandar a proposta em até 2 horas'] },
+  { title: 'Follow-up comercial', kind: 'checklist', weekdays: WEEKDAYS, send_times: ['17:00'], message: 'Follow-up de 30 minutos:',
+    items: ['Leads em Proposta enviada sem resposta', 'Leads em Negociação', 'Atualizar as etapas no CRM'] },
+  { title: 'Fechamento do dia', kind: 'checklist', weekdays: WEEKDAYS, send_times: ['17:30'], message: 'Fechando o dia, {nome}:',
+    items: ['Kanban atualizado', 'Nenhum atraso sem nova data', 'Agenda de amanhã pronta', 'Resumo do dia enviado para o dono'] },
+  { title: 'Planejamento da semana', kind: 'checklist', weekdays: [1], send_times: ['09:05'], message: 'Segunda: planejamento da semana (até 10h):',
+    items: ['Todas as entregas da semana com dono e data no kanban', 'Gravações da semana confirmadas', 'Meta de calls da semana definida'] },
+  { title: 'Meio da semana', kind: 'lembrete', weekdays: [3], send_times: ['16:55'], message: '{nome}, o que vai atrasar até sexta? Redistribua, avise o cliente ou ajuste a data hoje.', items: [] },
+  { title: 'Agenda da próxima semana', kind: 'checklist', weekdays: [4], send_times: ['11:30'], message: 'Quinta: agenda da próxima semana:',
+    items: ['Gravações da próxima semana marcadas e confirmadas', 'Calls da próxima semana marcadas'] },
+  { title: 'Revisão da semana', kind: 'checklist', weekdays: [5], send_times: ['16:00'], message: 'Sexta: revisão da semana com o dono. Leve os números:',
+    items: ['Calls feitas e taxa de fechamento', 'Propostas enviadas em até 2 horas', 'Entregas no prazo', 'Atrasados sem nova data (meta: zero)', 'O que muda na próxima semana'] },
+];

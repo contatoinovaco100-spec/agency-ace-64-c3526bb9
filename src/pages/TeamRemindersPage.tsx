@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BellRing, ClipboardList, Copy, Loader2, Pencil, Plus, Send, Trash2, X } from 'lucide-react';
+import { BellRing, ClipboardList, Copy, ListChecks, Loader2, Pencil, Plus, Send, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAgency } from '@/contexts/AgencyContext';
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import {
-  WEEK_ORDER, WEEKDAY_SHORT, emptyReminder, phoneOf, reminderMessage, type ReminderLog, type TeamReminder,
+  COORDINATOR_ROUTINE, WEEK_ORDER, WEEKDAY_SHORT, emptyReminder, phoneOf, reminderMessage, type ReminderLog, type TeamReminder,
 } from '@/lib/teamReminders';
 
 // Tabelas novas, ainda fora dos tipos gerados do Supabase
@@ -37,6 +37,8 @@ export default function TeamRemindersPage() {
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState<TeamReminder | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
+  // Modelo "Rotina do coordenador": para quem e quais blocos criar
+  const [routine, setRoutine] = useState<{ person: string; picked: number[] } | null>(null);
 
   const load = async () => {
     const { data, error } = await table('team_reminders').select('*').order('send_time');
@@ -80,6 +82,23 @@ export default function TeamRemindersPage() {
     }
     toast.success(id ? 'Lembrete atualizado' : 'Lembrete criado');
     setDraft(null); load();
+  };
+
+  const createRoutine = async () => {
+    if (!routine?.person) { toast.error('Escolha quem vai receber a rotina'); return; }
+    const rows = routine.picked.map((i) => COORDINATOR_ROUTINE[i]).map((r) => ({
+      ...r, send_time: r.send_times[0], people: [routine.person], enabled: true, updated_at: new Date().toISOString(),
+    }));
+    if (!rows.length) { toast.error('Escolha pelo menos um bloco'); return; }
+    setSaving(true);
+    const { error } = await table('team_reminders').insert(rows as never);
+    setSaving(false);
+    if (error) {
+      toast.error('Não foi possível criar a rotina', { description: /send_times/.test(error.message) ? 'Falta aplicar a migração 20261103130000_team_reminders_times.' : error.message });
+      return;
+    }
+    toast.success(`Rotina criada: ${rows.length} lembretes para ${nameOf[routine.person] ?? 'a pessoa'}`, { description: 'Cada um pode ser editado ou desligado aqui.' });
+    setRoutine(null); load();
   };
 
   const toggle = async (r: TeamReminder) => {
@@ -126,7 +145,12 @@ export default function TeamRemindersPage() {
       <PageHeader
         title="Lembretes da equipe"
         description="Checklists e lembretes por dia da semana. Saem sozinhos no WhatsApp de cada funcionário no horário marcado."
-        actions={<Button onClick={() => setDraft(emptyReminder())} disabled={state !== 'ready'}><Plus className="mr-2 h-4 w-4" />Novo lembrete</Button>}
+        actions={<>
+          <Button variant="outline" onClick={() => setRoutine({ person: '', picked: COORDINATOR_ROUTINE.map((_, i) => i) })} disabled={state !== 'ready'}>
+            <ListChecks className="mr-2 h-4 w-4" />Rotina do coordenador
+          </Button>
+          <Button onClick={() => setDraft(emptyReminder())} disabled={state !== 'ready'}><Plus className="mr-2 h-4 w-4" />Novo lembrete</Button>
+        </>}
       />
 
       {state === 'loading' && <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
@@ -303,6 +327,55 @@ export default function TeamRemindersPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDraft(null)}>Cancelar</Button>
             <Button onClick={save} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!routine} onOpenChange={(v) => { if (!v) setRoutine(null); }}>
+        <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
+          <DialogHeader><DialogTitle>Rotina do coordenador</DialogTitle></DialogHeader>
+          {routine && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Cria um lembrete por bloco do dia e da semana. Cada um chega no WhatsApp da pessoa no horário, com o checklist do bloco.</p>
+              <div>
+                <Label>Quem recebe</Label>
+                <ul className="mt-1 max-h-40 overflow-y-auto rounded-lg border py-1">
+                  {team.map((m) => (
+                    <li key={m.id}>
+                      <label className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-muted">
+                        <input type="radio" name="routine-person" className="accent-primary" checked={routine.person === m.id} onChange={() => setRoutine({ ...routine, person: m.id })} />
+                        <span className="min-w-0 flex-1 truncate text-foreground">{m.name}</span>
+                        {!phones[m.id] && <span className="text-[10px] text-warning" title="Preencha em Equipe → Funcionários">sem WhatsApp</span>}
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <Label>Blocos</Label>
+                <ul className="mt-1 divide-y rounded-lg border">
+                  {COORDINATOR_ROUTINE.map((r, i) => (
+                    <li key={r.title}>
+                      <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-muted">
+                        <Checkbox checked={routine.picked.includes(i)}
+                          onCheckedChange={() => setRoutine({ ...routine, picked: routine.picked.includes(i) ? routine.picked.filter((x) => x !== i) : [...routine.picked, i] })} />
+                        <span className="w-12 shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{r.send_times[0]}</span>
+                        <span className="min-w-0 flex-1 truncate text-foreground">{r.title}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {r.weekdays.length === 5 ? 'Seg a sex' : r.weekdays.map((d) => WEEKDAY_SHORT[d]).join(', ')}
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRoutine(null)}>Cancelar</Button>
+            <Button onClick={createRoutine} disabled={saving || !routine?.person || !routine.picked.length}>
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Criar {routine?.picked.length ?? 0} lembretes
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
