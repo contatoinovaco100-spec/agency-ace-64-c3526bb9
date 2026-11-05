@@ -41,8 +41,10 @@ export type RoutineItem = Pick<TeamReminder, 'title' | 'kind' | 'message' | 'ite
 const WEEKDAYS = [1, 2, 3, 4, 5];
 export const COORDINATOR_ROUTINE: RoutineItem[] = [
   { title: 'Abertura do dia', kind: 'checklist', weekdays: WEEKDAYS, send_times: ['09:00'], message: 'Bom dia, {nome}! Abertura de {dia} (20 min):',
-    items: ['Abrir o Meu Dia e o kanban', 'Ver os atrasados e as entregas de hoje', 'Conferir na agenda as gravações e calls de venda de hoje', 'Separar 15 min antes de cada call para ler o que já se sabe do lead', 'Ler só os grupos de cliente com urgência'] },
-  { title: 'Coordenação de produção', kind: 'checklist', weekdays: WEEKDAYS, send_times: ['09:20'], message: 'Bloco de produção até 11h30:',
+    items: ['Abrir o Meu Dia e o kanban', 'Ver os atrasados e as entregas de hoje', 'Conferir na agenda as gravações e calls de venda de hoje', 'Separar 15 min antes de cada call para ler o que já se sabe do lead', 'Separar a lista de quem fez call e não fechou', 'Ler só os grupos de cliente com urgência'] },
+  { title: 'Follow-up das calls', kind: 'checklist', weekdays: WEEKDAYS, send_times: ['09:20'], message: '{nome}, hora do follow-up (até 10h): ligue para quem já fez call com você e não fechou.',
+    items: ['Ligar para cada lead da lista', 'Tentar fechar ou marcar a decisão para hoje', 'Mandar o resultado de cada ligação para quem cuida do CRM'] },
+  { title: 'Coordenação de produção', kind: 'checklist', weekdays: WEEKDAYS, send_times: ['10:00'], message: 'Bloco de produção até 11h30:',
     items: ['Ver no kanban o que cada um entrega hoje', 'Destravar quem está parado', 'Cobrar quem está atrasado', 'Dar dono e nova data a cada atraso'] },
   { title: 'Agenda de amanhã', kind: 'checklist', weekdays: WEEKDAYS, send_times: ['11:30'], message: 'Hora de fechar a agenda de amanhã:',
     items: ['Confirmar as gravações de amanhã com os clientes', 'Confirmar as calls de amanhã', 'Resolver conflitos de horário', 'Avisar o videomaker'] },
@@ -52,7 +54,7 @@ export const COORDINATOR_ROUTINE: RoutineItem[] = [
     items: ['As entregas de hoje vão sair no prazo?', 'Resumo das calls de hoje enviado', 'Propostas enviadas em até 2 horas'] },
   { title: 'Fechamento do dia', kind: 'checklist', weekdays: WEEKDAYS, send_times: ['17:30'], message: 'Fechando o dia, {nome}:',
     items: ['Kanban atualizado', 'Nenhum atraso sem nova data', 'Agenda de amanhã pronta', 'Resumo do dia enviado para o dono'] },
-  { title: 'Planejamento da semana', kind: 'checklist', weekdays: [1], send_times: ['09:20'], message: 'Segunda: planejamento da semana (até 10h30):',
+  { title: 'Planejamento da semana', kind: 'checklist', weekdays: [1], send_times: ['10:00'], message: 'Segunda: planejamento da semana (até 11h):',
     items: ['Todas as entregas da semana com dono e data no kanban', 'Gravações da semana confirmadas', 'Meta de calls da semana definida'] },
   { title: 'Meio da semana', kind: 'lembrete', weekdays: [3], send_times: ['16:55'], message: '{nome}, o que vai atrasar até sexta? Redistribua, avise o cliente ou ajuste a data hoje.', items: [] },
   { title: 'Agenda da próxima semana', kind: 'checklist', weekdays: [4], send_times: ['11:30'], message: 'Quinta: agenda da próxima semana:',
